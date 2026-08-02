@@ -68,13 +68,27 @@ mobile capture.
 | (6) Integration | main agent | both branches merged locally, QA's suite runs against the code for the first time — **the verdict** |
 | (7) Merge | **you** | you review the spec CR (spec + code + tests + green verdict) and merge |
 
-**The mental model: MOU → contract.** Intake (1) drafts an **MOU**: it captures
-intent — who wants what, why, and roughly how big — and deliberately binds no
-implementation detail; your gate label just means "worth negotiating for
-real". Spec (2) signs the **contract**: `technical-spec.md` sets enforceable
-terms, and blind QA (4) plus the integration verdict (6) are the enforcement —
-a breach is caught by a party that never saw the code. Small deals
-(`track: fast`) skip the contract and close on the MOU alone.
+**The mental model: owner, contractor, inspector.** The loop is the
+time-honoured commercial structure for buying work you cannot fully watch:
+
+| Stage | Commercial counterpart |
+|---|---|
+| (1) Intake | the **MOU** — intent, scope, roughly how big; no binding terms |
+| (2) Spec + (2a) Q&A | **contract** drafting + negotiation rounds — each open thread a clause you settle |
+| (3) Implementation | performance — the contractor builds |
+| (4) Black-box QA | the third-party inspector writes the acceptance procedure **in advance, from the contract alone** — never visiting the site |
+| (5) Review | site supervision — checks workmanship, not outcomes |
+| (6) Integration | **acceptance** — the procedure meets the finished work for the first time; the verdict |
+| (7) Merge | the owner signs off and the deal closes |
+
+Two structural carry-overs give the verdict its credibility. The acceptance
+procedure is written in parallel with the build, blind — a standard agreed
+after construction, together with the builder, is theatre (the qa branch
+carrying no implementation code enforces this). And a contract ambiguity
+mid-build is never interpreted by the contractor: it goes back through a
+**change order** — (2a), the loop's only backward transition. You are the
+owner throughout: you sign (gate labels, the merge) and never build. Small
+deals (`track: fast`) skip the contract and close on the MOU alone.
 
 **Two tracks.** Design-bearing stories take the full loop (`track: spec`).
 Mechanical changes (chores, config, doc fixes) take the **fast track**
