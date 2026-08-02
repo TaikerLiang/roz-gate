@@ -1,4 +1,5 @@
 ## Development Workflow (Gated Loop)
+<!-- gated-loop workflow v{{PLUGIN_VERSION}} -->
 
 An idea becomes a shipped feature through a labelled, role-driven loop. The
 **main agent** is the user's proxy and the stakeholder accountable for every

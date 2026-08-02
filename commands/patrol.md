@@ -13,6 +13,13 @@ Read the `### Gated Loop config` block in the project's CLAUDE.md, then
 every CAPITALIZED-OP. Missing config → stop; tell the user to run
 `/gated-loop:init`.
 
+**Version check**: compare the workflow section's
+`<!-- gated-loop workflow vX.Y.Z -->` stamp against the version in
+`${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`. Stamp missing or
+different → the section is stale: flag it in the report ("re-run
+`/gated-loop:init` to refresh the workflow section") and, wherever the two
+disagree this pass, follow the plugin's command files, not the stale prose.
+
 ## 1. Scan
 - ISSUE-LIST (all open issues).
 - Issues **without a `track:` label** are the **inbox** — pre-loop, valid, kept
