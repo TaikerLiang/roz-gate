@@ -84,6 +84,7 @@ cannot authorize it.
 | Command | What it does |
 |---|---|
 | `/gated-loop:init` | one-time repo bootstrap (labels, config, personas, templates) |
+| `/gated-loop:to-issues` | live intake: the `product` agent (under the intake brief) clarifies your idea one question at a time; the main agent only relays and publishes the confirmed story — one issue = one story |
 | `/gated-loop:next-stage [n]` | advance one gated issue — spec stage, parallel impl+QA+review, or fast track — routed by its labels; prints the workflow map first |
 | `/gated-loop:spec-answers [n]` | fold your answers on spec-CR threads back into the spec, resolve the threads |
 | `/gated-loop:integrate [n]` | run the stage-(6) verdict: merge locally, run the acceptance suite, classify red, finalize green |
@@ -104,6 +105,10 @@ device. When the story is clear it posts a proposal — rewritten story +
 acceptance criteria + suggested track — and only after you reply `approve` does
 it rewrite the issue body and apply the track label. The gate label is still
 yours to apply, whenever you're ready.
+
+Both intake paths run the same brain: the `product` agent dispatched under
+`references/intake-brief.md`. The orchestrator never does clarification
+thinking in its own context — it relays, posts, and publishes.
 
 ## Labels & state machine
 
