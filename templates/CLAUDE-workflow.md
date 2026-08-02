@@ -23,7 +23,7 @@ stays in the loop at every transition.
 
 | Role | Owns | Never |
 |------|------|-------|
-| **main agent** | proxy + accountable for all output; intake clarification (product+em lens, grill-me); orchestration, git/forge mechanics, integration; decides the next step; implements `track: fast` changes itself | act as a specialist on `track: spec` work (it dispatches) |
+| **main agent** | proxy + accountable for all output; intake: dispatches `product` under the intake brief, relays its questions verbatim, publishes the confirmed story; orchestration, git/forge mechanics, integration; decides the next step; implements `track: fast` changes itself | act as a specialist on any clarification or `track: spec` work (it dispatches) |
 | **product** | actors, scenarios (Given/When/Then: happy/edge/failure), consistency, user-facing gaps | architecture, code, impl tests |
 | **em** | problem statement, success metrics, architecture / domain boundaries, business rules, out-of-scope; resolves conflicts; owns `spec.md` | code, deep implementation |
 | **implementer** | `technical-spec.md` (the contract); implementation code + **unit** tests; the QA test **port** for non-API features | spec scenarios, black-box tests, reviewing its own code |
@@ -32,9 +32,12 @@ stays in the loop at every transition.
 
 ### The loop
 
-**(1) Intake** — `/to-issues` (or the inbox, (1b)). The main agent, using the
-product+em lens with grill-me, clarifies a use case into **one issue = one user
-story**. Intake applies the `track:` label you confirmed; you apply the gate
+**(1) Intake** — `/gated-loop:to-issues` (or the inbox, (1b)). The `product`
+agent, dispatched under the **intake brief** (one self-contained question at a
+time, each with a recommendation), clarifies a use case into **one issue = one
+user story**; the main agent only relays the questions and publishes the
+confirmed result — clarification thinking never lives in the orchestrator's
+context. Intake applies the `track:` label you confirmed; you apply the gate
 (`status:`) label — the human guards the gate.
 
 **(1a) Track** — every issue in the loop carries **exactly one `track:` label**,
@@ -48,12 +51,13 @@ proposed at intake and confirmed (or overridden) by you:
 **(1b) The inbox — async intake.** An open issue with **no `track:` label** is
 the **inbox**: a raw idea captured away from the keyboard (e.g. the forge's
 mobile app), not yet in the loop — every command except intake triage ignores
-it. Patrol triages it entirely through issue comments, mirroring (2a):
-clarifying questions prefixed `**[intake]**`, one at a time with a
-recommendation; you answer from any device; once clear it posts a **proposal
-comment** (rewritten story + AC + proposed `track:`) and only after your
-`approve` does it rewrite the body and apply the confirmed `track:` label. The
-gate label is still yours. Same invariants as `/to-issues`; async medium.
+it. Patrol triages it entirely through issue comments, mirroring (2a): the
+`product` agent (under the same intake brief) drafts clarifying questions,
+posted prefixed `**[intake]**`, one at a time with a recommendation; you answer
+from any device; once clear it posts a **proposal comment** (rewritten story +
+AC + proposed `track:`) and only after your `approve` does patrol rewrite the
+body and apply the confirmed `track:` label. The gate label is still yours.
+Same invariants as `/gated-loop:to-issues`; async medium.
 
 **(2) Spec refinement** — gated by `status: ready-for-spec`. `em`+`product`
 write `{{SPECS_DIR}}/{n}/spec.md`; `implementer` writes `technical-spec.md`
@@ -150,7 +154,7 @@ a status report. Neither ever moves the other's.**
 
 | Transition | Owner |
 |---|---|
-| `track:` label at intake | `/to-issues` (interactive) or the (1b) proposal comment (async) proposes — **you** confirm either way |
+| `track:` label at intake | `/gated-loop:to-issues` (interactive) or the (1b) proposal comment (async) proposes — **you** confirm either way |
 | raw idea → inbox issue (no labels) | **you** (e.g. the forge's mobile app) |
 | inbox → in the loop (body rewrite + `track:` label) | patrol's async intake, only after your `approve` comment |
 | apply a gate label (`ready-for-spec`, `ready-for-dev`) | **you**, only ever you |
@@ -165,9 +169,9 @@ a status report. Neither ever moves the other's.**
 | labels retire at close | the closing merge — (7), or your fast-CR merge |
 
 **Invocation policy.** Workflow commands are executed by the main agent and —
-except `/to-issues`, which you always initiate (the inbox's async intake is
-likewise initiated by you, by filing the raw issue) — do not wait for you to
-type them. A patrol pass (`/gated-loop:patrol`, run manually, on a loop, or on
+except `/gated-loop:to-issues`, which you always initiate (the inbox's async
+intake is likewise initiated by you, by filing the raw issue) — do not wait
+for you to type them. A patrol pass (`/gated-loop:patrol`, run manually, on a loop, or on
 a schedule) reads each open issue's worn state and invokes the right command
 per its classification table; it acts on one issue per pass (closest to done;
 inbox triage last), treats `processing` as a lock, never applies a gate label,
@@ -189,7 +193,8 @@ and the phase label next to it says where.
   contract.
 - **The verdict lives at integration, by design.** (3) and (4) run in parallel
   and never see each other; that independence is what makes the verdict honest.
-- **Tooling:** `/to-issues` (1, 1a); `/gated-loop:next-stage` (2, 3+4+5, or
+- **Tooling:** `/gated-loop:to-issues` (1, 1a — dispatches `product` under the
+  intake brief); `/gated-loop:next-stage` (2, 3+4+5, or
   fast — routed by labels, printing the workflow map first);
   `/gated-loop:spec-answers` (2a); `/gated-loop:integrate` (6);
   `/gated-loop:patrol` — one polling pass that auto-invokes the commands above

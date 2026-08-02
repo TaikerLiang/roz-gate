@@ -64,9 +64,9 @@ Write the async-intake capture template to the adapter's ISSUE-TEMPLATE-PATH
 ## 7. Report + first steps
 Summarize what was created vs. already present. Then print the getting-started
 map:
-1. File a story: `/to-issues` in conversation, or from your phone — an issue
-   with no `track:` label lands in the inbox and patrol will triage it in
-   comments ((1b)).
+1. File a story: `/gated-loop:to-issues` in conversation, or from your phone —
+   an issue with no `track:` label lands in the inbox and patrol will triage it
+   in comments ((1b)).
 2. You apply the gate label (`status: ready-for-spec` / `ready-for-dev`).
 3. Run `/gated-loop:patrol` (manually, on a loop, or scheduled) — it advances
    whatever the labels authorize and reports what waits on you.

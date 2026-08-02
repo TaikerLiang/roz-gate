@@ -59,20 +59,21 @@ For an in-flight CR with open review threads:
 ### The async-intake action — the inbox's engine ((1b))
 For an open issue with no `track:` label:
 1. Lock: LABEL-ADD `status: processing`.
-2. Read the issue body and all comments. Using the product+em lens (grill-me),
-   decide the next move:
-   - **Story still unclear** → ISSUE-COMMENT one sharp clarifying question,
-     with a recommendation, prefixed `**[intake]**`. One question per pass.
-   - **User has answered the last question** → fold the answer into your
-     understanding; ask the next question, or move to the proposal.
-   - **Story clear** → ISSUE-COMMENT a **proposal**: rewritten user story +
-     observable acceptance criteria + proposed `track:`, prefixed
+2. **Dispatch the `product` agent** with
+   `${CLAUDE_PLUGIN_ROOT}/references/intake-brief.md`, the issue body, and all
+   comments — the clarification thinking is the sub-agent's, never patrol's
+   own. Per the brief it returns one question or the final proposal; patrol
+   executes the matching forge op:
+   - **Question returned** → ISSUE-COMMENT it verbatim, prefixed
+     `**[intake]**`. One question per pass.
+   - **Proposal returned** → ISSUE-COMMENT it, prefixed
      `**[intake] · proposal**`, ending: "Reply `approve` to file it like this,
      or correct anything first."
-   - **User replied `approve`** (or corrected — fold corrections and treat as
-     approved if they say so) → ISSUE-EDIT-BODY to the story template
-     (user story / acceptance criteria / context), LABEL-ADD the confirmed
-     `track:` label. The issue is now at (1a); the gate label is the user's.
+   - **The user's last comment is `approve`** (or a correction — re-dispatch
+     with it folded in, and treat as approved if they said so) →
+     ISSUE-EDIT-BODY to the proposal's story template (user story / acceptance
+     criteria / context), LABEL-ADD the confirmed `track:` label. The issue is
+     now at (1a); the gate label is the user's.
 3. Clear the lock. Never apply a gate label. Failures follow the STOP protocol.
 
 ## 4. Report
