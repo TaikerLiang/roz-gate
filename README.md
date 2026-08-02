@@ -50,8 +50,9 @@ Then, inside each project you want to run the loop in:
 ```
 
 `init` is one-time and idempotent. It detects the forge from your git remote,
-creates the labels, writes the workflow section + a small config block into
-your project's `CLAUDE.md`, instantiates a project-specific `implementer` agent
+creates the labels, writes a workflow pointer + a small config block into
+your project's `CLAUDE.md` (the workflow doc itself stays in the plugin, so
+upgrades apply everywhere at once), instantiates a project-specific `implementer` agent
 persona (your stack, your anti-patterns), and adds an "Idea" issue template for
 mobile capture.
 
