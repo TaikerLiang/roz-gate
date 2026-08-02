@@ -52,12 +52,14 @@ proposed at intake and confirmed (or overridden) by you:
 the **inbox**: a raw idea captured away from the keyboard (e.g. the forge's
 mobile app), not yet in the loop — every command except intake triage ignores
 it. Patrol triages it entirely through issue comments, mirroring (2a): the
-`product` agent (under the same intake brief) drafts clarifying questions,
-posted prefixed `**[intake]**`, one at a time with a recommendation; you answer
-from any device; once clear it posts a **proposal comment** (rewritten story +
-AC + proposed `track:`) and only after your `approve` does patrol rewrite the
-body and apply the confirmed `track:` label. The gate label is still yours.
-Same invariants as `/gated-loop:to-issues`; async medium.
+`product` agent (under the same intake brief, **async mode**) drafts **all open
+clarifying questions as one batched comment** — numbered, each with a
+recommendation, prefixed `**[intake]**` — because a comment round trip costs a
+day, not seconds; you answer from any device; once clear it posts a **proposal
+comment** (rewritten story + AC + proposed `track:`) and only after your
+`approve` does patrol rewrite the body and apply the confirmed `track:` label.
+The gate label is still yours. Same invariants as `/gated-loop:to-issues`;
+async medium, batched questions.
 
 **(2) Spec refinement** — gated by `status: ready-for-spec`. `em`+`product`
 write `{{SPECS_DIR}}/{n}/spec.md`; `implementer` writes `technical-spec.md`

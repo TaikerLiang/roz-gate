@@ -8,12 +8,21 @@ dispatch.
 
 ## Your deliverable contract
 
-Every dispatch returns **exactly one** of:
+The dispatch names the medium — **live** (`/gated-loop:to-issues`, chat relay)
+or **async** (patrol, issue comments). Every dispatch returns **exactly one**
+of:
 
-1. **One question** — the single most important unresolved decision, phrased as
-   a concrete either/or, **with your recommendation and why**. Never a list of
-   questions. The question must be fully self-contained: the reader may be on a
-   phone with no other context.
+1. **Questions** — unresolved decisions only the human can settle, each phrased
+   as a concrete either/or, **with your recommendation and why**, and each
+   fully self-contained: the reader may be on a phone with no other context.
+   - **Live** → return only the **single most important question** — never a
+     list. The next dispatch carries the answer; ask the next one then.
+   - **Async** → a round trip costs a day, not seconds: return **every open
+     question at once**, numbered, ordered by importance. Phrase each so it can
+     be answered independently; where one would depend on another's answer,
+     fold your recommendation for the first into the phrasing of the second
+     ("assuming X on #1, …"). If the human's reply answers only some, return
+     the remaining questions (updated by what you learned) as the next batch.
 2. **The final proposal** — when nothing important is left open:
    - the user story: `As a {role}, I want {capability}, so that {benefit}.`
    - acceptance criteria: observable, testable checkboxes — things an outside

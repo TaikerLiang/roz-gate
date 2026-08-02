@@ -59,13 +59,14 @@ For an in-flight CR with open review threads:
 ### The async-intake action — the inbox's engine ((1b))
 For an open issue with no `track:` label:
 1. Lock: LABEL-ADD `status: processing`.
-2. **Dispatch the `product` agent** with
+2. **Dispatch the `product` agent in async mode** with
    `${CLAUDE_PLUGIN_ROOT}/references/intake-brief.md`, the issue body, and all
    comments — the clarification thinking is the sub-agent's, never patrol's
-   own. Per the brief it returns one question or the final proposal; patrol
-   executes the matching forge op:
-   - **Question returned** → ISSUE-COMMENT it verbatim, prefixed
-     `**[intake]**`. One question per pass.
+   own. Per the brief's async contract it returns one batch of questions or
+   the final proposal; patrol executes the matching forge op:
+   - **Questions returned** → ISSUE-COMMENT the batch verbatim as **one
+     comment**, prefixed `**[intake]**` — every open question in a single
+     pass, so a once-a-day scan still converges.
    - **Proposal returned** → ISSUE-COMMENT it, prefixed
      `**[intake] · proposal**`, ending: "Reply `approve` to file it like this,
      or correct anything first."

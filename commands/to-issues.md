@@ -23,9 +23,9 @@ reference, ISSUE-VIEW it and treat its body + comments as the raw idea.
 
 ## 2. The relay loop
 
-Dispatch the **`product`** agent with: the intake brief, the raw idea, and the
-full Q&A so far. Per the brief's contract it returns **either** one question
-(with a recommendation) **or** the final proposal.
+Dispatch the **`product`** agent in **live mode** with: the intake brief, the
+raw idea, and the full Q&A so far. Per the brief's live contract it returns
+**either** one question (with a recommendation) **or** the final proposal.
 
 - **Question** → relay it to the user **verbatim** — do not answer it, soften
   it, or batch it with your own commentary. When the user answers, re-dispatch
