@@ -1,7 +1,7 @@
 {
   "name": "gated-loop",
   "displayName": "Gated Loop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Role-driven, human-gated AI development workflow: spec debate, blind black-box QA, independent review, integration verdicts, and a patrol scheduler — for GitHub (gh) and GitLab (glab).",
   "author": {
     "name": "Paul Liang"
