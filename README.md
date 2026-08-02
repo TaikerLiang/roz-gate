@@ -99,9 +99,10 @@ pass, treats the `processing` label as a lock, and never applies a gate label.
 Open an issue from the forge's mobile app with **no labels** — two rough
 sentences are enough (the "Idea" template `init` installs reminds you). An
 issue with no `track:` label is the **inbox**: invisible to the rest of the
-loop. Patrol triages it *in the comments*: one clarifying question at a time
-(prefixed `**[intake]**`, with a recommendation), answered by you from any
-device. When the story is clear it posts a proposal — rewritten story +
+loop. Patrol triages it *in the comments*: all open clarifying questions
+batched into one comment (prefixed `**[intake]**`, numbered, each with a
+recommendation — a comment round trip costs a day, so nothing is asked
+serially), answered by you from any device. When the story is clear it posts a proposal — rewritten story +
 acceptance criteria + suggested track — and only after you reply `approve` does
 it rewrite the issue body and apply the track label. The gate label is still
 yours to apply, whenever you're ready.
