@@ -1,5 +1,5 @@
 ## Development Workflow (Gated Loop)
-<!-- gated-loop workflow v{{PLUGIN_VERSION}} -->
+<!-- gated-loop workflow-template v1 -->
 
 This repo runs the **Gated Loop** (Claude Code plugin `gated-loop`): an idea
 becomes a shipped feature through a labelled, role-driven loop — spec debate,

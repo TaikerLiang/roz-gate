@@ -14,12 +14,13 @@ every CAPITALIZED-OP. Missing config → stop; tell the user to run
 `/gated-loop:init`.
 
 **Version check**: compare the workflow section's
-`<!-- gated-loop workflow vX.Y.Z -->` stamp against the version in
-`${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`. Stamp missing or
-different → the section is stale: flag it in the report ("re-run
-`/gated-loop:init` to refresh the workflow section") and ignore any workflow
-prose embedded in CLAUDE.md (a fat pre-0.6 copy) — the plugin's
-`references/workflow.md` and command files are authoritative.
+`<!-- gated-loop workflow-template vN -->` stamp against the one in
+`${CLAUDE_PLUGIN_ROOT}/templates/CLAUDE-workflow.md`. Stamp missing or
+different → the section's shape is out of date: flag it in the report
+("re-run `/gated-loop:init` to refresh the workflow section") and ignore any
+workflow prose embedded in CLAUDE.md (a fat pre-0.6 copy) — the plugin's
+`references/workflow.md` and command files are authoritative. A matching
+stamp means no re-init is needed, whatever the plugin version.
 
 ## 1. Scan
 - ISSUE-LIST (all open issues).

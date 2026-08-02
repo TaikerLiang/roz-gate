@@ -43,9 +43,9 @@ Skip labels that already exist.
 ## 4. Write the workflow pointer into CLAUDE.md
 The section is a **pointer + config block only** — the workflow prose lives in
 the plugin (`references/workflow.md`) and is never copied into the project, so
-upgrades propagate without touching CLAUDE.md. Read the plugin version from
-`${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`; it fills
-`{{PLUGIN_VERSION}}` in the template's version stamp.
+upgrades propagate without touching CLAUDE.md. The template's
+`workflow-template vN` stamp is copied verbatim — it versions the template
+itself, not the plugin, so routine plugin upgrades never demand a re-init.
 - If the project's CLAUDE.md has no `## Development Workflow (Gated Loop)`
   section: append `${CLAUDE_PLUGIN_ROOT}/templates/CLAUDE-workflow.md`,
   substituting the config values from step 2 into its
