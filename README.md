@@ -68,6 +68,14 @@ mobile capture.
 | (6) Integration | main agent | both branches merged locally, QA's suite runs against the code for the first time — **the verdict** |
 | (7) Merge | **you** | you review the spec CR (spec + code + tests + green verdict) and merge |
 
+**The mental model: MOU → contract.** Intake (1) drafts an **MOU**: it captures
+intent — who wants what, why, and roughly how big — and deliberately binds no
+implementation detail; your gate label just means "worth negotiating for
+real". Spec (2) signs the **contract**: `technical-spec.md` sets enforceable
+terms, and blind QA (4) plus the integration verdict (6) are the enforcement —
+a breach is caught by a party that never saw the code. Small deals
+(`track: fast`) skip the contract and close on the MOU alone.
+
 **Two tracks.** Design-bearing stories take the full loop (`track: spec`).
 Mechanical changes (chores, config, doc fixes) take the **fast track**
 (`track: fast`): direct implementation + review + your merge, with an

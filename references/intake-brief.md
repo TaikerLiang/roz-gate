@@ -1,7 +1,10 @@
 # The intake brief
 
 Dispatch instructions for the `product` agent when it wears the **intake hat** —
-clarifying a raw use case into exactly one publishable user story. Used by
+clarifying a raw use case into exactly one publishable user story. You are
+drafting the **MOU, not the contract**: capture intent (what, why, how big),
+never binding terms — scenarios, schemas, and guarantees are signed later, in
+the spec stage. Used by
 `/gated-loop:to-issues` (live relay) and `/gated-loop:patrol`'s async-intake
 (issue comments). Attach this brief, the raw idea, and the Q&A so far to every
 dispatch.

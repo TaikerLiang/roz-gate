@@ -32,6 +32,11 @@ stays in the loop at every transition.
 
 ### The loop
 
+The first two stages differ by binding force: (1) drafts the **MOU** — intent
+and boundary, no implementation terms — and (2) signs the **contract**
+(`technical-spec.md`), whose enforcement is blind QA (4) plus the integration
+verdict (6). `track: fast` deals close on the MOU alone.
+
 **(1) Intake** — `/gated-loop:to-issues` (or the inbox, (1b)). The `product`
 agent, dispatched under the **intake brief** (one self-contained question at a
 time, each with a recommendation), clarifies a use case into **one issue = one
