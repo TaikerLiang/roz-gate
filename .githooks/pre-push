@@ -1,0 +1,34 @@
+#!/bin/sh
+# Block pushes that change plugin behavior without bumping the plugin version.
+# Behavior = anything under the plugin's executable markdown dirs.
+
+BEHAVIOR_PATHS="agents commands references templates"
+PLUGIN_JSON=".claude-plugin/plugin.json"
+ZERO=0000000000000000000000000000000000000000
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # branch deletion — nothing to check
+  [ "$local_sha" = "$ZERO" ] && continue
+
+  if [ "$remote_sha" = "$ZERO" ]; then
+    # new remote branch: compare against the closest point origin already has
+    base=$(git merge-base "$local_sha" origin/main 2>/dev/null) || continue
+    [ "$base" = "$local_sha" ] && continue
+  else
+    base=$remote_sha
+  fi
+
+  changed=$(git diff --name-only "$base" "$local_sha" -- $BEHAVIOR_PATHS)
+  [ -z "$changed" ] && continue
+
+  if ! git diff "$base" "$local_sha" -- "$PLUGIN_JSON" | grep -q '^+.*"version"'; then
+    {
+      echo "pre-push: behavior files changed but \"version\" in $PLUGIN_JSON was not bumped:"
+      echo "$changed" | sed 's/^/  /'
+      echo "Bump the version (or push with --no-verify to override)."
+    } >&2
+    exit 1
+  fi
+done
+
+exit 0
