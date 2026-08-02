@@ -2,9 +2,9 @@
 description: One patrol pass — scan open issues' worn state, auto-invoke the right workflow command, triage the inbox, and report what waits on the user
 ---
 
-One **patrol pass** over the loop (see the Gated Loop workflow section in the
-project's CLAUDE.md → Invocation policy). Read state, act once, report. Follow
-these steps; do nothing beyond them.
+One **patrol pass** over the loop (see
+`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` → Invocation policy). Read
+state, act once, report. Follow these steps; do nothing beyond them.
 
 ## 0. Load config & forge adapter
 
@@ -17,8 +17,9 @@ every CAPITALIZED-OP. Missing config → stop; tell the user to run
 `<!-- gated-loop workflow vX.Y.Z -->` stamp against the version in
 `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`. Stamp missing or
 different → the section is stale: flag it in the report ("re-run
-`/gated-loop:init` to refresh the workflow section") and, wherever the two
-disagree this pass, follow the plugin's command files, not the stale prose.
+`/gated-loop:init` to refresh the workflow section") and ignore any workflow
+prose embedded in CLAUDE.md (a fat pre-0.6 copy) — the plugin's
+`references/workflow.md` and command files are authoritative.
 
 ## 1. Scan
 - ISSUE-LIST (all open issues).

@@ -40,18 +40,20 @@ LABEL-CREATE per the adapter's scheme:
   phase label — never scope it).
 Skip labels that already exist.
 
-## 4. Write the workflow into CLAUDE.md
-Read the plugin version from
+## 4. Write the workflow pointer into CLAUDE.md
+The section is a **pointer + config block only** — the workflow prose lives in
+the plugin (`references/workflow.md`) and is never copied into the project, so
+upgrades propagate without touching CLAUDE.md. Read the plugin version from
 `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`; it fills
 `{{PLUGIN_VERSION}}` in the template's version stamp.
 - If the project's CLAUDE.md has no `## Development Workflow (Gated Loop)`
   section: append `${CLAUDE_PLUGIN_ROOT}/templates/CLAUDE-workflow.md`,
   substituting the config values from step 2 into its
   `### Gated Loop config` block. Create CLAUDE.md if the project has none.
-- If the section exists: **replace its prose with the current template** —
-  plugin upgrades must propagate; a stale section fights the commands. Carry
-  over the existing `### Gated Loop config` values, reconciled with step 2's
-  answers (show the diff first).
+- If the section exists — including a fat pre-0.6 copy of the whole workflow —
+  **replace the entire section with the current template**, carrying over the
+  existing `### Gated Loop config` values, reconciled with step 2's answers
+  (show the diff first).
 
 ## 5. Instantiate the implementer persona
 - If `.claude/agents/implementer.md` does not exist: copy

@@ -3,9 +3,9 @@ description: Advance one gated issue to its next stage — spec refinement (2), 
 argument-hint: "[issue-number]"
 ---
 
-Advance **one** issue to its next stage (see the Gated Loop workflow section in
-the project's CLAUDE.md). Route by the issue's labels; follow the matched path's
-steps exactly and do nothing beyond them.
+Advance **one** issue to its next stage (see
+`${CLAUDE_PLUGIN_ROOT}/references/workflow.md`). Route by the issue's labels;
+follow the matched path's steps exactly and do nothing beyond them.
 
 ## 0. Load config & forge adapter
 
@@ -205,7 +205,7 @@ Process exactly **one** issue per run.
 
 **Failure = the STOP exit.** If any step after the lock fails — or you hit
 anything this command cannot or should not decide — follow the STOP protocol
-(workflow section → The main agent): discard uncommitted local work, replace
+(`references/workflow.md` → The main agent): discard uncommitted local work, replace
 the issue's status labels with `status: blocked` alone, and post the issue
 comment. This command **creates remote artifacts as it goes**, so the comment
 must inventory what already exists — branches pushed, CRs opened, partial
