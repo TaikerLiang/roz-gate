@@ -37,12 +37,17 @@ every CAPITALIZED-OP. Missing config → stop; tell the user to run
 | `status: blocked` | waiting on the user — never re-invoke anything on it |
 | no `track:` label (inbox) | actionable → **async intake** (below) — unless its last `**[intake]**` comment is still unanswered (then: waiting on the user) |
 
-## 3. Act — one issue per pass
-Pick the actionable issue **closest to done** — priority:
+## 3. Act — one loop issue per pass, plus the whole inbox
+In-loop work: pick the actionable issue **closest to done** — priority:
 `/gated-loop:integrate` > address-review > `/gated-loop:spec-answers` >
 `/gated-loop:next-stage` (`ready-for-dev`) > `/gated-loop:next-stage`
-(`ready-for-spec`) > async intake — and perform that action. If nothing is
-actionable, act on nothing.
+(`ready-for-spec`) — and perform that action. If nothing is actionable, act
+on nothing.
+
+Then triage **every** actionable inbox issue (async intake, below), one
+dispatch per issue. Intake is comment-only — no code, no gate labels — so it
+is exempt from the one-issue rule: after a single pass, everything that waits
+on the user is already posted.
 
 ### The address-review action — the (5) loop's engine
 For an in-flight CR with open review threads:

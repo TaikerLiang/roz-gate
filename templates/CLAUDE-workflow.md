@@ -175,9 +175,10 @@ except `/gated-loop:to-issues`, which you always initiate (the inbox's async
 intake is likewise initiated by you, by filing the raw issue) — do not wait
 for you to type them. A patrol pass (`/gated-loop:patrol`, run manually, on a loop, or on
 a schedule) reads each open issue's worn state and invokes the right command
-per its classification table; it acts on one issue per pass (closest to done;
-inbox triage last), treats `processing` as a lock, never applies a gate label,
-and stops to report anything unexpected.
+per its classification table; it acts on one in-loop issue per pass (closest
+to done) and then triages the **whole inbox** (intake is comment-only, so
+every batch of questions lands in a single pass), treats `processing` as a
+lock, never applies a gate label, and stops to report anything unexpected.
 
 **Command lifecycle & the STOP protocol.** Every state-mutating command takes
 the `processing` lock on entry and leaves through exactly one of two exits.
