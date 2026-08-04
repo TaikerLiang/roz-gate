@@ -96,6 +96,7 @@ glab api -X PUT "projects/:id/merge_requests/<iid>/discussions/<discussion_id>" 
 | Op | Command |
 |---|---|
 | LABEL-CREATE | `glab label create --name "<label>" --color "<hex>" --description "..."` |
+| LABEL-DELETE | `glab label delete "<label>"` (erases it from closed issues too — `/roz-gate:uninit` only, on explicit request) |
 | ISSUE-TEMPLATE-PATH | `.gitlab/issue_templates/idea.md` |
 
 Create the scoped names exactly as written (`track::spec` etc.) plus the plain

@@ -81,6 +81,7 @@ gh api graphql -f query='mutation($t:ID!){
 | Op | Command |
 |---|---|
 | LABEL-CREATE | `gh label create "<label>" --color <hex> --description "..."` (idempotent-ish: add `--force` to update) |
+| LABEL-DELETE | `gh label delete "<label>" --yes` (erases it from closed issues too — `/roz-gate:uninit` only, on explicit request) |
 | ISSUE-TEMPLATE-PATH | `.github/ISSUE_TEMPLATE/idea.md` |
 
 Suggested colors: `track: *` `#1d76db`; gates `#0e8a16`; transient `#fbca04`;
