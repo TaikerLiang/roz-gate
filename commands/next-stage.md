@@ -9,12 +9,12 @@ follow the matched path's steps exactly and do nothing beyond them.
 
 ## 0. Load config & forge adapter
 
-Read the `### Gated Loop config` block in the project's CLAUDE.md (`forge`,
+Read the `### Roz Gate config` block in the project's CLAUDE.md (`forge`,
 `default_branch`, `test`, `env_sync`, `lockfile`, `specs_dir`,
 `acceptance_dir`). Then read `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md`
 and use its concrete CLI for every CAPITALIZED-OP below. Label names follow the
 adapter's scheme (GitLab uses scoped forms). If the config block is missing,
-stop and tell the user to run `/gated-loop:init`.
+stop and tell the user to run `/roz-gate:init`.
 
 ## 1. Select the issue
 - If an issue number was passed (`$ARGUMENTS`), target that issue. Verify it
@@ -88,7 +88,7 @@ Refs #<n>".
 For EACH item in the `## Open Questions` section of `spec.md`:
 THREAD-POST-INLINE on the spec CR, anchored to that item's line in
 `<specs_dir>/<n>/spec.md`, body `**[<role>] · Q<k>** — <question text>`.
-- **Every agent question comment MUST start with `**[`** — `/gated-loop:spec-answers`
+- **Every agent question comment MUST start with `**[`** — `/roz-gate:spec-answers`
   uses that marker to tell agent comments from the user's replies.
 - For **(story-level)** items, add to the body: "If your decision changes the
   user story, I will mirror a note to issue #<n>."
@@ -100,7 +100,7 @@ LABEL-ADD `status: in-spec-review`.
 ### A8. Report
 Print the CR URL and the list of open-question threads. Never write code beyond
 the two spec docs. **Next:** the user answers the threads;
-`/gated-loop:spec-answers` folds them in; when all are resolved, the user
+`/roz-gate:spec-answers` folds them in; when all are resolved, the user
 applies `status: ready-for-dev`.
 
 ---
@@ -138,7 +138,7 @@ Launch both at once (they never see each other):
 - **The QA CR opens as a draft.** CR-READY only if `qa` reported its suite
   complete; a partial — or paused — deliverable stays draft. Draft = QA still
   working/paused; ready = complete. This is the machine-readable signal
-  `/gated-loop:patrol` and `/gated-loop:integrate` key on.
+  `/roz-gate:patrol` and `/roz-gate:integrate` key on.
 
 ### B5. Code review (5) on the implementation CR
 - Dispatch the **reviewer** agent on the CR's diff
@@ -152,7 +152,7 @@ Launch both at once (they never see each other):
   are now the in-flight state).
 - Report the implementation CR, the QA CR, and the open review threads.
   **Next:** `implementer` addresses the review threads until all resolved, then
-  `/gated-loop:integrate <n>`.
+  `/roz-gate:integrate <n>`.
 
 ---
 
@@ -197,7 +197,7 @@ CR-OPEN from `fast/<n>` targeting `<default_branch>`, title
 - Report the CR and any review threads. **Next:** address review threads; once
   all are resolved (review-clean), LABEL-ADD `status: in-user-review` — then
   the user reviews and merges the CR; merging closes the issue.
-  `/gated-loop:integrate` does not apply.
+  `/roz-gate:integrate` does not apply.
 
 ---
 

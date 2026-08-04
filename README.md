@@ -1,6 +1,8 @@
-# Gated Loop — an AI-agent development workflow, as a Claude Code plugin
+# Roz Gate — an AI-agent development workflow, as a Claude Code plugin
 
-Gated Loop turns a repository into a **role-driven, human-gated development
+![Roz Gate — no stamp, no merge](images/roz-gate-banner.png)
+
+Roz Gate turns a repository into a **role-driven, human-gated development
 pipeline** run by a team of specialized AI agents: a product advocate, an
 engineering manager, an implementer, a black-box QA tester, and an independent
 reviewer. Agents do the work; **you make every decision that matters** — the
@@ -17,7 +19,7 @@ Works with **GitHub (`gh`) and GitLab (`glab`)**, gitlab.com or self-hosted.
 
 A single AI assistant asked to "build and test the feature" grades its own
 homework: its misunderstandings flow into the code *and* the tests, so green
-proves nothing. Gated Loop splits the work across agents with strict
+proves nothing. Roz Gate splits the work across agents with strict
 information walls — the QA agent **never sees the implementation**; it writes
 black-box tests from the spec and a technical contract only, and the two sides
 meet for the first time at an **integration verdict**. Disagreements surface as
@@ -36,17 +38,17 @@ agents are forbidden to guess.
 
 ```
 # GitHub-hosted:
-/plugin marketplace add <owner>/gated-loop
+/plugin marketplace add <owner>/roz-gate
 # or any git host (GitLab, self-hosted):
-/plugin marketplace add https://<host>/<path>/gated-loop.git
+/plugin marketplace add https://<host>/<path>/roz-gate.git
 
-/plugin install gated-loop@gated-loop-marketplace
+/plugin install roz-gate@roz-gate-marketplace
 ```
 
 Then, inside each project you want to run the loop in:
 
 ```
-/gated-loop:init
+/roz-gate:init
 ```
 
 `init` is one-time and idempotent. It detects the forge from your git remote,
@@ -91,6 +93,23 @@ mid-build is never interpreted by the contractor: it goes back through a
 owner throughout: you sign (gate labels, the merge) and never build. Small
 deals (`track: fast`) skip the contract and close on the MOU alone.
 
+> **Note — the test port.** QA drives the system only through the contract.
+> For an HTTP feature the contract is the API doc, so black-box testing is
+> natural. A feature with **no natural external interface** — a scheduled job,
+> a bot command, an internal service — still owes QA a front door: the
+> implementer must ship a **test port** as part of `technical-spec.md`, a
+> small, documented, stable driver the acceptance tests call instead of
+> reaching into internals. Example: offer expiry runs on a schedule, so the
+> port exposes `advance_clock(minutes)`, `run_expiry_sweep()`, and
+> `get_offer_state(id)` — control and observation points, nothing internal.
+> Because the port is promised in the contract at stage (2), QA can write its
+> suite in parallel with the build; because it exposes only observable
+> behaviour, the tests survive refactors and the black box stays sealed. In
+> hexagonal-architecture terms: a driving port whose actor is the acceptance
+> suite — the inspector's access hatch, reserved in the contract, never a
+> hole cut in the fence. A port that "conveniently" exposes internals defeats
+> the point; treat that as a contract defect.
+
 **Two tracks.** Design-bearing stories take the full loop (`track: spec`).
 Mechanical changes (chores, config, doc fixes) take the **fast track**
 (`track: fast`): direct implementation + review + your merge, with an
@@ -106,14 +125,14 @@ cannot authorize it.
 
 | Command | What it does |
 |---|---|
-| `/gated-loop:init` | one-time repo bootstrap (labels, config, personas, templates) |
-| `/gated-loop:to-issues` | live intake: the `product` agent (under the intake brief) clarifies your idea one question at a time; the main agent only relays and publishes the confirmed story — one issue = one story |
-| `/gated-loop:next-stage [n]` | advance one gated issue — spec stage, parallel impl+QA+review, or fast track — routed by its labels; prints the workflow map first |
-| `/gated-loop:spec-answers [n]` | fold your answers on spec-CR threads back into the spec, resolve the threads |
-| `/gated-loop:integrate [n]` | run the stage-(6) verdict: merge locally, run the acceptance suite, classify red, finalize green |
-| `/gated-loop:patrol` | one supervisory pass: scan every open issue's state, invoke whichever command is already authorized, triage the inbox, report what waits on you |
+| `/roz-gate:init` | one-time repo bootstrap (labels, config, personas, templates) |
+| `/roz-gate:to-issues` | live intake: the `product` agent (under the intake brief) clarifies your idea one question at a time; the main agent only relays and publishes the confirmed story — one issue = one story |
+| `/roz-gate:next-stage [n]` | advance one gated issue — spec stage, parallel impl+QA+review, or fast track — routed by its labels; prints the workflow map first |
+| `/roz-gate:spec-answers [n]` | fold your answers on spec-CR threads back into the spec, resolve the threads |
+| `/roz-gate:integrate [n]` | run the stage-(6) verdict: merge locally, run the acceptance suite, classify red, finalize green |
+| `/roz-gate:patrol` | one supervisory pass: scan every open issue's state, invoke whichever command is already authorized, triage the inbox, report what waits on you |
 
-Run `/gated-loop:patrol` manually as a "what's next" button, or schedule it
+Run `/roz-gate:patrol` manually as a "what's next" button, or schedule it
 (e.g. every 30 minutes) for an unattended loop — it acts on one in-loop issue
 per pass but triages the whole inbox every pass, treats the `processing` label
 as a lock, and never applies a gate label.
@@ -177,7 +196,7 @@ names; no command changes.
 
 ## Per-project configuration
 
-`init` writes a `### Gated Loop config` block into your `CLAUDE.md`; every
+`init` writes a `### Roz Gate config` block into your `CLAUDE.md`; every
 command reads it before acting:
 
 ```
@@ -236,6 +255,6 @@ tests should start at (1) and build test culture before (3) can mean anything.
 ## License / provenance
 
 Extracted from a working single-repo implementation of the methodology
-described in *AI-Native Software Development: The Gated Loop* — role charters,
+described in *AI-Native Software Development: The Roz Gate* — role charters,
 label state machine, STOP protocol, and the integration-verdict design are
 ports of that system, generalized and made forge-neutral.

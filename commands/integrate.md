@@ -15,12 +15,12 @@ re-run.
 
 ## 0. Load config & forge adapter
 
-Read the `### Gated Loop config` block in the project's CLAUDE.md (`forge`,
+Read the `### Roz Gate config` block in the project's CLAUDE.md (`forge`,
 `default_branch`, `test`, `acceptance_test`, `env_sync`, `lockfile`,
 `lockfile_regen`, `acceptance_dir`), then
 `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the concrete CLI behind
 every CAPITALIZED-OP. Missing config → stop; tell the user to run
-`/gated-loop:init`.
+`/roz-gate:init`.
 
 ## 1. Preconditions (read-only)
 - `track: fast` → stop: the fast track has no integration stage — its CR merges

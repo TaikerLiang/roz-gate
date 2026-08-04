@@ -8,16 +8,18 @@ state, act once, report. Follow these steps; do nothing beyond them.
 
 ## 0. Load config & forge adapter
 
-Read the `### Gated Loop config` block in the project's CLAUDE.md, then
+Read the `### Roz Gate config` block in the project's CLAUDE.md, then
 `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the concrete CLI behind
 every CAPITALIZED-OP. Missing config → stop; tell the user to run
-`/gated-loop:init`.
+`/roz-gate:init`. A legacy `### Gated Loop config` block (the plugin's
+pre-1.0 name) counts as present — use its values and flag the re-init in the
+report.
 
 **Version check**: compare the workflow section's
-`<!-- gated-loop workflow-template vN -->` stamp against the one in
+`<!-- roz-gate workflow-template vN -->` stamp against the one in
 `${CLAUDE_PLUGIN_ROOT}/templates/CLAUDE-workflow.md`. Stamp missing or
 different → the section's shape is out of date: flag it in the report
-("re-run `/gated-loop:init` to refresh the workflow section") and ignore any
+("re-run `/roz-gate:init` to refresh the workflow section") and ignore any
 workflow prose embedded in CLAUDE.md (a fat pre-0.6 copy) — the plugin's
 `references/workflow.md` and command files are authoritative. A matching
 stamp means no re-init is needed, whatever the plugin version.
@@ -38,9 +40,9 @@ stamp means no re-init is needed, whatever the plugin version.
 
 | State | Meaning |
 |---|---|
-| `status: ready-for-spec` / `ready-for-dev` | actionable → `/gated-loop:next-stage <n>` |
-| `status: in-spec-review` | THREADS-LIST on its spec CR. Any unresolved thread whose last comment is a human answer (does not start with `**[` / `✅`) → actionable → `/gated-loop:spec-answers <n>`. Otherwise → waiting on the user |
-| no `status:`, `track: spec` | in flight: CR-FIND for `feat/<n>` and `qa/<n>`. Implementation CR exists with **zero open review threads** AND QA CR exists **and is not a draft** → actionable → `/gated-loop:integrate <n>`. Implementation CR has **open review threads** → actionable → **address-review** (below). Otherwise → in progress, not actionable |
+| `status: ready-for-spec` / `ready-for-dev` | actionable → `/roz-gate:next-stage <n>` |
+| `status: in-spec-review` | THREADS-LIST on its spec CR. Any unresolved thread whose last comment is a human answer (does not start with `**[` / `✅`) → actionable → `/roz-gate:spec-answers <n>`. Otherwise → waiting on the user |
+| no `status:`, `track: spec` | in flight: CR-FIND for `feat/<n>` and `qa/<n>`. Implementation CR exists with **zero open review threads** AND QA CR exists **and is not a draft** → actionable → `/roz-gate:integrate <n>`. Implementation CR has **open review threads** → actionable → **address-review** (below). Otherwise → in progress, not actionable |
 | no `status:`, `track: fast` | in flight: its CR has **open review threads** → actionable → **address-review**; review-clean → LABEL-ADD `status: in-user-review` and treat as waiting on the user |
 | `status: in-user-review` | waiting on the user |
 | `status: blocked` | waiting on the user — never re-invoke anything on it |
@@ -48,8 +50,8 @@ stamp means no re-init is needed, whatever the plugin version.
 
 ## 3. Act — one loop issue per pass, plus the whole inbox
 In-loop work: pick the actionable issue **closest to done** — priority:
-`/gated-loop:integrate` > address-review > `/gated-loop:spec-answers` >
-`/gated-loop:next-stage` (`ready-for-dev`) > `/gated-loop:next-stage`
+`/roz-gate:integrate` > address-review > `/roz-gate:spec-answers` >
+`/roz-gate:next-stage` (`ready-for-dev`) > `/roz-gate:next-stage`
 (`ready-for-spec`) — and perform that action. If nothing is actionable, act
 on nothing.
 

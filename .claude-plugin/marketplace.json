@@ -1,11 +1,11 @@
 {
-  "name": "gated-loop-marketplace",
+  "name": "roz-gate-marketplace",
   "owner": {
     "name": "Paul Liang"
   },
   "plugins": [
     {
-      "name": "gated-loop",
+      "name": "roz-gate",
       "source": "./",
       "description": "Role-driven, human-gated AI development workflow for GitHub and GitLab."
     }

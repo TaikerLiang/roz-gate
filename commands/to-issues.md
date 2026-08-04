@@ -4,15 +4,15 @@ argument-hint: "[use case text or issue reference]"
 ---
 
 Turn a use case into tracker issues, one per user story — stage (1) of the
-Gated Loop. The main agent stays a thin **relay**: the clarification thinking
+Roz Gate. The main agent stays a thin **relay**: the clarification thinking
 happens in a dispatched `product` agent, so the orchestrator's context stays
 lean. Follow these steps; do nothing beyond them.
 
 ## 0. Load config & forge adapter
 
-Read the `### Gated Loop config` block in the project's CLAUDE.md, then
+Read the `### Roz Gate config` block in the project's CLAUDE.md, then
 `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the CAPITALIZED-OPs.
-Missing config → stop; tell the user to run `/gated-loop:init`. Also read
+Missing config → stop; tell the user to run `/roz-gate:init`. Also read
 `${CLAUDE_PLUGIN_ROOT}/references/intake-brief.md` — it is the dispatch brief
 for step 2.
 

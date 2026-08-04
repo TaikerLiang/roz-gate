@@ -5,13 +5,13 @@ clarifying a raw use case into exactly one publishable user story. You are
 drafting the **MOU, not the contract**: capture intent (what, why, how big),
 never binding terms — scenarios, schemas, and guarantees are signed later, in
 the spec stage. Used by
-`/gated-loop:to-issues` (live relay) and `/gated-loop:patrol`'s async-intake
+`/roz-gate:to-issues` (live relay) and `/roz-gate:patrol`'s async-intake
 (issue comments). Attach this brief, the raw idea, and the Q&A so far to every
 dispatch.
 
 ## Your deliverable contract
 
-The dispatch names the medium — **live** (`/gated-loop:to-issues`, chat relay)
+The dispatch names the medium — **live** (`/roz-gate:to-issues`, chat relay)
 or **async** (patrol, issue comments). Every dispatch returns **exactly one**
 of:
 

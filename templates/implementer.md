@@ -35,7 +35,7 @@ have gone unquestioned for too long.
 
 ## Stack
 
-<!-- /gated-loop:init fills this section per project: language, framework,
+<!-- /roz-gate:init fills this section per project: language, framework,
      datastore, and the concrete anti-patterns you always enforce.
      Example (Python/Django/PostgreSQL):
 - No unbounded querysets — always paginate or limit

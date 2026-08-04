@@ -1,8 +1,8 @@
 ---
-description: One-time bootstrap of the Gated Loop in the current repo — detect the forge, create labels, write the workflow + config into CLAUDE.md, instantiate the implementer persona, add the idea issue template
+description: One-time bootstrap of the Roz Gate in the current repo — detect the forge, create labels, write the workflow + config into CLAUDE.md, instantiate the implementer persona, add the idea issue template
 ---
 
-Bootstrap the Gated Loop in the current repository. Idempotent: every step
+Bootstrap the Roz Gate in the current repository. Idempotent: every step
 checks what already exists and completes only the remainder. Interactive: this
 command is always run by the user, in conversation — confirm each inference
 before writing it.
@@ -46,14 +46,15 @@ the plugin (`references/workflow.md`) and is never copied into the project, so
 upgrades propagate without touching CLAUDE.md. The template's
 `workflow-template vN` stamp is copied verbatim — it versions the template
 itself, not the plugin, so routine plugin upgrades never demand a re-init.
-- If the project's CLAUDE.md has no `## Development Workflow (Gated Loop)`
+- If the project's CLAUDE.md has no `## Development Workflow (Roz Gate)`
   section: append `${CLAUDE_PLUGIN_ROOT}/templates/CLAUDE-workflow.md`,
   substituting the config values from step 2 into its
-  `### Gated Loop config` block. Create CLAUDE.md if the project has none.
-- If the section exists — including a fat pre-0.6 copy of the whole workflow —
-  **replace the entire section with the current template**, carrying over the
-  existing `### Gated Loop config` values, reconciled with step 2's answers
-  (show the diff first).
+  `### Roz Gate config` block. Create CLAUDE.md if the project has none.
+- If the section exists — including a fat pre-0.6 copy of the whole workflow,
+  or a legacy section titled `## Development Workflow (Gated Loop)` with a
+  `### Gated Loop config` block (the plugin's pre-1.0 name) — **replace the
+  entire section with the current template**, carrying over the existing
+  config values, reconciled with step 2's answers (show the diff first).
 
 ## 5. Instantiate the implementer persona
 - If `.claude/agents/implementer.md` does not exist: copy
@@ -71,11 +72,11 @@ Write the async-intake capture template to the adapter's ISSUE-TEMPLATE-PATH
 ## 7. Report + first steps
 Summarize what was created vs. already present. Then print the getting-started
 map:
-1. File a story: `/gated-loop:to-issues` in conversation, or from your phone —
+1. File a story: `/roz-gate:to-issues` in conversation, or from your phone —
    an issue with no `track:` label lands in the inbox and patrol will triage it
    in comments ((1b)).
 2. You apply the gate label (`status: ready-for-spec` / `ready-for-dev`).
-3. Run `/gated-loop:patrol` (manually, on a loop, or scheduled) — it advances
+3. Run `/roz-gate:patrol` (manually, on a loop, or scheduled) — it advances
    whatever the labels authorize and reports what waits on you.
 
 Nothing in this command applies a gate label, and it never edits an existing

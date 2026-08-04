@@ -8,10 +8,10 @@ Follow these steps; do nothing beyond them.
 
 ## 0. Load config & forge adapter
 
-Read the `### Gated Loop config` block in the project's CLAUDE.md, then
+Read the `### Roz Gate config` block in the project's CLAUDE.md, then
 `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the concrete CLI behind
 every CAPITALIZED-OP. Missing config → stop; tell the user to run
-`/gated-loop:init`.
+`/roz-gate:init`.
 
 ## 1. Find spec CRs to check (read-only)
 - If an issue number was passed (`$ARGUMENTS`), use the CR whose head branch is

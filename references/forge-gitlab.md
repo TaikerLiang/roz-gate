@@ -1,6 +1,6 @@
 # Forge adapter — GitLab (`glab`)
 
-Concrete CLI for every forge operation the gated-loop commands name. All `glab`
+Concrete CLI for every forge operation the roz-gate commands name. All `glab`
 calls infer the project from the current directory's git remote. Vocabulary: a
 **change request (CR)** is a GitLab **Merge Request**. Works with gitlab.com and
 self-hosted instances (`glab auth login --hostname <host>` first).
@@ -10,7 +10,7 @@ Prerequisite: `glab auth status` succeeds for the remote's host.
 ## Labels: the scoped-label scheme
 
 GitLab **scoped labels** (`key::value`) let the platform enforce "at most one
-label per scope" natively — gated-loop uses this deliberately:
+label per scope" natively — roz-gate uses this deliberately:
 
 - `track::spec` / `track::fast` — scoped: **exactly-one-track is enforced by the platform.**
 - `status::ready-for-spec`, `status::ready-for-dev`, `status::in-spec-review`,
@@ -91,7 +91,7 @@ glab api -X PUT "projects/:id/merge_requests/<iid>/discussions/<discussion_id>" 
   -F resolved=true
 ```
 
-## Bootstrap (used by /gated-loop:init)
+## Bootstrap (used by /roz-gate:init)
 
 | Op | Command |
 |---|---|

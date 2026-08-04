@@ -1,9 +1,9 @@
-# The Gated Loop workflow
+# The Roz Gate workflow
 
 The authoritative workflow doc, shipped with the plugin — commands read it via
 `${CLAUDE_PLUGIN_ROOT}/references/workflow.md`, so a plugin upgrade updates
 every project at once. The project's CLAUDE.md carries only a pointer to this
-file plus its `### Gated Loop config` block; angle-bracket values below
+file plus its `### Roz Gate config` block; angle-bracket values below
 (`<specs_dir>`, `<acceptance_dir>`) resolve from that config block.
 
 
@@ -32,7 +32,7 @@ and boundary, no implementation terms — and (2) signs the **contract**
 (`technical-spec.md`), whose enforcement is blind QA (4) plus the integration
 verdict (6). `track: fast` deals close on the MOU alone.
 
-**(1) Intake** — `/gated-loop:to-issues` (or the inbox, (1b)). The `product`
+**(1) Intake** — `/roz-gate:to-issues` (or the inbox, (1b)). The `product`
 agent, dispatched under the **intake brief** (one self-contained question at a
 time, each with a recommendation), clarifies a use case into **one issue = one
 user story**; the main agent only relays the questions and publishes the
@@ -58,7 +58,7 @@ recommendation, prefixed `**[intake]**` — because a comment round trip costs a
 day, not seconds; you answer from any device; once clear it posts a **proposal
 comment** (rewritten story + AC + proposed `track:`) and only after your
 `approve` does patrol rewrite the body and apply the confirmed `track:` label.
-The gate label is still yours. Same invariants as `/gated-loop:to-issues`;
+The gate label is still yours. Same invariants as `/roz-gate:to-issues`;
 async medium, batched questions.
 
 **(2) Spec refinement** — gated by `status: ready-for-spec`. `em`+`product`
@@ -156,7 +156,7 @@ a status report. Neither ever moves the other's.**
 
 | Transition | Owner |
 |---|---|
-| `track:` label at intake | `/gated-loop:to-issues` (interactive) or the (1b) proposal comment (async) proposes — **you** confirm either way |
+| `track:` label at intake | `/roz-gate:to-issues` (interactive) or the (1b) proposal comment (async) proposes — **you** confirm either way |
 | raw idea → inbox issue (no labels) | **you** (e.g. the forge's mobile app) |
 | inbox → in the loop (body rewrite + `track:` label) | patrol's async intake, only after your `approve` comment |
 | apply a gate label (`ready-for-spec`, `ready-for-dev`) | **you**, only ever you |
@@ -171,9 +171,9 @@ a status report. Neither ever moves the other's.**
 | labels retire at close | the closing merge — (7), or your fast-CR merge |
 
 **Invocation policy.** Workflow commands are executed by the main agent and —
-except `/gated-loop:to-issues`, which you always initiate (the inbox's async
+except `/roz-gate:to-issues`, which you always initiate (the inbox's async
 intake is likewise initiated by you, by filing the raw issue) — do not wait
-for you to type them. A patrol pass (`/gated-loop:patrol`, run manually, on a loop, or on
+for you to type them. A patrol pass (`/roz-gate:patrol`, run manually, on a loop, or on
 a schedule) reads each open issue's worn state and invokes the right command
 per its classification table; it acts on one in-loop issue per pass (closest
 to done) and then triages the **whole inbox** (intake is comment-only, so
@@ -192,13 +192,25 @@ and the phase label next to it says where.
 ## Principles
 
 - **QA tests a contract, not raw implementation.** HTTP API → the API doc;
-  otherwise the implementer provides a documented test port as part of the
-  contract.
+  otherwise the implementer provides a documented **test port** as part of the
+  contract. The test port is the front door for features with no natural
+  external interface (scheduled jobs, bot commands, internal services): a
+  small, stable, documented driver the acceptance tests call instead of
+  importing internals — control points to drive the behaviour (e.g.
+  `advance_clock(minutes)`, `run_expiry_sweep()`) and observation points to
+  read its externally observable outcomes (e.g. `get_offer_state(id)`). It is
+  **specified in `technical-spec.md` at stage (2)** — that is what lets QA
+  write its suite in parallel with the build — and implemented by the
+  implementer at stage (3) with the same obligations as a public API: stable,
+  documented, behaviour-only. A port that exposes internal state or models
+  "for convenience" re-couples QA to the implementation and is a contract
+  defect — QA should report it, not use it. (In hexagonal-architecture terms:
+  a driving port whose actor is the acceptance suite.)
 - **The verdict lives at integration, by design.** (3) and (4) run in parallel
   and never see each other; that independence is what makes the verdict honest.
-- **Tooling:** `/gated-loop:to-issues` (1, 1a — dispatches `product` under the
-  intake brief); `/gated-loop:next-stage` (2, 3+4+5, or
+- **Tooling:** `/roz-gate:to-issues` (1, 1a — dispatches `product` under the
+  intake brief); `/roz-gate:next-stage` (2, 3+4+5, or
   fast — routed by labels, printing the workflow map first);
-  `/gated-loop:spec-answers` (2a); `/gated-loop:integrate` (6);
-  `/gated-loop:patrol` — one polling pass that auto-invokes the commands above
+  `/roz-gate:spec-answers` (2a); `/roz-gate:integrate` (6);
+  `/roz-gate:patrol` — one polling pass that auto-invokes the commands above
   and triages the inbox ((1b)); (7) is a plain forge merge by you.

@@ -1,6 +1,6 @@
 # Forge adapter — GitHub (`gh`)
 
-Concrete CLI for every forge operation the gated-loop commands name. All `gh`
+Concrete CLI for every forge operation the roz-gate commands name. All `gh`
 calls infer the repository from the current directory's git remote — never pass
 `--repo`. Vocabulary: a **change request (CR)** is a GitHub **Pull Request**.
 
@@ -76,7 +76,7 @@ gh api graphql -f query='mutation($t:ID!){
   resolveReviewThread(input:{threadId:$t}){ thread{ isResolved } } }' -F t=<thread-id>
 ```
 
-## Bootstrap (used by /gated-loop:init)
+## Bootstrap (used by /roz-gate:init)
 
 | Op | Command |
 |---|---|
