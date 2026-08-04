@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roz Gate — interactive guide</title>
+<style>
+  :root{
+    --bg:#0e2a33; --bg2:#0a2129; --panel:#123742; --panel2:#16414e;
+    --ink:#f2e8d5; --muted:#9db4ba; --line:#1e4a57;
+    --gold:#d9a441; --red:#c94f43; --teal:#4fa3b8; --green:#7fb069;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+  a{color:var(--teal)}
+  h1,h2,h3{line-height:1.25}
+  h2{font-size:1.7rem;margin-bottom:.4rem}
+  h2 .no{color:var(--gold);font-weight:800;margin-right:.4rem}
+  section{padding:56px 0;border-bottom:1px solid var(--line)}
+  .sub{color:var(--muted);max-width:70ch}
+  code{background:var(--bg2);border:1px solid var(--line);border-radius:5px;padding:.08em .4em;font-size:.9em}
+
+  /* language toggle */
+  html[lang="en"] .zh{display:none}
+  html[lang="zh"] .en{display:none}
+  .topbar{position:sticky;top:0;z-index:50;background:rgba(10,33,41,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+  .topbar .wrap{display:flex;align-items:center;gap:14px;padding:10px 20px}
+  .topbar .brand{font-weight:800;letter-spacing:.02em}
+  .topbar .brand .dot{color:var(--red)}
+  .topbar nav{display:flex;gap:14px;font-size:.88rem;overflow-x:auto}
+  .topbar nav a{color:var(--muted);text-decoration:none;white-space:nowrap}
+  .topbar nav a:hover{color:var(--ink)}
+  .lang{margin-left:auto;display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:none}
+  .lang button{background:none;border:0;color:var(--muted);padding:5px 12px;cursor:pointer;font-size:.85rem}
+  .lang button.on{background:var(--gold);color:#0a2129;font-weight:700}
+
+  /* hero */
+  .hero{padding:64px 0 48px;border-bottom:1px solid var(--line);background:
+    radial-gradient(ellipse 60% 80% at 30% 20%, #16414e 0%, transparent 60%)}
+  .hero img{max-width:100%;border-radius:12px;border:1px solid var(--line)}
+  .hero h1{font-size:2.1rem;margin:26px 0 10px}
+  .hero .tag{display:inline-block;background:var(--red);color:#fff;font-weight:800;
+    padding:4px 14px;border-radius:4px;transform:rotate(-2deg);letter-spacing:.04em;margin-bottom:14px}
+  .hero p{max-width:72ch}
+
+  /* legend */
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:.88rem;color:var(--muted)}
+  .legend .you{color:var(--gold);font-weight:700}
+  .legend .mach{color:var(--teal);font-weight:700}
+
+  /* mental model */
+  .mou{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:26px}
+  .mou .cell{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .mou .cell b{display:block;color:var(--gold);font-size:.95rem}
+  .mou .cell span{font-size:.85rem;color:var(--muted)}
+
+  /* flow map */
+  .rail{display:flex;align-items:stretch;gap:8px;overflow-x:auto;padding:22px 4px;margin-top:10px}
+  .node{flex:none;width:118px;background:var(--panel);border:1.5px solid var(--line);border-radius:10px;
+    padding:10px;cursor:pointer;text-align:center;transition:transform .12s,border-color .12s}
+  .node:hover{transform:translateY(-3px)}
+  .node.sel{border-color:var(--gold);box-shadow:0 0 0 2px rgba(217,164,65,.25)}
+  .node .n{color:var(--gold);font-weight:800;font-size:.85rem}
+  .node .t{font-size:.86rem;font-weight:600;line-height:1.3;margin-top:2px}
+  .node .w{font-size:.72rem;color:var(--muted);margin-top:4px}
+  .gate{flex:none;width:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer}
+  .gate .bars{width:26px;height:40px;border-radius:4px;background:
+    repeating-linear-gradient(90deg,var(--gold) 0 4px,transparent 4px 9px);opacity:.85}
+  .gate.sel .bars{outline:2px solid var(--gold);outline-offset:2px}
+  .gate .g{font-size:.62rem;color:var(--gold);font-weight:700;text-align:center;line-height:1.2}
+  .arrow{flex:none;align-self:center;color:var(--muted)}
+  .fastlane{margin-top:6px;font-size:.85rem;color:var(--muted)}
+  .fastlane .node{display:inline-block;width:auto;padding:6px 12px;margin:4px 4px 0 0}
+
+  /* detail card */
+  .card{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--gold);
+    border-radius:10px;padding:20px 22px;margin-top:14px;min-height:120px}
+  .card h3{color:var(--gold);margin-bottom:8px}
+  .card .row{display:grid;grid-template-columns:110px 1fr;gap:6px 14px;font-size:.92rem;margin-top:10px}
+  .card .row dt{color:var(--muted);font-weight:600}
+  .card .row dd .you{color:var(--gold);font-weight:700}
+  .card .row dd .mach{color:var(--teal);font-weight:700}
+  @media(max-width:560px){.card .row{grid-template-columns:1fr}}
+
+  /* labels */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+  .chip{border:1px solid;border-radius:999px;padding:4px 14px;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg2)}
+  .chip.track{border-color:#3b82c4;color:#7db8e8}
+  .chip.gatel{border-color:var(--green);color:var(--green)}
+  .chip.trans{border-color:var(--gold);color:var(--gold)}
+  .chip.bad{border-color:var(--red);color:var(--red)}
+  .chip.sel{outline:2px solid var(--ink);outline-offset:1px}
+
+  /* simulator */
+  .sim{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px;margin-top:20px}
+  .sim .issuebox{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:16px;margin-top:14px}
+  .sim .ilabels{display:flex;flex-wrap:wrap;gap:6px;min-height:30px;margin:8px 0}
+  .sim .ilabels .chip{cursor:default;font-size:.78rem;padding:2px 10px}
+  .sim .desc{margin-top:10px;font-size:.95rem}
+  .sim .actor{display:inline-block;font-size:.78rem;font-weight:800;border-radius:4px;padding:1px 8px;margin-right:8px;vertical-align:middle}
+  .sim .actor.you{background:var(--gold);color:#0a2129}
+  .sim .actor.mach{background:var(--teal);color:#0a2129}
+  .sim .ctl{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+  .sim button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:8px 18px;cursor:pointer;font-size:.92rem}
+  .sim button:hover{border-color:var(--gold)}
+  .sim button.primary{background:var(--gold);color:#0a2129;font-weight:700;border-color:var(--gold)}
+  .sim button:disabled{opacity:.35;cursor:default}
+  .sim .step{color:var(--muted);font-size:.85rem;margin-left:auto}
+  .sim .detour{border-color:var(--red);color:var(--red)}
+  .stamp{display:inline-block;border:3px solid var(--red);color:var(--red);font-weight:900;letter-spacing:.08em;
+    padding:2px 12px;border-radius:6px;transform:rotate(-6deg);font-size:1rem}
+
+  /* wizard */
+  .wiz{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px;margin-top:20px}
+  .wiz .q{font-size:1.05rem;font-weight:700;margin-bottom:14px}
+  .wiz .opts{display:flex;flex-direction:column;gap:8px}
+  .wiz .opts button{text-align:left;background:var(--bg2);border:1px solid var(--line);color:var(--ink);
+    border-radius:8px;padding:10px 16px;cursor:pointer;font-size:.95rem}
+  .wiz .opts button:hover{border-color:var(--gold)}
+  .wiz .ans{border-left:4px solid var(--green);background:var(--bg2);border-radius:8px;padding:16px 18px;margin-top:6px}
+  .wiz .ans.you-turn{border-left-color:var(--gold)}
+  .wiz .ans.wait{border-left-color:var(--teal)}
+  .wiz .ans.err{border-left-color:var(--red)}
+  .wiz .ans b{display:block;margin-bottom:6px}
+  .wiz .crumb{font-size:.8rem;color:var(--muted);margin-bottom:12px;min-height:1.2em}
+  .wiz .restart{margin-top:14px;background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:6px 14px;cursor:pointer}
+
+  footer{padding:36px 0;color:var(--muted);font-size:.85rem}
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="wrap">
+  <div class="brand">roz-gate<span class="dot">.</span></div>
+  <nav>
+    <a href="#model"><span class="en">Mental model</span><span class="zh">心智模型</span></a>
+    <a href="#map"><span class="en">The loop</span><span class="zh">流程地圖</span></a>
+    <a href="#labels"><span class="en">Labels</span><span class="zh">標籤</span></a>
+    <a href="#sim"><span class="en">An issue's life</span><span class="zh">issue 的一生</span></a>
+    <a href="#wizard"><span class="en">What now?</span><span class="zh">我該做什麼?</span></a>
+  </nav>
+  <div class="lang"><button id="btn-en" class="on" onclick="setLang('en')">EN</button><button id="btn-zh" onclick="setLang('zh')">中</button></div>
+</div></div>
+
+<div class="hero"><div class="wrap">
+  <img src="roz-gate-banner.png" alt="Roz Gate banner — an owl gatekeeper stamping APPROVED">
+  <div class="tag">NO STAMP, NO MERGE.</div>
+  <h1><span class="en">A human-gated AI development pipeline</span><span class="zh">人類把關的 AI 開發流水線</span></h1>
+  <p class="en">Roz Gate turns a repository into a role-driven pipeline run by specialized AI agents — a product advocate, an engineering manager, an implementer, a blind black-box QA, an independent reviewer. Agents do the work. <b>You make every decision that matters</b>: the pipeline stops at explicit gates and cannot cross them without you.</p>
+  <p class="zh">Roz Gate 把一個 repository 變成由專職 AI agents 運轉的角色驅動流水線——產品代言人、工程經理、實作者、看不到實作的黑箱 QA、獨立審查者。工作由 agents 完成,<b>但每個重要決定都是你的</b>:流水線在明確的 gate 前停下,沒有你就過不去。</p>
+  <div class="legend">
+    <span><span class="you">■ Gold</span> <span class="en">= your move (the owner)</span><span class="zh">= 你的動作(業主)</span></span>
+    <span><span class="mach">■ Teal</span> <span class="en">= the machine's move (agents & commands)</span><span class="zh">= 機器的動作(agents 與指令)</span></span>
+  </div>
+</div></div>
+
+<section id="model"><div class="wrap">
+  <h2><span class="en">The mental model: owner, contractor, inspector</span><span class="zh">心智模型:業主、承包商、驗收機構</span></h2>
+  <p class="sub en">The loop is the time-honoured commercial structure for buying work you cannot fully watch. You never build — you sign.</p>
+  <p class="sub zh">這套 loop 就是商業世界行之有年的結構:買你無法全程盯著的工作。你從不施工——你只簽字。</p>
+  <div class="mou">
+    <div class="cell"><b><span class="en">(1) MOU</span><span class="zh">(1) 意向書</span></b><span class="en">Intake captures intent — what, why, how big. No binding terms.</span><span class="zh">Intake 收攏意圖——做什麼、為什麼、多大。不含約束性條款。</span></div>
+    <div class="cell"><b><span class="en">(2) Contract</span><span class="zh">(2) 合約</span></b><span class="en">Spec + Q&amp;A: enforceable terms, negotiated clause by clause.</span><span class="zh">Spec + 議約:可裁決的條款,逐條磋商。</span></div>
+    <div class="cell"><b><span class="en">(3)∥(4) Build ∥ Inspect</span><span class="zh">(3)∥(4) 施工 ∥ 擬驗收</span></b><span class="en">The contractor builds while the inspector writes the acceptance procedure — from the contract alone, never visiting the site.</span><span class="zh">承包商施工的同時,驗收機構只憑合約擬驗收程序——從不進工地。</span></div>
+    <div class="cell"><b><span class="en">(6) Acceptance</span><span class="zh">(6) 驗收</span></b><span class="en">The procedure meets the finished work for the first time. The verdict is honest because the two sides never met.</span><span class="zh">驗收程序第一次碰到成品。因為兩邊從未見面,verdict 才誠實。</span></div>
+    <div class="cell"><b><span class="en">(7) Closing</span><span class="zh">(7) 交割</span></b><span class="en">The owner reviews and signs off. Small deals (fast track) close on the MOU alone.</span><span class="zh">業主過目、簽收。小額交易(fast track)憑意向書直接成交。</span></div>
+  </div>
+</div></section>
+
+<section id="map"><div class="wrap">
+  <h2><span class="en">The loop — click any stage or gate</span><span class="zh">流程地圖——點任一階段或 gate</span></h2>
+  <p class="sub en">Gold fences are gates: only you open them, by applying a label or merging. Everything between the fences runs itself.</p>
+  <p class="sub zh">金色柵欄是 gate:只有你能開——貼上 gate label 或 merge。柵欄之間的一切自己運轉。</p>
+
+  <div class="rail" id="rail"></div>
+  <div class="fastlane">
+    <span class="en"><b>Fast track</b> (for mechanical changes):</span><span class="zh"><b>Fast track</b>(機械性變更):</span>
+    <span class="node" data-k="fast">(1) → <span class="en">implement → (5) review → your merge</span><span class="zh">直接實作 → (5) review → 你 merge</span></span>
+  </div>
+  <div class="card" id="stagecard"></div>
+</div></section>
+
+<section id="labels"><div class="wrap">
+  <h2><span class="en">Labels — who applies what, and when</span><span class="zh">標籤——誰貼、何時貼</span></h2>
+  <p class="sub en">One rule underneath everything: <b>gate labels are authorizations — only you move them. Transient labels are status reports — only the machine moves them.</b> Neither ever touches the other's. Click a label.</p>
+  <p class="sub zh">底層只有一條規則:<b>gate label 是授權——只有你能動;transient label 是狀態回報——只有機器能動。</b>兩邊永不越界。點任一標籤。</p>
+  <div class="chips" id="chips"></div>
+  <div class="card" id="labelcard"></div>
+</div></section>
+
+<section id="sim"><div class="wrap">
+  <h2><span class="en">An issue's life — step through it</span><span class="zh">一張 issue 的一生——逐步播放</span></h2>
+  <p class="sub en">A fictional story: "export search results as CSV", filed from a phone. Watch the labels change and who moves them.</p>
+  <p class="sub zh">虛構故事:「把搜尋結果匯出成 CSV」,從手機隨手開的 issue。看標籤如何變化、由誰推動。</p>
+  <div class="sim">
+    <div class="issuebox">
+      <b>#42 · <span class="en">Export search results as CSV</span><span class="zh">把搜尋結果匯出成 CSV</span></b>
+      <div class="ilabels" id="simlabels"></div>
+      <div class="desc" id="simdesc"></div>
+    </div>
+    <div class="ctl">
+      <button id="simprev">←</button>
+      <button id="simnext" class="primary"><span class="en">Next</span><span class="zh">下一步</span></button>
+      <button id="simdetour" class="detour" style="display:none"><span class="en">Detour: QA hits an ambiguity</span><span class="zh">支線:QA 撞到合約歧義</span></button>
+      <span class="step" id="simstep"></span>
+    </div>
+  </div>
+</div></section>
+
+<section id="wizard"><div class="wrap">
+  <h2><span class="en">"What should I do now?"</span><span class="zh">「我現在該做什麼?」</span></h2>
+  <p class="sub en">Answer two or three questions about the issue in front of you; get the exact next move. This mirrors patrol's own classification table.</p>
+  <p class="sub zh">回答兩三個關於眼前這張 issue 的問題,得到明確的下一步。邏輯與 patrol 的分類表完全一致。</p>
+  <div class="wiz">
+    <div class="crumb" id="wizcrumb"></div>
+    <div id="wizbody"></div>
+    <button class="restart" onclick="wizGo('start')"><span class="en">↺ Start over</span><span class="zh">↺ 重來</span></button>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <span class="en">Roz Gate — a Claude Code plugin · <a href="https://github.com/TaikerLiang/roz-gate">GitHub</a> · Works with GitHub (gh) and GitLab (glab).</span>
+  <span class="zh">Roz Gate — Claude Code plugin · <a href="https://github.com/TaikerLiang/roz-gate">GitHub</a> · 支援 GitHub (gh) 與 GitLab (glab)。</span>
+</div></footer>
+
+<script>
+/* ---------- i18n ---------- */
+function setLang(l){
+  document.documentElement.lang = l;
+  document.getElementById('btn-en').classList.toggle('on', l==='en');
+  document.getElementById('btn-zh').classList.toggle('on', l==='zh');
+  try{localStorage.setItem('rozlang', l)}catch(e){}
+}
+try{ setLang(localStorage.getItem('rozlang') || 'en') }catch(e){ setLang('en') }
+const B = (en, zh) => `<span class="en">${en}</span><span class="zh">${zh}</span>`;
+
+/* ---------- flow map data ---------- */
+const STAGES = [
+ {k:'s1', n:'(1)', t:B('Intake','Intake 收案'), w:B('product + you','product + 你'),
+  who:B('The <span class="mach">product agent</span> (under the intake brief) clarifies your idea — one question at a time in chat, or batched questions in issue comments (the inbox). The main agent only relays and publishes.','<span class="mach">product agent</span>(intake brief 約束下)釐清你的點子——對話中一次一題,或在 issue 留言批次提問(inbox)。主 agent 只轉述、只發佈。'),
+  labels:B('<code>track: spec</code> or <code>track: fast</code> applied after <b>your</b> confirmation. No <code>status:</code> yet.','確認後貼上 <code>track: spec</code> 或 <code>track: fast</code>——由<b>你</b>確認。尚無 <code>status:</code>。'),
+  you:B('<span class="you">Answer the questions, approve the proposal, then apply the gate label when you\'re ready.</span>','<span class="you">回答問題、approve 提案,準備好時貼上 gate label。</span>'),
+  out:B('One issue = one user story: story + observable acceptance criteria + a track. The MOU.','一 issue = 一個 user story:故事 + 可觀察的驗收條件 + track。這就是意向書。')},
+ {k:'g1', gate:true, g:B('you apply<br>ready-for-spec','你貼<br>ready-for-spec')},
+ {k:'s2', n:'(2)+(2a)', t:B('Spec & Q&A','Spec 與議約'), w:'em + product + implementer',
+  who:B('<span class="mach">em + product</span> write <code>spec.md</code> (scenarios); <span class="mach">implementer</span> writes <code>technical-spec.md</code> — the contract. Open questions become inline threads on the spec CR.','<span class="mach">em + product</span> 寫 <code>spec.md</code>(情境);<span class="mach">implementer</span> 寫 <code>technical-spec.md</code>——合約。未決問題變成 spec CR 上的 inline threads。'),
+  labels:B('<code>status: ready-for-spec</code> → <code>processing</code> → <code>in-spec-review</code> (machine-moved).','<code>status: ready-for-spec</code> → <code>processing</code> → <code>in-spec-review</code>(機器推動)。'),
+  you:B('<span class="you">Answer every thread — each is one clause of the contract. When all are resolved, apply <code>ready-for-dev</code>.</span>','<span class="you">回答每一條 thread——每條都是合約的一個條款。全部 resolve 後,貼上 <code>ready-for-dev</code>。</span>'),
+  out:B('The signed contract: spec.md + technical-spec.md on the spec CR (which stays open as the feature umbrella).','簽署的合約:spec CR 上的 spec.md + technical-spec.md(spec CR 保持開啟,作為整個 feature 的傘)。')},
+ {k:'g2', gate:true, g:B('you apply<br>ready-for-dev','你貼<br>ready-for-dev')},
+ {k:'s34', n:'(3)∥(4)', t:B('Build ∥ Blind QA','施工 ∥ 盲測'), w:'implementer ∥ qa',
+  who:B('Launched together, never seeing each other: <span class="mach">implementer</span> codes on <code>feat/{n}</code>; <span class="mach">qa</span> writes black-box acceptance tests on <code>qa/{n}</code> from the spec + contract only. The qa branch carries no implementation code — that enforces the black box structurally.','同時啟動、互不相見:<span class="mach">implementer</span> 在 <code>feat/{n}</code> 寫程式;<span class="mach">qa</span> 在 <code>qa/{n}</code> 只憑 spec + 合約寫黑箱驗收測試。qa 分支不含任何實作程式碼——黑箱是結構性保證。'),
+  labels:B('No <code>status:</code> label — the two open CRs are the in-flight state.','沒有 <code>status:</code> 標籤——兩個開著的 CR 就是狀態。'),
+  you:B('Nothing. This runs itself. If QA hits a contract ambiguity, the issue re-enters <code>in-spec-review</code> — the change order — and <span class="you">you answer the new thread</span>.','不用動。這段自己跑。若 QA 撞到合約歧義,issue 退回 <code>in-spec-review</code>——變更設計——<span class="you">由你回答新 thread</span>。'),
+  out:B('feat CR (code + unit tests) and a draft QA CR (test-spec + acceptance suite; marked ready when complete).','feat CR(程式 + 單元測試)與 draft QA CR(test-spec + 驗收套件;完成時轉 ready)。')},
+ {k:'s5', n:'(5)', t:B('Review','審查'), w:'reviewer',
+  who:B('The <span class="mach">reviewer</span> posts severity-graded inline threads (<code>blocking</code>/<code>should-fix</code>/<code>nit</code>/<code>question</code>); the <span class="mach">implementer</span> addresses them until review-clean.','<span class="mach">reviewer</span> 貼分級的 inline threads(<code>blocking</code>/<code>should-fix</code>/<code>nit</code>/<code>question</code>);<span class="mach">implementer</span> 逐條處理到 review-clean。'),
+  labels:B('Still no <code>status:</code> — open review threads are the state.','仍無 <code>status:</code>——開著的 review threads 就是狀態。'),
+  you:B('Nothing — this is site supervision, checking workmanship, not outcomes.','不用動——這是監造:查工法,不查結果。'),
+  out:B('A review-clean implementation CR.','一個 review-clean 的實作 CR。')},
+ {k:'s6', n:'(6)', t:B('The verdict','驗收 verdict'), w:B('main agent','主 agent'),
+  who:B('Both branches merge locally into <code>spec/{n}</code>; QA\'s suite runs against the code <b>for the first time</b>. Pass/fail is the verdict on whether implementation matches spec — genuine bugs surface here, before merge, not in production.','兩個分支在本地合進 <code>spec/{n}</code>;QA 的套件<b>第一次</b>跑在程式碼上。過與不過就是「實作是否符合 spec」的裁決——真正的 bug 在這裡現形,在 merge 前,而不是上線後。'),
+  labels:B('Green verdict → <code>status: in-user-review</code> (machine-moved).','驗收綠燈 → <code>status: in-user-review</code>(機器推動)。'),
+  you:B('Nothing yet — the machine classifies red verdicts and reports.','還不用動——紅燈由機器分類並回報。'),
+  out:B('A green acceptance run on the integrated code.','整合後程式碼上的綠色驗收結果。')},
+ {k:'g3', gate:true, g:B('you review<br>& merge','你審查<br>並 merge')},
+ {k:'s7', n:'(7)', t:B('Merge','簽收'), w:B('<b>you</b>','<b>你</b>'),
+  who:B('Nothing moves without you. You review the spec CR — spec, code, tests, green verdict, all in one place.','沒有你,一切不動。你審查 spec CR——spec、程式、測試、綠色 verdict,全在一處。'),
+  labels:B('All labels retire when the closing merge lands.','closing merge 落地時,所有標籤退役。'),
+  you:B('<span class="you">Review and merge. Your merge closes the issue. The deal closes.</span>','<span class="you">審查、merge。你的 merge 關閉 issue。交易完成。</span>'),
+  out:B('Shipped, with an acceptance suite that keeps running as a living, feature-organized test suite.','出貨——驗收套件留下來,成為持續運行、以 feature 組織的活測試。')},
+];
+const FAST = {k:'fast', n:'fast', t:B('The fast track','Fast track'), w:B('main agent','主 agent'),
+  who:B('For mechanical changes (chores, config, doc fixes): the <span class="mach">main agent</span> implements directly on <code>fast/{n}</code> — the one R&R exception. Review (5) still applies; a bug fix must carry a reproducing unit test.','機械性變更(chore、config、doc 修正):<span class="mach">主 agent</span> 直接在 <code>fast/{n}</code> 實作——R&R 的唯一例外。(5) review 照常;bug fix 必附重現的單元測試。'),
+  labels:B('<code>track: fast</code> + your <code>ready-for-dev</code>. Review-clean → <code>in-user-review</code>. <code>fast</code> + <code>ready-for-spec</code> is illegal.','<code>track: fast</code> + 你貼的 <code>ready-for-dev</code>。review-clean 後 → <code>in-user-review</code>。<code>fast</code> + <code>ready-for-spec</code> 是非法狀態。'),
+  you:B('<span class="you">Apply <code>ready-for-dev</code>, then review &amp; merge the CR yourself.</span> The escalation valve: the moment a fast change grows a real decision, it is relabelled to <code>track: spec</code> and rejoins the loop at (2).','<span class="you">貼 <code>ready-for-dev</code>,之後自己審查並 merge CR。</span>升級閥:fast 變更一旦長出真正的設計決定,立刻改掛 <code>track: spec</code>,從 (2) 重新入列。'),
+  out:B('A small deal closed on the MOU alone — no contract needed.','小額交易,憑意向書直接成交——不需要合約。')};
+
+const rail = document.getElementById('rail');
+STAGES.forEach((s,i)=>{
+  if(s.gate){
+    rail.insertAdjacentHTML('beforeend',
+      `<div class="gate" data-k="${s.k}"><div class="bars"></div><div class="g">${s.g}</div></div>`);
+  }else{
+    if(i>0 && !STAGES[i-1].gate) rail.insertAdjacentHTML('beforeend','<div class="arrow">→</div>');
+    rail.insertAdjacentHTML('beforeend',
+      `<div class="node" data-k="${s.k}"><div class="n">${s.n}</div><div class="t">${s.t}</div><div class="w">${s.w}</div></div>`);
+  }
+});
+const GATES = {
+ g1:{t:B('Gate: design this','Gate:授權設計'),
+   who:B('A gate label is an <b>authorization</b>. Commands and agents can run the pipeline but can never authorize it — structurally.','gate label 是一種<b>授權</b>。指令與 agents 能運轉流水線,但在結構上永遠無法授權它。'),
+   labels:'<code>status: ready-for-spec</code>',
+   you:B('<span class="you">You apply it — whenever you\'re ready, from any device. Until then the issue simply waits.</span>','<span class="you">由你貼上——想好了就貼,任何裝置都行。在那之前 issue 就安靜等著。</span>'),
+   out:B('The machine may now run stage (2).','機器獲准執行 (2)。')},
+ g2:{t:B('Gate: build this','Gate:授權開工'),
+   who:B('Applied only after every spec thread is resolved — you have signed every clause of the contract.','只在所有 spec threads 都 resolve 後貼——你已在合約每一條上簽了字。'),
+   labels:'<code>status: ready-for-dev</code>',
+   you:B('<span class="you">You apply it. Build and blind QA launch together the moment patrol or next-stage sees it.</span>','<span class="you">由你貼上。patrol 或 next-stage 一看到,施工與盲測同時啟動。</span>'),
+   out:B('The machine may now run (3)+(4)+(5).','機器獲准執行 (3)+(4)+(5)。')},
+ g3:{t:B('Gate: the final signature','Gate:最後簽收'),
+   who:B('The third gate is not a label — it is the merge button itself.','第三道 gate 不是標籤——是 merge 按鈕本身。'),
+   labels:'<code>status: in-user-review</code> → <span class="en">(labels retire)</span><span class="zh">(標籤退役)</span>',
+   you:B('<span class="you">You review the spec CR and merge. No stamp, no merge.</span>','<span class="you">你審查 spec CR 並 merge。No stamp, no merge.</span>'),
+   out:B('Issue closed; feature shipped.','issue 關閉;feature 出貨。')},
+};
+function showStage(k){
+  document.querySelectorAll('.rail .node,.rail .gate,.fastlane .node').forEach(n=>n.classList.toggle('sel',n.dataset.k===k));
+  const s = k==='fast' ? FAST : (GATES[k] || STAGES.find(x=>x.k===k));
+  const card = document.getElementById('stagecard');
+  card.innerHTML = `<h3>${s.n? s.n+' · ':''}${s.t}</h3>
+   <dl class="row">
+    <dt>${B('What happens','發生什麼')}</dt><dd>${s.who}</dd>
+    <dt>${B('Labels','標籤')}</dt><dd>${s.labels}</dd>
+    <dt>${B('Your move','你的動作')}</dt><dd>${s.you}</dd>
+    <dt>${B('Deliverable','產出')}</dt><dd>${s.out}</dd>
+   </dl>`;
+}
+document.getElementById('map').addEventListener('click',e=>{
+  const n = e.target.closest('[data-k]'); if(n) showStage(n.dataset.k);
+});
+showStage('s1');
+
+/* ---------- labels ---------- */
+const LABELS = [
+ {name:'track: spec', cls:'track', by:B('intake — after <b>your</b> confirmation','intake——經<b>你</b>確認後'),
+  when:B('The story carries design: user-facing behaviour, domain modelling, real decisions where two reasonable engineers would build differently. When in doubt, spec — the escalation valve recovers the reverse mistake; nothing recovers a design shipped through the fast track.','故事帶有設計:使用者可見的行為、領域建模、兩個合理工程師會做出不同東西的真決定。猶豫時選 spec——升級閥能救回反向的錯,fast track 出貨的設計沒得救。'),
+  means:B('This issue takes the full loop (2)–(7).','這張 issue 走完整的 (2)–(7)。')},
+ {name:'track: fast', cls:'track', by:B('intake — after <b>your</b> confirmation','intake——經<b>你</b>確認後'),
+  when:B('Vendor bump, config, chore, doc update, test fix — nothing to decide.','vendor 升版、config、chore、doc 更新、test 修正——沒有需要決定的事。'),
+  means:B('Skips the spec stage: direct implementation + review + your merge.','跳過 spec 階段:直接實作 + review + 你 merge。')},
+ {name:'status: ready-for-spec', cls:'gatel', by:B('<b>YOU, only ever you</b>','<b>你,永遠只有你</b>'),
+  when:B('The story is confirmed (track applied) and you want design work to start.','故事已確認(track 已貼),你要設計工作開始。'),
+  means:B('Authorization: the machine may run stage (2).','授權:機器可以執行 (2)。')},
+ {name:'status: ready-for-dev', cls:'gatel', by:B('<b>YOU, only ever you</b>','<b>你,永遠只有你</b>'),
+  when:B('Spec track: every spec-CR thread is resolved. Fast track: right away — it\'s the only gate before implementation.','spec track:所有 spec CR threads 已 resolve。fast track:直接貼——這是實作前唯一的 gate。'),
+  means:B('Authorization: build (and blind QA, on the spec track) may launch.','授權:施工(spec track 加上盲測)可以啟動。')},
+ {name:'status: in-spec-review', cls:'trans', by:B('the machine (stage 2, or a mid-flight change order)','機器((2) 完成時,或飛行中的變更設計)'),
+  when:B('The spec CR is open with question threads awaiting your answers.','spec CR 開著,問題 threads 等你回答。'),
+  means:B('Status report: the contract awaits your signature on open clauses.','狀態回報:合約的未決條款等你簽字。')},
+ {name:'status: in-user-review', cls:'trans', by:B('the machine (after a green verdict, or a review-clean fast CR)','機器(verdict 綠燈後,或 fast CR review-clean 後)'),
+  when:B('Everything is done and verified; only your final review remains.','一切完成且驗證過;只剩你的最後審查。'),
+  means:B('Status report: nothing is left but your merge.','狀態回報:只差你的 merge。')},
+ {name:'status: processing', cls:'trans', by:B('the running command (a lock, not a phase)','執行中的指令(是鎖,不是階段)'),
+  when:B('Taken on entry by every state-mutating command; removed on exit. It coexists with the phase label it locks.','每個會改狀態的指令進場時上鎖、離場時解鎖。它與被鎖住的階段標籤並存。'),
+  means:B('A mutex. A stale <code>processing</code> means exactly one thing — a killed run — and the label next to it says where it died.','互斥鎖。殘留的 <code>processing</code> 只代表一件事——被中斷的執行——旁邊的階段標籤說明死在哪。')},
+ {name:'status: blocked', cls:'bad', by:B('a command taking the STOP exit','走 STOP 出口的指令'),
+  when:B('An automated step hit something it cannot or should not decide. It left an issue comment: what happened, the evidence, a recommended next step.','自動化步驟撞到它不能或不該決定的事。它留下 issue 留言:發生什麼、證據、建議的下一步。'),
+  means:B('<span class="you">You decide</span>, the label clears, the step re-runs. Agents are forbidden to guess.','<span class="you">你來決定</span>,標籤清除,步驟重跑。agents 被禁止用猜的。')},
+ {name:B('(no labels at all)','(完全沒有標籤)'), cls:'trans', by:B('you — e.g. from the forge\'s mobile app','你——例如從 forge 的手機 app'),
+  when:B('A raw idea captured away from the keyboard. Two rough sentences are enough.','離開鍵盤時隨手記下的點子。兩句粗糙的話就夠。'),
+  means:B('The <b>inbox</b>: invisible to every command except patrol\'s async intake, which will clarify it in the comments — all questions batched in one pass.','<b>收件匣</b>:除了 patrol 的 async intake,所有指令都看不見它;patrol 會在留言裡釐清——所有問題一次批次貼出。')},
+];
+const chips = document.getElementById('chips');
+LABELS.forEach((l,i)=>{
+  chips.insertAdjacentHTML('beforeend',`<span class="chip ${l.cls}" data-i="${i}">${l.name}</span>`);
+});
+function showLabel(i){
+  document.querySelectorAll('#chips .chip').forEach((c,j)=>c.classList.toggle('sel',j==i));
+  const l = LABELS[i];
+  document.getElementById('labelcard').innerHTML = `<h3>${l.name}</h3>
+   <dl class="row">
+    <dt>${B('Applied by','由誰貼')}</dt><dd>${l.by}</dd>
+    <dt>${B('When','何時')}</dt><dd>${l.when}</dd>
+    <dt>${B('It means','意義')}</dt><dd>${l.means}</dd>
+   </dl>`;
+}
+chips.addEventListener('click',e=>{const c=e.target.closest('.chip'); if(c) showLabel(c.dataset.i)});
+showLabel(2);
+
+/* ---------- simulator ---------- */
+const L = {spec:'<span class="chip track">track: spec</span>', rfs:'<span class="chip gatel">status: ready-for-spec</span>',
+ rfd:'<span class="chip gatel">status: ready-for-dev</span>', isr:'<span class="chip trans">status: in-spec-review</span>',
+ iur:'<span class="chip trans">status: in-user-review</span>', proc:'<span class="chip trans">status: processing</span>'};
+const YOU = `<span class="actor you">${B('YOU','你')}</span>`, MACH = `<span class="actor mach">${B('MACHINE','機器')}</span>`;
+const SIM = [
+ {l:[], d:B(`${YOU} On the bus, you open an issue from the forge's mobile app: <i>"users keep asking to export search results, maybe csv?"</i> No labels — this is the <b>inbox</b>.`,`${YOU} 公車上,你用手機 app 開了一張 issue:<i>「一直有人想把搜尋結果匯出,csv?」</i>沒有任何標籤——這就是<b>收件匣</b>。`)},
+ {l:[], d:B(`${MACH} Patrol's next pass triages the whole inbox: the <b>product agent</b> (async mode) posts <b>one batched comment</b> — every open question, numbered, each with a recommendation: <i>1. All columns or the visible ones? (rec: visible) 2. Who can export — any viewer? (rec: yes) 3. Size cap? (rec: 10k rows)</i>`,`${MACH} patrol 下一輪掃到收件匣:<b>product agent</b>(async 模式)貼出<b>一則批次留言</b>——所有問題一次列出、編號、各附建議:<i>1. 匯出全部欄位還是可見欄位?(建議:可見)2. 誰能匯出——所有能看的人?(建議:是)3. 大小上限?(建議:一萬列)</i>`)},
+ {l:[], d:B(`${YOU} From your phone, one reply answers all three. Next pass, the agent posts the <b>proposal</b>: rewritten user story + acceptance criteria + <code>track: spec</code> suggested. You reply <code>approve</code>.`,`${YOU} 用手機一則回覆答完三題。下一輪,agent 貼出<b>提案</b>:改寫後的 user story + 驗收條件 + 建議 <code>track: spec</code>。你回覆 <code>approve</code>。`)},
+ {l:[L.spec], d:B(`${MACH} Patrol rewrites the issue body into the story template and applies the confirmed track. The MOU is signed. The gate label is still yours to apply — nothing moves until you do.`,`${MACH} patrol 把 issue 內文改寫成 story 模板、貼上確認過的 track。意向書簽了。gate label 仍在你手上——你不貼,一切不動。`)},
+ {l:[L.spec,L.rfs], d:B(`${YOU} You decide it's time: you apply <code>status: ready-for-spec</code>. <b>Gate one opens.</b>`,`${YOU} 你決定時候到了:貼上 <code>status: ready-for-spec</code>。<b>第一道 gate 開啟。</b>`)},
+ {l:[L.spec,L.isr], d:B(`${MACH} Next-stage runs stage (2): em + product write <code>spec.md</code>, implementer writes <code>technical-spec.md</code> (the contract — including a CSV endpoint spec). The spec CR opens with 4 question threads, each tagged with the role that raised it.`,`${MACH} next-stage 執行 (2):em + product 寫 <code>spec.md</code>,implementer 寫 <code>technical-spec.md</code>(合約——含 CSV endpoint 規格)。spec CR 開啟,帶 4 條問題 threads,各標註提出的角色。`)},
+ {l:[L.spec,L.isr], d:B(`${YOU} You answer the threads inline — <i>"filename pattern? → search term + date"</i>. Spec-answers folds each decision back into the spec and resolves the thread. Every clause negotiated, the contract is signed.`,`${YOU} 你逐條 inline 回答——<i>「檔名規則?→ 搜尋詞+日期」</i>。spec-answers 把每個決定折回 spec 並 resolve thread。條款逐一議定,合約簽署。`)},
+ {l:[L.spec,L.rfd], d:B(`${YOU} All threads resolved. You apply <code>status: ready-for-dev</code>. <b>Gate two opens.</b>`,`${YOU} threads 全部 resolve。你貼上 <code>status: ready-for-dev</code>。<b>第二道 gate 開啟。</b>`)},
+ {l:[L.spec], d:B(`${MACH} Build and blind QA launch <b>in parallel, never seeing each other</b>: implementer codes on <code>feat/42</code>; qa writes black-box acceptance tests on <code>qa/42</code> from the contract alone. No status label — the two open CRs are the state.`,`${MACH} 施工與盲測<b>平行啟動、互不相見</b>:implementer 在 <code>feat/42</code> 寫程式;qa 只憑合約在 <code>qa/42</code> 寫黑箱驗收測試。沒有 status 標籤——兩個開著的 CR 就是狀態。`), detour:true},
+ {l:[L.spec], d:B(`${MACH} The reviewer grades the implementation CR: one <code>blocking</code> (missing input sanitization on the search term), two <code>nit</code>s. The implementer fixes and replies; the reviewer resolves. Review-clean. The QA CR is marked ready — its suite is complete.`,`${MACH} reviewer 為實作 CR 分級留言:一條 <code>blocking</code>(搜尋詞未消毒)、兩條 <code>nit</code>。implementer 修正並回覆;reviewer resolve。review-clean。QA CR 轉為 ready——套件完成。`)},
+ {l:[L.spec], d:B(`${MACH} <b>The verdict.</b> Integrate merges both branches locally and runs QA's suite against the code <b>for the first time</b>. 11 pass, 1 fails: the CSV omits the header row the contract promised. A genuine bug — caught before merge, not in production. The implementer fixes; the suite goes green.`,`${MACH} <b>驗收。</b>integrate 在本地合併兩個分支,QA 套件<b>第一次</b>跑在程式碼上。11 過 1 敗:CSV 少了合約承諾的表頭列。真正的 bug——在 merge 前現形,不是上線後。implementer 修正;套件轉綠。`)},
+ {l:[L.spec,L.iur], d:B(`${MACH} Green verdict → the machine sets <code>status: in-user-review</code> and brings the default branch into <code>spec/42</code> so the diff stays clean. Nothing is left but you.`,`${MACH} 驗收綠燈 → 機器貼上 <code>status: in-user-review</code>,並把預設分支合進 <code>spec/42</code> 保持 diff 乾淨。只剩你了。`)},
+ {l:[], d:B(`${YOU} You review the spec CR — spec, code, tests, green verdict, one place — and merge. <span class="stamp">APPROVED</span>&nbsp; The issue closes, labels retire, and the acceptance suite lives on as a permanent regression net. <b>No stamp, no merge.</b>`,`${YOU} 你審查 spec CR——spec、程式、測試、綠色 verdict 都在一處——然後 merge。<span class="stamp">APPROVED</span>&nbsp; issue 關閉、標籤退役,驗收套件留下來成為永久的回歸防護網。<b>No stamp, no merge.</b>`)},
+];
+const DETOUR = [
+ {l:[L.spec,L.isr], d:B(`${MACH} <b>Change order.</b> Mid-flight, QA hits a contract ambiguity: <i>"what encoding for non-ASCII search terms in the filename?"</i> It stops and reports — <b>agents never interpret</b>. The question becomes a new thread on the still-open spec CR; the issue re-enters <code>in-spec-review</code>: the loop's only backward transition.`,`${MACH} <b>變更設計。</b>飛行途中 QA 撞到合約歧義:<i>「檔名裡的非 ASCII 搜尋詞用什麼編碼?」</i>它停手上報——<b>agents 永不自行解讀</b>。問題成為仍開著的 spec CR 上的新 thread;issue 退回 <code>in-spec-review</code>:整個 loop 唯一的回頭路。`)},
+ {l:[L.spec,L.isr], d:B(`${YOU} You answer the thread: <i>"percent-encode, keep it boring."</i> The decision folds into the spec, the thread resolves, the label clears.`,`${YOU} 你回答 thread:<i>「用 percent-encode,平淡就好。」</i>決定折回 spec,thread resolve,標籤清除。`)},
+ {l:[L.spec], d:B(`${MACH} QA resumes with the amended contract. Back to the main line.`,`${MACH} QA 帶著修訂後的合約復工。回到主線。`)},
+];
+let simQueue = [...SIM], simI = 0;
+function simRender(){
+  const s = simQueue[simI];
+  document.getElementById('simlabels').innerHTML = s.l.length? s.l.join('') :
+    `<span style="color:var(--muted);font-size:.85rem">${B('(no labels — the inbox)','(無標籤——收件匣)')}</span>`;
+  document.getElementById('simdesc').innerHTML = s.d;
+  document.getElementById('simstep').textContent = (simI+1)+' / '+simQueue.length;
+  document.getElementById('simprev').disabled = simI===0;
+  document.getElementById('simnext').disabled = simI===simQueue.length-1;
+  document.getElementById('simdetour').style.display = (s.detour && simQueue.length===SIM.length)? '' : 'none';
+}
+document.getElementById('simnext').onclick = ()=>{ if(simI<simQueue.length-1){simI++; simRender()} };
+document.getElementById('simprev').onclick = ()=>{ if(simI>0){simI--; simRender()} };
+document.getElementById('simdetour').onclick = ()=>{
+  simQueue = [...SIM.slice(0,simI+1), ...DETOUR, ...SIM.slice(simI+1)];
+  simI++; simRender();
+};
+simRender();
+
+/* ---------- wizard ---------- */
+const WIZ = {
+ start:{q:B('What are you looking at?','你眼前是什麼?'), opts:[
+   [B('I have a new idea, no issue yet','我有新點子,還沒開 issue'),'idea'],
+   [B('An open issue with NO <code>track:</code> label','一張沒有 <code>track:</code> 標籤的 open issue'),'inbox'],
+   [B('An open issue WITH a <code>track:</code> label','一張有 <code>track:</code> 標籤的 open issue'),'tracked']]},
+ idea:{ans:'you', h:B('File it — two ways','開一張 issue——兩條路'),
+   t:B('At the keyboard: run <code>/roz-gate:to-issues</code> and answer the product agent\'s questions live. Away from it: open a raw, label-less issue from the forge\'s mobile app (two rough sentences are enough) — patrol\'s async intake will clarify it in the comments.','在鍵盤前:跑 <code>/roz-gate:to-issues</code>,即時回答 product agent 的問題。不在時:用 forge 手機 app 開一張無標籤的 raw issue(兩句粗話就夠)——patrol 的 async intake 會在留言裡釐清。')},
+ inbox:{q:B('What\'s in its comments?','它的留言區長怎樣?'), opts:[
+   [B('An unanswered <code>[intake]</code> question batch','有一批還沒回答的 <code>[intake]</code> 問題'),'inbox_q'],
+   [B('An <code>[intake] · proposal</code> awaiting my reply','有一則等我回覆的 <code>[intake] · proposal</code>'),'inbox_p'],
+   [B('Nothing from the machine yet','機器還沒留過言'),'inbox_wait']]},
+ inbox_q:{ans:'you', h:B('Your move: answer the batch','該你:回答那批問題'),
+   t:B('Reply in the issue comments — from any device, one reply can cover all numbered questions. Every question carries a recommendation, so "all recs fine" is a valid answer. Next patrol pass folds it in.','在 issue 留言回覆——任何裝置,一則回覆可答完所有編號問題。每題都附建議,所以「都照建議」也是合法答案。下一輪 patrol 會折入。')},
+ inbox_p:{ans:'you', h:B('Your move: approve or correct','該你:approve 或糾正'),
+   t:B('Reply <code>approve</code> to file it as proposed, or correct anything first. After approval, patrol rewrites the body and applies the <code>track:</code> label — then the gate label is yours, whenever you\'re ready.','回 <code>approve</code> 照案成立,或先糾正任何部分。approve 後 patrol 改寫內文、貼上 <code>track:</code>——之後 gate label 在你手上,想好了再貼。')},
+ inbox_wait:{ans:'wait', h:B('The machine\'s move','該機器動'),
+   t:B('It\'s in the inbox; the next patrol pass will triage it (patrol triages the whole inbox every pass). Run <code>/roz-gate:patrol</code> now if you don\'t want to wait.','它在收件匣;下一輪 patrol 就會 triage(patrol 每輪掃整個收件匣)。不想等就現在跑 <code>/roz-gate:patrol</code>。')},
+ tracked:{q:B('Which <code>status:</code> label does it wear?','它掛著哪個 <code>status:</code> 標籤?'), opts:[
+   [B('None','沒有'),'no_status'],
+   ['status: ready-for-spec / ready-for-dev','gated'],
+   ['status: in-spec-review','isr'],
+   ['status: in-user-review','iur'],
+   ['status: blocked','blocked'],
+   ['status: processing','proc']]},
+ no_status:{q:B('Which track?','哪條 track?'), opts:[
+   [B('<code>track: spec</code> — not yet gated, or in flight','<code>track: spec</code>——還沒授權,或飛行中'),'ns_spec'],
+   [B('<code>track: fast</code>','<code>track: fast</code>'),'ns_fast']]},
+ ns_spec:{ans:'you', h:B('Two possibilities','兩種可能'),
+   t:B('<b>No CRs open yet?</b> It awaits your gate: apply <code>ready-for-spec</code> when you want design to start. <b>CRs open?</b> It\'s in flight (build ∥ QA ∥ review) — the machine\'s move; patrol advances it. Nothing for you until a thread asks or <code>in-user-review</code> appears.','<b>還沒有 CR?</b>它在等你的 gate:想開始設計就貼 <code>ready-for-spec</code>。<b>CR 開著?</b>它在飛行中(施工∥盲測∥審查)——該機器動,patrol 會推進。除非有 thread 問你或出現 <code>in-user-review</code>,否則不用動。')},
+ ns_fast:{ans:'you', h:B('Gate it, or it\'s already flying','貼 gate,或它已在飛'),
+   t:B('Fast track has one gate: apply <code>ready-for-dev</code> and the main agent implements directly. If its CR is already open, wait for review-clean → <code>in-user-review</code>, then review &amp; merge yourself.','fast track 只有一道 gate:貼 <code>ready-for-dev</code>,主 agent 直接實作。CR 已開的話,等 review-clean → <code>in-user-review</code>,然後自己審查、merge。')},
+ gated:{ans:'wait', h:B('The machine\'s move','該機器動'),
+   t:B('You\'ve authorized it; the pipeline takes it from here. Patrol (or <code>/roz-gate:next-stage</code>) picks it up. Your next appearance: answering spec threads (spec track) or the final review.','你已授權;接下來是流水線的事。patrol(或 <code>/roz-gate:next-stage</code>)會接手。你下次出場:回答 spec threads(spec track)或最後審查。')},
+ isr:{ans:'you', h:B('Your move: sign the clauses','該你:簽合約條款'),
+   t:B('Open the spec CR and answer every open thread inline — each is one contract clause, each comes with a recommendation. <code>/roz-gate:spec-answers</code> folds your answers in. When all threads are resolved, apply <code>ready-for-dev</code>.','打開 spec CR,逐條 inline 回答 open threads——每條是一個合約條款、各附建議。<code>/roz-gate:spec-answers</code> 會折入你的回答。全部 resolve 後,貼上 <code>ready-for-dev</code>。')},
+ iur:{ans:'you', h:B('Your move: the final signature','該你:最後簽收'),
+   t:B('Everything is done and verified — spec, code, tests, green verdict, all on the spec CR (or the fast CR). Review it and merge. Your merge closes the issue. No stamp, no merge.','一切完成且驗證過——spec、程式、測試、綠色 verdict 都在 spec CR(或 fast CR)上。審查、merge。你的 merge 關閉 issue。No stamp, no merge.')},
+ blocked:{ans:'you', h:B('Your move: decide','該你:做決定'),
+   t:B('An automated step stopped on something it won\'t decide and left an issue comment: what happened, evidence, a recommended next step. Read it, decide, direct the agent; the label clears and the step re-runs. Agents are forbidden to guess — this stop is the system working.','某個自動化步驟停在它不願決定的事上,並留下 issue 留言:發生什麼、證據、建議下一步。讀它、決定、下指示;標籤清除、步驟重跑。agents 被禁止用猜的——這個停下正是系統在正常運作。')},
+ proc:{ans:'wait', h:B('A command is running (or died)','指令執行中(或已陣亡)'),
+   t:B('<code>processing</code> is a lock, not a phase. If a command is genuinely running, wait. If it\'s stale (nothing running), a run was killed — the phase label next to it says where it died; re-run the matching command or let patrol report it.','<code>processing</code> 是鎖,不是階段。指令真的在跑就等。若是殘留(沒東西在跑),代表有一次執行被中斷——旁邊的階段標籤說明死在哪;重跑對應指令,或讓 patrol 回報。')},
+};
+let wizPath = [];
+function wizGo(k){
+  if(k==='start') wizPath = [];
+  const n = WIZ[k], body = document.getElementById('wizbody');
+  document.getElementById('wizcrumb').innerHTML = wizPath.join(' <span style="color:var(--gold)">→</span> ');
+  if(n.opts){
+    body.innerHTML = `<div class="q">${n.q}</div><div class="opts">`+
+      n.opts.map(o=>`<button onclick="wizPick('${o[1]}', this)">${o[0]}</button>`).join('')+`</div>`;
+  }else{
+    const cls = n.ans==='you'?'you-turn':(n.ans==='wait'?'wait':'');
+    const badge = n.ans==='you'? `<span class="actor you" style="background:var(--gold);color:#0a2129;border-radius:4px;padding:1px 8px;font-size:.78rem;font-weight:800">${B('YOUR MOVE','該你動')}</span>` :
+                                 `<span class="actor mach" style="background:var(--teal);color:#0a2129;border-radius:4px;padding:1px 8px;font-size:.78rem;font-weight:800">${B('MACHINE\'S MOVE','該機器動')}</span>`;
+    body.innerHTML = `<div class="ans ${cls}">${badge}<b style="margin-top:8px">${n.h}</b><div>${n.t}</div></div>`;
+  }
+}
+function wizPick(k, btn){ wizPath.push(btn.textContent.trim()); wizGo(k); }
+wizGo('start');
+</script>
+</body>
+</html>

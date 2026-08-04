@@ -2,6 +2,10 @@
 
 ![Roz Gate — no stamp, no merge](images/roz-gate-banner.png)
 
+**[▶ Interactive guide](https://taikerliang.github.io/roz-gate/)** — the loop,
+the labels, an issue's life, and "what should I do now?", in one clickable
+page (EN/中).
+
 Roz Gate turns a repository into a **role-driven, human-gated development
 pipeline** run by a team of specialized AI agents: a product advocate, an
 engineering manager, an implementer, a black-box QA tester, and an independent
