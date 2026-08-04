@@ -131,6 +131,7 @@ cannot authorize it.
 | `/roz-gate:spec-answers [n]` | fold your answers on spec-CR threads back into the spec, resolve the threads |
 | `/roz-gate:integrate [n]` | run the stage-(6) verdict: merge locally, run the acceptance suite, classify red, finalize green |
 | `/roz-gate:patrol` | one supervisory pass: scan every open issue's state, invoke whichever command is already authorized, triage the inbox, report what waits on you |
+| `/roz-gate:uninit` | retire the loop from this repo: verify nothing is in flight, remove the scaffolding `init` installed, keep every work product — run before `/plugin uninstall` |
 
 Run `/roz-gate:patrol` manually as a "what's next" button, or schedule it
 (e.g. every 30 minutes) for an unattended loop — it acts on one in-loop issue
@@ -224,6 +225,22 @@ reviewer; **(2)** add the spec stage + Q&A threads for one real feature;
 **(3)** add blind QA + the integration verdict; **(4)** add patrol when enough
 work is in flight that manual advancement is the bottleneck. A project with no
 tests should start at (1) and build test culture before (3) can mean anything.
+
+## Leaving Roz Gate
+
+Retirement is two steps, **in this order**:
+
+1. In **each** adopted project: `/roz-gate:uninit`. It refuses to run
+   mid-flight (open issues with `track:`/`status:` labels, open loop CRs),
+   then removes what `init` installed — the CLAUDE.md section, the
+   `implementer` persona (asked first), the idea issue template. Forge labels
+   are **kept** by default: deleting them would erase them from closed issues'
+   history; ask explicitly if you want them gone. Specs and the acceptance
+   suite are work products, never touched — from that point they're ordinary
+   project assets.
+2. Only when every project is clean: `/plugin uninstall roz-gate`. Order
+   matters — uninstalling first deletes `/roz-gate:uninit` along with the
+   plugin, leaving the cleanup to you by hand.
 
 ## Design principles (the short version)
 
