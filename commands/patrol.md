@@ -15,6 +15,13 @@ every CAPITALIZED-OP. Missing config → stop; tell the user to run
 pre-1.0 name) counts as present — use its values and flag the re-init in the
 report.
 
+**Personas**: every role dispatch below (`product`, `implementer`,
+`reviewer`) resolves through the `### Roz Gate personas` block — dispatch the
+mapped subagent, attaching the seat's R&R row from
+`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` as its contract. Block missing
+→ plugin defaults (`roz-gate:<role>`; implementer = the project's
+`implementer` agent).
+
 **Version check**: compare the workflow section's
 `<!-- roz-gate workflow-template vN -->` stamp against the one in
 `${CLAUDE_PLUGIN_ROOT}/templates/CLAUDE-workflow.md`. Stamp missing or

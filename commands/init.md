@@ -56,13 +56,28 @@ itself, not the plugin, so routine plugin upgrades never demand a re-init.
   entire section with the current template**, carrying over the existing
   config values, reconciled with step 2's answers (show the diff first).
 
-## 5. Instantiate the implementer persona
-- If `.claude/agents/implementer.md` does not exist: copy
-  `${CLAUDE_PLUGIN_ROOT}/templates/implementer.md` and fill its
-  `## Stack` section with the project's language/framework/store and their
-  known anti-patterns — draft it from the codebase, show the user, iterate
-  once. The em/product/qa/reviewer agents ship with the plugin and need no
-  per-project copy.
+## 5. Seat the team (personas)
+The five role seats are fixed — product, em, implementer, qa, reviewer; who
+sits in each is per-project configuration, written into the
+`### Roz Gate personas` block (step 4's template).
+- Scan the project's `.claude/agents/` and the user's `~/.claude/agents/` for
+  existing agents. For any whose description plausibly covers a seat, propose
+  linking it — show each proposed match and why, one compact confirmation,
+  not five questions.
+- **Linked seat** → write the agent's dispatch name as the seat's value
+  (e.g. `implementer: backend`). Never copy, move, or rename the user's file.
+  Then **contract-check it**: read the linked file against the seat's R&R row
+  (Owns / Never) in `${CLAUDE_PLUGIN_ROOT}/references/workflow.md`. Text that
+  fights the Never column — a qa persona that reads implementation code, a
+  reviewer that edits code — → show the violating lines; the user amends
+  their file or falls back to the default. Never link a failing persona
+  silently.
+- **Unlinked seat** → the plugin default `roz-gate:<role>`. For an unlinked
+  **implementer**: copy `${CLAUDE_PLUGIN_ROOT}/templates/implementer.md` to
+  `.claude/agents/implementer.md` (if absent) and fill its `## Stack` section
+  with the project's language/framework/store and their known anti-patterns —
+  draft from the codebase, show the user, iterate once; seat value
+  `implementer`.
 
 ## 6. Idea issue template
 Write the async-intake capture template to the adapter's ISSUE-TEMPLATE-PATH

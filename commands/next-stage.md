@@ -14,7 +14,13 @@ Read the `### Roz Gate config` block in the project's CLAUDE.md (`forge`,
 `acceptance_dir`). Then read `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md`
 and use its concrete CLI for every CAPITALIZED-OP below. Label names follow the
 adapter's scheme (GitLab uses scoped forms). If the config block is missing,
-stop and tell the user to run `/roz-gate:init`.
+stop and tell the user to run `/roz-gate:init`. **Personas**: every role
+dispatch below (`em`, `product`, `implementer`, `qa`, `reviewer`) resolves
+through the `### Roz Gate personas` block — dispatch the mapped subagent,
+attaching the seat's R&R row from
+`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` as its contract. Block missing
+→ plugin defaults (`roz-gate:<role>`; implementer = the project's
+`implementer` agent).
 
 ## 1. Select the issue
 - If an issue number was passed (`$ARGUMENTS`), target that issue. Verify it

@@ -14,7 +14,10 @@ Read the `### Roz Gate config` block in the project's CLAUDE.md, then
 `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the CAPITALIZED-OPs.
 Missing config → stop; tell the user to run `/roz-gate:init`. Also read
 `${CLAUDE_PLUGIN_ROOT}/references/intake-brief.md` — it is the dispatch brief
-for step 2.
+for step 2. **Personas**: the `product` dispatch below resolves through the
+`### Roz Gate personas` block (dispatch the mapped subagent, attaching the
+seat's R&R row from `${CLAUDE_PLUGIN_ROOT}/references/workflow.md` as its
+contract); block missing → the plugin default `roz-gate:product`.
 
 ## 1. Gather the use case
 

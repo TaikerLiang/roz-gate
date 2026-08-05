@@ -11,7 +11,11 @@ Follow these steps; do nothing beyond them.
 Read the `### Roz Gate config` block in the project's CLAUDE.md, then
 `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the concrete CLI behind
 every CAPITALIZED-OP. Missing config → stop; tell the user to run
-`/roz-gate:init`.
+`/roz-gate:init`. **Personas**: the role re-spawns in step 5 resolve through
+the `### Roz Gate personas` block — dispatch the mapped subagent, attaching
+the seat's R&R row from `${CLAUDE_PLUGIN_ROOT}/references/workflow.md` as its
+contract. Block missing → plugin defaults (`roz-gate:<role>`; implementer =
+the project's `implementer` agent).
 
 ## 1. Find spec CRs to check (read-only)
 - If an issue number was passed (`$ARGUMENTS`), use the CR whose head branch is

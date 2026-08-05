@@ -1,5 +1,5 @@
 ## Development Workflow (Roz Gate)
-<!-- roz-gate workflow-template v2 -->
+<!-- roz-gate workflow-template v3 -->
 
 This repo runs the **Roz Gate** (Claude Code plugin `roz-gate`): an idea
 becomes a shipped feature through a labelled, role-driven loop — spec debate,
@@ -23,3 +23,14 @@ the config below.
 - lockfile: {{LOCKFILE}}
 - lockfile_regen: {{LOCKFILE_REGEN}}
 - specs_dir: {{SPECS_DIR}}
+
+### Roz Gate personas
+
+Fixed role seats → the subagent actually dispatched. Link your own agents
+here; the seat names never change.
+
+- product: {{PERSONA_PRODUCT}}
+- em: {{PERSONA_EM}}
+- implementer: {{PERSONA_IMPLEMENTER}}
+- qa: {{PERSONA_QA}}
+- reviewer: {{PERSONA_REVIEWER}}

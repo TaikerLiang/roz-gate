@@ -20,7 +20,11 @@ Read the `### Roz Gate config` block in the project's CLAUDE.md (`forge`,
 `lockfile_regen`, `acceptance_dir`), then
 `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the concrete CLI behind
 every CAPITALIZED-OP. Missing config → stop; tell the user to run
-`/roz-gate:init`.
+`/roz-gate:init`. **Personas**: the `implementer` / `qa` fix dispatches in
+step 5 resolve through the `### Roz Gate personas` block — dispatch the
+mapped subagent, attaching the seat's R&R row from
+`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` as its contract. Block missing
+→ plugin defaults.
 
 ## 1. Preconditions (read-only)
 - `track: fast` → stop: the fast track has no integration stage — its CR merges

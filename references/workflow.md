@@ -25,6 +25,18 @@ stays in the loop at every transition.
 | **qa** | black-box acceptance tests from `spec.md`'s scenarios + the contract **only — never the implementation**; `test-spec.md`; the integration verdict — reports **only to the main agent** | reading the implementation, unit tests, architecture |
 | **reviewer** | independent review of the **implementation code** (correctness / security / performance / maintainability); severity-graded inline comments | architecture (em's), re-testing behaviour (qa's), writing code |
 
+**Seats and personas.** The role names above are fixed **seats** — the
+workflow's vocabulary never changes. Who sits in a seat is per-project
+configuration: the `### Roz Gate personas` block in CLAUDE.md maps each seat
+to the subagent actually dispatched — the plugin default (`roz-gate:<role>`)
+or an agent the user already owns (e.g. `implementer: backend`). Commands
+always dispatch through this mapping, and every dispatch attaches the seat's
+**contract**: its R&R row above (Owns / Never) plus the stage's instructions.
+**Persona is swappable; the contract never is.** A persona whose own text
+fights its seat's Never column is a misconfiguration — init flags it when
+linking. Personas block missing (pre-1.2 project) → plugin defaults
+(`roz-gate:<role>`; implementer = the project's `implementer` agent).
+
 ## The loop
 
 The first two stages differ by binding force: (1) drafts the **MOU** — intent
