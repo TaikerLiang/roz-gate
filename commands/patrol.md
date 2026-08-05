@@ -80,7 +80,11 @@ For an in-flight CR with open review threads:
 4. Clear the lock. Failures follow the STOP protocol.
 
 ### The async-intake action — the inbox's engine ((1b))
-For an open issue with no `track:` label:
+For an open issue with no `track:` label. **Gate holder** = the issue's
+assignee (unassigned → the issue author): anyone may reply in the thread, but
+only the gate holder's answers settle questions and only their `approve`
+files the proposal — everyone else's replies are input, passed to the agent
+attributed.
 1. Lock: LABEL-ADD `status: processing`.
 2. **Dispatch the `product` agent in async mode** with
    `${CLAUDE_PLUGIN_ROOT}/references/intake-brief.md`, the issue body, and all
@@ -90,14 +94,19 @@ For an open issue with no `track:` label:
    - **Questions returned** → ISSUE-COMMENT the batch verbatim as **one
      comment**, prefixed `**[intake]**` — every open question in a single
      pass, so a once-a-day scan still converges.
+   - **Digest returned** (replies conflict, per the brief's multi-party
+     rules) → ISSUE-COMMENT it, prefixed `**[intake] · digest**`,
+     @-mentioning the gate holder — their reply is the decision of record.
    - **Proposal returned** → ISSUE-COMMENT it, prefixed
-     `**[intake] · proposal**`, ending: "Reply `approve` to file it like this,
-     or correct anything first."
-   - **The user's last comment is `approve`** (or a correction — re-dispatch
-     with it folded in, and treat as approved if they said so) →
+     `**[intake] · proposal**`, ending: "@<gate holder> — reply `approve` to
+     file it like this, or correct anything first."
+   - **The gate holder's last comment is `approve`** (or a correction —
+     re-dispatch with it folded in, and treat as approved if they said so) →
      ISSUE-EDIT-BODY to the proposal's story template (user story / acceptance
      criteria / context), LABEL-ADD the confirmed `track:` label. The issue is
-     now at (1a); the gate label is the user's.
+     now at (1a); the gate label is the gate holder's. An `approve` from
+     anyone else never files — leave a note that the proposal awaits the gate
+     holder.
 3. Clear the lock. Never apply a gate label. Failures follow the STOP protocol.
 
 ## 4. Report

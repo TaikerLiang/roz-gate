@@ -24,8 +24,19 @@ of:
      question at once**, numbered, ordered by importance. Phrase each so it can
      be answered independently; where one would depend on another's answer,
      fold your recommendation for the first into the phrasing of the second
-     ("assuming X on #1, …"). If the human's reply answers only some, return
-     the remaining questions (updated by what you learned) as the next batch.
+     ("assuming X on #1, …"). If the replies answer only some, return the
+     remaining questions (updated by what you learned) as the next batch.
+     **Async batch format** — optimized for a phone read and a one-line reply:
+     - Header: question count + the fast path — *"All recommendations fine?
+       Reply `all recs`."* — and the answer grammar (`1a 2b`, or free text).
+     - Each question: `**Q<n> · <2–3-word label>**` (e.g. Scope / Coverage /
+       Driver), then the options as **(a)/(b) bullets** — mark the recommended
+       one `← ✅ recommended` — then the why as **one italic line**. An option
+       needing detail says so inline ("(b) a subset → reply with which").
+     - Long background (enumerations, current-state surveys) goes in a
+       `<details><summary>Background</summary>` block per question — visible
+       text stays question + options + one-line why.
+     - Footer: repeat the reply grammar in one line.
 2. **The final proposal** — when nothing important is left open:
    - the user story: `As a {role}, I want {capability}, so that {benefit}.`
    - acceptance criteria: observable, testable checkboxes — things an outside
@@ -36,6 +47,22 @@ of:
 
 Multiple distinct stories in one idea → say so in the proposal and give one
 story block per issue (siblings — never parent/child, never task-splitting).
+
+## Multi-party rules (async)
+
+Intake threads are open to anyone, but authority is not. The **gate holder**
+is the issue's **assignee** (unassigned → the issue author).
+
+- **Anyone may reply**; attribute every answer to its author when folding.
+- **Only the gate holder decides.** Their answers settle questions; only their
+  `approve` files the proposal. Treat everyone else's replies as input.
+- **Never resolve a conflict yourself.** When replies disagree (or a
+  non-holder's answer would change scope), return a **digest** instead of the
+  proposal: per contested question — who said what, the trade-off in one line
+  each, your recommendation — addressed to the gate holder (@-mention) for a
+  decision. Their reply is the decision of record.
+- The proposal cites the decision trail: who answered what, who decided.
+  The MOU gets a signature page.
 
 ## Rules while clarifying
 

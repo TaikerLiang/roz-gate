@@ -67,11 +67,14 @@ it. Patrol triages it entirely through issue comments, mirroring (2a): the
 `product` agent (under the same intake brief, **async mode**) drafts **all open
 clarifying questions as one batched comment** — numbered, each with a
 recommendation, prefixed `**[intake]**` — because a comment round trip costs a
-day, not seconds; you answer from any device; once clear it posts a **proposal
-comment** (rewritten story + AC + proposed `track:`) and only after your
-`approve` does patrol rewrite the body and apply the confirmed `track:` label.
-The gate label is still yours. Same invariants as `/roz-gate:to-issues`;
-async medium, batched questions.
+day, not seconds; answers arrive as replies (`all recs`, `1a 2b`, or free
+text) from any device. The thread is open to anyone, but the **gate holder** —
+the issue's assignee (unassigned → the author) — is the sole authority: their
+answers settle questions, conflicting feedback comes back as a **digest** for
+them to decide, and once clear the **proposal comment** (rewritten story + AC
++ proposed `track:`) files only on **their** `approve`. The gate label is
+still theirs. Same invariants as `/roz-gate:to-issues`; async medium, batched
+questions.
 
 **(2) Spec refinement** — gated by `status: ready-for-spec`. `em`+`product`
 write `<specs_dir>/{n}/spec.md`; `implementer` writes `technical-spec.md`
@@ -170,7 +173,7 @@ a status report. Neither ever moves the other's.**
 |---|---|
 | `track:` label at intake | `/roz-gate:to-issues` (interactive) or the (1b) proposal comment (async) proposes — **you** confirm either way |
 | raw idea → inbox issue (no labels) | **you** (e.g. the forge's mobile app) |
-| inbox → in the loop (body rewrite + `track:` label) | patrol's async intake, only after your `approve` comment |
+| inbox → in the loop (body rewrite + `track:` label) | patrol's async intake, only after the **gate holder's** (issue assignee's; unassigned → author's) `approve` comment |
 | apply a gate label (`ready-for-spec`, `ready-for-dev`) | **you**, only ever you |
 | gate → `processing` → next state | the running command |
 | (2) complete → `in-spec-review` | the spec stage |
