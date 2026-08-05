@@ -151,7 +151,11 @@ issue with no `track:` label is the **inbox**: invisible to the rest of the
 loop. Patrol triages it *in the comments*: all open clarifying questions
 batched into one comment (prefixed `**[intake]**`, numbered, each with a
 recommendation — a comment round trip costs a day, so nothing is asked
-serially), answered by you from any device. When the story is clear it posts a proposal — rewritten story +
+serially), answered as replies from any device — `all recs` accepts every
+recommendation in one line. The thread is open to anyone, but the **issue
+assignee** (unassigned → the author) is the gate holder: their answers
+decide, conflicting feedback comes back as a digest for them to settle, and
+only their `approve` files the story. When the story is clear it posts a proposal — rewritten story +
 acceptance criteria + suggested track — and only after you reply `approve` does
 it rewrite the issue body and apply the track label. The gate label is still
 yours to apply, whenever you're ready.
