@@ -58,9 +58,10 @@ Then, inside each project you want to run the loop in:
 `init` is one-time and idempotent. It detects the forge from your git remote,
 creates the labels, writes a workflow pointer + a small config block into
 your project's `CLAUDE.md` (the workflow doc itself stays in the plugin, so
-upgrades apply everywhere at once), instantiates a project-specific `implementer` agent
-persona (your stack, your anti-patterns), and adds an "Idea" issue template for
-mobile capture.
+upgrades apply everywhere at once), **seats the agent team** — if you already
+have agents you like, it links them into the fixed role seats instead of
+replacing them; the rest default to the plugin's — and adds an "Idea" issue
+template for mobile capture.
 
 ## The loop in one page
 
@@ -216,10 +217,28 @@ command reads it before acting:
 - specs_dir: docs/specs
 ```
 
-The per-project half of the team lives in `.claude/agents/implementer.md` —
-generic charter from the plugin, `## Stack` section filled with *your* stack's
-anti-patterns by `init`. The em / product / qa / reviewer personas ship with
-the plugin and need no per-project copies.
+`init` also writes a `### Roz Gate personas` block — **fixed seats, swappable
+occupants**. The five role names (product, em, implementer, qa, reviewer) are
+the workflow's vocabulary and never change; each seat maps to the subagent
+actually dispatched. Already have a `backend.md` you've tuned for months?
+Link it — your file stays yours, unmoved and unrenamed:
+
+```
+- product: roz-gate:product        ← plugin default
+- em: roz-gate:em
+- implementer: backend             ← your existing agent, seated
+- qa: roz-gate:qa
+- reviewer: roz-gate:reviewer
+```
+
+**Persona is swappable; the contract never is.** Every dispatch attaches the
+seat's Owns/Never contract (qa never reads the implementation, the reviewer
+never writes code, …) — and at link time `init` reads your agent against its
+seat's contract and flags text that fights it, so a linked persona can't
+quietly break the loop's information walls. An unlinked implementer seat gets
+the classic treatment: the plugin's charter template instantiated into
+`.claude/agents/implementer.md`, its `## Stack` section filled with *your*
+stack's anti-patterns.
 
 ## Adopting on a less mature project
 
