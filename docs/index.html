@@ -88,6 +88,7 @@
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
   .chip{border:1px solid;border-radius:999px;padding:4px 14px;font-size:.85rem;font-weight:600;cursor:pointer;background:var(--bg2)}
   .chip.track{border-color:#3b82c4;color:#7db8e8}
+  .chip.role{border-color:var(--teal);color:var(--teal)}
   .chip.gatel{border-color:var(--green);color:var(--green)}
   .chip.trans{border-color:var(--gold);color:var(--gold)}
   .chip.bad{border-color:var(--red);color:var(--red)}
@@ -136,6 +137,7 @@
   <div class="brand">roz-gate<span class="dot">.</span></div>
   <nav>
     <a href="#model"><span class="en">Mental model</span><span class="zh">心智模型</span></a>
+    <a href="#team"><span class="en">The team</span><span class="zh">團隊</span></a>
     <a href="#map"><span class="en">The loop</span><span class="zh">流程地圖</span></a>
     <a href="#labels"><span class="en">Labels</span><span class="zh">標籤</span></a>
     <a href="#sim"><span class="en">An issue's life</span><span class="zh">issue 的一生</span></a>
@@ -167,6 +169,14 @@
     <div class="cell"><b><span class="en">(6) Acceptance</span><span class="zh">(6) 驗收</span></b><span class="en">The procedure meets the finished work for the first time. The verdict is honest because the two sides never met.</span><span class="zh">驗收程序第一次碰到成品。因為兩邊從未見面,verdict 才誠實。</span></div>
     <div class="cell"><b><span class="en">(7) Closing</span><span class="zh">(7) 交割</span></b><span class="en">The owner reviews and signs off. Small deals (fast track) close on the MOU alone.</span><span class="zh">業主過目、簽收。小額交易(fast track)憑意向書直接成交。</span></div>
   </div>
+</div></section>
+
+<section id="team"><div class="wrap">
+  <h2><span class="en">The team — fixed seats, swappable occupants</span><span class="zh">團隊——席位固定,入座可換</span></h2>
+  <p class="sub en">Six roles run the loop. The five specialist names are <b>seats</b> — workflow vocabulary that never changes. Who actually sits in a seat is per-project config (the <code>### Roz Gate personas</code> block): link an agent you already own — <code>implementer: backend</code> — or keep the plugin default. Every dispatch attaches the seat's Owns/Never contract, and <code>init</code> lints a linked persona against it. <b>Persona is swappable; the contract never is.</b> Click a role.</p>
+  <p class="sub zh">六個角色運轉這個 loop。五個專職名稱是<b>席位</b>——workflow 的詞彙,永不改變。席位上實際坐誰是每專案的配置(<code>### Roz Gate personas</code> block):連結你已有的 agent——<code>implementer: backend</code>——或用 plugin 預設。每次派工都附上席位的 Owns/Never 契約,<code>init</code> 連結時會對照檢查。<b>Persona 可換,contract 不換。</b>點任一角色。</p>
+  <div class="chips" id="rolechips"></div>
+  <div class="card" id="rolecard"></div>
 </div></section>
 
 <section id="map"><div class="wrap">
@@ -322,6 +332,50 @@ document.getElementById('map').addEventListener('click',e=>{
   const n = e.target.closest('[data-k]'); if(n) showStage(n.dataset.k);
 });
 showStage('s1');
+
+/* ---------- team ---------- */
+const ROLES = [
+ {name:B('main agent','主 agent'), cls:'trans',
+  owns:B('The owner\'s proxy, accountable for every output: orchestration, git/forge mechanics, integration, deciding the next step; implements <code>track: fast</code> changes itself. At intake it only relays and publishes.','業主代理人,對所有產出負責:編排、git/forge 操作、integration、決定下一步;fast track 由它親自實作。intake 時只轉述、只發佈。'),
+  never:B('Act as a specialist on any clarification or <code>track: spec</code> work — it dispatches.','親自做任何釐清或 <code>track: spec</code> 的專業工作——它只派工。'),
+  seat:B('Not a seat — it is your Claude Code session itself.','不是席位——它就是你面前的 Claude Code session 本身。')},
+ {name:'product', cls:'role',
+  owns:B('Actors, scenarios (Given/When/Then: happy/edge/failure), consistency, user-facing gaps. Wears the <b>intake hat</b> under the intake brief: one question at a time live, batched async — shrink, don\'t grow.','角色、情境(Given/When/Then:happy/edge/failure)、一致性、user-facing gaps。掛 intake brief 時戴上 <b>intake 帽</b>:live 一次一題、async 批次——只收斂,不展開。'),
+  never:B('Architecture, code, implementation tests.','架構、程式碼、實作測試。'),
+  seat:B('Default <code>roz-gate:product</code>, or link your own product-minded agent.','預設 <code>roz-gate:product</code>,或連結你自己的產品腦 agent。')},
+ {name:'em', cls:'role',
+  owns:B('Problem statement, success metrics, architecture / domain boundaries, business rules, out-of-scope; resolves conflicts; owns <code>spec.md</code>.','問題定義、成功指標、架構/領域邊界、業務規則、out-of-scope;仲裁衝突;<code>spec.md</code> 的 owner。'),
+  never:B('Code, deep implementation.','程式碼、深入實作。'),
+  seat:B('Default <code>roz-gate:em</code>, or link your own.','預設 <code>roz-gate:em</code>,或連結你自己的。')},
+ {name:'implementer', cls:'role',
+  owns:B('<code>technical-spec.md</code> (the contract); implementation code + <b>unit</b> tests; the QA test <b>port</b> for non-API features.','<code>technical-spec.md</code>(合約);實作程式碼 + <b>單元</b>測試;非 API feature 的 QA test <b>port</b>。'),
+  never:B('Spec scenarios, black-box tests, reviewing its own code.','spec 情境、黑箱測試、審查自己的程式碼。'),
+  seat:B('The naturally per-project seat: link your tuned agent (<code>implementer: backend</code>) — your file stays yours — or init instantiates the plugin template with <i>your</i> stack\'s anti-patterns.','天然 per-project 的席位:連結你調教過的 agent(<code>implementer: backend</code>)——檔案還是你的——或由 init 用 plugin 模板實例化,填入<i>你的</i>技術棧 anti-patterns。')},
+ {name:'qa', cls:'role',
+  owns:B('Black-box acceptance tests from <code>spec.md</code>\'s scenarios + the contract <b>only</b>; <code>test-spec.md</code>; the integration verdict — reports only to the main agent.','只憑 <code>spec.md</code> 情境 + 合約寫黑箱驗收測試;<code>test-spec.md</code>;integration verdict——只向主 agent 回報。'),
+  never:B('<b>Reading the implementation</b> (the black box is structural: the qa branch carries no implementation code), unit tests, architecture.','<b>讀實作</b>(黑箱是結構性的:qa 分支不含實作程式碼)、單元測試、架構。'),
+  seat:B('Default <code>roz-gate:qa</code> — the cold-blooded spec enforcer. A linked persona that wants to "read the code first" fails the contract check.','預設 <code>roz-gate:qa</code>——冷血條款執行者。想「先讀 code」的連結 persona 過不了 contract check。')},
+ {name:'reviewer', cls:'role',
+  owns:B('Independent review of the implementation code — correctness / security / performance / maintainability; severity-graded inline comments.','獨立審查實作程式碼——correctness / security / performance / maintainability;分級 inline 留言。'),
+  never:B('Architecture (em\'s), re-testing behaviour (qa\'s), writing code.','架構(em 的)、重測行為(qa 的)、寫程式。'),
+  seat:B('Default <code>roz-gate:reviewer</code>, or link your own house reviewer.','預設 <code>roz-gate:reviewer</code>,或連結你家自己的 reviewer。')},
+];
+const rolechips = document.getElementById('rolechips');
+ROLES.forEach((r,i)=>{
+  rolechips.insertAdjacentHTML('beforeend',`<span class="chip ${r.cls}" data-i="${i}">${r.name}</span>`);
+});
+function showRole(i){
+  document.querySelectorAll('#rolechips .chip').forEach((c,j)=>c.classList.toggle('sel',j==i));
+  const r = ROLES[i];
+  document.getElementById('rolecard').innerHTML = `<h3>${r.name}</h3>
+   <dl class="row">
+    <dt>${B('Owns','負責')}</dt><dd>${r.owns}</dd>
+    <dt>${B('Never','鐵律:永不')}</dt><dd>${r.never}</dd>
+    <dt>${B('The seat','席位')}</dt><dd>${r.seat}</dd>
+   </dl>`;
+}
+rolechips.addEventListener('click',e=>{const c=e.target.closest('.chip'); if(c) showRole(c.dataset.i)});
+showRole(4);
 
 /* ---------- labels ---------- */
 const LABELS = [
