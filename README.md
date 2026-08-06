@@ -148,17 +148,22 @@ as a lock, and never applies a gate label.
 Open an issue from the forge's mobile app with **no labels** — two rough
 sentences are enough (the "Idea" template `init` installs reminds you). An
 issue with no `track:` label is the **inbox**: invisible to the rest of the
-loop. Patrol triages it *in the comments*: all open clarifying questions
-batched into one comment (prefixed `**[intake]**`, numbered, each with a
-recommendation — a comment round trip costs a day, so nothing is asked
-serially), answered as replies from any device — `all recs` accepts every
-recommendation in one line. The thread is open to anyone, but the **issue
-assignee** (unassigned → the author) is the gate holder: their answers
-decide, conflicting feedback comes back as a digest for them to settle, and
-only their `approve` files the story. When the story is clear it posts a proposal — rewritten story +
-acceptance criteria + suggested track — and only after you reply `approve` does
-it rewrite the issue body and apply the track label. The gate label is still
-yours to apply, whenever you're ready.
+loop. Three beats — **ask once, summarize on demand, the label confirms**:
+
+1. Patrol posts **one** batch of clarifying questions (numbered, each option
+   with a marked recommendation), then leaves the thread to the humans —
+   free-form discussion, anyone may weigh in, from any device.
+2. The **issue assignee** (unassigned → the author) comments **`summary`**
+   whenever the discussion feels settled — or immediately, if the
+   recommendations look right. The agent condenses the body + all comments
+   into one summary: story + acceptance criteria + suggested track + an
+   attributed decision trail; unanswered questions become explicit
+   assumptions, disagreements become contested points shown with both sides.
+3. Looks right? The assignee applies the gate label — `ready-for-spec` (spec
+   track) or `ready-for-dev` (fast track). **The label is the confirmation**:
+   patrol then rewrites the body and applies the track that label choice
+   confirms, and the loop takes over. Off? Reply corrections and say
+   `summary` again.
 
 Both intake paths run the same brain: the `product` agent dispatched under
 `references/intake-brief.md`. The orchestrator never does clarification
