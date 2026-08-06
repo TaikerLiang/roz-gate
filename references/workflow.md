@@ -63,18 +63,27 @@ proposed at intake and confirmed (or overridden) by you:
 **(1b) The inbox — async intake.** An open issue with **no `track:` label** is
 the **inbox**: a raw idea captured away from the keyboard (e.g. the forge's
 mobile app), not yet in the loop — every command except intake triage ignores
-it. Patrol triages it entirely through issue comments, mirroring (2a): the
-`product` agent (under the same intake brief, **async mode**) drafts **all open
-clarifying questions as one batched comment** — numbered, each with a
-recommendation, prefixed `**[intake]**` — because a comment round trip costs a
-day, not seconds; answers arrive as replies (`all recs`, `1a 2b`, or free
-text) from any device. The thread is open to anyone, but the **gate holder** —
-the issue's assignee (unassigned → the author) — is the sole authority: their
-answers settle questions, conflicting feedback comes back as a **digest** for
-them to decide, and once clear the **proposal comment** (rewritten story + AC
-+ proposed `track:`) files only on **their** `approve`. The gate label is
-still theirs. Same invariants as `/roz-gate:to-issues`; async medium, batched
-questions.
+it. Three beats — ask once, summarize on demand, the label confirms:
+1. Patrol posts **one** batched questions comment (prefixed `**[intake]**`,
+   numbered, each option with a marked recommendation) — then leaves the
+   thread to the humans: free-form discussion, anyone may weigh in, from any
+   device. Patrol never re-batches.
+2. When the **gate holder** — the issue's assignee (unassigned → the author) —
+   comments **`summary`**, the `product` agent (same intake brief, async
+   mode) condenses the body + **all** comments into one
+   `**[intake] · summary**`: story + AC + proposed `track:` + an attributed
+   decision trail; unanswered questions resolve to their recommendations,
+   listed as explicit **assumptions**; disagreements are shown as
+   **contested points** with both sides — one reply flips them. Corrections?
+   Reply and say `summary` again.
+3. **The gate label is the confirmation** — no approve keyword. The gate
+   holder applies `status: ready-for-spec` (⇒ `track: spec`) or
+   `status: ready-for-dev` (⇒ `track: fast`); patrol then rewrites the body
+   to the story template and applies that track — the label choice itself
+   confirms the track. Confident holders may label without ever asking for a
+   summary; patrol summarizes before finalizing either way. Everything before
+   the label is input; **the label is the decision** — and it is still only
+   ever the holder's to apply.
 
 **(2) Spec refinement** — gated by `status: ready-for-spec`. `em`+`product`
 write `<specs_dir>/{n}/spec.md`; `implementer` writes `technical-spec.md`
@@ -142,6 +151,10 @@ Skips (2), (2a), (4) and (6). Picked up from `status: ready-for-dev`:
 
 - An open issue with **no `track:` label** is the **inbox** ((1b)) — pre-loop,
   not a violation: invisible to every command except patrol's async intake.
+  A **gate label on a track-less issue** is the one legal transient of intake:
+  the gate holder's confirmation, which the next patrol pass finalizes into a
+  body rewrite + the confirmed `track:` (`ready-for-spec` ⇒ `spec`,
+  `ready-for-dev` ⇒ `fast`).
 - Every open issue in the loop has **exactly one `track:` label** (applied at
   intake; only the escalation valve changes it) and **at most one `status:`
   label besides the `processing` lock** — the lock is a mutex, not a phase:
@@ -173,7 +186,7 @@ a status report. Neither ever moves the other's.**
 |---|---|
 | `track:` label at intake | `/roz-gate:to-issues` (interactive) or the (1b) proposal comment (async) proposes — **you** confirm either way |
 | raw idea → inbox issue (no labels) | **you** (e.g. the forge's mobile app) |
-| inbox → in the loop (body rewrite + `track:` label) | patrol's async intake, only after the **gate holder's** (issue assignee's; unassigned → author's) `approve` comment |
+| inbox → in the loop (body rewrite + `track:` label) | patrol's async intake, only after the **gate holder** (issue assignee; unassigned → author) applies the gate label — the label is the confirmation |
 | apply a gate label (`ready-for-spec`, `ready-for-dev`) | **you**, only ever you |
 | gate → `processing` → next state | the running command |
 | (2) complete → `in-spec-review` | the spec stage |

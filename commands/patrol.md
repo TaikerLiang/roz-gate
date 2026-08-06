@@ -53,7 +53,7 @@ stamp means no re-init is needed, whatever the plugin version.
 | no `status:`, `track: fast` | in flight: its CR has **open review threads** → actionable → **address-review**; review-clean → LABEL-ADD `status: in-user-review` and treat as waiting on the user |
 | `status: in-user-review` | waiting on the user |
 | `status: blocked` | waiting on the user — never re-invoke anything on it |
-| no `track:` label (inbox) | actionable → **async intake** (below) — unless its last `**[intake]**` comment is still unanswered (then: waiting on the user) |
+| no `track:` label (inbox) | actionable → **async intake** (below) when a gate label is present (finalize), the gate holder's latest comment is `summary`, or no questions batch exists yet; otherwise the discussion is the humans' — waiting on the user |
 
 ## 3. Act — one loop issue per pass, plus the whole inbox
 In-loop work: pick the actionable issue **closest to done** — priority:
@@ -81,38 +81,38 @@ For an in-flight CR with open review threads:
 
 ### The async-intake action — the inbox's engine ((1b))
 For an open issue with no `track:` label. **Gate holder** = the issue's
-assignee (unassigned → the issue author): anyone may reply in the thread, but
-only the gate holder's answers settle questions and only their `approve`
-files the proposal — everyone else's replies are input, passed to the agent
-attributed.
+assignee (unassigned → the issue author). The thread is free-form and open to
+anyone; the clarification thinking is always the dispatched `product` agent's
+(async mode, with `${CLAUDE_PLUGIN_ROOT}/references/intake-brief.md`, the
+issue body, and all comments), never patrol's own.
 1. Lock: LABEL-ADD `status: processing`.
-2. **Dispatch the `product` agent in async mode** with
-   `${CLAUDE_PLUGIN_ROOT}/references/intake-brief.md`, the issue body, and all
-   comments — the clarification thinking is the sub-agent's, never patrol's
-   own. Per the brief's async contract it returns one batch of questions or
-   the final proposal; patrol executes the matching forge op:
-   - **Questions returned** → ISSUE-COMMENT the batch verbatim as **one
-     comment**, prefixed `**[intake]**` — every open question in a single
-     pass, so a once-a-day scan still converges.
-   - **Digest returned** (replies conflict, per the brief's multi-party
-     rules) → ISSUE-COMMENT it, prefixed `**[intake] · digest**`,
-     @-mentioning the gate holder — their reply is the decision of record.
-   - **Proposal returned** → ISSUE-COMMENT it, prefixed
-     `**[intake] · proposal**`, ending: "@<gate holder> — reply `approve` to
-     file it like this, or correct anything first."
-   - **The gate holder's last comment is `approve`** (or a correction —
-     re-dispatch with it folded in, and treat as approved if they said so) →
-     ISSUE-EDIT-BODY to the proposal's story template (user story / acceptance
-     criteria / context), LABEL-ADD the confirmed `track:` label. The issue is
-     now at (1a); the gate label is the gate holder's. An `approve` from
-     anyone else never files — leave a note that the proposal awaits the gate
-     holder.
+2. Route by the issue's state — first match wins:
+   - **Gate label present** (`ready-for-spec` / `ready-for-dev` on this
+     track-less issue — the gate holder's confirmation, possibly without a
+     prior summary) → **finalize**: obtain the summary (reuse the latest
+     `**[intake] · summary**` comment if no human commented after it;
+     otherwise dispatch for a fresh one), ISSUE-EDIT-BODY to its story
+     template (user story / acceptance criteria / context), LABEL-ADD the
+     track the label choice itself confirms: `ready-for-spec` ⇒
+     `track: spec`, `ready-for-dev` ⇒ `track: fast`. The issue is now at
+     (1a), already gated — the next pass advances it.
+   - **The gate holder's latest comment is `summary`** (and no
+     `**[intake] · summary**` has been posted since it) → dispatch for the
+     summary; ISSUE-COMMENT it, prefixed `**[intake] · summary**`. A
+     `summary` comment from anyone else never triggers.
+   - **No `**[intake]**` questions comment exists yet** → dispatch for the
+     question batch; ISSUE-COMMENT it verbatim as **one comment**, prefixed
+     `**[intake]**`. Asked **once** — patrol never re-batches; unanswered
+     questions surface later as assumptions in the summary.
+   - **Otherwise** → not actionable: the thread belongs to the humans until
+     the gate holder comments `summary` or applies a gate label.
 3. Clear the lock. Never apply a gate label. Failures follow the STOP protocol.
 
 ## 4. Report
 A short table: issue · state · action taken this pass, or what it waits on and
 who. End with the user's queue: what (if anything) needs them — answer threads,
-answer intake questions, `approve` a proposal, apply a gate label, or review &
+answer intake questions, say `summary`, confirm a summary with the gate
+label, apply a gate label, or review &
 merge — with links.
 
 ## 5. Notification (optional)

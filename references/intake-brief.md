@@ -20,32 +20,44 @@ of:
    fully self-contained: the reader may be on a phone with no other context.
    - **Live** → return only the **single most important question** — never a
      list. The next dispatch carries the answer; ask the next one then.
-   - **Async** → a round trip costs a day, not seconds: return **every open
-     question at once**, numbered, ordered by importance. Phrase each so it can
-     be answered independently; where one would depend on another's answer,
-     fold your recommendation for the first into the phrasing of the second
-     ("assuming X on #1, …"). If the replies answer only some, return the
-     remaining questions (updated by what you learned) as the next batch.
-     **Async batch format** — optimized for a phone read and a one-line reply:
-     - Header: question count + the fast path — *"All recommendations fine?
-       Reply `all recs`."* — and the answer grammar (`1a 2b`, or free text).
+   - **Async** → asked **once**, all together: return every open question,
+     numbered, ordered by importance. Phrase each so it can be answered
+     independently; where one would depend on another's answer, fold your
+     recommendation for the first into the phrasing of the second ("assuming X
+     on #1, …"). There is no second batch — whatever the discussion leaves
+     unanswered resolves to your recommendation, surfaced as an explicit
+     assumption in the summary.
+     **Async batch format** — optimized for a phone read:
+     - Header: question count + the flow in one line — *"Discuss freely below
+       (`1a 2b` shorthand welcome). When it settles — or right now, if the
+       recommendations look right — the assignee comments `summary`."*
      - Each question: `**Q<n> · <2–3-word label>**` (e.g. Scope / Coverage /
        Driver), then the options as **(a)/(b) bullets** — mark the recommended
        one `← ✅ recommended` — then the why as **one italic line**. An option
-       needing detail says so inline ("(b) a subset → reply with which").
+       needing detail says so inline ("(b) a subset → say which").
      - Long background (enumerations, current-state surveys) goes in a
        `<details><summary>Background</summary>` block per question — visible
        text stays question + options + one-line why.
-     - Footer: repeat the reply grammar in one line.
-2. **The final proposal** — when nothing important is left open:
+2. **The summary** (async; the live medium's equivalent is the proposal in
+   step 3 of `/roz-gate:to-issues`) — produced when the assignee asks for it,
+   from the issue body + **all** comments:
    - the user story: `As a {role}, I want {capability}, so that {benefit}.`
    - acceptance criteria: observable, testable checkboxes — things an outside
      observer could verify, never implementation tasks
    - context: background for whoever picks this up; **no file paths, no
      implementation detail**
    - proposed track, with one line of reasoning
+   - **decision trail**: who said what, attributed — the MOU's signature page
+   - **assumptions**: every question nobody answered, resolved to your
+     recommendation and listed plainly
+   - **contested points**: where the discussion disagreed, present both sides
+     in one line each and say which one the summary takes and why — never
+     silently pick; the assignee flips it with one reply
+   - footer: *"Right? Apply `status: ready-for-spec` (or `ready-for-dev` for
+     the fast track) — the label is the confirmation. Off? Reply corrections
+     and comment `summary` again."*
 
-Multiple distinct stories in one idea → say so in the proposal and give one
+Multiple distinct stories in one idea → say so in the summary and give one
 story block per issue (siblings — never parent/child, never task-splitting).
 
 ## Multi-party rules (async)
@@ -53,16 +65,14 @@ story block per issue (siblings — never parent/child, never task-splitting).
 Intake threads are open to anyone, but authority is not. The **gate holder**
 is the issue's **assignee** (unassigned → the issue author).
 
-- **Anyone may reply**; attribute every answer to its author when folding.
-- **Only the gate holder decides.** Their answers settle questions; only their
-  `approve` files the proposal. Treat everyone else's replies as input.
-- **Never resolve a conflict yourself.** When replies disagree (or a
-  non-holder's answer would change scope), return a **digest** instead of the
-  proposal: per contested question — who said what, the trade-off in one line
-  each, your recommendation — addressed to the gate holder (@-mention) for a
-  decision. Their reply is the decision of record.
-- The proposal cites the decision trail: who answered what, who decided.
-  The MOU gets a signature page.
+- **Anyone may reply**; the discussion is free-form. Attribute every input to
+  its author in the summary's decision trail.
+- **Only the gate holder's `summary` comment** triggers a summary, and only
+  the gate holder's **gate label** confirms it. Everything before the label is
+  input; **the label is the decision.**
+- You never resolve a disagreement — contested points carry both sides, and
+  the summary's choice is a recommendation the gate holder can flip in one
+  reply before labelling.
 
 ## Rules while clarifying
 
