@@ -71,8 +71,12 @@
   .gate.sel .bars{outline:2px solid var(--gold);outline-offset:2px}
   .gate .g{font-size:.62rem;color:var(--gold);font-weight:700;text-align:center;line-height:1.2}
   .arrow{flex:none;align-self:center;color:var(--muted)}
-  .fastlane{margin-top:6px;font-size:.85rem;color:var(--muted)}
-  .fastlane .node{display:inline-block;width:auto;padding:6px 12px;margin:4px 4px 0 0}
+  .tracktabs{display:flex;gap:8px;margin-top:20px}
+  .tracktabs button{background:var(--bg2);border:1px solid var(--line);color:var(--muted);
+    border-radius:8px;padding:8px 20px;cursor:pointer;font-weight:700;font-size:.92rem}
+  .tracktabs button.on{color:#0a2129;background:var(--gold);border-color:var(--gold)}
+  .tracknote{margin-top:4px;font-size:.85rem;color:var(--muted);border-left:3px solid var(--red);
+    padding:6px 12px;background:var(--bg2);border-radius:0 8px 8px 0}
 
   /* detail card */
   .card{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--gold);
@@ -184,10 +188,14 @@
   <p class="sub en">Gold fences are gates: only you open them, by applying a label or merging. Everything between the fences runs itself.</p>
   <p class="sub zh">金色柵欄是 gate:只有你能開——貼上 gate label 或 merge。柵欄之間的一切自己運轉。</p>
 
+  <div class="tracktabs">
+    <button id="tab-spec" class="on" onclick="setTrack('spec')">track: spec</button>
+    <button id="tab-fast" onclick="setTrack('fast')">track: fast</button>
+  </div>
   <div class="rail" id="rail"></div>
-  <div class="fastlane">
-    <span class="en"><b>Fast track</b> (for mechanical changes):</span><span class="zh"><b>Fast track</b>(機械性變更):</span>
-    <span class="node" data-k="fast">(1) → <span class="en">implement → (5) review → your merge</span><span class="zh">直接實作 → (5) review → 你 merge</span></span>
+  <div class="tracknote" id="tracknote" style="display:none">
+    <span class="en">⚠️ <b>Escalation valve</b>: the moment a fast change grows a real decision — user-facing behaviour, a growing diff — it is relabelled <code>track: spec</code> + <code>ready-for-spec</code> and rejoins the spec loop at (2). Nothing recovers a design shipped through the fast track, so when in doubt: spec.</span>
+    <span class="zh">⚠️ <b>升級閥</b>:fast 變更一旦長出真正的決定——使用者可見的行為、不斷膨脹的 diff——立刻改掛 <code>track: spec</code> + <code>ready-for-spec</code>,從 (2) 重新加入 spec 迴圈。從 fast track 出貨的設計沒有機制能救,所以猶豫時:選 spec。</span>
   </div>
   <div class="card" id="stagecard"></div>
 </div></section>
@@ -282,23 +290,48 @@ const STAGES = [
   you:B('<span class="you">Review and merge. Your merge closes the issue. The deal closes.</span>','<span class="you">審查、merge。你的 merge 關閉 issue。交易完成。</span>'),
   out:B('Shipped, with an acceptance suite that keeps running as a living, feature-organized test suite.','出貨——驗收套件留下來,成為持續運行、以 feature 組織的活測試。')},
 ];
-const FAST = {k:'fast', n:'fast', t:B('The fast track','Fast track'), w:B('main agent','主 agent'),
-  who:B('For mechanical changes (chores, config, doc fixes): the <span class="mach">main agent</span> implements directly on <code>fast/{n}</code> — the one R&R exception. Review (5) still applies; a bug fix must carry a reproducing unit test.','機械性變更(chore、config、doc 修正):<span class="mach">主 agent</span> 直接在 <code>fast/{n}</code> 實作——R&R 的唯一例外。(5) review 照常;bug fix 必附重現的單元測試。'),
-  labels:B('<code>track: fast</code> + your <code>ready-for-dev</code>. Review-clean → <code>in-user-review</code>. <code>fast</code> + <code>ready-for-spec</code> is illegal.','<code>track: fast</code> + 你貼的 <code>ready-for-dev</code>。review-clean 後 → <code>in-user-review</code>。<code>fast</code> + <code>ready-for-spec</code> 是非法狀態。'),
-  you:B('<span class="you">Apply <code>ready-for-dev</code>, then review &amp; merge the CR yourself.</span> The escalation valve: the moment a fast change grows a real decision, it is relabelled to <code>track: spec</code> and rejoins the loop at (2).','<span class="you">貼 <code>ready-for-dev</code>,之後自己審查並 merge CR。</span>升級閥:fast 變更一旦長出真正的設計決定,立刻改掛 <code>track: spec</code>,從 (2) 重新入列。'),
-  out:B('A small deal closed on the MOU alone — no contract needed.','小額交易,憑意向書直接成交——不需要合約。')};
+const FSTAGES = [
+ STAGES[0],
+ {k:'fg1', gate:true, g:B('you apply<br>ready-for-dev','你貼<br>ready-for-dev')},
+ {k:'f3', n:'(3′)', t:B('Implement','直接實作'), w:B('main agent','主 agent'),
+  who:B('For mechanical changes — chores, config, doc updates, test fixes. The <span class="mach">main agent</span> implements directly on <code>fast/{n}</code> off the default branch: the one R&R exception. A bug fix must carry a unit test reproducing it; the existing suite stays green. One CR, targeting the default branch.','機械性變更——chore、config、doc 更新、test 修復。<span class="mach">主 agent</span> 直接在 <code>fast/{n}</code>(從預設分支切出)實作:R&R 的唯一例外。bug fix 必附重現它的單元測試;既有測試維持全綠。開一個 CR,目標是預設分支。'),
+  labels:B('<code>ready-for-dev</code> → <code>processing</code> → none: the open fast CR is the state. <code>fast</code> + <code>ready-for-spec</code> is illegal.','<code>ready-for-dev</code> → <code>processing</code> → 無:開著的 fast CR 就是狀態。<code>fast</code> + <code>ready-for-spec</code> 是非法狀態。'),
+  you:B('Nothing — unless the <b>escalation valve</b> fires: a real decision appears → the issue is atomically relabelled <code>track: spec</code> + <code>ready-for-spec</code> and rejoins the loop at (2).','不用動——除非<b>升級閥</b>觸發:真正的決定出現 → issue 原子性地改掛 <code>track: spec</code> + <code>ready-for-spec</code>,從 (2) 重新入列。'),
+  out:B('A minimal diff satisfying the issue\'s acceptance criteria.','滿足 issue 驗收條件的最小 diff。')},
+ {k:'f5', n:'(5)', t:B('Review','審查'), w:'reviewer',
+  who:B('The <span class="mach">reviewer</span> grades the fast CR (<code>blocking</code>/<code>should-fix</code>/<code>nit</code>/<code>question</code>); the main agent addresses its own threads — <code>implementer</code> is never dispatched onto <code>fast/{n}</code>. Skippable for doc-only diffs.','<span class="mach">reviewer</span> 為 fast CR 分級留言(<code>blocking</code>/<code>should-fix</code>/<code>nit</code>/<code>question</code>);主 agent 自己處理 threads——<code>implementer</code> 永不被派到 <code>fast/{n}</code>。純文件 diff 可跳過。'),
+  labels:B('Review-clean → <code>status: in-user-review</code> (machine-moved). These guards replace QA on this track.','review-clean → <code>status: in-user-review</code>(機器推動)。這些防線取代了本 track 的 QA。'),
+  you:B('Nothing yet.','還不用動。'),
+  out:B('A review-clean fast CR.','一個 review-clean 的 fast CR。')},
+ {k:'fg2', gate:true, g:B('you review<br>& merge','你審查<br>並 merge')},
+ {k:'f7', n:'(✓)', t:B('Merge','簽收'), w:B('<b>you</b>','<b>你</b>'),
+  who:B('Your review is the last guard on this track — no blind QA, no integration verdict; what you sign is the diff, its unit tests, and the resolved review threads.','你的審查是本 track 最後一道防線——沒有盲測、沒有 integration verdict;你簽收的就是 diff、單元測試與已解決的 review threads。'),
+  labels:B('All labels retire when your merge lands.','你的 merge 落地時,所有標籤退役。'),
+  you:B('<span class="you">Review and merge the CR yourself. Your merge closes the issue.</span>','<span class="you">親自審查並 merge CR。你的 merge 關閉 issue。</span>'),
+  out:B('A small deal closed on the MOU alone — no contract needed.','小額交易,憑意向書直接成交——不需要合約。')},
+];
 
 const rail = document.getElementById('rail');
-STAGES.forEach((s,i)=>{
-  if(s.gate){
-    rail.insertAdjacentHTML('beforeend',
-      `<div class="gate" data-k="${s.k}"><div class="bars"></div><div class="g">${s.g}</div></div>`);
-  }else{
-    if(i>0 && !STAGES[i-1].gate) rail.insertAdjacentHTML('beforeend','<div class="arrow">→</div>');
-    rail.insertAdjacentHTML('beforeend',
-      `<div class="node" data-k="${s.k}"><div class="n">${s.n}</div><div class="t">${s.t}</div><div class="w">${s.w}</div></div>`);
-  }
-});
+function buildRail(arr){
+  rail.innerHTML = '';
+  arr.forEach((s,i)=>{
+    if(s.gate){
+      rail.insertAdjacentHTML('beforeend',
+        `<div class="gate" data-k="${s.k}"><div class="bars"></div><div class="g">${s.g}</div></div>`);
+    }else{
+      if(i>0 && !arr[i-1].gate) rail.insertAdjacentHTML('beforeend','<div class="arrow">→</div>');
+      rail.insertAdjacentHTML('beforeend',
+        `<div class="node" data-k="${s.k}"><div class="n">${s.n}</div><div class="t">${s.t}</div><div class="w">${s.w}</div></div>`);
+    }
+  });
+}
+function setTrack(t){
+  document.getElementById('tab-spec').classList.toggle('on', t==='spec');
+  document.getElementById('tab-fast').classList.toggle('on', t==='fast');
+  document.getElementById('tracknote').style.display = t==='fast' ? '' : 'none';
+  buildRail(t==='spec' ? STAGES : FSTAGES);
+  showStage(t==='spec' ? 's1' : 'f3');
+}
 const GATES = {
  g1:{t:B('Gate: design this','Gate:授權設計'),
    who:B('A gate label is an <b>authorization</b>. Commands and agents can run the pipeline but can never authorize it — structurally.','gate label 是一種<b>授權</b>。指令與 agents 能運轉流水線,但在結構上永遠無法授權它。'),
@@ -315,10 +348,20 @@ const GATES = {
    labels:'<code>status: in-user-review</code> → <span class="en">(labels retire)</span><span class="zh">(標籤退役)</span>',
    you:B('<span class="you">You review the spec CR and merge. No stamp, no merge.</span>','<span class="you">你審查 spec CR 並 merge。No stamp, no merge.</span>'),
    out:B('Issue closed; feature shipped.','issue 關閉;feature 出貨。')},
+ fg1:{t:B('Gate: build this (fast)','Gate:授權開工(fast)'),
+   who:B('The fast track\'s only pre-work gate — no spec stage, so it is applied straight after intake. Still an authorization: nothing runs before it.','fast track 唯一的開工前 gate——沒有 spec 階段,所以 intake 之後直接貼。它仍是授權:不貼,一切不動。'),
+   labels:B('<code>status: ready-for-dev</code> (with <code>track: fast</code>). <code>fast</code> + <code>ready-for-spec</code> is illegal.','<code>status: ready-for-dev</code>(搭配 <code>track: fast</code>)。<code>fast</code> + <code>ready-for-spec</code> 是非法狀態。'),
+   you:B('<span class="you">You apply it — the main agent implements directly the moment patrol or next-stage sees it.</span>','<span class="you">由你貼上——patrol 或 next-stage 一看到,主 agent 就直接實作。</span>'),
+   out:B('The machine may run the fast path.','機器獲准執行 fast 路徑。')},
+ fg2:{t:B('Gate: the final signature (fast)','Gate:最後簽收(fast)'),
+   who:B('Not a label — the merge button itself. On this track your review replaces the integration verdict as the last guard.','不是標籤——是 merge 按鈕本身。在這條 track 上,你的審查取代 integration verdict 成為最後防線。'),
+   labels:B('<code>status: in-user-review</code> → labels retire on merge.','<code>status: in-user-review</code> → merge 時標籤退役。'),
+   you:B('<span class="you">You review the fast CR and merge it yourself. No stamp, no merge.</span>','<span class="you">你親自審查 fast CR 並 merge。No stamp, no merge.</span>'),
+   out:B('Issue closed; the small deal shipped.','issue 關閉;小額交易出貨。')},
 };
 function showStage(k){
-  document.querySelectorAll('.rail .node,.rail .gate,.fastlane .node').forEach(n=>n.classList.toggle('sel',n.dataset.k===k));
-  const s = k==='fast' ? FAST : (GATES[k] || STAGES.find(x=>x.k===k));
+  document.querySelectorAll('.rail .node,.rail .gate').forEach(n=>n.classList.toggle('sel',n.dataset.k===k));
+  const s = GATES[k] || STAGES.find(x=>x.k===k) || FSTAGES.find(x=>x.k===k);
   const card = document.getElementById('stagecard');
   card.innerHTML = `<h3>${s.n? s.n+' · ':''}${s.t}</h3>
    <dl class="row">
@@ -331,7 +374,7 @@ function showStage(k){
 document.getElementById('map').addEventListener('click',e=>{
   const n = e.target.closest('[data-k]'); if(n) showStage(n.dataset.k);
 });
-showStage('s1');
+setTrack('spec');
 
 /* ---------- team ---------- */
 const ROLES = [
