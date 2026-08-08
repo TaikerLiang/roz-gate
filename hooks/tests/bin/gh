@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+echo "gh $*" >> "$STUB_LOG"
+if [ -n "${STUB_FAIL:-}" ]; then echo "HTTP 502 bad gateway" >&2; exit 1; fi
+cat "$GH_FIXTURE"
