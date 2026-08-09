@@ -1,7 +1,7 @@
 {
   "name": "roz-gate",
   "displayName": "Roz Gate",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Role-driven, human-gated AI development workflow: spec debate, blind black-box QA, independent review, integration verdicts, and a patrol scheduler — for GitHub (gh) and GitLab (glab).",
   "author": {
     "name": "Paul Liang"

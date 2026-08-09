@@ -75,10 +75,18 @@ Base everything strictly on the issue body. Per the workflow's stage (2):
 - Dispatch `implementer` → write `<specs_dir>/<n>/technical-spec.md` (the
   contract: command/API spec, schema, behavioral guarantees; a documented test
   **port** for non-API features).
-- **Open Questions requirement:** in `spec.md`, the `## Open Questions` section
-  MUST tag each item with the role that raised it — `[product]`, `[em]`, or
-  `[implementer]` (combine if more than one) — and mark items that challenge
-  the user story / acceptance criteria as **(story-level)**.
+- **Open Questions requirement:** each item in `spec.md`'s `## Open Questions`
+  section uses the intake batch shape — phone-readable, and reused verbatim as
+  its thread body in A6:
+  - Title line `**[<role>] · Q<k> · <2–3-word label>**` — role = who raised
+    it (`[product]`, `[em]`, or `[implementer]`; combine if more than one);
+    items that challenge the user story / acceptance criteria append
+    **(story-level)** to the title line.
+  - Blank line, then the question as **one sentence**.
+  - The options as **(a)/(b) bullets** — mark the recommended one
+    `← ✅ recommended`; an option needing detail says so inline
+    ("(b) a subset → say which").
+  - The why as **one italic line**.
 
 ### A4. Commit + push
 Commit the two spec docs on `spec/<n>` and push. If a pre-commit hook fails on
@@ -93,11 +101,14 @@ Refs #<n>".
 ### A6. Post open questions as inline review threads
 For EACH item in the `## Open Questions` section of `spec.md`:
 THREAD-POST-INLINE on the spec CR, anchored to that item's line in
-`<specs_dir>/<n>/spec.md`, body `**[<role>] · Q<k>** — <question text>`.
+`<specs_dir>/<n>/spec.md`, body = **the item verbatim** (title line, blank
+line, question, option bullets with the marked recommendation, italic why —
+A3 already shaped it).
 - **Every agent question comment MUST start with `**[`** — `/roz-gate:spec-answers`
-  uses that marker to tell agent comments from the user's replies.
-- For **(story-level)** items, add to the body: "If your decision changes the
-  user story, I will mirror a note to issue #<n>."
+  uses that marker to tell agent comments from the user's replies. The A3
+  title line satisfies this by construction.
+- For **(story-level)** items, end the body with one more italic line: *"If
+  your decision changes the user story, I will mirror a note to issue #<n>."*
 
 ### A7. Flip labels — only AFTER the CR and threads are created
 LABEL-REMOVE `status: ready-for-spec` and `status: processing`;
