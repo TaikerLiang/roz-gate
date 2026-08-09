@@ -53,7 +53,7 @@ stamp means no re-init is needed, whatever the plugin version.
 | no `status:`, `track: fast` | in flight: its CR has **open review threads** → actionable → **address-review**; review-clean → LABEL-ADD `status: in-user-review` and treat as waiting on the user |
 | `status: in-user-review` | waiting on the user |
 | `status: blocked` | waiting on the user — never re-invoke anything on it |
-| no `track:` label (inbox) | actionable → **async intake** (below) when a gate label is present (finalize), the gate holder's latest comment is `summary`, or no questions batch exists yet; otherwise the discussion is the humans' — waiting on the user |
+| no `track:` label (inbox) | actionable → **async intake** (below) when a gate label is present (finalize), the gate holder's latest comment requests a summary, or no questions batch exists yet; otherwise the discussion is the humans' — waiting on the user |
 
 ## 3. Act — one loop issue per pass, plus the whole inbox
 In-loop work: pick the actionable issue **closest to done** — priority:
@@ -89,23 +89,34 @@ issue body, and all comments), never patrol's own.
 2. Route by the issue's state — first match wins:
    - **Gate label present** (`ready-for-spec` / `ready-for-dev` on this
      track-less issue — the gate holder's confirmation, possibly without a
-     prior summary) → **finalize**: obtain the summary (reuse the latest
-     `**[intake] · summary**` comment if no human commented after it;
-     otherwise dispatch for a fresh one), ISSUE-EDIT-BODY to its story
-     template (user story / acceptance criteria / context), LABEL-ADD the
-     track the label choice itself confirms: `ready-for-spec` ⇒
-     `track: spec`, `ready-for-dev` ⇒ `track: fast`. The issue is now at
-     (1a), already gated — the next pass advances it.
-   - **The gate holder's latest comment is `summary`** (and no
-     `**[intake] · summary**` has been posted since it) → dispatch for the
-     summary; ISSUE-COMMENT it, prefixed `**[intake] · summary**`. A
-     `summary` comment from anyone else never triggers.
+     prior summary) → **finalize**. The label means "build the story from
+     everything I said": **only the gate holder's words drive the issue
+     body**. Obtain the summary — reuse the latest `**[intake] · summary**`
+     comment **verbatim** if no gate-holder comment follows it (comments
+     from anyone else are thread discussion: never folded in, never listed,
+     never blocking); if the holder commented after it, or no summary
+     exists, dispatch for a fresh one whose fold-in scope is **the holder's
+     words only** (bystander input is context, folded in solely through the
+     holder's explicit endorsement) and ISSUE-COMMENT it, prefixed
+     `**[intake] · summary**` — the paper trail precedes the body edit.
+     Then ISSUE-EDIT-BODY to its story template (user story / acceptance
+     criteria / context), LABEL-ADD the track the label choice itself
+     confirms: `ready-for-spec` ⇒ `track: spec`, `ready-for-dev` ⇒
+     `track: fast`. The issue is now at (1a), already gated — the next pass
+     advances it.
+   - **The gate holder's latest comment requests a summary** — its first or
+     last non-empty line, stripped of emphasis/backticks/quotes and case,
+     is exactly `summary`, so corrections and the request can share one
+     comment — (and no `**[intake] · summary**` has been posted since it)
+     → dispatch for the summary; ISSUE-COMMENT it, prefixed
+     `**[intake] · summary**`. A summary request from anyone else never
+     triggers.
    - **No `**[intake]**` questions comment exists yet** → dispatch for the
      question batch; ISSUE-COMMENT it verbatim as **one comment**, prefixed
      `**[intake]**`. Asked **once** — patrol never re-batches; unanswered
      questions surface later as assumptions in the summary.
    - **Otherwise** → not actionable: the thread belongs to the humans until
-     the gate holder comments `summary` or applies a gate label.
+     the gate holder requests a summary or applies a gate label.
 3. Clear the lock. Never apply a gate label. Failures follow the STOP protocol.
 
 ## 4. Report

@@ -6,8 +6,9 @@ pattern. Two rules, each the mechanical form of existing protocol text:
 
   A. An ``**[intake] · summary**`` comment may be posted only when the
      async-intake trigger holds (commands/patrol.md step 2): a gate label
-     is present on the issue, or the gate holder's latest comment is
-     ``summary`` and no intake summary has been posted after it.
+     is present on the issue, or the gate holder's latest comment requests
+     a summary (its first or last non-empty line is exactly ``summary``)
+     and no intake summary has been posted after it.
   B. Gate labels (ready-for-spec / ready-for-dev) are applied by the human
      gate holder only — an agent never adds them (references/workflow.md:
      "you move gate labels — a gate label is an authorization").
@@ -39,12 +40,12 @@ RULE_B_MSG = (
 
 PROTOCOL_MSG = (
     "Roz Gate: blocked — the intake-summary trigger has not fired. An "
-    "`**[intake] · summary**` comment is allowed only when the gate holder "
-    "(issue assignee; unassigned → author) has commented `summary` as their "
-    "latest comment, or a gate label is already present (commands/patrol.md, "
-    "async-intake). Answered questions alone never trigger a summary. Do not "
-    "retry or work around this: it is a human decision point — wait for the "
-    "gate holder."
+    "`**[intake] · summary**` comment is allowed only when the gate holder's "
+    "(issue assignee; unassigned → author) latest comment requests a summary "
+    "— its first or last line is exactly `summary` — or a gate label is "
+    "already present (commands/patrol.md, async-intake). Answered questions "
+    "alone never trigger a summary. Do not retry or work around this: it is "
+    "a human decision point — wait for the gate holder."
 )
 
 ALREADY_POSTED_MSG = (
@@ -120,7 +121,14 @@ def check_gate_label_add(cmd, toks):
 
 
 def is_summary_request(body):
-    return body.strip().strip("`'\"*.").strip().casefold() == "summary"
+    """First or last non-empty line is exactly `summary` (emphasis,
+    backticks, quotes, and a trailing period stripped; case-insensitive) —
+    so corrections and the request can share one comment."""
+    lines = [l.strip().strip("`'\"*.").strip() for l in body.splitlines()]
+    lines = [l for l in lines if l]
+    if not lines:
+        return False
+    return "summary" in (lines[0].casefold(), lines[-1].casefold())
 
 
 def check_trigger(holders, comments):

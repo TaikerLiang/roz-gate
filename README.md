@@ -153,17 +153,21 @@ loop. Three beats — **ask once, summarize on demand, the label confirms**:
 1. Patrol posts **one** batch of clarifying questions (numbered, each option
    with a marked recommendation), then leaves the thread to the humans —
    free-form discussion, anyone may weigh in, from any device.
-2. The **issue assignee** (unassigned → the author) comments **`summary`**
-   whenever the discussion feels settled — or immediately, if the
-   recommendations look right. The agent condenses the body + all comments
-   into one summary: story + acceptance criteria + suggested track + an
-   attributed decision trail; unanswered questions become explicit
+2. The **issue assignee** (unassigned → the author) ends a comment with the
+   line **`summary`** whenever the discussion feels settled — or
+   immediately, if the recommendations look right; corrections and the
+   request can share one comment. The agent condenses the body + all
+   comments into one summary: story + acceptance criteria + suggested track
+   + an attributed decision trail; unanswered questions become explicit
    assumptions, disagreements become contested points shown with both sides.
 3. Looks right? The assignee applies the gate label — `ready-for-spec` (spec
-   track) or `ready-for-dev` (fast track). **The label is the confirmation**:
-   patrol then rewrites the body and applies the track that label choice
-   confirms, and the loop takes over. Off? Reply corrections and say
-   `summary` again.
+   track) or `ready-for-dev` (fast track). **The label is the confirmation**,
+   and it reads: *build the story from everything I said* — only the
+   assignee's words drive the issue body; bystander comments never fold in
+   without their endorsement. Patrol then rewrites the body and applies the
+   track that label choice confirms, and the loop takes over. Off? Reply
+   corrections — end with `summary` to re-read first, or label directly:
+   finalize folds your corrections either way.
 
 Both intake paths run the same brain: the `product` agent dispatched under
 `references/intake-brief.md`. The orchestrator never does clarification

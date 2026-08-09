@@ -1,0 +1,6 @@
+{"assignees":[{"login":"TaikerLiang"}],"author":{"login":"someone"},"labels":[{"name":"status: ready-for-dev"}],
+ "comments":[
+   {"author":{"login":"TaikerLiang"},"body":"summary","createdAt":"2026-08-08T10:39:00Z"},
+   {"author":{"login":"roz-bot"},"body":"**[intake] · summary**\n\nAs a user ...","createdAt":"2026-08-08T10:41:00Z"},
+   {"author":{"login":"random-passerby"},"body":"maybe also add CSV export?","createdAt":"2026-08-08T11:00:00Z"}
+ ]}

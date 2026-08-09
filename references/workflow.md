@@ -69,21 +69,26 @@ it. Three beats — ask once, summarize on demand, the label confirms:
    thread to the humans: free-form discussion, anyone may weigh in, from any
    device. Patrol never re-batches.
 2. When the **gate holder** — the issue's assignee (unassigned → the author) —
-   comments **`summary`**, the `product` agent (same intake brief, async
-   mode) condenses the body + **all** comments into one
+   ends a comment with the line **`summary`** (corrections and the request
+   can share one comment; a first-line `summary` works too), the `product`
+   agent (same intake brief, async mode) condenses the body + **all**
+   comments into one
    `**[intake] · summary**`: story + AC + proposed `track:` + an attributed
    decision trail; unanswered questions resolve to their recommendations,
    listed as explicit **assumptions**; disagreements are shown as
    **contested points** with both sides — one reply flips them. Corrections?
-   Reply and say `summary` again.
+   Reply them — end with `summary` to re-read a revised summary first, or
+   label directly: finalize folds your corrections either way.
 3. **The gate label is the confirmation** — no approve keyword. The gate
    holder applies `status: ready-for-spec` (⇒ `track: spec`) or
    `status: ready-for-dev` (⇒ `track: fast`); patrol then rewrites the body
    to the story template and applies that track — the label choice itself
-   confirms the track. Confident holders may label without ever asking for a
-   summary; patrol summarizes before finalizing either way. Everything before
-   the label is input; **the label is the decision** — and it is still only
-   ever the holder's to apply.
+   confirms the track. The label reads: **"build the story from everything
+   I said"** — at finalize only the holder's words drive the body; bystander
+   comments never fold in un-endorsed. Confident holders may label without
+   ever asking for a summary; patrol summarizes before finalizing either
+   way. Everything before the label is input; **the label is the decision**
+   — and it is still only ever the holder's to apply.
 
 **(2) Spec refinement** — gated by `status: ready-for-spec`. `em`+`product`
 write `<specs_dir>/{n}/spec.md`; `implementer` writes `technical-spec.md`

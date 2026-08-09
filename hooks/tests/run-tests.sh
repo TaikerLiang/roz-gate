@@ -66,6 +66,16 @@ export GH_FIXTURE="$S/fx/gh_wrong_person.json"
 run "'summary' from non-gate-holder blocked" 2 "gate holder" "$SUMMARY_CMD"
 run "unparseable issue ref blocked" 2 "adapter form" 'gh issue comment https://github.com/x/y/issues/54 --body "**[intake] · summary** ..."'
 
+# --- rule A: summary-request line rule (corrections + summary in one comment) ---
+export GH_FIXTURE="$S/fx/gh_corrections_lastline.json"
+run "corrections + last-line summary allowed" 0 "" "$SUMMARY_CMD"
+export GH_FIXTURE="$S/fx/gh_firstline.json"
+run "first-line summary allowed" 0 "" "$SUMMARY_CMD"
+export GH_FIXTURE="$S/fx/gh_midline.json"
+run "mid-text summary mention blocked" 2 "human decision point" "$SUMMARY_CMD"
+export GH_FIXTURE="$S/fx/gh_gate_label_bystander.json"
+run "finalize regen after bystander chatter allowed" 0 "" "$SUMMARY_CMD"
+
 # --- rule A: fail-closed on API failure, distinct message ---
 export GH_FIXTURE="$S/fx/gh_no_trigger.json" STUB_FAIL=1
 run "API failure fails closed with retry wording" 2 "NOT a protocol block" "$SUMMARY_CMD"

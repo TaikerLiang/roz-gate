@@ -30,7 +30,8 @@ of:
      **Async batch format** — optimized for a phone read:
      - Header: question count + the flow in one line — *"Discuss freely below
        (`1a 2b` shorthand welcome). When it settles — or right now, if the
-       recommendations look right — the assignee comments `summary`."*
+       recommendations look right — the assignee ends a comment with the
+       line `summary` (corrections and the request can share one comment)."*
      - Each question: `**Q<n> · <2–3-word label>**` (e.g. Scope / Coverage /
        Driver), then the options as **(a)/(b) bullets** — mark the recommended
        one `← ✅ recommended` — then the why as **one italic line**. An option
@@ -55,7 +56,9 @@ of:
      silently pick; the assignee flips it with one reply
    - footer: *"Right? Apply `status: ready-for-spec` (or `ready-for-dev` for
      the fast track) — the label is the confirmation. Off? Reply corrections
-     and comment `summary` again."*
+     — end the comment with a line `summary` to see a revised summary first,
+     or apply the label directly: finalize folds your corrections either
+     way."*
 
 Multiple distinct stories in one idea → say so in the summary and give one
 story block per issue (siblings — never parent/child, never task-splitting).
@@ -67,12 +70,31 @@ is the issue's **assignee** (unassigned → the issue author).
 
 - **Anyone may reply**; the discussion is free-form. Attribute every input to
   its author in the summary's decision trail.
-- **Only the gate holder's `summary` comment** triggers a summary, and only
-  the gate holder's **gate label** confirms it. Everything before the label is
+- **Only the gate holder's summary request** — a comment whose first or last
+  non-empty line is exactly `summary` — triggers a summary, and only the
+  gate holder's **gate label** confirms it. Everything before the label is
   input; **the label is the decision.**
 - You never resolve a disagreement — contested points carry both sides, and
   the summary's choice is a recommendation the gate holder can flip in one
   reply before labelling.
+- **Every word that reaches the issue body was either said by the gate
+  holder or seen by them.** A summary produced on the holder's request folds
+  in the whole thread — the holder reads it before labelling. A summary
+  produced at finalize (label already applied, unseen) folds in the holder's
+  words only — see below.
+
+## The finalize dispatch (async)
+
+When patrol dispatches you with the gate label **already applied** (the
+summary was never requested, or the holder commented after the last one),
+the label has authorized what the holder said, sight-unseen — so the
+fold-in scope narrows: build the story from the issue body and **the gate
+holder's comments**. Bystander comments are context for understanding the
+thread, never content — fold a bystander's suggestion in only where the
+holder explicitly endorsed it ("agree with B's option"). The summary is
+still posted as an issue comment before the body is edited: the paper
+trail the holder reviews after the fact, editing the body themselves if it
+folded wrong.
 
 ## Rules while clarifying
 

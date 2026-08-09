@@ -1,0 +1,5 @@
+{"assignees":[{"login":"TaikerLiang"}],"author":{"login":"someone"},"labels":[],
+ "comments":[
+   {"author":{"login":"roz-bot"},"body":"**[intake]**\n\n**Q1 · Scope** ...","createdAt":"2026-08-08T07:54:00Z"},
+   {"author":{"login":"TaikerLiang"},"body":"Two fixes:\n1. cap at 5k rows\n2. viewers only\n\nsummary","createdAt":"2026-08-08T10:38:00Z"}
+ ]}
