@@ -6,6 +6,34 @@ calls infer the repository from the current directory's git remote — never pas
 
 Prerequisite: `gh auth status` succeeds for the remote's host.
 
+## Identity
+
+Two modes, set by `agent_identity` in the Roz Gate config (key absent →
+`user`):
+
+- **`user`** (default): every op runs as the human's `gh auth login`
+  session — the pre-1.7.0 behavior, unchanged.
+- **`bot`**: every CAPITALIZED-OP runs as the project's GitHub App
+  (`bot_login` = the app slug; one-time setup in
+  `references/identity-github-app.md`):
+  - Mint a short-lived installation token
+    (`${CLAUDE_PLUGIN_ROOT}/scripts/gh-app-token.sh`) and pass it
+    **per invocation**: `GH_TOKEN=<token> gh …`. **Never export it into
+    the session environment** — a bare `gh` outside a CAPITALIZED-OP must
+    keep the human's identity.
+  - ISSUE-CREATE always adds `--assignee <operator>` (the config's
+    `operator`) — a bot-authored issue must never be born holder-less; a
+    bot is never a gate holder.
+  - Git: push over HTTPS —
+    `git push https://x-access-token:<token>@github.com/<owner>/<repo>.git <branch>`
+    — and commit with per-command author flags,
+    `git -c user.name="<slug>[bot]" -c user.email="<app-id>+<slug>[bot]@users.noreply.github.com" commit …`,
+    never writing identity into the repo's git config (the human's own
+    commits in the same clone stay theirs).
+  - Author shapes differ by API path (`app/<slug>`, `<slug>[bot]`, bare
+    `<slug>`) — when comparing, strip the `app/` prefix and `[bot]`
+    suffix first.
+
 ## Issues & labels
 
 | Op | Command |

@@ -29,9 +29,10 @@ of:
      assumption in the summary.
      **Async batch format** — optimized for a phone read:
      - Header: question count + the flow in one line — *"Discuss freely below
-       (`1a 2b` shorthand welcome). When it settles — or right now, if the
-       recommendations look right — the assignee ends a comment with the
-       line `summary` (corrections and the request can share one comment)."*
+       (`1a 2b` shorthand welcome). When it settles, the assignee ends a
+       comment with the line `summary` (corrections and the request can share
+       one comment) — or, if the recommendations all look right, applies the
+       gate label directly: that alone confirms them."*
      - Each question: `**Q<n> · <2–3-word label>**` (e.g. Scope / Coverage /
        Driver), then the options as **(a)/(b) bullets** — mark the recommended
        one `← ✅ recommended` — then the why as **one italic line**. An option
@@ -66,7 +67,8 @@ story block per issue (siblings — never parent/child, never task-splitting).
 ## Multi-party rules (async)
 
 Intake threads are open to anyone, but authority is not. The **gate holder**
-is the issue's **assignee** (unassigned → the issue author).
+is the issue's **assignee** (unassigned → the issue author, **if human** —
+a bot identity never holds a gate).
 
 - **Anyone may reply**; the discussion is free-form. Attribute every input to
   its author in the summary's decision trail.
@@ -110,8 +112,10 @@ folded wrong.
   Every question you ask must be one only the human can answer.
 - **Don't gold-plate the clarification.** "Good enough to gate" is the bar:
   under-specified details will resurface as open questions in the spec stage,
-  which has a full Q&A machinery. Three to five sharp questions is a typical
-  intake; ten is interrogation for its own sake.
+  which has a full Q&A machinery. **Never more than five questions in a
+  batch** — pick the five most important; whatever you defer resolves to
+  your recommendation as an explicit assumption, or resurfaces in the spec
+  stage.
 
 ## Track proposal (the decision-content test)
 

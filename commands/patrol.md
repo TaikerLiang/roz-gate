@@ -81,7 +81,11 @@ For an in-flight CR with open review threads:
 
 ### The async-intake action — the inbox's engine ((1b))
 For an open issue with no `track:` label. **Gate holder** = the issue's
-assignee (unassigned → the issue author). The thread is free-form and open to
+assignee (unassigned → the issue author, **if human**). A bot identity
+(`bot_login`) never holds a gate: a bot-authored, unassigned issue has **no
+gate holder** — only the questions batch may be posted on it, and the
+report lists it in the user's queue as "needs an assignee". The thread is
+free-form and open to
 anyone; the clarification thinking is always the dispatched `product` agent's
 (async mode, with `${CLAUDE_PLUGIN_ROOT}/references/intake-brief.md`, the
 issue body, and all comments), never patrol's own.

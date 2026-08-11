@@ -68,7 +68,8 @@ it. Three beats — ask once, summarize on demand, the label confirms:
    numbered, each option with a marked recommendation) — then leaves the
    thread to the humans: free-form discussion, anyone may weigh in, from any
    device. Patrol never re-batches.
-2. When the **gate holder** — the issue's assignee (unassigned → the author) —
+2. When the **gate holder** — the issue's assignee (unassigned → the author,
+   if human; a bot identity never holds a gate) —
    ends a comment with the line **`summary`** (corrections and the request
    can share one comment; a first-line `summary` works too), the `product`
    agent (same intake brief, async mode) condenses the body + **all**
@@ -191,7 +192,7 @@ a status report. Neither ever moves the other's.**
 |---|---|
 | `track:` label at intake | `/roz-gate:to-issues` (interactive) or the (1b) proposal comment (async) proposes — **you** confirm either way |
 | raw idea → inbox issue (no labels) | **you** (e.g. the forge's mobile app) |
-| inbox → in the loop (body rewrite + `track:` label) | patrol's async intake, only after the **gate holder** (issue assignee; unassigned → author) applies the gate label — the label is the confirmation |
+| inbox → in the loop (body rewrite + `track:` label) | patrol's async intake, only after the **gate holder** (issue assignee; unassigned → author, if human — a bot never holds a gate) applies the gate label — the label is the confirmation |
 | apply a gate label (`ready-for-spec`, `ready-for-dev`) | **you**, only ever you |
 | gate → `processing` → next state | the running command |
 | (2) complete → `in-spec-review` | the spec stage |

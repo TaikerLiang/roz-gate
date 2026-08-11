@@ -7,7 +7,21 @@ S="$(cd "$(dirname "$0")" && pwd)"
 GUARD="$S/../guard-gate.sh"
 export PATH="$S/bin:$PATH"
 export STUB_LOG="$(mktemp)"
-trap 'rm -f "$STUB_LOG"' EXIT
+# Identity config is discovered from the git toplevel of the guard's cwd:
+# USERREPO (no git, no CLAUDE.md) pins user mode; BOTREPO carries a bot config.
+USERREPO=$(mktemp -d)
+BOTREPO=$(mktemp -d)
+git init -q "$BOTREPO" && mkdir -p "$BOTREPO/sub"
+cat > "$BOTREPO/CLAUDE.md" <<'EOF'
+## Development Workflow (Roz Gate)
+
+### Roz Gate config
+
+- forge: github
+- agent_identity: bot
+- bot_login: roz-bot
+EOF
+trap 'rm -f "$STUB_LOG"; rm -rf "$USERREPO" "$BOTREPO"' EXIT
 pass=0 fail=0
 
 run() { # name expected_exit stderr_substr command
@@ -19,7 +33,7 @@ import json, sys
 print(json.dumps({"tool_name": "Bash", "tool_input": {"command": sys.argv[1]}}))
 PY
 )
-  err=$(printf '%s' "$payload" | "$GUARD" 2>&1 >/dev/null); rc=$?
+  err=$( (cd "${RUN_CWD:-$USERREPO}" && printf '%s' "$payload" | "$GUARD" 2>&1 >/dev/null) ); rc=$?
   if [ "$rc" != "$want" ]; then
     echo "FAIL $name: exit $rc, want $want"; echo "  stderr: $err"; fail=$((fail+1)); return
   fi
@@ -80,6 +94,16 @@ run "finalize regen after bystander chatter allowed" 0 "" "$SUMMARY_CMD"
 export GH_FIXTURE="$S/fx/gh_no_trigger.json" STUB_FAIL=1
 run "API failure fails closed with retry wording" 2 "NOT a protocol block" "$SUMMARY_CMD"
 unset STUB_FAIL
+
+# --- bot mode (1.7.0): identity from the project config ---
+export GH_FIXTURE="$S/fx/gh_bot_already.json"
+RUN_CWD=$BOTREPO run "bot mode: bot-posted summary counts as already-posted" 2 "already" "$SUMMARY_CMD"
+export GH_FIXTURE="$S/fx/gh_bot_human_quote.json"
+RUN_CWD=$BOTREPO run "bot mode: human quoting the marker doesn't count" 0 "" "$SUMMARY_CMD"
+export GH_FIXTURE="$S/fx/gh_bot_orphan.json"
+RUN_CWD=$BOTREPO run "bot mode: bot-authored unassigned issue denied" 2 "no human gate holder" "$SUMMARY_CMD"
+export GH_FIXTURE="$S/fx/gh_bot_human_quote.json"
+RUN_CWD=$BOTREPO/sub run "bot mode: config found from a subdirectory" 0 "" "$SUMMARY_CMD"
 
 # --- rule A: GitLab ---
 run "glab summary after 'summary' allowed" 0 "" 'glab issue note 7 --message "**[intake] · summary**

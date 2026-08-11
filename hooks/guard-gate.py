@@ -16,6 +16,16 @@ pattern. Two rules, each the mechanical form of existing protocol text:
 Exit 0 allows the tool call; exit 2 blocks it and feeds stderr to the
 model. Forge API failures fail closed, with a message that says it is an
 API failure to retry, not a protocol block.
+
+Identity modes (1.7.0): when the project's CLAUDE.md config block says
+``agent_identity: bot``, ``bot_login`` names the agent's forge identity
+(comma-separated for multiple bots). A bot is never a gate holder, and
+"a summary was already posted" additionally requires the poster to BE the
+bot — a human quoting the marker no longer counts. Absent config keys →
+user mode, the pre-1.7.0 behavior bit for bit. Logins are normalized
+before comparison (``app/`` prefix and ``[bot]`` suffix stripped): the
+same bot surfaces as ``app/name``, ``name[bot]``, or bare ``name``
+depending on the API path.
 """
 
 import json
@@ -60,6 +70,55 @@ UNPARSEABLE_MSG = (
     "(`gh issue comment <number> ...` / `glab issue note <number> ...`) so "
     "the guard can check the issue."
 )
+
+NO_HOLDER_MSG = (
+    "Roz Gate: blocked — no human gate holder. The issue is bot-authored "
+    "and unassigned; a bot identity never holds a gate. A human assignee "
+    "must exist before an intake summary can be posted — assign the issue "
+    "and retry."
+)
+
+
+def normalize_login(login):
+    """One rule for every author shape the forges return: strip gh's
+    `app/` prefix and REST's `[bot]` suffix, leaving the bare slug."""
+    login = (login or "").strip()
+    if login.startswith("app/"):
+        login = login[4:]
+    if login.endswith("[bot]"):
+        login = login[:-5]
+    return login
+
+
+def load_bot_logins():
+    """Bot identities from the project's CLAUDE.md Roz Gate config block.
+
+    Empty set → user mode (pre-1.7.0 behavior). Comma-separated
+    `bot_login` values are supported so a multi-bot future is a config
+    edit, not a refactor. Located via the git toplevel — the command may
+    run from a subdirectory.
+    """
+    try:
+        top = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if top.returncode != 0:
+            return set()
+        with open(top.stdout.strip() + "/CLAUDE.md", encoding="utf-8") as f:
+            text = f.read()
+    except (OSError, subprocess.TimeoutExpired):
+        return set()
+    if not re.search(r"^-\s*agent_identity:\s*bot\s*$", text, re.M):
+        return set()
+    m = re.search(r"^-\s*bot_login:\s*(.+)$", text, re.M)
+    if not m:
+        return set()
+    return {
+        normalize_login(v)
+        for v in m.group(1).split(",")
+        if normalize_login(v)
+    }
 
 
 def deny(message):
@@ -131,20 +190,38 @@ def is_summary_request(body):
     return "summary" in (lines[0].casefold(), lines[-1].casefold())
 
 
-def check_trigger(holders, comments):
-    """comments: oldest-first list of (author_login, body)."""
+def resolve_holders(assignee_logins, author_login, bots):
+    """Gate holders: assignees, unassigned → author — humans only. A bot
+    is never a gate holder; bot-authored + unassigned = no holder."""
+    holders = {normalize_login(a) for a in assignee_logins if a} - bots
+    if not holders:
+        author = normalize_login(author_login)
+        if author and author not in bots:
+            holders = {author}
+    if not holders:
+        deny(NO_HOLDER_MSG)
+    return holders
+
+
+def check_trigger(holders, comments, bots):
+    """comments: oldest-first list of (author_login, body); logins are
+    compared normalized."""
     last_holder_idx = None
     for i, (login, _body) in enumerate(comments):
-        if login in holders:
+        if normalize_login(login) in holders:
             last_holder_idx = i
     if last_holder_idx is None or not is_summary_request(comments[last_holder_idx][1]):
         deny(PROTOCOL_MSG)
-    for _login, body in comments[last_holder_idx + 1:]:
-        if SUMMARY_MARKER.search(body):
+    for login, body in comments[last_holder_idx + 1:]:
+        # In bot mode a posted summary must also BE the bot's — a human
+        # quoting the marker doesn't count.
+        if SUMMARY_MARKER.search(body) and (
+            not bots or normalize_login(login) in bots
+        ):
             deny(ALREADY_POSTED_MSG)
 
 
-def check_github_summary(cmd):
+def check_github_summary(cmd, bots):
     m = re.search(r"\bgh\s+issue\s+comment\s+(\S+)", cmd)
     if not m:
         return
@@ -157,18 +234,20 @@ def check_github_summary(cmd):
     labels = [l.get("name", "") for l in issue.get("labels") or []]
     if any(GATE.search(name) for name in labels):
         return  # finalize path: the gate holder's label authorizes the summary
-    holders = {a.get("login") for a in issue.get("assignees") or [] if a.get("login")}
-    if not holders:
-        author = (issue.get("author") or {}).get("login")
-        holders = {author} if author else set()
+    holders = resolve_holders(
+        (a.get("login") for a in issue.get("assignees") or []),
+        (issue.get("author") or {}).get("login"),
+        bots,
+    )
     comments = sorted(issue.get("comments") or [], key=lambda c: c.get("createdAt", ""))
     check_trigger(
         holders,
         [((c.get("author") or {}).get("login"), c.get("body", "")) for c in comments],
+        bots,
     )
 
 
-def check_gitlab_summary(cmd):
+def check_gitlab_summary(cmd, bots):
     m = re.search(r"\bglab\s+issue\s+note\s+(\S+)", cmd)
     if not m:
         return
@@ -179,12 +258,11 @@ def check_gitlab_summary(cmd):
     labels = issue.get("labels") or []
     if any(GATE.search(name) for name in labels):
         return
-    holders = {
-        a.get("username") for a in issue.get("assignees") or [] if a.get("username")
-    }
-    if not holders:
-        author = (issue.get("author") or {}).get("username")
-        holders = {author} if author else set()
+    holders = resolve_holders(
+        (a.get("username") for a in issue.get("assignees") or []),
+        (issue.get("author") or {}).get("username"),
+        bots,
+    )
     notes = forge_json(
         ["glab", "api", "projects/:id/issues/%s/notes?per_page=100" % number]
     )
@@ -195,6 +273,7 @@ def check_gitlab_summary(cmd):
     check_trigger(
         holders,
         [((n.get("author") or {}).get("username"), n.get("body", "")) for n in notes],
+        bots,
     )
 
 
@@ -214,8 +293,9 @@ def main():
         toks = None
     check_gate_label_add(cmd, toks)
     if SUMMARY_MARKER.search(cmd):
-        check_github_summary(cmd)
-        check_gitlab_summary(cmd)
+        bots = load_bot_logins()
+        check_github_summary(cmd, bots)
+        check_gitlab_summary(cmd, bots)
 
 
 main()

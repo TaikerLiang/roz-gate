@@ -25,9 +25,25 @@ user, one compact block, not twenty questions:
 - `lockfile` + `lockfile_regen` (e.g. `uv.lock` / `uv lock`;
   `package-lock.json` / `npm install --package-lock-only`)
 - `specs_dir` (default `docs/specs`)
+- After confirming: `mkdir -p` the configured `acceptance_dir` and
+  `specs_dir` — a configured path must exist from day one, not first
+  materialize at stage (6).
 - Contract style: does this project expose an HTTP API (contract = API doc) or
   not (contract must include a test port)? — recorded as a note in the
   implementer persona, not in the config block.
+- **Agent identity** — one question: does the agent act as the human
+  (`user`, default) or as its own bot identity (`bot` — GitHub App /
+  GitLab project access token)? `user` → write nothing (absent keys mean
+  user mode). `bot` → point the user at
+  `${CLAUDE_PLUGIN_ROOT}/references/identity-github-app.md` for the
+  one-time setup (credential creation is theirs, never automated here),
+  then add to the config block:
+  - `agent_identity: bot`
+  - `bot_login: <app slug / project-bot username>` (comma-separated if
+    several)
+  - `operator: <the human's forge username>` — the default assignee for
+    bot-created issues, nothing more; reassigning an issue moves the gate
+    as usual.
 
 ## 3. Create the labels
 LABEL-CREATE per the adapter's scheme:

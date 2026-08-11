@@ -7,6 +7,34 @@ self-hosted instances (`glab auth login --hostname <host>` first).
 
 Prerequisite: `glab auth status` succeeds for the remote's host.
 
+## Identity
+
+Two modes, set by `agent_identity` in the Roz Gate config (key absent →
+`user`):
+
+- **`user`** (default): every op runs as the human's `glab auth login`
+  session — the pre-1.7.0 behavior, unchanged.
+- **`bot`**: every CAPITALIZED-OP runs as the project's **project access
+  token** bot (`bot_login` = its full username,
+  `project_<id>_bot_<hash>`; one-time setup in
+  `references/identity-github-app.md`, GitLab section):
+  - Pass the token **per invocation**: `GITLAB_TOKEN=<token> glab …` —
+    honored by both `glab api` and the CLI subcommands (`issue note`,
+    `issue update`, `issue list`, …). **Never export it into the session
+    environment.**
+  - `glab api` POST/PUT bodies with array or nested params (e.g.
+    `scopes`, `position`) must be sent as JSON —
+    `--input -` plus `-H 'Content-Type: application/json'`; form
+    encoding of arrays fails.
+  - ISSUE-CREATE always sets `assignee_ids` to the config's `operator` —
+    a bot-authored issue must never be born holder-less; a bot is never
+    a gate holder.
+  - Git: push over HTTPS —
+    `git push https://<any-name>:<token>@gitlab.com/<path>.git <branch>`
+    (the basic-auth username is arbitrary) — and commit with per-command
+    `git -c user.name/-c user.email` author flags, never writing
+    identity into the repo's git config.
+
 ## Labels: the scoped-label scheme
 
 GitLab **scoped labels** (`key::value`) let the platform enforce "at most one
@@ -106,6 +134,8 @@ Create the scoped names exactly as written (`track::spec` etc.) plus the plain
 
 - **Draft flag** lives in the MR's `draft` field (CR-VIEW), not `isDraft`.
 - **Inline anchoring** needs the three diff SHAs; if a spec-doc line moved after
-  a rebase, re-fetch `diff_refs` before posting.
+  a rebase, re-fetch `diff_refs` before posting. After any push, `diff_refs`
+  refreshes **asynchronously** — re-fetch until `head_sha` equals the pushed
+  commit, or the position post 500s.
 - Thread resolution is per-discussion (one call), not per-GraphQL-node — simpler
   than GitHub here.
