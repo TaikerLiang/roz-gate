@@ -188,6 +188,12 @@ No `track:` label = inbox (pre-loop). No `status:` label = in flight (the open
 CRs are the state). Commands validate invariants and **stop on violations —
 they never repair labels**.
 
+The two human-only rules are not just prose: a bundled **PreToolUse hook**
+enforces them at the tool layer. An agent that tries to apply a gate label,
+or to post an intake summary without the gate holder's trigger, is blocked
+before the command runs — fail-closed, with a message pointing back at the
+protocol. Prompt discipline is the manners; the hook is the law.
+
 Every state-mutating command has exactly two exits: **Done** (deliverable
 produced, lock removed) or **STOP** (discard local work, set `blocked` alone,
 post evidence + a recommended next step). No third exit — so any terminal state
@@ -213,6 +219,37 @@ locks. Issue templates live at `.github/ISSUE_TEMPLATE/idea.md` vs
 Adding another forge = writing one more adapter file with the same operation
 names; no command changes.
 
+## Agent identity
+
+By default the agent acts as **you** — your `gh`/`glab` session (`user`
+mode, zero setup). Opt into **bot mode** and it gets its own face on the
+forge: a **GitHub App** (`your-bot[bot]`) or a **GitLab project access
+token** bot. Three things change:
+
+- **You can tell who's speaking** — agent comments carry the bot author;
+  authority checks compare authors, not text markers.
+- **Your phone finally rings** — an agent posting under your own account
+  suppresses every notification; a bot's questions and summaries actually
+  ping the assignee. Async intake starts working from anywhere.
+- **Your credentials stay yours** — the agent holds a short-lived
+  installation token or a revocable project token, never your session.
+
+One invariant holds in both modes: **a bot never holds a gate.** Bot-created
+issues are born with a human assignee, and gate labels stay human-only —
+hook-enforced.
+
+Setup is a one-time human task (the plugin never creates credentials):
+follow [`references/identity-github-app.md`](references/identity-github-app.md),
+then add three keys to the config block:
+
+```
+- agent_identity: bot
+- bot_login: your-bot            # app slug / project-bot username
+- operator: your-forge-login     # default assignee for bot-created issues
+```
+
+Keys absent = user mode, unchanged.
+
 ## Per-project configuration
 
 `init` writes a `### Roz Gate config` block into your `CLAUDE.md`; every
@@ -228,6 +265,9 @@ command reads it before acting:
 - lockfile: <lockfile name>             the only mechanical merge carve-out
 - lockfile_regen: <regen command>
 - specs_dir: docs/specs
+- agent_identity: bot            # optional — see "Agent identity"; absent = user
+- bot_login: <bot username>      # optional
+- operator: <your forge login>   # optional
 ```
 
 `init` also writes a `### Roz Gate personas` block — **fixed seats, swappable

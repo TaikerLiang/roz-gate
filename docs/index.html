@@ -202,8 +202,10 @@
 
 <section id="labels"><div class="wrap">
   <h2><span class="en">Labels — who applies what, and when</span><span class="zh">標籤——誰貼、何時貼</span></h2>
-  <p class="sub en">One rule underneath everything: <b>gate labels are authorizations — only you move them. Transient labels are status reports — only the machine moves them.</b> Neither ever touches the other's. Click a label.</p>
-  <p class="sub zh">底層只有一條規則:<b>gate label 是授權——只有你能動;transient label 是狀態回報——只有機器能動。</b>兩邊永不越界。點任一標籤。</p>
+  <p class="sub en">One rule underneath everything: <b>gate labels are authorizations — only you move them. Transient labels are status reports — only the machine moves them.</b> Neither ever touches the other's. And it's not just prose: a bundled <b>PreToolUse hook</b> blocks an agent that tries to apply a gate label or post an unrequested intake summary — fail-closed, at the tool layer. Click a label.</p>
+  <p class="sub zh">底層只有一條規則:<b>gate label 是授權——只有你能動;transient label 是狀態回報——只有機器能動。</b>兩邊永不越界。而且不只是紙上規則:隨附的 <b>PreToolUse hook</b> 會在工具層直接擋下試圖貼 gate label 或未經觸發就貼 intake summary 的 agent——fail-closed。點任一標籤。</p>
+  <p class="sub en">Optionally, the agent can act under <b>its own bot identity</b> (GitHub App / GitLab project access token) instead of your account — you can tell who's speaking, its questions actually notify you, and your credentials stay out of its hands. A bot never holds a gate. One-time setup: <a href="https://github.com/TaikerLiang/roz-gate/blob/main/references/identity-github-app.md">references/identity-github-app.md</a>.</p>
+  <p class="sub zh">另可選配:讓 agent 以<b>自己的 bot 身分</b>行動(GitHub App / GitLab project access token)而非你的帳號——看得出誰在說話、它的提問會真的通知你、你的憑證不落它手。bot 永遠不是 gate holder。一次性設定:<a href="https://github.com/TaikerLiang/roz-gate/blob/main/references/identity-github-app.md">references/identity-github-app.md</a>。</p>
   <div class="chips" id="chips"></div>
   <div class="card" id="labelcard"></div>
 </div></section>
