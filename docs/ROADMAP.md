@@ -38,7 +38,12 @@ holder's pain points became a proposal package; a four-seat evaluation
   integrate green finalize (evidence cards from captured run output +
   since-you-approved annotated diff). Success metric: artifact-change
   rate at gates, not approval rate.
-- **red-proof (experiment track, no version)**: standalone
+- **red-proof (DEFERRED 2026-08-17, not rejected — Paul's ruling)**: wait
+  for real usage of the 1.8.0–1.10.0 surface first; accumulated fidelity
+  findings from live cycles become the "what A catches statically"
+  baseline the kill criterion needs, so the deferral improves the
+  eventual experiment design. ADMC reopens it when Paul calls it.
+  Design as settled: standalone
   `/roz-gate:red-proof <n>`, post-GREEN only, disposable worktree,
   authored at execution time (structural blindness + zero staleness),
   exhaustive rule enumeration (the denominator is the finding), sealed
