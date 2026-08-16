@@ -124,6 +124,14 @@ A3 already shaped it).
 - For **(story-level)** items, end the body with one more italic line: *"If
   your decision changes the user story, I will mirror a note to issue #<n>."*
 
+### A6b. Post the spec-gate kit
+Assemble the **spec-gate kit** per
+`${CLAUDE_PLUGIN_ROOT}/references/gate-kit.md` (blind-spot header,
+attention list, issue-delta, decision ledger — ledger entries exist only
+if intake carried rulings) and post it as **one top-level comment** on
+the spec CR. This comment is the kit's permanent home — every later
+update edits it in place (COMMENT-EDIT), never posts a sibling.
+
 ### A7. Flip labels — only AFTER the CR and threads are created
 LABEL-REMOVE `status: ready-for-spec` and `status: processing`;
 LABEL-ADD `status: in-spec-review`.
@@ -144,7 +152,13 @@ resolved). If `spec/<n>` does not exist, stop and say so.
 ### B1. Lock
 LABEL-ADD `status: processing`.
 
-### B2. Two sibling branches off the spec branch
+### B2. Stamp the approval + two sibling branches off the spec branch
+The gate label just applied is the human's approval of `spec/<n>` **as it
+stands**: COMMENT-EDIT the spec-gate kit to append one line —
+`approved at <spec/<n> HEAD SHA>` — the anchor for the final-gate kit's
+since-you-approved diff. Also note in the report whether the spec changed
+after the kit's last update (the gate-produced-change signal,
+gate-kit.md § Instrumentation).
 `git fetch` first, then create both off `spec/<n>`:
 - `feat/<n>` (implementer) and `qa/<n>` (qa). They are **independent
   siblings** — `qa/<n>` must contain NO implementation code; that is what

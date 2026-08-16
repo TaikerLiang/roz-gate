@@ -29,15 +29,15 @@ holder's pain points became a proposal package; a four-seat evaluation
   R&R reviewer row updated; `test-spec.md` map derived from
   machine-readable trace markers (`trace_marker` config; qa declares one
   if absent).
-- **1.10.0 (awaiting ruling) — gate-holder legibility**: decision ledger
-  (quote the holder's answer *and the fold*); since-you-approved spec
-  diff at (7) (stamp the SHA at gate time); evidence cards at (7) only,
-  actual observed values or "not observed" (target rendering:
-  Concordion-style inline substitution); issue-delta instead of summary;
-  flagging as computed sort, never filter. Binding rules:
-  quote-never-paraphrase, no conclusions, exhaustive-or-say-so, kit
-  states its own blind spot. Success metric: artifact-change rate at
-  gates, not approval rate.
+- **v1.10.0 (shipped) — gate-holder legibility**:
+  `references/gate-kit.md` (binding rules, sections, computed sort keys,
+  four coverage buckets); one kit comment per spec CR edited in place
+  (new COMMENT-EDIT forge op, both adapters); posted at A6b, ledger
+  updated by spec-answers 6b, approved-SHA stamped at B2 (+ the
+  gate-produced-change instrumentation line), final-gate extension at
+  integrate green finalize (evidence cards from captured run output +
+  since-you-approved annotated diff). Success metric: artifact-change
+  rate at gates, not approval rate.
 - **red-proof (experiment track, no version)**: standalone
   `/roz-gate:red-proof <n>`, post-GREEN only, disposable worktree,
   authored at execution time (structural blindness + zero staleness),

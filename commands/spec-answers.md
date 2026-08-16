@@ -73,6 +73,16 @@ After processing, commit the spec changes on `spec/<n>` and push (so the CR
 reflects the resolutions). Use `--no-verify` only for unrelated hook failures,
 and say so.
 
+## 6b. Update the spec-gate kit
+COMMENT-EDIT the spec CR's gate-kit comment
+(`${CLAUDE_PLUGIN_ROOT}/references/gate-kit.md`): append one decision-ledger
+entry per folded thread — the question, **the user's answer quoted
+verbatim**, and **the fold** (the spec text that resulted, quoted with its
+link); anything the folding agent wrote beyond the literal answer is marked
+*interpretation:*. Refresh the attention list (a re-folded rule sorts under
+"changed after your ruling"). Kit comment missing (pre-1.10.0 CR) → skip,
+note it in the report.
+
 ## 7. Promote when fully answered
 Re-check the CR's threads. If **every** thread is resolved, the next step
 depends on where the issue is:

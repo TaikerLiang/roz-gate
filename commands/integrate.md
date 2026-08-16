@@ -64,6 +64,8 @@ label.
 ## 4. Run the verdict
 - Run QA's black-box suite against the implementation: config
   `acceptance_test` for the feature (`<acceptance_dir>/<feature>/`).
+  **Capture the run's output verbatim** (a local file is fine) — it is the
+  evidence source for the final-gate kit's observed values.
 - Sanity-check the implementation's unit suites too (config `test`).
 
 ## 5. Read the verdict
@@ -76,7 +78,16 @@ label.
      `git merge --no-edit <default_branch>` — resolve conflicts **here** so the
      spec CR's diff stays clean; if the merge changed anything, re-run the
      acceptance suite, then push. Skip if already merged in.
-  3. LABEL-ADD `status: in-user-review`; LABEL-REMOVE `status: processing` —
+  3. Extend the spec CR's gate-kit comment into the **final-gate kit**
+     (COMMENT-EDIT, per `${CLAUDE_PLUGIN_ROOT}/references/gate-kit.md`):
+     evidence cards from the captured run output + the trace-marker map
+     (four buckets — covered / partial / not covered /
+     cannot-be-covered-black-box), and the **since-you-approved diff**
+     (`git diff <approved-sha>..HEAD -- <specs_dir>/<n>/`, each hunk
+     annotated with the thread or amendment that caused it; empty → say
+     "the spec you approved is byte-identical"). Kit comment or approved
+     SHA missing (pre-1.10.0 flow) → skip, note it in the report.
+  4. LABEL-ADD `status: in-user-review`; LABEL-REMOVE `status: processing` —
      nothing is left but the user's review.
   The feature now waits at **(7)**: the user reviews the spec CR and merges.
 - **RED, every failure cleanly classifiable** → route each fix, never finalize:
