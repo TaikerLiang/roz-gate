@@ -25,6 +25,10 @@ user, one compact block, not twenty questions:
 - `lockfile` + `lockfile_regen` (e.g. `uv.lock` / `uv lock`;
   `package-lock.json` / `npm install --package-lock-only`)
 - `specs_dir` (default `docs/specs`)
+- `acceptance_layout` — optional: how the acceptance suite is organized
+  (e.g. `one folder per feature` — the default — or
+  `one folder per issue, shared fixtures in support/`). Write it only when
+  the project deviates from the default.
 - After confirming: `mkdir -p` the configured `acceptance_dir` and
   `specs_dir` — a configured path must exist from day one, not first
   materialize at stage (6).

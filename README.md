@@ -265,6 +265,7 @@ command reads it before acting:
 - lockfile: <lockfile name>             the only mechanical merge carve-out
 - lockfile_regen: <regen command>
 - specs_dir: docs/specs
+- acceptance_layout: <convention> # optional — suite layout; absent = one folder per feature
 - agent_identity: bot            # optional — see "Agent identity"; absent = user
 - bot_login: <bot username>      # optional
 - operator: <your forge login>   # optional

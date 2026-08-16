@@ -27,9 +27,12 @@ holder's pain points became a proposal package; a four-seat evaluation
   12-item vacuous-assertion checklist, an over-assertion check (false
   REDs), and a contract-currency step zero (unfolded amendments block);
   findings as QA-CR threads + integrate precondition; duties land in the
-  R&R table, not command prose. Prior-art note: every expected literal in
+  R&R table, not command prose. Prior-art notes: every expected literal in
   an assertion needs a spec-text origin (no origin ⇒ read off the
-  implementation).
+  implementation); the scenario→test map must be **derivable from
+  machine-readable markers in the test source** (marker syntax is project
+  config, like `acceptance_test`) — hand-maintained trace matrices are
+  complete, tidy, and stale.
 - **1.10.0 (awaiting ruling) — gate-holder legibility**: decision ledger
   (quote the holder's answer *and the fold*); since-you-approved spec
   diff at (7) (stamp the SHA at gate time); evidence cards at (7) only,

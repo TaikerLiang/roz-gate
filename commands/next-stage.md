@@ -156,7 +156,9 @@ Launch both at once (they never see each other):
   `<specs_dir>/<n>/technical-spec.md` + write **unit** tests. For a non-API
   feature, also provide the documented test **port** QA tests against.
 - **qa** on `qa/<n>`: write black-box acceptance tests in
-  `<acceptance_dir>/<feature>/` from `spec.md` + the contract ONLY. These run
+  `<acceptance_dir>/<feature>/` (`<feature>` = the project's layout unit —
+  config `acceptance_layout`; absent → one folder per feature) from
+  `spec.md` + the contract ONLY. These run
   post-integration and will NOT pass on `qa/<n>` by design — write them against
   the contract, do not chase green here.
 

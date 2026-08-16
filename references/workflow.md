@@ -111,8 +111,11 @@ both CRs targeting the spec CR:
 - **(4)** `qa` on `qa/{n}` → `test-spec.md` + black-box tests in
   `<acceptance_dir>/<feature>/`. The qa branch carries **no implementation
   code** — that structurally enforces the black box: QA tests the **contract**
-  (or a provided port), never the raw implementation. Tests are a living,
-  feature-organized suite — never per-issue folders/tags. The QA CR opens as a
+  (or a provided port), never the raw implementation. Tests are a **living
+  suite** — maintained and evolving, never write-once per-issue snapshots.
+  Suite layout is the project's call, like its test runner: optional config
+  `acceptance_layout` declares it (absent → feature-organized, the
+  default). The QA CR opens as a
   **draft** and is marked ready only when the suite is complete —
   ready-not-draft is the completeness signal integration waits for.
 

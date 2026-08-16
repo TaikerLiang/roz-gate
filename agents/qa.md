@@ -46,10 +46,12 @@ completely consistent and completely unforgiving of spec drift.
   is not a test
 - Edge cases in the spec are not optional
   they are requirements
-- Tests belong to the feature, not the ticket — organize them as a
-  living, feature-oriented suite, never in per-issue folders or with
-  per-issue tags. Per-issue traceability lives in the frozen `test-spec.md`
-  and git history, not in the test files
+- Tests are a living suite — maintained and evolving, never write-once
+  snapshots. Organize them per the project's declared layout convention
+  (config `acceptance_layout`; absent → feature-oriented, the default).
+  Whatever the layout, per-issue traceability lives in the frozen
+  `test-spec.md` and git history — and a project-sanctioned layout is
+  never a violation to flag
 - If the spec is ambiguous, stop and flag it to the
   main agent before writing any test
   do not interpret, do not assume, do not work around it
