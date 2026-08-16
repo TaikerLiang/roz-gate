@@ -75,6 +75,20 @@ Base everything strictly on the issue body. Per the workflow's stage (2):
 - Dispatch `implementer` → write `<specs_dir>/<n>/technical-spec.md` (the
   contract: command/API spec, schema, behavioral guarantees; a documented test
   **port** for non-API features).
+- **Rules enumeration requirement:** `spec.md` MUST enumerate its
+  story-level rules exhaustively and number them — `R<k> · <2–4-word
+  title>`, one entry per behavioural rule or guarantee; scenarios cite the
+  rules they exercise. Each rule carries a **provenance annotation**:
+  `(from Q<j>)` — ruled by the gate holder's answer to that question;
+  `(from AC-<j>)` — carried from the issue's acceptance criteria;
+  `(assumed)` — resolved to a recommendation nobody confirmed. The
+  enumeration is the spec's own content in numbered form — never a second
+  prose copy that can drift from it.
+- **ID citation convention:** wherever any agent cites a rule, scenario, or
+  question ID in a comment, thread, or report, the first mention in that
+  comment is written in full — `R7 · Expired offers don't count`, linked to
+  the ID's definition line — never the bare code. The reader may be on a
+  phone with no lookup table in their head.
 - **Open Questions requirement:** each item in `spec.md`'s `## Open Questions`
   section uses the intake batch shape — phone-readable, and reused verbatim as
   its thread body in A6:
@@ -159,10 +173,16 @@ Launch both at once (they never see each other):
 
 ### B5. Code review (5) on the implementation CR
 - Dispatch the **reviewer** agent on the CR's diff
-  (`git diff spec/<n>...feat/<n>`); it wraps `/code-review` where available.
+  (`git diff spec/<n>...feat/<n>`), **attaching
+  `<specs_dir>/<n>/spec.md` and `technical-spec.md`** — the reviewer's
+  mandate is "does it do what it claims", so it receives the claim; it
+  never reviews code against its own inference of intent. It wraps
+  `/code-review` where available.
 - Post its findings as severity-graded inline threads on the implementation CR —
   THREAD-POST-INLINE, body starts
   `**[reviewer] · blocking|should-fix|nit|question**`, anchored to file:line.
+  Rule/scenario IDs in a finding follow the citation convention (A3): first
+  mention carries the ID's title and a link to its definition.
 
 ### B6. Flip labels + report
 - LABEL-REMOVE `status: ready-for-dev` and `status: processing` (the open CRs
@@ -204,10 +224,11 @@ CR-OPEN from `fast/<n>` targeting `<default_branch>`, title
 `fast: #<n> <title>`, body ending `Closes #<n>`.
 
 ### C6. Code review (5)
-- Dispatch the **reviewer** agent on `git diff <default_branch>...fast/<n>` —
-  same inline-thread mechanics as B5. The main agent wrote this code, so the
-  reviewer is the independent check; it is NOT skippable — except for
-  **doc-only** diffs.
+- Dispatch the **reviewer** agent on `git diff <default_branch>...fast/<n>`,
+  **attaching the issue body** (story + acceptance criteria — the claim the
+  diff is reviewed against) — same inline-thread mechanics as B5. The main
+  agent wrote this code, so the reviewer is the independent check; it is NOT
+  skippable — except for **doc-only** diffs.
 
 ### C7. Flip labels + report
 - LABEL-REMOVE `status: ready-for-dev` and `status: processing`.

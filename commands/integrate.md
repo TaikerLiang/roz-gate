@@ -78,10 +78,18 @@ label.
 - **RED, every failure cleanly classifiable** → route each fix, never finalize:
   - **real bug** in the implementation → dispatch `implementer` to fix on
     `feat/<n>`,
-  - **harness issue** in the QA tests (import path / async / DB isolation —
-    the known cost of blind QA) → dispatch `qa` to fix on `qa/<n>`.
-  Push the fix, re-run from step 3. Cap: **3** fix-and-rerun rounds; still red
-  → STOP exit.
+  - **harness issue** in the QA tests — a failure where the test **never
+    reached its assertion** (import path / async / DB isolation — the known
+    cost of blind QA) → dispatch `qa` to fix on `qa/<n>`,
+  - **contract defect** — the test reached its assertion, the assertion
+    faithfully states the contract, and reality disagrees (a guaranteed
+    behaviour that measurably does not hold) → **STOP exit**: the contract
+    is amended through the existing backward transition, then QA re-derives
+    the test from the amended contract.
+  **An integration RED is never resolved by editing a QA assertion to match
+  observed behaviour** — that rewrites the verdict into an echo of the
+  implementation. Push the fix, re-run from step 3. Cap: **3** fix-and-rerun
+  rounds; still red → STOP exit.
 - **Anything else** — a failure that fits neither class, or anything
   surprising → STOP exit.
 
@@ -96,6 +104,8 @@ integration re-runs.
 
 ## 7. Report
 The verdict (green / red and what was fixed where / stopped and why), any
-lockfile regeneration, and what waits on whom. A red verdict is a **result**; a
+lockfile regeneration, and what waits on whom. Rule/scenario IDs in the
+report follow the citation convention: first mention carries the ID's title
+and a link to its definition. A red verdict is a **result**; a
 STOP is a **failed verdict attempt** — say which it was. Never silently merge a
 red integration.
