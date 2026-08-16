@@ -49,7 +49,7 @@ stamp means no re-init is needed, whatever the plugin version.
 |---|---|
 | `status: ready-for-spec` / `ready-for-dev` | actionable → `/roz-gate:next-stage <n>` |
 | `status: in-spec-review` | THREADS-LIST on its spec CR. Any unresolved thread whose last comment is a human answer (does not start with `**[` / `✅`) → actionable → `/roz-gate:spec-answers <n>`. Otherwise → waiting on the user |
-| no `status:`, `track: spec` | in flight: CR-FIND for `feat/<n>` and `qa/<n>`. Implementation CR exists with **zero open review threads** AND QA CR exists **and is not a draft** → actionable → `/roz-gate:integrate <n>`. Implementation CR has **open review threads** → actionable → **address-review** (below). Otherwise → in progress, not actionable |
+| no `status:`, `track: spec` | in flight: CR-FIND for `feat/<n>` and `qa/<n>`. Implementation CR exists with **zero open review threads** AND QA CR exists, **is not a draft, and has zero open fidelity threads** → actionable → `/roz-gate:integrate <n>`. Either CR has **open review threads** → actionable → **address-review** (below). Otherwise → in progress, not actionable |
 | no `status:`, `track: fast` | in flight: its CR has **open review threads** → actionable → **address-review**; review-clean → LABEL-ADD `status: in-user-review` and treat as waiting on the user |
 | `status: in-user-review` | waiting on the user |
 | `status: blocked` | waiting on the user — never re-invoke anything on it |
@@ -71,12 +71,15 @@ on the user is already posted.
 For an in-flight CR with open review threads:
 1. Lock: LABEL-ADD `status: processing` (so the next pass doesn't
    double-dispatch).
-2. Spec track: dispatch `implementer` on the CR's branch to address each open
-   thread — fix and/or reply, push. Fast track: the main agent addresses its
-   own CR's threads directly (it wrote the code; `implementer` is never
-   dispatched onto `fast/<n>`).
+2. Spec track: implementation CR threads → dispatch `implementer` on
+   `feat/<n>`; QA CR fidelity threads → dispatch `qa` on `qa/<n>` (it may
+   decline a finding that lacks verbatim citations) — fix and/or reply,
+   push. Fast track: the main agent addresses its own CR's threads directly
+   (it wrote the code; `implementer` is never dispatched onto `fast/<n>`).
 3. Dispatch `reviewer` to re-check the addressed threads and THREAD-RESOLVE
    those it is satisfied with; what stays open waits for the next round.
+   Re-checks of QA-CR fidelity threads use a fresh implementation-blind
+   dispatch under the fidelity brief, on `qa/<n>` only.
 4. Clear the lock. Failures follow the STOP protocol.
 
 ### The async-intake action — the inbox's engine ((1b))

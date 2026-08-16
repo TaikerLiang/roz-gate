@@ -20,19 +20,15 @@ holder's pain points became a proposal package; a four-seat evaluation
   assertion to match observed behaviour"); exhaustive numbered rules
   `R<k>` with provenance `(from Q<j>)`/`(from AC-<j>)`/`(assumed)`;
   titled+linked ID citations.
-- **1.9.0 (awaiting ruling) — QA fidelity review**: `test-spec.md` gets a
-  required scenario→test map; an implementation-blind reviewer dispatch
-  (against a `qa/<n>` checkout — blindness is structural via branch
-  topology) audits assertion fidelity with verbatim two-way citations, a
-  12-item vacuous-assertion checklist, an over-assertion check (false
-  REDs), and a contract-currency step zero (unfolded amendments block);
-  findings as QA-CR threads + integrate precondition; duties land in the
-  R&R table, not command prose. Prior-art notes: every expected literal in
-  an assertion needs a spec-text origin (no origin ⇒ read off the
-  implementation); the scenario→test map must be **derivable from
-  machine-readable markers in the test source** (marker syntax is project
-  config, like `acceptance_test`) — hand-maintained trace matrices are
-  complete, tidy, and stale.
+- **v1.9.0 (shipped) — QA fidelity review (stage 5q)**:
+  `references/fidelity-brief.md` (four questions, 12-item checklist,
+  origin rule, contract-currency step zero, two-way citations, three
+  dispositions); B5b blind dispatch on `qa/<n>`; patrol routes QA-CR
+  threads through address-review (qa addresses, blind reviewer
+  re-checks); integrate gains the symmetric thread-clean precondition;
+  R&R reviewer row updated; `test-spec.md` map derived from
+  machine-readable trace markers (`trace_marker` config; qa declares one
+  if absent).
 - **1.10.0 (awaiting ruling) — gate-holder legibility**: decision ledger
   (quote the holder's answer *and the fold*); since-you-approved spec
   diff at (7) (stamp the SHA at gate time); evidence cards at (7) only,

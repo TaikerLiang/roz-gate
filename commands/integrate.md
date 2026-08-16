@@ -41,6 +41,10 @@ mapped subagent, attaching the seat's R&R row from
 - Verify the **QA CR is not a draft** (CR-VIEW) — draft means QA is still
   working or paused on a question; a verdict run against an incomplete suite is
   a silently weakened verdict. If draft, stop and say so.
+- Verify the **QA CR has no open fidelity threads** (THREADS-LIST) — the
+  symmetric precondition: a verdict computed from a suite with known-open
+  fidelity findings is the same silently weakened verdict. If any are open,
+  stop and list them.
 
 ## 2. Lock
 LABEL-ADD `status: processing`. Every exit — green or STOP — removes this

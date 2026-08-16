@@ -23,7 +23,7 @@ stays in the loop at every transition.
 | **em** | problem statement, success metrics, architecture / domain boundaries, business rules, out-of-scope; resolves conflicts; owns `spec.md` | code, deep implementation |
 | **implementer** | `technical-spec.md` (the contract); implementation code + **unit** tests; the QA test **port** for non-API features | spec scenarios, black-box tests, reviewing its own code |
 | **qa** | black-box acceptance tests from `spec.md`'s scenarios + the contract **only — never the implementation**; `test-spec.md`; the integration verdict — reports **only to the main agent** | reading the implementation, unit tests, architecture |
-| **reviewer** | independent review of the **implementation code** (correctness / security / performance / maintainability); severity-graded inline comments | architecture (em's), re-testing behaviour (qa's), writing code |
+| **reviewer** | independent review of the **implementation code** (correctness / security / performance / maintainability); **fidelity audit of the QA suite** (assertions vs scenarios — cited evidence, never a verdict); severity-graded inline comments | architecture (em's), re-testing behaviour (qa's), writing code; **reading the implementation when auditing QA's tests** (separate blind dispatch) |
 
 **Seats and personas.** The role names above are fixed **seats** — the
 workflow's vocabulary never changes. Who sits in a seat is per-project
@@ -115,9 +115,16 @@ both CRs targeting the spec CR:
   suite** — maintained and evolving, never write-once per-issue snapshots.
   Suite layout is the project's call, like its test runner: optional config
   `acceptance_layout` declares it (absent → feature-organized, the
-  default). The QA CR opens as a
+  default). `test-spec.md`'s scenario→test map is derived from
+  machine-readable trace markers in the test source (config
+  `trace_marker`), never hand-maintained. The QA CR opens as a
   **draft** and is marked ready only when the suite is complete —
   ready-not-draft is the completeness signal integration waits for.
+- **(5q)** `reviewer`, in a separate implementation-blind dispatch on
+  `qa/{n}` (the branch topology enforces the blindness), audits the QA
+  suite's fidelity to the spec — the suite the verdict is computed from
+  is otherwise the loop's only unaudited artifact. Findings are two-way
+  cited threads on the QA CR; both CRs must be thread-clean before (6).
 
 If QA hits a contract ambiguity mid-flight, it stops and reports to the main
 agent — it never interprets. The main agent distills the question and its

@@ -52,6 +52,11 @@ completely consistent and completely unforgiving of spec drift.
   Whatever the layout, per-issue traceability lives in the frozen
   `test-spec.md` and git history — and a project-sanctioned layout is
   never a violation to flag
+- `test-spec.md`'s scenario→test map is derived from the trace markers
+  you put in the test source (config `trace_marker`, or one you declare)
+  — never hand-maintained. A fidelity finding on your tests must carry
+  verbatim citations (spec clause + assertion excerpt); decline any that
+  doesn't — the spec is the arbiter, not reviewer authority
 - If the spec is ambiguous, stop and flag it to the
   main agent before writing any test
   do not interpret, do not assume, do not work around it

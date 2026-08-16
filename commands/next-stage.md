@@ -158,7 +158,12 @@ Launch both at once (they never see each other):
 - **qa** on `qa/<n>`: write black-box acceptance tests in
   `<acceptance_dir>/<feature>/` (`<feature>` = the project's layout unit —
   config `acceptance_layout`; absent → one folder per feature) from
-  `spec.md` + the contract ONLY. These run
+  `spec.md` + the contract ONLY. **`test-spec.md` required shape**: its
+  scenario→test map must be **derivable from machine-readable trace
+  markers in the test source** (marker syntax = config `trace_marker`;
+  absent → qa picks one idiomatic to the language and declares it at the
+  top of `test-spec.md`) — never hand-maintained; each scenario maps to
+  ≥1 test or an explicit `uncovered` row with a reason. These run
   post-integration and will NOT pass on `qa/<n>` by design — write them against
   the contract, do not chase green here.
 
@@ -186,11 +191,25 @@ Launch both at once (they never see each other):
   Rule/scenario IDs in a finding follow the citation convention (A3): first
   mention carries the ID's title and a link to its definition.
 
+### B5b. QA fidelity review (5q) on the QA CR
+- Dispatch the **reviewer** seat a second time, in a **fresh context**
+  (never a continuation of B5's), with
+  `${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md` as its contract,
+  on a `qa/<n>` checkout — that branch contains no implementation code,
+  which is what makes this dispatch structurally implementation-blind.
+- It audits the QA suite's fidelity to the spec (four questions:
+  scenario fidelity, vacuous assertions, coverage honesty, over-assertion)
+  and posts two-way-cited findings as inline threads on the **QA CR**
+  plus one top-level summary comment. Its findings are evidence for the
+  human, never a verdict.
+- Runs alongside B5 — it needs only `qa/<n>`, so it costs no wall-clock.
+
 ### B6. Flip labels + report
 - LABEL-REMOVE `status: ready-for-dev` and `status: processing` (the open CRs
   are now the in-flight state).
-- Report the implementation CR, the QA CR, and the open review threads.
-  **Next:** `implementer` addresses the review threads until all resolved, then
+- Report the implementation CR, the QA CR, and the open threads on both.
+  **Next:** `implementer` addresses the implementation CR's threads and
+  `qa` addresses the QA CR's fidelity threads until all resolved, then
   `/roz-gate:integrate <n>`.
 
 ---

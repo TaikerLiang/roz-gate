@@ -266,6 +266,7 @@ command reads it before acting:
 - lockfile_regen: <regen command>
 - specs_dir: docs/specs
 - acceptance_layout: <convention> # optional — suite layout; absent = one folder per feature
+- trace_marker: <marker syntax>   # optional — scenario-trace marker on tests; absent = qa declares one
 - agent_identity: bot            # optional — see "Agent identity"; absent = user
 - bot_login: <bot username>      # optional
 - operator: <your forge login>   # optional

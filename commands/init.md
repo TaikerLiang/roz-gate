@@ -29,6 +29,11 @@ user, one compact block, not twenty questions:
   (e.g. `one folder per feature` — the default — or
   `one folder per issue, shared fixtures in support/`). Write it only when
   the project deviates from the default.
+- `trace_marker` — optional: the machine-readable marker QA puts on
+  acceptance tests to bind them to spec scenarios (e.g. a
+  `@Traces(issue, scenario)` annotation, a `# traces:` comment). Absent →
+  qa picks one idiomatic to the language and declares it in
+  `test-spec.md`.
 - After confirming: `mkdir -p` the configured `acceptance_dir` and
   `specs_dir` — a configured path must exist from day one, not first
   materialize at stage (6).
