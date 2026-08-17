@@ -58,7 +58,7 @@ Label names use the **space form**: `track: spec`, `track: fast`,
 | CR-OPEN | `gh pr create --base <target> --head <branch> --title "..." --body "..."` |
 | CR-OPEN-DRAFT | same + `--draft` |
 | CR-READY | `gh pr ready <pr>` |
-| CR-FIND | `gh pr list --head <branch> --state open --json number,title,isDraft,baseRefName` |
+| CR-FIND | `gh pr list --head <branch> --state open --json number,title,isDraft,baseRefName` (`--state all` when a command must also see merged CRs) |
 | CR-VIEW | `gh pr view <pr> --json number,title,isDraft,state,headRefName` |
 | CR-MERGE | `gh pr merge <pr>` (the human's act at (7) — commands never run this) |
 
@@ -103,6 +103,34 @@ gh api -X POST "repos/<owner>/<repo>/pulls/<pr>/comments/<databaseId>/replies" \
 ```
 gh api graphql -f query='mutation($t:ID!){
   resolveReviewThread(input:{threadId:$t}){ thread{ isResolved } } }' -F t=<thread-id>
+```
+
+## The other two comment channels
+
+A human reviews in three places, and inline threads are only one of them.
+**Read every channel you write into** — an unread channel is one intact copy
+of "the user's comments went unheard".
+
+**REVIEWS-LIST** — review summary bodies. A `CHANGES_REQUESTED` review whose
+whole content is its body carries no inline comment and appears in neither
+THREADS-LIST nor the comments endpoint:
+
+```
+gh api repos/<owner>/<repo>/pulls/<pr>/reviews \
+  --jq '.[] | {id, state, body, author: .user.login, submitted_at}'
+```
+
+States: `COMMENTED` / `CHANGES_REQUESTED` / `APPROVED` (a non-empty body counts
+on all three; `PENDING` is invisible to the API by design — an unsubmitted
+draft is not yet addressed to anyone).
+
+**CR-COMMENTS-LIST** — top-level CR comments. They live on the *issues*
+endpoint, not the pulls one, and they are the default affordance on the PR page
+— the reply a human types on a phone lands here:
+
+```
+gh api repos/<owner>/<repo>/issues/<pr>/comments \
+  --jq '.[] | {id, body, author: .user.login, created_at, html_url}'
 ```
 
 ## Bootstrap (used by /roz-gate:init)

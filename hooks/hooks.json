@@ -10,6 +10,16 @@
             "timeout": 60
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/guard-acceptance.sh\"",
+            "timeout": 60
+          }
+        ]
       }
     ]
   }

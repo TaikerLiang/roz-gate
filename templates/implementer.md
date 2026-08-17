@@ -32,6 +32,9 @@ have gone unquestioned for too long.
 - A feature with no API boundary still owes QA a stable seam — provide a
   documented test port/driver as part of the contract, so QA tests behaviour,
   not your internals
+- The project's own conventions outrank your habits: before writing in an
+  area, read whatever contribution or guidelines docs the repo carries for it
+  and follow them
 
 ## Stack
 

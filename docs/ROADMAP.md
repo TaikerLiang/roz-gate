@@ -38,6 +38,73 @@ holder's pain points became a proposal package; a four-seat evaluation
   integrate green finalize (evidence cards from captured run output +
   since-you-approved annotated diff). Success metric: artifact-change
   rate at gates, not approval rate.
+- **v1.11.0 (shipped) — stage (7) gets a listener, then a host**. Field
+  defect #5, found the hard way: `in-user-review` was a terminal-wait row
+  in patrol's table, so three of Paul's comments on ADMC #63 sat a day.
+  1.10.0 had just given (7) a *reading* surface with no *hearing* one —
+  and a kit that works generates comments. Four evaluation rounds
+  (ADMC strawman → seats → two reframes by Paul) landed here:
+  - **(7) is a discussion stage hosted by the main agent**, not a
+    routing problem. It answers by quotation (verbatim + permalink at a
+    SHA, or marked *interpretation:*), dispatches a seat for any *new*
+    judgment, reads a change back before making it, and acts only on the
+    user's word. Silence is never consent; 👍 confirms a single-change
+    readback only. `/roz-gate:review-answers`, ranked above integrate;
+    answer-only turns exempt from the one-issue-per-pass rule.
+  - **Detection**: three channels (threads + review bodies + top-level
+    comments — REVIEWS-LIST and CR-COMMENTS-LIST are new adapter ops),
+    track-aware CR, and the agent-marker test widened to `**[` / `✅ [`.
+    That bracket is load-bearing twice: a human's own `✅ 看起來可以` is
+    the highest-value message in the channel and the old test swallowed
+    it, and the prefix invariant is also the livelock brake — a readback
+    that opens with a quote block makes the conversation answer itself
+    every pass. Only the main agent writes to the CR.
+  - **Seat-on-edit**: any resolution that would edit a file gets one
+    seat opinion *before* the readback. Trigger on the act (a fact), not
+    on whether the comment implies behaviour change (a judgment the
+    boundary rule reserves for the specialist). It is the only mechanism
+    at (7) that puts a failure branch in front of the gate holder.
+  - **The hook** (`hooks/guard-acceptance.*`, new PreToolUse matcher on
+    Edit|Write|MultiEdit): acceptance files are not editable on a
+    `spec/*` branch. Branch-and-path only — no stage detection, no
+    exemption list — so "the main agent is not exempt" becomes
+    unstatable rather than merely stated. (7) is the one stage with no
+    adversarial second party: the main agent hosts, authors, commits,
+    runs the verdict and assembles the page the human reads.
+    Verified against ADMC's history before shipping: zero commits
+    authored on a `spec/*` branch have ever touched the acceptance dir.
+    **If you re-audit that claim, the query is
+    `git log --no-merges spec/<n> ^qa/<n> -- <acceptance_dir>`** — the
+    natural form without `^qa/<n>` lists everything the qa merge brought
+    in and returns a convincing false positive.
+  - **The hand-back rule**, named in workflow.md and cited from
+    integrate 5.2 and (7): any SHA wearing `in-user-review` has a
+    captured green *full* acceptance + unit run at that SHA, cards
+    regenerated wholesale (matched pair), `cards-sha` stamped. The claim
+    it licenses is weakened to *"green against the pre-rework spec, at
+    SHA `<x>`"* — a weaker claim needs fewer guards to stay true.
+  - **Back to intake** as a first-class outcome: strip `track:` and
+    `status:` and the issue is the inbox again, ledger intact and
+    carried forward as prior answers to confirm. Redoing work is cheap;
+    re-answering rulings is not.
+  - Prose: stage (7) renamed **Merge → Review** (label unchanged);
+    *"nothing is left but your review"* deleted; (7) has **no `blocked`
+    exit** (it is already at the human's gate). Also fixed a live defect
+    the design exposed: `spec-answers` step 7 had no post-integration
+    branch and told a shipped feature it was "ready to move to
+    implementation".
+  - **The exchange rate that decided the shape** (Paul's ruling —
+    "重做在 AI 的時代裡面代價是很小的", never forget the start-over path
+    — sharpened by the seats into a usable test): *cheap redo reprices
+    guards against failures whose artifact is **silent**; it does not
+    reprice guards against failures whose artifact **affirmatively
+    asserts something false***, because the start-over strategy runs on
+    a signal it would destroy. Corollary: *redo is cheap up to merge —
+    the gate is the last cheap point.* Applying it deleted three rounds
+    of accreted protocol (offer formats, offer IDs, confirmation
+    grammars, roll-calls, routing tables) — one of which had
+    reintroduced an approve keyword the project deliberately removed at
+    intake.
 - **red-proof (DEFERRED 2026-08-17, not rejected — Paul's ruling)**: wait
   for real usage of the 1.8.0–1.10.0 surface first; accumulated fidelity
   findings from live cycles become the "what A catches statically"

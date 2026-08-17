@@ -39,28 +39,37 @@ stamp means no re-init is needed, whatever the plugin version.
   `track:`; at most one `status:` besides the processing lock; `track: fast`
   never with a spec-stage status). An issue in an illegal state: **skip it and
   report it** — never repair labels.
-- Skip any issue with `status: processing` (locked by a running command) or
-  `status: blocked` (a stopped step awaits the human — list it in the report's
-  user queue, with its latest issue comment).
+- Skip any issue with `status: processing` (locked by a running command — list
+  it in the report with the phase label beside it and how long it has worn the
+  lock: a stale pair is a killed run, and a silently skipped one dies one click
+  from done) or `status: blocked` (a stopped step awaits the human — list it in
+  the report's user queue, with its latest issue comment).
 
 ## 2. Classify each remaining issue
 
 | State | Meaning |
 |---|---|
 | `status: ready-for-spec` / `ready-for-dev` | actionable → `/roz-gate:next-stage <n>` |
-| `status: in-spec-review` | THREADS-LIST on its spec CR. Any unresolved thread whose last comment is a human answer (does not start with `**[` / `✅`) → actionable → `/roz-gate:spec-answers <n>`. Otherwise → waiting on the user |
+| `status: in-spec-review` | THREADS-LIST on its spec CR. Any unresolved thread whose last comment is a human answer (does not start with `**[` / `✅ [`) → actionable → `/roz-gate:spec-answers <n>`. Otherwise → waiting on the user |
 | no `status:`, `track: spec` | in flight: CR-FIND for `feat/<n>` and `qa/<n>`. Implementation CR exists with **zero open review threads** AND QA CR exists, **is not a draft, and has zero open fidelity threads** → actionable → `/roz-gate:integrate <n>`. Either CR has **open review threads** → actionable → **address-review** (below). Otherwise → in progress, not actionable |
 | no `status:`, `track: fast` | in flight: its CR has **open review threads** → actionable → **address-review**; review-clean → LABEL-ADD `status: in-user-review` and treat as waiting on the user |
-| `status: in-user-review` | waiting on the user |
+| `status: in-user-review` | the user is reviewing — and reviewing produces comments. Its CR (`spec/<n>` for `track: spec`, `fast/<n>` for `track: fast`; missing or closed → report, act on nothing) is read on **all three channels**: THREADS-LIST, REVIEWS-LIST, CR-COMMENTS-LIST. Any item whose latest entry does **not** start with `**[` or `✅ [` is **unheard** → actionable → `/roz-gate:review-answers <n>`. Otherwise → waiting on the user: say which wait, from the last agent marker — `· question` (your answer) / `· addressed` (your re-review) / none since the verdict (idle, N days) |
 | `status: blocked` | waiting on the user — never re-invoke anything on it |
 | no `track:` label (inbox) | actionable → **async intake** (below) when a gate label is present (finalize), the gate holder's latest comment requests a summary, or no questions batch exists yet; otherwise the discussion is the humans' — waiting on the user |
 
 ## 3. Act — one loop issue per pass, plus the whole inbox
 In-loop work: pick the actionable issue **closest to done** — priority:
-`/roz-gate:integrate` > address-review > `/roz-gate:spec-answers` >
-`/roz-gate:next-stage` (`ready-for-dev`) > `/roz-gate:next-stage`
-(`ready-for-spec`) — and perform that action. If nothing is actionable, act
-on nothing.
+`/roz-gate:review-answers` > `/roz-gate:integrate` > address-review >
+`/roz-gate:spec-answers` > `/roz-gate:next-stage` (`ready-for-dev`) >
+`/roz-gate:next-stage` (`ready-for-spec`) — and perform that action. The (7)
+conversation ranks first: it is definitionally the closest to done, and the
+person waiting there never queues behind machine work. If nothing is
+actionable, act on nothing.
+
+A `/roz-gate:review-answers` turn that only **answers** — no seat dispatch, no
+commit — is exempt from the one-issue rule, like intake: it costs a comment,
+and a multi-day conversation must not starve the rest of the loop. A turn that
+dispatches or commits consumes the pass.
 
 Then triage **every** actionable inbox issue (async intake, below), one
 dispatch per issue. Intake is comment-only — no code, no gate labels — so it
@@ -137,6 +146,12 @@ merge — with links.
 If a messaging channel (e.g. Telegram) is connected and an issue **newly**
 entered a waiting-on-you state this pass, send a one-line notification with
 the link. If no channel is configured, skip silently.
+
+At (7) notify on what this pass **did**, not on a transition: the label sits at
+`in-user-review` from the first comment to the merge, so it never *newly*
+enters anything and a conversation would otherwise be answered into silence.
+Any `**[review] · question**` or `· addressed` posted this pass is a
+notification.
 
 Hard rules: never apply a gate label; never run intake for the user beyond the
 protocol above; anything unexpected (failed command, merge conflict, illegal

@@ -68,12 +68,35 @@ the spec text that resulted, quoted verbatim with its link. Anything the
 folding agent wrote beyond the literal answer is marked distinctly:
 *interpretation:* — the gap between what was said and what got written
 is where expensive errors live, and it is invisible without adjacency.
+Decisions made in the (7) conversation take the same shape and the same
+section: they are the *late* decisions, which makes them the expensive
+ones, and a ledger silent about them would still present itself as
+complete. Each carries the commit that acted on it — as a forge CR commit
+URL, which survives a squash merge; a bare SHA does not.
 
 **4. Evidence cards** *(final kit only — they need a verdict to exist)* —
 one card per scenario, grouped into **four buckets** so absence of
 evidence is a visible item: **covered · partial · not covered ·
 cannot-be-covered-black-box** (bucket membership from the trace-marker
-map; the last bucket names why). A card: the scenario sentence; the
+map; the last bucket names why).
+
+The block is stamped with **`cards-sha`** — the commit its evidence was
+computed from — and carries a second blind-spot line, distinct from rule
+5's (that one is about *authorship*; this one is about *reach*):
+
+> *"Computed from an acceptance suite derived from the spec as approved.
+> It can only fail on behaviour the spec described — behaviour added
+> after approval that no scenario describes is not represented anywhere
+> on this page. Green here is not evidence that it works."*
+
+While `cards-sha` is not the branch head, the block opens with a staleness
+banner instead — *"the cards below describe `<cards-sha>`; the branch is
+now `<head>`"* — and **no card is readable as evidence** until a run
+restores the equality. Cards are then regenerated **wholesale from that
+one run's captured output, or not at all**: a block whose rows come from
+two different runs asserts observed values nobody observed in either.
+
+A card: the scenario sentence; the
 assertion excerpt (verbatim, file:line); the **actual observed values
 from the green run's captured output** where the test emits them —
 "2 ghosts logged: `alice@…`, `bob@…`", never the expectation restated in
@@ -89,6 +112,16 @@ of `spec/<n>` at that commit). At finalize:
 annotated with the thread or amendment that caused it**; if empty, say
 so: *"the spec you approved is byte-identical."* Approval that can
 silently expire is the most dangerous property a gate can have.
+
+This diff is **spec-scoped by design** — widening it to code would bury
+the drift signal it exists to carry. Which makes one sentence dangerous
+on its own: after a (7) conversation changes code and not spec text, a
+bare *"byte-identical"* reads as *"nothing changed since you approved"*,
+machine-generated and false. So it **never appears alone** when non-spec
+paths moved: *"the **spec** you approved is byte-identical; N commits
+landed since — see the CR's commit list."* Two facts, adjacent. The CR's
+commits are that record already, because each (7) commit cites the
+comment it answers — no second ledger of code changes is needed or wanted.
 
 ## Instrumentation
 

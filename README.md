@@ -74,7 +74,7 @@ template for mobile capture.
 | (4) Black-box QA | qa | `qa/{n}`: test plan + acceptance suite — written blind, from spec + contract only |
 | (5) Review | reviewer | severity-graded inline threads (`blocking`/`should-fix`/`nit`/`question`) until review-clean |
 | (6) Integration | main agent | both branches merged locally, QA's suite runs against the code for the first time — **the verdict** |
-| (7) Merge | **you** | you review the spec CR (spec + code + tests + green verdict) and merge |
+| (7) Review | **you** + main agent | you review the spec CR (spec + code + tests + green verdict); the main agent answers your comments there and changes only what you confirm; you merge, or send it back |
 
 **The mental model: owner, contractor, inspector.** The loop is the
 time-honoured commercial structure for buying work you cannot fully watch:
@@ -87,7 +87,7 @@ time-honoured commercial structure for buying work you cannot fully watch:
 | (4) Black-box QA | the third-party inspector writes the acceptance procedure **in advance, from the contract alone** — never visiting the site |
 | (5) Review | site supervision — checks workmanship, not outcomes |
 | (6) Integration | **acceptance** — the procedure meets the finished work for the first time; the verdict |
-| (7) Merge | the owner signs off and the deal closes |
+| (7) Review | the walk-through: the owner inspects, asks, gets answers, has snags fixed — then signs off, or sends it back |
 
 Two structural carry-overs give the verdict its credibility. The acceptance
 procedure is written in parallel with the build, blind — a standard agreed
@@ -135,6 +135,7 @@ cannot authorize it.
 | `/roz-gate:next-stage [n]` | advance one gated issue — spec stage, parallel impl+QA+review, or fast track — routed by its labels; prints the workflow map first |
 | `/roz-gate:spec-answers [n]` | fold your answers on spec-CR threads back into the spec, resolve the threads |
 | `/roz-gate:integrate [n]` | run the stage-(6) verdict: merge locally, run the acceptance suite, classify red, finalize green |
+| `/roz-gate:review-answers [n]` | host one turn of your stage-(7) review: answer your CR comments from the artifacts, dispatch a seat when judgment is needed, change only what you confirm |
 | `/roz-gate:patrol` | one supervisory pass: scan every open issue's state, invoke whichever command is already authorized, triage the inbox, report what waits on you |
 | `/roz-gate:uninit` | retire the loop from this repo: verify nothing is in flight, remove the scaffolding `init` installed, keep every work product — run before `/plugin uninstall` |
 
@@ -180,7 +181,7 @@ thinking in its own context — it relays, posts, and publishes.
 | `track: spec` / `track: fast` | track | intake, after your confirmation |
 | `status: ready-for-spec` / `status: ready-for-dev` | **gate** | **you, only ever you** |
 | `status: in-spec-review` | transient | spec stage (also the mid-flight re-entry state for QA ambiguities) |
-| `status: in-user-review` | transient | main agent — finished, verified work waiting on your review |
+| `status: in-user-review` | transient | main agent — work that passed the verdict, waiting on your review; the (7) conversation lives here |
 | `status: processing` | lock | any running command; coexists with the phase label (a stale pair = crash forensics) |
 | `status: blocked` | transient | a stopped command — evidence + recommendation posted as an issue comment; you decide |
 
@@ -188,16 +189,20 @@ No `track:` label = inbox (pre-loop). No `status:` label = in flight (the open
 CRs are the state). Commands validate invariants and **stop on violations —
 they never repair labels**.
 
-The two human-only rules are not just prose: a bundled **PreToolUse hook**
-enforces them at the tool layer. An agent that tries to apply a gate label,
-or to post an intake summary without the gate holder's trigger, is blocked
-before the command runs — fail-closed, with a message pointing back at the
-protocol. Prompt discipline is the manners; the hook is the law.
+The rules that protect you from the agents are not just prose: bundled
+**PreToolUse hooks** enforce them at the tool layer. An agent that tries to
+apply a gate label, to post an intake summary without the gate holder's
+trigger, or to edit the acceptance suite on a spec branch — the one move that
+would turn the verdict into an echo of the implementation — is blocked before
+the tool runs, fail-closed, with a message pointing back at the protocol.
+Prompt discipline is the manners; the hook is the law.
 
 Every state-mutating command has exactly two exits: **Done** (deliverable
 produced, lock removed) or **STOP** (discard local work, set `blocked` alone,
 post evidence + a recommended next step). No third exit — so any terminal state
-is readable from the labels alone.
+is readable from the labels alone. The single exception is stage (7), which has
+no `blocked` exit: the issue is already at your gate, so a failure there is a
+comment saying so.
 
 ## Forge support
 

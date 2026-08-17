@@ -34,8 +34,10 @@ THREADS-LIST on each CR.
 A thread needs processing when ALL of:
 - it is **unresolved**, AND
 - it has **more than one** comment, AND
-- the **last** comment does NOT start with `**[` (agent question comments and
-  agent replies start with `**[` / `✅`; anything else is a human answer).
+- the **last** comment does NOT start with `**[` or `✅ [` (agent question
+  comments and agent replies start with `**[` / `✅ [`; anything else is a
+  human answer — note the bracket: a human's own `✅ 看起來可以` is an answer,
+  and the marker must not swallow it).
 
 If a thread has only the original `**[...]**` question and no reply → leave it,
 the user has not answered yet. If no thread qualifies on any CR → report "no
@@ -97,6 +99,17 @@ depends on where the issue is:
   paused side (normally `qa`) with the amended contract so it resumes. When
   `qa` reports its suite complete, CR-READY its CR — until then it stays
   draft. Report the amendment and what resumed.
+- **Post-integration re-entry** — `feat/<n>` / `qa/<n>` exist but are
+  **merged** (the issue came back from (7): the user's review raised something
+  that changed what a rule means). The work is built, so this never returns to
+  implementation. Fold, then: if the amendment changed behaviour, honour the
+  **hand-back rule** — re-run config `acceptance_test` and config `test` on
+  `spec/<n>`, capture the output, regenerate the gate kit's evidence cards
+  wholesale and re-stamp `cards-sha`. A red here is the stage-(6) taxonomy
+  (`commands/integrate.md` step 5), never an assertion edited to match. Then
+  LABEL-REMOVE both `status: in-spec-review` and `status: processing`,
+  LABEL-ADD `status: in-user-review` — the conversation resumes at (7) where
+  it paused. Report the amendment and the re-run's result.
 
 If threads remain open: LABEL-REMOVE `status: processing` and list which
 questions are still waiting.

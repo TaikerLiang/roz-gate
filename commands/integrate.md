@@ -76,8 +76,12 @@ label.
      branch), unless already pushed.
   2. Bring the default branch in: on `spec/<n>`,
      `git merge --no-edit <default_branch>` — resolve conflicts **here** so the
-     spec CR's diff stays clean; if the merge changed anything, re-run the
-     acceptance suite, then push. Skip if already merged in.
+     spec CR's diff stays clean; if the merge changed anything, satisfy the
+     **hand-back rule** (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md`) before
+     pushing: the **full** acceptance suite and config `test`, captured, at the
+     SHA that will wear the label. Feature-scoped is not enough here — the
+     merge imported exactly the code a feature-scoped run cannot see. Skip if
+     already merged in.
   3. Extend the spec CR's gate-kit comment into the **final-gate kit**
      (COMMENT-EDIT, per `${CLAUDE_PLUGIN_ROOT}/references/gate-kit.md`):
      evidence cards from the captured run output + the trace-marker map
@@ -85,11 +89,15 @@ label.
      cannot-be-covered-black-box), and the **since-you-approved diff**
      (`git diff <approved-sha>..HEAD -- <specs_dir>/<n>/`, each hunk
      annotated with the thread or amendment that caused it; empty → say
-     "the spec you approved is byte-identical"). Kit comment or approved
-     SHA missing (pre-1.10.0 flow) → skip, note it in the report.
-  4. LABEL-ADD `status: in-user-review`; LABEL-REMOVE `status: processing` —
-     nothing is left but the user's review.
-  The feature now waits at **(7)**: the user reviews the spec CR and merges.
+     "the spec you approved is byte-identical"). Stamp `cards-sha` — the
+     commit the cards were computed from — so a later (7) change can be seen
+     to have outrun them. Kit comment or approved SHA missing (pre-1.10.0
+     flow) → skip, note it in the report.
+  4. LABEL-ADD `status: in-user-review`; LABEL-REMOVE `status: processing`.
+  The feature now waits at **(7)**, where the user reviews the spec CR and the
+  main agent hosts the conversation (`/roz-gate:review-answers`). State what
+  the run licenses and nothing more: *"green against the pre-rework spec, at
+  SHA `<x>`"* — never "verified".
 - **RED, every failure cleanly classifiable** → route each fix, never finalize:
   - **real bug** in the implementation → dispatch `implementer` to fix on
     `feat/<n>`,

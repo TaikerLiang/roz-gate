@@ -18,7 +18,7 @@ stays in the loop at every transition.
 
 | Role | Owns | Never |
 |------|------|-------|
-| **main agent** | proxy + accountable for all output; intake: dispatches `product` under the intake brief, relays its questions verbatim, publishes the confirmed story; orchestration, git/forge mechanics, integration; decides the next step; implements `track: fast` changes itself | act as a specialist on any clarification or `track: spec` work (it dispatches) |
+| **main agent** | proxy + accountable for all output; intake: dispatches `product` under the intake brief, relays its questions verbatim, publishes the confirmed story; orchestration, git/forge mechanics, integration; **hosts the (7) review conversation** — answering by quotation, dispatching for judgment; decides the next step; implements `track: fast` changes itself | act as a specialist on any clarification or `track: spec` work (it dispatches) |
 | **product** | actors, scenarios (Given/When/Then: happy/edge/failure), consistency, user-facing gaps | architecture, code, impl tests |
 | **em** | problem statement, success metrics, architecture / domain boundaries, business rules, out-of-scope; resolves conflicts; owns `spec.md` | code, deep implementation |
 | **implementer** | `technical-spec.md` (the contract); implementation code + **unit** tests; the QA test **port** for non-API features | spec scenarios, black-box tests, reviewing its own code |
@@ -144,10 +144,29 @@ QA's black-box tests against the implementation **for the first time**.
 Pass/fail is the verdict on whether the implementation matches the spec — this
 is where genuine bugs surface.
 
-**(7) Merge** — after a green (6), the main agent brings the default branch
+**(7) Review** — after a green (6), the main agent brings the default branch
 into `spec/{n}` (resolving conflicts on the feature branch so the spec CR's
-diff stays clean), then sets `status: in-user-review`: nothing is left but your
-review. You review the spec CR, it merges, and the issue is closed.
+diff stays clean), then sets `status: in-user-review` and **hosts your review
+on the spec CR**. Reviewing produces comments, and comments are heard: the main
+agent answers what the artifacts already say — quoted, with links — dispatches
+a seat when the answer needs specialist judgment, and reads any change back to
+you in one line before making it. **Nothing is built without your word**;
+silence is never consent. Your three options do not change: **merge it, change
+it, or send it back to intake** — starting over is a normal outcome here, not a
+failure. The issue leaves (7) when you merge. (`/roz-gate:review-answers`.)
+
+**The hand-back rule.** Whenever `status: in-user-review` is applied or
+re-applied, the SHA at the head of `spec/{n}` has a **captured, green, full**
+acceptance run and a full unit run **at that exact SHA**, and the gate kit's
+evidence cards were regenerated wholesale from that run's output — a full run
+and wholesale regeneration are a matched pair, since cards assembled from a
+partial run assert observed values nobody observed. What such a run licenses is
+one sentence and never more: *"green against the pre-rework spec, at SHA
+`<x>`"*. The acceptance suite derives from the spec as approved, so it can only
+fail on behaviour the spec described. Rework that *adds* behaviour no scenario
+describes ships green and unverified — nothing in the loop can verify it,
+because verification needs a spec and by construction there is not one. That is
+what the other door is for, and why it stays visible.
 
 ## The fast track (`track: fast`)
 
@@ -158,6 +177,11 @@ Skips (2), (2a), (4) and (6). Picked up from `status: ready-for-dev`:
   existing suite must stay green, **(5) still applies** (skippable for doc-only
   diffs), and you review and merge the CR yourself. Once review-clean the main
   agent sets `status: in-user-review`; merging closes the issue.
+- **(7) works the same here, on `fast/{n}`** — with the boundary inverted, as
+  it is throughout this track: the main agent wrote the code, so it answers you
+  directly, dispatches no seat, and skips the readback ceremony. A (7) change
+  to the code re-dispatches `reviewer` on the new commits — on this track that
+  is the whole guard.
 - **Escalation valve:** the moment the change stops being trivial (a real
   design decision, user-facing behaviour, a growing diff) — stop and relabel
   atomically: `track: fast` → `track: spec`, gate back to
@@ -171,6 +195,11 @@ Skips (2), (2a), (4) and (6). Picked up from `status: ready-for-dev`:
   the gate holder's confirmation, which the next patrol pass finalizes into a
   body rewrite + the confirmed `track:` (`ready-for-spec` ⇒ `spec`,
   `ready-for-dev` ⇒ `fast`).
+- An issue also **returns to the inbox from (7)**: when your review concludes
+  the issue itself was wrong, you strip its `track:` and `status:` labels and it
+  is a raw idea again, discussion and decision ledger intact on the same issue.
+  Redoing the work is cheap; re-answering what you already ruled is not, so the
+  ledger carries forward as prior answers to confirm.
 - Every open issue in the loop has **exactly one `track:` label** (applied at
   intake; only the escalation valve changes it) and **at most one `status:`
   label besides the `processing` lock** — the lock is a mutex, not a phase:
@@ -179,8 +208,9 @@ Skips (2), (2a), (4) and (6). Picked up from `status: ready-for-dev`:
 - Gate states (waiting for a command): `spec`+`ready-for-spec`,
   `spec`+`ready-for-dev`, `fast`+`ready-for-dev`. Transient states:
   `processing` (locked by a running command), `in-spec-review` (spec CR
-  awaiting you — or re-entered mid-flight on a QA ambiguity; the one backward
-  transition), `in-user-review` (finished work awaiting your final review),
+  awaiting you — or re-entered on a QA ambiguity mid-flight or a spec-semantics
+  change at (7); the backward transition), `in-user-review` (work that passed
+  the verdict, awaiting your review — where the (7) conversation lives),
   `blocked` (an automated step stopped on something it won't decide and left an
   issue comment with evidence + recommendation; you decide, the label clears,
   the step re-runs). No `status:` label = in flight (the open CRs are the
@@ -208,7 +238,9 @@ a status report. Neither ever moves the other's.**
 | (2) complete → `in-spec-review` | the spec stage |
 | `in-spec-review` → `ready-for-dev` (all threads resolved) | **you** |
 | in flight → `in-spec-review` (backward; QA ambiguity) | main agent |
-| → `in-user-review` (both tracks) | main agent |
+| `in-user-review` → `in-spec-review` (backward; a (7) comment changes what a rule means) | main agent |
+| → `in-user-review` (both tracks; and back from (2a) after a (7) amendment) | main agent |
+| (7) → the inbox (`track:` + `status:` stripped — start over) | **you** |
 | escalation valve: `track: fast` → `track: spec` + gate reset | main agent, atomically |
 | abnormal stop → `blocked` (+ issue comment) | the stopping command |
 | `blocked` cleared after you decide | main agent, at your direction |
@@ -233,6 +265,14 @@ the evidence, what already exists remotely, a recommended next step. No third
 exit. A stale `processing` therefore means exactly one thing — a killed run —
 and the phase label next to it says where.
 
+**(7) is the one stage with no `blocked` exit**, and for a reason that does not
+generalize: `blocked` means *an automated step stopped and needs you*, which is
+where the issue already is. Setting it would also delete `in-user-review` — the
+only label saying this work passed the verdict — and keeping both would be an
+illegal double status. So at (7) a failure is a `**[review] · question**`
+saying what could not be done: the prefix makes it non-actionable until you
+reply, which is exactly what `blocked` would have bought.
+
 ## Principles
 
 - **QA tests a contract, not raw implementation.** HTTP API → the API doc;
@@ -256,5 +296,6 @@ and the phase label next to it says where.
   intake brief); `/roz-gate:next-stage` (2, 3+4+5, or
   fast — routed by labels, printing the workflow map first);
   `/roz-gate:spec-answers` (2a); `/roz-gate:integrate` (6);
+  `/roz-gate:review-answers` (7 — one turn of your review conversation);
   `/roz-gate:patrol` — one polling pass that auto-invokes the commands above
-  and triages the inbox ((1b)); (7) is a plain forge merge by you.
+  and triages the inbox ((1b)). The merge at the end of (7) is yours.

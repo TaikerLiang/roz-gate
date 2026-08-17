@@ -110,6 +110,78 @@ run "glab summary after 'summary' allowed" 0 "" 'glab issue note 7 --message "**
 
 **Story** ..."'
 
+# --- rule C: the acceptance suite is not editable on a spec branch ---
+GUARD_ACC="$S/../guard-acceptance.sh"
+SPECREPO=$(mktemp -d)
+git init -q "$SPECREPO"
+cat > "$SPECREPO/CLAUDE.md" <<'EOF'
+### Roz Gate config
+
+- forge: github
+- acceptance_dir: tests/acceptance
+EOF
+(cd "$SPECREPO" && git add -A && git -c user.email=t@t -c user.name=t commit -qm init \
+  && git checkout -qb spec/63)
+# A repo with no Roz Gate config block: the guard has nothing to enforce.
+NOCFGREPO=$(mktemp -d)
+git init -q "$NOCFGREPO" && (cd "$NOCFGREPO" \
+  && git -c user.email=t@t -c user.name=t commit -q --allow-empty -m init \
+  && git checkout -qb spec/1)
+trap 'rm -f "$STUB_LOG"; rm -rf "$USERREPO" "$BOTREPO" "$SPECREPO" "$NOCFGREPO"' EXIT
+
+run_edit() { # name expected_exit stderr_substr repo tool file_path
+  local name="$1" want="$2" substr="$3" repo="$4" tool="$5" path="$6"
+  local payload err rc
+  payload=$(python3 - "$tool" "$repo/$path" <<'PY'
+import json, sys
+print(json.dumps({"tool_name": sys.argv[1], "tool_input": {"file_path": sys.argv[2]}}))
+PY
+)
+  err=$( (cd "$repo" && printf '%s' "$payload" | "$GUARD_ACC" 2>&1 >/dev/null) ); rc=$?
+  if [ "$rc" != "$want" ]; then
+    echo "FAIL $name: exit $rc, want $want"; echo "  stderr: $err"; fail=$((fail+1)); return
+  fi
+  if [ -n "$substr" ] && ! grep -qF "$substr" <<<"$err"; then
+    echo "FAIL $name: stderr missing '$substr'"; echo "  stderr: $err"; fail=$((fail+1)); return
+  fi
+  echo "PASS $name"; pass=$((pass+1))
+}
+
+run_edit "acceptance edit on spec branch blocked" 2 "acceptance suite" \
+  "$SPECREPO" Edit "tests/acceptance/offers/test_expiry.py"
+run_edit "Write is guarded too" 2 "acceptance suite" \
+  "$SPECREPO" Write "tests/acceptance/offers/test_new.py"
+run_edit "MultiEdit is guarded too" 2 "acceptance suite" \
+  "$SPECREPO" MultiEdit "tests/acceptance/offers/test_expiry.py"
+run_edit "implementation code on spec branch allowed" 0 "" \
+  "$SPECREPO" Edit "src/offers/repo.py"
+run_edit "spec docs on spec branch allowed" 0 "" \
+  "$SPECREPO" Edit "docs/specs/63/spec.md"
+run_edit "unit tests on spec branch allowed" 0 "" \
+  "$SPECREPO" Edit "tests/unit/test_repo.py"
+run_edit "sibling dir is not the acceptance dir" 0 "" \
+  "$SPECREPO" Edit "tests/acceptance-old/test_x.py"
+run_edit "the acceptance dir itself is not a file under it" 0 "" \
+  "$SPECREPO" Edit "tests/acceptance"
+run_edit "no Roz Gate config: nothing to enforce" 0 "" \
+  "$NOCFGREPO" Edit "tests/acceptance/test_x.py"
+# A misconfigured acceptance_dir pointing at the repo root would match every
+# path — it must enforce nothing rather than deny every edit on spec branches.
+ROOTCFGREPO=$(mktemp -d)
+git init -q "$ROOTCFGREPO"
+printf '### Roz Gate config\n\n- forge: github\n- acceptance_dir: .\n' > "$ROOTCFGREPO/CLAUDE.md"
+(cd "$ROOTCFGREPO" && git add -A && git -c user.email=t@t -c user.name=t commit -qm init \
+  && git checkout -qb spec/1)
+run_edit "acceptance_dir at the repo root enforces nothing" 0 "" \
+  "$ROOTCFGREPO" Edit "src/anything.py"
+rm -rf "$ROOTCFGREPO"
+(cd "$SPECREPO" && git checkout -q -b qa/63)
+run_edit "same file on qa/<n> allowed — that is the road" 0 "" \
+  "$SPECREPO" Edit "tests/acceptance/offers/test_expiry.py"
+(cd "$SPECREPO" && git checkout -q -b feat/63)
+run_edit "feat branch unaffected" 0 "" \
+  "$SPECREPO" Edit "tests/acceptance/offers/test_expiry.py"
+
 echo
 echo "$pass passed, $fail failed"
 [ "$fail" -eq 0 ]

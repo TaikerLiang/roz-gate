@@ -73,7 +73,7 @@ Wherever a command names a label like `status: ready-for-spec`, read it as
 | CR-OPEN | `glab mr create --source-branch <branch> --target-branch <target> --title "..." --description "..."` |
 | CR-OPEN-DRAFT | same + `--draft` |
 | CR-READY | `glab mr update <mr> --ready` |
-| CR-FIND | `glab mr list --source-branch <branch> --output json` |
+| CR-FIND | `glab mr list --source-branch <branch> --output json` (add `--all` when a command must also see merged MRs) |
 | CR-VIEW | `glab mr view <mr> --output json` (`draft` field) |
 | CR-MERGE | `glab mr merge <mr>` (the human's act at (7) — commands never run this) |
 
@@ -119,6 +119,25 @@ glab api -X POST "projects/:id/merge_requests/<iid>/discussions/<discussion_id>/
 glab api -X PUT "projects/:id/merge_requests/<iid>/discussions/<discussion_id>" \
   -F resolved=true
 ```
+
+## The other comment channel
+
+A human reviews in more than one place. **Read every channel you write into** —
+an unread channel is one intact copy of "the user's comments went unheard".
+
+**CR-COMMENTS-LIST** — top-level MR comments. On GitLab these are notes with no
+`position`, i.e. discussions that are not anchored to a diff line:
+
+```
+glab api "projects/:id/merge_requests/<iid>/notes?per_page=100" \
+  --jq '[.[] | select(.system == false and .position == null)
+         | {id, body, author: .author.username, created_at}]'
+```
+
+**REVIEWS-LIST has no GitLab equivalent** — GitLab has no review-summary object
+(an approval carries no body), so the two channels collapse into one here.
+Everything a human writes is a note; the `position == null` filter above is what
+separates top-level comments from inline ones.
 
 ## Bootstrap (used by /roz-gate:init)
 
