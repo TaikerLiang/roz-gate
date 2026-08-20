@@ -57,9 +57,36 @@ half-done:
 2. **Re-spawn that role agent** (`product` / `em` / `implementer`), giving it:
    the issue body, the current `<specs_dir>/<n>/spec.md` (and
    `technical-spec.md` if relevant), the original question, and the user's
-   answer. Instruct it to **fold the decision into the spec doc** — edit the
-   file, mark the item resolved with the chosen decision in `## Open
-   Questions`, and adjust any affected section. NO implementation code.
+   answer. Instruct it to **fold the decision into the document the raising
+   seat owns** — `spec.md`; **`technical-spec.md` for `[implementer]`
+   questions** (the contract QA tests against must learn the answer — a fold
+   that lands as prose near the question while the contract text stays
+   unchanged ships the defect with a resolved thread pointing at it). A
+   `[qa]`-tagged thread folds by document owner too (qa never writes spec
+   text); qa gets the thread reply. Then mark the item resolved in
+   `spec.md`'s `## Open Questions`, and adjust any affected section. NO
+   implementation code. Two rules ride every fold:
+   - **The holder is not an oracle about reality.** Empirical content inside
+     an answer ("MariaDB defaults to case-insensitive, so pick (b)") folds
+     with **both tags, separately**: the ruling carries its authority tag
+     `(from Q<j>)` as usual, and the empirical premise carries `(unverified)`
+     as its evidence tag — never merged into one parenthesis (the two axes
+     never share a tag, per A3's placement rule, and the Path B and promote
+     greps match the literal `(unverified)`). The ruling part is the
+     holder's; the claim about the world still needs measuring or demoting.
+   - **A fold touching an evidence-tagged sentence re-derives the tag**: the
+     measurement still covers the edited claim, or the tag downgrades to
+     `(unverified)`. A stale `(measured, <date>, <scope>)` certifying a claim
+     nobody measured is worse than no tag.
+   **Resolved-entry shape** (spec.md stays current truth; the argument lives
+   in the ledger and the thread): a resolved `## Open Questions` item keeps
+   exactly its title line, the question sentence, and a `**Resolved:**` block
+   of — the ruling, holder attribution + date, **one sentence of the
+   holder's rationale**, and "folded into <IDs>" pointers. It drops the
+   option bullets and any back-and-forth, and it **never restates
+   rule/scenario/contract text — it points at IDs** (a second prose copy is
+   a copy that can drift). The verbatim answer and the interpretation gap
+   already live in the gate kit's decision ledger.
 3. If the agent needs more information rather than a final decision, it must
    NOT resolve — instead THREAD-REPLY a follow-up (starting
    `**[<role>] · follow-up**`) and leave the thread unresolved.
@@ -89,10 +116,20 @@ note it in the report.
 Re-check the CR's threads. If **every** thread is resolved, the next step
 depends on where the issue is:
 - **First pass through (2a)** — no `feat/<n>` / `qa/<n>` CRs exist:
-  LABEL-REMOVE `status: processing` (leave `status: in-spec-review`) and report
-  that #<n> is fully answered and ready for the user's approval to move to
-  implementation. Do NOT touch the gate — applying `ready-for-dev` is the
-  user's.
+  LABEL-REMOVE `status: processing` (leave `status: in-spec-review`). Before
+  reporting ready, two checks:
+  - `grep -n '(unverified)' <specs_dir>/<n>/*.md` — any hit is an unresolved
+    blocker: the report lists the claims and does **not** say "ready for
+    approval" (measure, or demote to `(assumed-empirical: <risk>)`). Zero
+    hits in a pre-vocabulary spec (no evidence tags anywhere) is absence of
+    the vocabulary, not verification — say which the report means.
+  - **Walk currency**: if any fold added or reshaped a scenario since the §5
+    observability walk's commit, those walk rows are stale — re-dispatch the
+    implementer for exactly those rows before reporting ready (same shape as
+    the fidelity brief's step zero).
+  Then report that #<n> is fully answered and ready for the user's approval
+  to move to implementation. Do NOT touch the gate — applying `ready-for-dev`
+  is the user's.
 - **Mid-flight re-entry** — open `feat/<n>` / `qa/<n>` CRs exist (the thread
   was a contract ambiguity raised during (3)+(4)): LABEL-REMOVE both
   `status: in-spec-review` and `status: processing`, then re-dispatch the

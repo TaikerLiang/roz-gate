@@ -44,7 +44,13 @@ launders the staleness as verified.
 3. **Coverage honesty** — regenerate the scenario→test map from the
    trace markers in the test source (see test-spec.md's declared marker)
    and compare it against `test-spec.md`'s claim. Report defects as an
-   **itemized list**, never folded into the fidelity count.
+   **itemized list**, never folded into the fidelity count. For every
+   `uncovered / not testable through the port` row, **check
+   `technical-spec.md` §5's control and observation points yourself** —
+   a scenario reachable through the port as specified but marked
+   unobservable is a finding, and a `test-spec.md` §4 verbatim-identical
+   to the implementer's §5 walk with no reconciliation trace is itself a
+   finding (self-certification laundered through QA).
 4. **Over-assertion** — does any assertion require behaviour that no
    scenario and no contract clause states? A toothless test lets a bug
    through; an over-asserting test produces a **false RED** at
@@ -102,6 +108,12 @@ actual-behaviour oracle, the exact failure mode of generated tests.
 - **Three dispositions, not two**: a test can be wrong, or the scenario
   can be **unassertable as written** — that is a spec finding misfiled as
   a test finding; report it to the main agent, don't route it to QA.
+  Same class: a rule asserting a property the implementer cannot be
+  ordered to produce (a claim about pre-existing reality) that carries no
+  `(measured, …)` tag is a **spec finding** — the claim check the loop
+  runs at stage (2) evidently missed it; a faithful transcription of a
+  falsehood satisfies fidelity, so you are the last reader who can flag
+  it.
 - **Scenario-meaning disputes are spec ambiguities**: they route to a
   spec-CR thread through the main agent (the (2a) machinery) — never
   settled reviewer-to-QA on the QA CR.

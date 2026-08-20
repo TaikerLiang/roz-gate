@@ -98,11 +98,15 @@ write `<specs_dir>/{n}/spec.md`; `implementer` writes `technical-spec.md`
 feature umbrella for the whole feature.
 
 **(2a) Open-question Q&A loop** — open questions are posted as inline review
-threads on the spec CR, each tagged with the role that raised it. You answer
-inline; the fold command re-spawns that role agent, folds the decision into
-`spec.md`, and resolves the thread. A resolution that changes the user story →
-a comment on the issue (it never auto-edits the issue body/AC). Gate: all
-threads resolved.
+threads on the spec CR, each tagged with the role that raised it. `spec.md`'s
+`## Open Questions` is the **single collection point for every seat's
+questions**, whatever document the seat owns — a question written anywhere
+else has no route to you. You answer inline; the fold command re-spawns the
+owning role agent and folds the decision into **the document the raising seat
+owns** (`spec.md`; `technical-spec.md` for `[implementer]` questions — the
+contract QA tests against must learn the answer, or the pipe is one-way), and
+resolves the thread. A resolution that changes the user story → a comment on
+the issue (it never auto-edits the issue body/AC). Gate: all threads resolved.
 
 **(3) Implementation + (4) Validation — launch together**, gated by
 `status: ready-for-dev`. Independent siblings, both branched off `spec/{n}`,
@@ -126,12 +130,16 @@ both CRs targeting the spec CR:
   is otherwise the loop's only unaudited artifact. Findings are two-way
   cited threads on the QA CR; both CRs must be thread-clean before (6).
 
-If QA hits a contract ambiguity mid-flight, it stops and reports to the main
-agent — it never interprets. The main agent distills the question and its
-recommendation into an inline thread on the still-open spec CR; the affected QA
-work pauses and the issue re-enters `status: in-spec-review` (the one backward
+If **QA or the implementer** hits a contract ambiguity mid-flight, it stops
+and reports to the main agent — it never interprets, and it never decides
+unilaterally in code. The main agent distills the question and its
+recommendation into an inline thread on the still-open spec CR; the affected
+work pauses and the issue re-enters `status: in-spec-review` (the backward
 transition). The decision folds in through (2a)'s machinery; the label clears
-and QA resumes.
+and the paused side resumes. A (5) review finding that is really a contract
+ambiguity takes the same route through the main agent — never settled on the
+implementation CR, where the contract stays unamended and QA keeps testing
+the old text.
 
 **(5) Code review** — on the implementation CR. `reviewer` posts
 severity-graded inline comments (`blocking` / `should-fix` / `nit` /
@@ -288,8 +296,11 @@ reply, which is exactly what `blocked` would have bought.
   implementer at stage (3) with the same obligations as a public API: stable,
   documented, behaviour-only. A port that exposes internal state or models
   "for convenience" re-couples QA to the implementation and is a contract
-  defect — QA should report it, not use it. (In hexagonal-architecture terms:
-  a driving port whose actor is the acceptance suite.)
+  defect — QA should report it, not use it. **A port that under-exposes a
+  promised observation point is the same defect in the other direction** —
+  QA reports it, never works around it or silently downgrades the scenario
+  to uncovered. (In hexagonal-architecture terms: a driving port whose actor
+  is the acceptance suite.)
 - **The verdict lives at integration, by design.** (3) and (4) run in parallel
   and never see each other; that independence is what makes the verdict honest.
 - **Tooling:** `/roz-gate:to-issues` (1, 1a — dispatches `product` under the

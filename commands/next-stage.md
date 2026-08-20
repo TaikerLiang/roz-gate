@@ -83,15 +83,75 @@ Base everything strictly on the issue body. Per the workflow's stage (2):
   `(from AC-<j>)` — carried from the issue's acceptance criteria;
   `(assumed)` — resolved to a recommendation nobody confirmed. The
   enumeration is the spec's own content in numbered form — never a second
-  prose copy that can drift from it.
+  prose copy that can drift from it. `technical-spec.md` numbers its
+  clauses the same way — `G<k>` for guarantees (citing parent rules:
+  `G6 (R6, S6)`), `C<k>` for every other normative clause — so that
+  tags, findings, and the §5 walk below have stable anchors to attach to;
+  anchor-free contract prose cannot be cited, audited, or kept current.
+- **Evidence annotations — rulings are not claims.** Two kinds of
+  sentence share the spec's typography and must not share its authority.
+  The test is **jurisdiction**: *can the implementer be ordered to make
+  this sentence true?* Yes → it is a requirement — a ruling or a
+  guarantee about the system being built, enforced by (4) and (6) like
+  any other. No → it describes **pre-existing reality** (current DB
+  behaviour, lock contention, a third-party library, how today's code
+  behaves), and writing it down does not make it true. Every such
+  empirical claim carries an evidence tag:
+  - `(measured, <date>, <scope one-liner>)` — measured by the
+    `implementer` (the only spec-stage seat allowed in the codebase),
+    with the scope that bounds the claim (`measured 2026-08-20, 15 runs,
+    dev db n≈10k`) and a link to what was run wherever one exists. The
+    date says when; the scope is the falsifier.
+  - `(unverified)` — asserted, load-bearing, and nobody has checked. The
+    honest state of a draft; **illegal to sign** (Path B refuses to
+    start while one exists).
+  - `(assumed-empirical: <named risk>)` — the demotion: not measured,
+    accepted as an assumption with its risk stated. Distinct from
+    `(assumed)`, which marks an unconfirmed *decision*; this marks an
+    unmeasured *fact*, and the holder's action differs (order a
+    measurement vs confirm a choice).
+  Placement: one authority tag on a rule's title line; evidence tags sit
+  on the empirical premise itself, in the rationale italics, with the
+  measurement citation. Authority tags say *who decided*; evidence tags
+  say *how we know* — they never compete for the same clause. Any
+  mechanical check of these tags matches the **opening token only** —
+  `(unverified)`, `(assumed-empirical:`, `(measured` — because tags with
+  free text wrap at the document's line width: requiring the closing
+  paren on the same line makes the miss silent on exactly the tag whose
+  purpose is to be seen, and a wrapped `(measured …` a checker cannot
+  fully parse is a *present* tag, never read as absent.
+- **Scenario boundary:** scenario text states observable behaviour from
+  an actor's observation surface — Given/When/Then only. Content
+  addressed to another seat (test guidance, review guidance, "recorded so
+  QA does not chase it") is a rule, or a note under the rule it derives
+  from, never a scenario: an unfalsifiable scenario pollutes the
+  coverage map, the evidence cards, and the (5q) audit permanently.
+- **Port observability walk:** when the `implementer` designs the test
+  port (§5), it walks every `spec.md` scenario once and appends the
+  result to §5 as a per-scenario table — `S<k>` ×
+  {observable / observable via `<control point>` / limitation: `<why>`}.
+  A gap found here is a port fix on the spot; a **limitation is a verdict
+  exemption**, and the implementer never grants its own: every
+  limitation row is surfaced on the spec-gate kit's attention list for
+  the gate holder to countersign. This table is what test-spec.md's
+  "not testable through the port" section verifies at (4) instead of
+  discovering.
 - **ID citation convention:** wherever any agent cites a rule, scenario, or
   question ID in a comment, thread, or report, the first mention in that
   comment is written in full — `R7 · Expired offers don't count`, linked to
   the ID's definition line — never the bare code. The reader may be on a
   phone with no lookup table in their head.
-- **Open Questions requirement:** each item in `spec.md`'s `## Open Questions`
-  section uses the intake batch shape — phone-readable, and reused verbatim as
-  its thread body in A6:
+- **Open Questions requirement:** `spec.md`'s `## Open Questions` section is
+  the **single collection point for every seat's open questions**, whatever
+  document the seat owns — (2a)'s threads anchor here and nowhere else, so a
+  question written anywhere else has no route to the gate holder. Seats never
+  write the section directly (em owns `spec.md`; concurrent writes and
+  self-assigned numbers would break `(from Q<j>)` provenance): each dispatch
+  **returns its question batch in its report**, and the main agent appends
+  them — em/product first, implementer after — assigning `Q<k>` append-only
+  for the life of the issue. The owning document may carry a pointer to a
+  Q-ID; it never carries the question body. Each item uses the intake batch
+  shape — phone-readable, and reused verbatim as its thread body in A6:
   - Title line `**[<role>] · Q<k> · <2–3-word label>**` — role = who raised
     it (`[product]`, `[em]`, or `[implementer]`; combine if more than one);
     items that challenge the user story / acceptance criteria append
@@ -113,7 +173,13 @@ CR-OPEN from `spec/<n>` targeting `<default_branch>`, title
 Refs #<n>".
 
 ### A6. Post open questions as inline review threads
-For EACH item in the `## Open Questions` section of `spec.md`:
+**Sweep first:** check the other spec docs for question-shaped content (an
+open-questions section, unresolved "TBD"/"open:" items). Found → relocate it
+verbatim into `spec.md`'s `## Open Questions`, tagged with the raising role,
+before posting anything — a question outside the threaded surface is invisible
+to every gate that counts threads, and resolves the only way it can: silent
+interpretation. Then, for EACH item in the `## Open Questions` section of
+`spec.md`:
 THREAD-POST-INLINE on the spec CR, anchored to that item's line in
 `<specs_dir>/<n>/spec.md`, body = **the item verbatim** (title line, blank
 line, question, option bullets with the marked recommendation, italic why —
@@ -149,6 +215,17 @@ applies `status: ready-for-dev`.
 The spec CR (`spec/<n>`) must already exist and be approved (its Q&A threads
 resolved). If `spec/<n>` does not exist, stop and say so.
 
+**Unverified-claim check (before anything else):** grep
+`<specs_dir>/<n>/*.md` for `(unverified)`. Any hit → the STOP exit, listing
+the claims, recommendation: measure (implementer, at (2) cost) or demote to
+`(assumed-empirical: <named risk>)`. This is the signing moment — B2 stamps
+the approval — and it is the only gate that can reach the false-GREEN branch:
+a claim false only under conditions the acceptance run never produces passes
+(4), (5q) and (6), because **a faithful transcription of a falsehood
+satisfies fidelity**. Zero hits in a spec that carries evidence tags is a
+clean check; zero hits in a spec written before the vocabulary existed is
+**not** — say which one the report means.
+
 ### B1. Lock
 LABEL-ADD `status: processing`.
 
@@ -169,6 +246,10 @@ Launch both at once (they never see each other):
 - **implementer** on `feat/<n>`: implement per
   `<specs_dir>/<n>/technical-spec.md` + write **unit** tests. For a non-API
   feature, also provide the documented test **port** QA tests against.
+  **A contract gap you cannot resolve from the spec docs → stop and report
+  to the main agent; never decide unilaterally in code** — the same
+  mid-flight route QA has, and the ambiguity takes the same backward
+  transition through the spec CR.
 - **qa** on `qa/<n>`: write black-box acceptance tests in
   `<acceptance_dir>/<feature>/` (`<feature>` = the project's layout unit —
   config `acceptance_layout`; absent → one folder per feature) from
@@ -180,6 +261,16 @@ Launch both at once (they never see each other):
   ≥1 test or an explicit `uncovered` row with a reason. These run
   post-integration and will NOT pass on `qa/<n>` by design — write them against
   the contract, do not chase green here.
+  **The §5 observability map is a claim to verify, never a fact to
+  inherit:** walk every scenario against the port yourself, then
+  reconcile with the implementer's §5 table — every mismatch, both
+  directions, is a mandatory reported finding (map says observable, you
+  cannot drive it → contract defect; map says not-observable, you can →
+  an over-declared limitation shrinking the testable surface). Each
+  `uncovered / not testable through the port` row in `test-spec.md`
+  cites the §5 limitation row it corresponds to; a row with no §5
+  citation is a contract defect and takes the ambiguity route — never a
+  silent `uncovered` entry.
 
 ### B4. Commit + push + open both CRs (target = the spec branch)
 - Commit each branch's files and push. Use `--no-verify` only for unrelated
@@ -204,6 +295,12 @@ Launch both at once (they never see each other):
   `**[reviewer] · blocking|should-fix|nit|question**`, anchored to file:line.
   Rule/scenario IDs in a finding follow the citation convention (A3): first
   mention carries the ID's title and a link to its definition.
+- **A finding that is really a contract ambiguity routes to a spec-CR
+  thread through the main agent** (the (2a) machinery) — never settled
+  reviewer-to-implementer on the implementation CR, where the contract
+  stays unamended, the decision never reaches the ledger, and QA keeps
+  testing the old text. (The fidelity brief already routes
+  scenario-meaning disputes this way; the same rule applies here.)
 
 ### B5b. QA fidelity review (5q) on the QA CR
 - Dispatch the **reviewer** seat a second time, in a **fresh context**
@@ -222,9 +319,11 @@ Launch both at once (they never see each other):
 - LABEL-REMOVE `status: ready-for-dev` and `status: processing` (the open CRs
   are now the in-flight state).
 - Report the implementation CR, the QA CR, and the open threads on both.
-  **Next:** `implementer` addresses the implementation CR's threads and
-  `qa` addresses the QA CR's fidelity threads until all resolved, then
-  `/roz-gate:integrate <n>`.
+  **Next:** `implementer` addresses the implementation CR's threads; `qa`
+  addresses the QA CR's fidelity threads, and a **fresh implementation-blind
+  reviewer dispatch re-checks and resolves** what it is satisfied with
+  (patrol's address-review engine — the audited party never closes the
+  audit's findings). All resolved on both → `/roz-gate:integrate <n>`.
 
 ---
 

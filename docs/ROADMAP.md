@@ -105,6 +105,80 @@ holder's pain points became a proposal package; a four-seat evaluation
     grammars, roll-calls, routing tables) — one of which had
     reintroduced an approve keyword the project deliberately removed at
     intake.
+- **v1.12.0 (shipped) — the spec artifacts learn what kind of sentence
+  they hold**. ADMC reviewed #63's artifact set end to end and sent three
+  findings; four seats amended all three. The meta-lesson, ADMC's own
+  words on receiving it: their findings "patched where the failure
+  appeared rather than where the class lives" — each was one stage
+  narrower than the failure class (their keep: *when a finding names one
+  stage and one seat, check the same failure at every other stage and
+  seat before proposing*).
+  - **Question routing**: `spec.md`'s `## Open Questions` is the single
+    collection point for every seat; seats return batches, the main
+    agent appends and assigns `Q<k>` append-only (em owns the file);
+    A6 sweeps other docs for strays; **folds land in the document the
+    raising seat owns** (`[implementer]` answers amend the contract —
+    else the pipe is one-way); and the mid-flight ambiguity route now
+    covers **QA, the implementer at (3), and (5) findings that are
+    really contract ambiguities** — the motivating trap was alive at
+    two other stages.
+  - **Rulings vs empirical claims**: the jurisdiction test ("can the
+    implementer be ordered to make this sentence true?") separates
+    requirements from claims about pre-existing reality; the shall/is
+    split is what makes the rule satisfiable (future-system sentences
+    are guarantees, enforced by (4)/(6) as ever). Evidence tags:
+    `(measured, <date>, <scope>)` (scope mandatory — the date says when,
+    the scope is the falsifier), `(unverified)`, and the distinct
+    demotion `(assumed-empirical: <named risk>)`. Enforcement is a
+    three-layer stack: kit attention key 1, the spec-answers promote
+    grep, and a **Path B entry STOP** at the signing moment. The
+    carrying argument was the **false-GREEN branch**: the (6)
+    contract-defect class fires only on RED — a claim false only under
+    conditions the acceptance run never produces goes green through
+    (4), (5q) and (6), because *a faithful transcription of a falsehood
+    satisfies fidelity*; nothing downstream of (2) can reach that
+    branch, so the invariant is coverage, not economy. Holder-supplied
+    empirical claims fold as `(from Q<j>, unverified)` — the holder is
+    not an oracle about reality (Q9's false claim entered via a fold).
+    Honest framing: a labeling regime whose teeth are the kit; an
+    untagged claim is the status quo ante, backstopped by one fidelity-
+    brief line.
+  - **Port observability walk at (2)**: the implementer walks every
+    scenario against its §5 port design, table in the contract; a
+    **limitation is a verdict exemption the implementer never
+    self-grants** — new kit sort key, the holder countersigns. QA
+    re-walks independently at (4), every mismatch a mandatory finding
+    both directions; (5q) audits the reconciliation trace; walk-currency
+    check at promote; under-exposure named a contract defect in the
+    port principle (over-exposure already was).
+  - Also: the **Resolved-block trim** (spec.md = current truth: ruling +
+    attribution + one-sentence rationale + fold pointers, never
+    restating rule text; the argument lives in ledger + thread — full
+    evacuation was rejected because the ledger is a CR comment that
+    doesn't survive checkout/migration, and #61's seats read the repo);
+    the scenario boundary rule (S13-class content is a rule wearing a
+    scenario's costume); `C<k>` clause numbering for technical-spec
+    (anchor-free contract prose can't be cited or audited); B6 wording
+    aligned with patrol (blind re-dispatch resolves fidelity threads —
+    the audited party never closes the audit's findings).
+  - **Instrument #61, don't judge the ratio**: holder wall-clock per
+    gate; artifact-change rate; **ledger reuse rate** (the safety check
+    on the trim — re-asks rising means it cut too deep); dead spec
+    weight (lines no test, thread, or comment ever consumed); question
+    trajectory; fold cost.
+  - **The `blocked` asymmetry, for whoever later tries to unify it**:
+    1.11.0 ruled (7) has *no* `blocked` exit; 1.12.0's Path B entry
+    check STOPs *into* `blocked`. Both are right for the same reason.
+    At (7) the issue is already at the holder's gate — `blocked` adds
+    no information and would strip the only label saying the work
+    passed the verdict. At Path B entry the issue is machine-actionable
+    (patrol re-invokes next-stage on the gate label unconditionally, and
+    a stop that left the label in place would loop, posting a fresh STOP
+    comment every pass) — `blocked` is the only exit that terminates,
+    and patrol surfaces it in the user's queue with the STOP comment's
+    "measure or demote, then re-apply the gate" instruction. The rule
+    underneath: `blocked` exists to stop the *machine*, not to inform
+    the human.
 - **red-proof (DEFERRED 2026-08-17, not rejected — Paul's ruling)**: wait
   for real usage of the 1.8.0–1.10.0 surface first; accumulated fidelity
   findings from live cycles become the "what A catches statically"

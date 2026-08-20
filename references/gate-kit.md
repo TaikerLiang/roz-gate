@@ -47,13 +47,21 @@ fold. **Sort, never filter**, on computed properties only — never the
 assembler's confidence, and the word "mechanical" never appears
 ("not flagged" is the honest weaker claim). Sort keys, in order:
 
-1. rules with `(assumed)` provenance — decisions made in the holder's
-   name that they never made;
+1. rules with `(assumed)`, `(unverified)`, or `(assumed-empirical: …)`
+   provenance — the page asserts something nobody stands behind: a
+   decision made in the holder's name they never made, or a fact stated
+   in the spec's name that nobody checked (the holder's action differs —
+   confirm the choice vs order a measurement or accept the risk — which
+   is why the tags stay distinct while sorting together);
 2. rules whose spec text changed **after** the holder's ruling on them
    (re-folds, amendments — compare fold commits to thread dates);
-3. rules/scenarios in coverage buckets *not covered* or *partial*;
-4. rules carrying weak-assertion findings from the fidelity review (5q);
-5. everything else, spec order, below the fold.
+3. scenarios the technical-spec §5 observability walk marks
+   **limitation** — each is a verdict exemption, and the implementer
+   never grants its own: it stands only once the holder has seen it
+   here;
+4. rules/scenarios in coverage buckets *not covered* or *partial*;
+5. rules carrying weak-assertion findings from the fidelity review (5q);
+6. everything else, spec order, below the fold.
 
 **2. Issue-delta** — instead of a summary (a summary of the spec, made
 from the spec, by its authors, cannot reveal drift from the *ask*):
