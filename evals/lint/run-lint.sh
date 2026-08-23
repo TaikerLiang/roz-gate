@@ -77,8 +77,10 @@ check "B3: no fullwidth-bracket marker variant anywhere" 1 \
 
 # ---------------------------------------------------------------------------
 # B4 · an agent write never opens with a quote block        (defect: 1.11.0-)
-# Static layer only: the write rules must be stated where writes happen.
-# (Teeth — a guard-gate deny — are a separate, greenlit follow-up change.)
+# Static layer: the write rules must be stated where writes happen. Teeth
+# since 1.14.0: guard-gate rule C denies the quote-opening marker-carrying
+# comment itself (proven in hooks/tests/run-tests.sh, run by the same
+# release gate).
 src "B4: question comments must open with the marker" \
   commands/next-stage.md 'MUST start with `**['
 src "B4: the quote-block opening is forbidden in review replies" \

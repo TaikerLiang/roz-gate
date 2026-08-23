@@ -9,7 +9,11 @@ set -u
 
 input=$(cat)
 
-if ! printf '%s' "$input" | grep -qE '\[intake\]|ready-for-(spec|dev)'; then
+# Marker tokens (`**[` / `✅ [`) escalate for the quote-open rule; the ✅ may
+# arrive JSON-escaped as ✅ depending on the caller's encoder. body-file
+# forms escalate marker-blind: their body (and so the marker) lives outside
+# the command text.
+if ! printf '%s' "$input" | grep -qE '\[intake\]|ready-for-(spec|dev)|\*\*\[|✅ \[|\\u2705 \[|body-file|-F '; then
   exit 0
 fi
 

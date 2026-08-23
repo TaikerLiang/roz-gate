@@ -2,7 +2,7 @@
 """Roz Gate enforcement — layer 2: trigger validation.
 
 Invoked by guard-gate.sh only when a Bash command mentions a guarded
-pattern. Two rules, each the mechanical form of existing protocol text:
+pattern. Three rules, each the mechanical form of existing protocol text:
 
   A. An ``**[intake] · summary**`` comment may be posted only when the
      async-intake trigger holds (commands/patrol.md step 2): a gate label
@@ -12,6 +12,12 @@ pattern. Two rules, each the mechanical form of existing protocol text:
   B. Gate labels (ready-for-spec / ready-for-dev) are applied by the human
      gate holder only — an agent never adds them (references/workflow.md:
      "you move gate labels — a gate label is an authorization").
+  C. A forge comment that carries a roz-gate marker never OPENS with a
+     quote block (commands/review-answers.md: "Never open with a quote
+     block") — patrol classifies a comment by its opening token, so a
+     quote-opening agent comment reads as a human answer and the loop
+     replies to itself once per pass, dispatching seats and committing
+     each time (the 1.11.0 runaway).
 
 Exit 0 allows the tool call; exit 2 blocks it and feeds stderr to the
 model. Forge API failures fail closed, with a message that says it is an
@@ -36,6 +42,7 @@ import sys
 
 GATE = re.compile(r"ready-for-(spec|dev)")
 SUMMARY_MARKER = re.compile(r"\[intake\]\**\s*[·•\-–—:|]\s*summary", re.IGNORECASE)
+ROZ_MARKER = re.compile(r"\*\*\[|✅ \[")
 API_TIMEOUT = 20
 
 RULE_B_MSG = (
@@ -62,6 +69,23 @@ ALREADY_POSTED_MSG = (
     "Roz Gate: blocked — an `**[intake] · summary**` comment was already "
     "posted after the gate holder's `summary` request. Post a new one only "
     "after the gate holder comments `summary` again."
+)
+
+QUOTE_OPEN_MSG = (
+    "Roz Gate: blocked — an agent comment must open with its marker, never "
+    "a quote block (commands/review-answers.md). Fix: put the marker on "
+    "line one (`**[<role>] · <kind>**`) and the quote below it, or hand "
+    "the text back to the human to post themselves. Why: patrol classifies "
+    "a comment by its opening token — a quote-opening agent comment reads "
+    "as a human answer, and the loop replies to itself once per pass."
+)
+
+BODY_FILE_MSG = (
+    "Roz Gate: cannot judge this comment body — it arrives via --body-file "
+    "from a source the guard cannot read, and the command carries a "
+    "roz-gate marker. Post it with an inline --body/--message or a heredoc "
+    "(--body-file - <<'EOF') so the guard can check that the comment opens "
+    "with its marker, then retry."
 )
 
 UNPARSEABLE_MSG = (
@@ -179,6 +203,114 @@ def check_gate_label_add(cmd, toks):
         deny(RULE_B_MSG)
 
 
+def check_quote_open(cmd, toks):
+    """Rule C: a marker-carrying comment body never opens with a quote.
+
+    Purely static — no forge call. Judged only on comment-shaped writes
+    (issue/pr comment, issue/mr note, and the api comment/note/reply/
+    discussion endpoints the adapters use) — a CR or issue *body* may
+    legitimately open by quoting something. The marker condition is the
+    scoping: an unmarked body is not a protocol write and this rule does
+    not touch it. Leading blank lines and spaces count as opening with
+    the quote (the forms a model produces when it formats carefully); a
+    body whose FIRST LINE is the marker with a quote below is the
+    prescribed remedy and passes. Blast radius: the runaway requires the
+    *agent* to post the malformed comment — a human posting a
+    quote-opening comment through the web UI is just a human comment and
+    is SUPPOSED to read as unheard. So unlike gate labels, B4's whole
+    threat surface sits inside what this client-side hook can see, and no
+    repository-side enforcement is needed. A body arriving by command
+    substitution (`--body "$(cat f)"`) is structurally invisible to any
+    static hook and stays on the prose rule; `--body-file` is covered —
+    file read back, heredoc parsed, anything else fails closed when the
+    command shows a marker. Unparseable commands are left alone: without
+    tokens there is no body to judge.
+    """
+    if toks is None:
+        return
+    gh_comment = "gh" in toks and "comment" in toks and (
+        "issue" in toks or "pr" in toks
+    )
+    glab_note = "glab" in toks and "note" in toks and (
+        "issue" in toks or "mr" in toks
+    )
+    api_comment = "api" in toks and ("gh" in toks or "glab" in toks) and (
+        re.search(r"/(comments|replies|notes|discussions)\b", cmd)
+    )
+    if not (gh_comment or glab_note or api_comment):
+        return
+    for body in comment_bodies(cmd, toks, gh_comment, glab_note, api_comment):
+        if body and quote_opening(body):
+            deny(QUOTE_OPEN_MSG)
+
+
+def comment_bodies(cmd, toks, gh_comment, glab_note, api_comment):
+    """Comment-body strings in a forge write: `--body`/`-b` (gh comment),
+    `--message`/`-m` (glab note), the `body=` field of
+    `-f`/`-F`/`--field`/`--raw-field` in separated, `=`-joined, and glued
+    spellings (gh/glab api), and gh's `--body-file`/`-F` (file path or
+    stdin heredoc). Flags are collected per CLI shape so a compound
+    command's other `-m` (e.g. git commit's) is never read as a body."""
+    flags = []
+    if gh_comment:
+        flags += ["--body", "-b"]
+    if glab_note:
+        flags += ["--message", "-m"]
+    vals = []
+    for i, tok in enumerate(toks):
+        nxt = toks[i + 1] if i + 1 < len(toks) else None
+        for flag in flags:
+            if tok == flag and nxt is not None:
+                vals.append(nxt)
+            elif tok.startswith(flag + "="):
+                vals.append(tok.split("=", 1)[1])
+        if api_comment:
+            if tok in ("-f", "-F", "--field", "--raw-field") \
+                    and nxt is not None and nxt.startswith("body="):
+                vals.append(nxt.split("=", 1)[1])
+            elif re.match(r"^(-[fF]|--field=|--raw-field=)body=", tok):
+                vals.append(tok.split("body=", 1)[1])
+        if gh_comment and (tok in ("--body-file", "-F")
+                           or tok.startswith("--body-file=")):
+            path = tok.split("=", 1)[1] if "=" in tok else nxt
+            if path is not None:
+                vals.append(body_from_file(path, cmd))
+    return vals
+
+
+def body_from_file(path, cmd):
+    """gh's --body-file: the body is not an argument. `-` is stdin — in
+    agent practice a heredoc whose text IS in the command; parse it out.
+    A real path is read back from disk (it must exist for gh to work). A
+    body the guard cannot see fails closed only when the command itself
+    shows a marker — the scoping condition lives in the body, so an
+    unmarked command stays free."""
+    if path == "-":
+        m = re.search(
+            r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n(.*?)\n\s*\2\s*(?:\n|$)",
+            cmd, re.S,
+        )
+        if m:
+            return m.group(3)
+    else:
+        try:
+            with open(path, encoding="utf-8", errors="replace") as f:
+                return f.read()
+        except OSError:
+            pass
+    if ROZ_MARKER.search(cmd):
+        deny(BODY_FILE_MSG)
+    return None
+
+
+def quote_opening(body):
+    if body.startswith("$"):
+        # bash ANSI-C $'...' reaches shlex as `$` + content with literal
+        # \n escapes; normalize enough to judge the opening.
+        body = body[1:].replace("\\n", "\n").replace("\\t", "\t")
+    return bool(ROZ_MARKER.search(body)) and body.lstrip().startswith(">")
+
+
 def is_summary_request(body):
     """First or last non-empty line is exactly `summary` (emphasis,
     backticks, quotes, and a trailing period stripped; case-insensitive) —
@@ -292,6 +424,7 @@ def main():
     except ValueError:
         toks = None
     check_gate_label_add(cmd, toks)
+    check_quote_open(cmd, toks)
     if SUMMARY_MARKER.search(cmd):
         bots = load_bot_logins()
         check_github_summary(cmd, bots)

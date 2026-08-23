@@ -67,6 +67,52 @@ run "glab list filter allowed" 0 "" 'glab issue list --label "status::ready-for-
 run "gh list filter allowed" 0 "" 'gh issue list --label "status: ready-for-spec" --json number'
 run "label create allowed (init)" 0 "" 'gh label create "status: ready-for-spec" --color 0e8a16 --description "gate"'
 
+# --- rule C: a marker-carrying comment never opens with a quote block ---
+# Static rule, no API. The B4 runaway: patrol reads a quote-opening agent
+# comment as a human answer and the loop replies to itself.
+run "quote-opening readback denied" 2 "marker on line one" 'gh pr comment 12 --body "> 你說的是要在讀取時就擋掉過期的 offer
+
+**[review] · answer**
+
+對,規則 R4 就是這個意思。"'
+run "whitespace-led quote still denied" 2 "open with its marker" 'gh issue comment 54 --body "
+
+   > the quoted claim
+**[reviewer] · question** is this measured?"'
+run "marker first, quote below — the remedy — allowed" 0 "" 'gh pr comment 12 --body "**[review] · answer**
+
+> 你說的是要在讀取時就擋掉過期的 offer
+
+對,規則 R4 就是這個意思。"'
+run "quote-opening body with no marker allowed (scoping)" 0 "" 'gh pr comment 12 --body "> just quoting a teammate
+
+agreed, merging."'
+run "thread-reply via gh api denied (✅ marker)" 2 "open with its marker" 'gh api -X POST "repos/o/r/pulls/12/comments/9/replies" -f body="> the finding as stated
+
+✅ [reviewer] resolved — fixed in abc123."'
+run "glab message form denied" 2 "open with its marker" 'glab issue note 7 --message "> 原本的問題
+
+**[qa] · addressed** covered by the new fixture."'
+run "non-forge command with marker+quote allowed (gh/glab only)" 0 "" 'git commit -m "> odd subject **[not a protocol write]**"'
+grep -q . "$STUB_LOG" && { echo "FAIL rule C hit the API"; fail=$((fail+1)); } || { echo "PASS rule C made no API call"; pass=$((pass+1)); }
+run "CR body may open with a quote (comments only)" 0 "" 'gh pr create --title t --body "> quoting the spec intro
+see **[R4]** below"'
+run "body-file heredoc parsed and denied" 2 "open with its marker" 'gh pr comment 12 --body-file - <<EOF
+> the quoted claim
+
+**[review] · answer**
+EOF'
+BODYQ=$(mktemp); printf '> quoted claim\n\n**[review] · answer**\n' > "$BODYQ"
+BODYOK=$(mktemp); printf '**[review] · answer**\n\n> quoted claim\n' > "$BODYOK"
+run "body-file read back and denied" 2 "open with its marker" "gh pr comment 12 --body-file $BODYQ"
+run "body-file with marker-first body allowed" 0 "" "gh pr comment 12 --body-file $BODYOK"
+rm -f "$BODYQ" "$BODYOK"
+run "unjudgeable marker-carrying body-file fails closed" 2 "cannot judge" 'printf "**[qa] · x**" | gh pr comment 12 --body-file -'
+run "ANSI-C quoted body denied" 2 "open with its marker" "gh pr comment 12 --body \$'> quoted\\n\\n**[review] · answer**'"
+run "glued --field=body= form denied" 2 "open with its marker" 'gh api -X POST "repos/o/r/pulls/12/comments/9/replies" --field=body="> the finding
+
+✅ [reviewer] resolved — fixed."'
+
 # --- rule A: intake summary triggers (GitHub) ---
 export GH_FIXTURE="$S/fx/gh_no_trigger.json"
 run "summary without trigger blocked (#54 case)" 2 "human decision point" "$SUMMARY_CMD"
@@ -110,7 +156,7 @@ run "glab summary after 'summary' allowed" 0 "" 'glab issue note 7 --message "**
 
 **Story** ..."'
 
-# --- rule C: the acceptance suite is not editable on a spec branch ---
+# --- guard-acceptance: the acceptance suite is not editable on a spec branch ---
 GUARD_ACC="$S/../guard-acceptance.sh"
 SPECREPO=$(mktemp -d)
 git init -q "$SPECREPO"

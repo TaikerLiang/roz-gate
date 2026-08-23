@@ -55,7 +55,8 @@ R&R). A behavioural claim cites a spec rule or a test, never a code line alone.
 predicate in step 1, and breaking any of them makes the conversation answer
 itself on the next patrol pass:
 1. It starts literally with `**[review] · answer**`, `· question`, or
-   `· addressed`. **Never open with a quote block.**
+   `· addressed`. **Never open with a quote block** (guard-gate denies a
+   quote-opening, marker-carrying comment mechanically).
 2. **Only you post to the CR.** A dispatched seat returns text; you post it,
    prefixed. (The intake relay rule, unchanged.)
 3. It cites the URL of the comment it answers, and it never resolves the
