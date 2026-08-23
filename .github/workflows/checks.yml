@@ -1,0 +1,11 @@
+name: checks
+on: [push, pull_request]
+jobs:
+  suites:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: hook unit tests
+        run: bash hooks/tests/run-tests.sh
+      - name: eval ledger lint tier
+        run: bash evals/lint/run-lint.sh

@@ -215,8 +215,13 @@ applies `status: ready-for-dev`.
 The spec CR (`spec/<n>`) must already exist and be approved (its Q&A threads
 resolved). If `spec/<n>` does not exist, stop and say so.
 
-**Unverified-claim check (before anything else):** grep
-`<specs_dir>/<n>/*.md` for `(unverified)`. Any hit → the STOP exit, listing
+**Unverified-claim check (before anything else):**
+`grep -nE '(^|[(,])[[:space:]]*unverified' <specs_dir>/<n>/*.md` — the
+widened pattern also catches a tag illegally merged into another
+parenthesis (`(from Q4, unverified)`) and a wrap-split compound, both of
+which the bare literal `(unverified)` misses; the two-axis writing rule
+(A3) is the first line of defense, this grep the second. Any hit → the
+STOP exit, listing
 the claims, recommendation: measure (implementer, at (2) cost) or demote to
 `(assumed-empirical: <named risk>)`. This is the signing moment — B2 stamps
 the approval — and it is the only gate that can reach the false-GREEN branch:

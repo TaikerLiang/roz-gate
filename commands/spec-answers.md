@@ -71,8 +71,9 @@ half-done:
      with **both tags, separately**: the ruling carries its authority tag
      `(from Q<j>)` as usual, and the empirical premise carries `(unverified)`
      as its evidence tag — never merged into one parenthesis (the two axes
-     never share a tag, per A3's placement rule, and the Path B and promote
-     greps match the literal `(unverified)`). The ruling part is the
+     never share a tag, per A3's placement rule; the Path B and promote
+     greps are widened to catch a merged parenthesis anyway — convention
+     first line of defense, grep the second). The ruling part is the
      holder's; the claim about the world still needs measuring or demoting.
    - **A fold touching an evidence-tagged sentence re-derives the tag**: the
      measurement still covers the edited claim, or the tag downgrades to
@@ -114,11 +115,16 @@ note it in the report.
 
 ## 7. Promote when fully answered
 Re-check the CR's threads. If **every** thread is resolved, the next step
-depends on where the issue is:
+depends on where the issue is — decided by CR-FIND for `feat/<n>` /
+`qa/<n>` **in its all-states form** (the adapter's merged-CR variant,
+`--state all` / `--all`): the open-only default reads *merged* as
+*absent* and would send a shipped issue back through implementation.
 - **First pass through (2a)** — no `feat/<n>` / `qa/<n>` CRs exist:
   LABEL-REMOVE `status: processing` (leave `status: in-spec-review`). Before
   reporting ready, two checks:
-  - `grep -n '(unverified)' <specs_dir>/<n>/*.md` — any hit is an unresolved
+  - `grep -nE '(^|[(,])[[:space:]]*unverified' <specs_dir>/<n>/*.md` (the
+    widened form — it also catches a tag illegally merged into another
+    parenthesis or split by a wrap) — any hit is an unresolved
     blocker: the report lists the claims and does **not** say "ready for
     approval" (measure, or demote to `(assumed-empirical: <risk>)`). Zero
     hits in a pre-vocabulary spec (no evidence tags anywhere) is absence of

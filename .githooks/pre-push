@@ -6,6 +6,18 @@ BEHAVIOR_PATHS="agents commands references templates"
 PLUGIN_JSON=".claude-plugin/plugin.json"
 ZERO=0000000000000000000000000000000000000000
 
+# Release gate: the hook unit tests and the eval ledger's lint tier must be
+# green on every push (both are sub-second; --no-verify is the human
+# override, CI the backstop).
+for suite in hooks/tests/run-tests.sh evals/lint/run-lint.sh; do
+  out=$(bash "$suite" 2>&1) || {
+    echo "pre-push: $suite failed:" >&2
+    echo "$out" | grep -v '^PASS ' >&2
+    echo "Fix it (or push with --no-verify to override)." >&2
+    exit 1
+  }
+done
+
 while read -r local_ref local_sha remote_ref remote_sha; do
   # branch deletion — nothing to check
   [ "$local_sha" = "$ZERO" ] && continue
