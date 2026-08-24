@@ -1,6 +1,6 @@
 {
-  "ledger": "F6 · Compliance survives a long session — instrument, not assert",
-  "driver": "drive.sh",
-  "k": 3,
-  "timeout": 7200
+ "ledger": "F6 \u00b7 Compliance survives a long session \u2014 instrument, not assert",
+ "driver": "drive.py",
+ "k": 3,
+ "timeout": 7200
 }
