@@ -1,0 +1,10 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {"title": "Smoke target", "body": "harness check", "author": "paul",
+          "assignees": ["paul"], "labels": [], "createdAt": "2026-08-24T00:00:00Z",
+          "comments": []}
+  },
+  "prs": {}
+}
