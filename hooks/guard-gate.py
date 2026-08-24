@@ -242,16 +242,14 @@ def check_quote_open(cmd, toks):
 
 
 def shell_segments(toks):
-    """Split a token list on shell separators. shlex keeps `&&`/`||`/`|`
-    as their own tokens but glues `;` to the preceding word — both forms
-    are boundaries."""
+    """Split a token list on shell separators. The tokenizer runs with
+    punctuation_chars, so every operator — spaced or glued — arrives as
+    its own token made purely of `();<>|&` characters. Redirects count
+    as boundaries too, which is harmless: a body flag always sits left
+    of its redirect."""
     segments, seg = [], []
     for tok in toks:
-        if tok in ("&&", "||", ";", "|", "|&"):
-            segments.append(seg)
-            seg = []
-        elif tok.endswith(";") and not tok.startswith("-"):
-            seg.append(tok[:-1])
+        if tok and not tok.strip("();<>|&"):
             segments.append(seg)
             seg = []
         else:
@@ -453,7 +451,14 @@ def main():
     if not cmd:
         return
     try:
-        toks = shlex.split(cmd, posix=True)
+        # punctuation_chars so unspaced operators (`x=y&&gh`, `50|head`)
+        # come out as standalone tokens — token-equality segmentation is
+        # then complete, not an enumeration of spaced spellings (the B1
+        # lesson: fix the class, not the instance). Quoted bodies are
+        # unaffected; punctuation inside quotes is never split.
+        lex = shlex.shlex(cmd, posix=True, punctuation_chars=True)
+        lex.whitespace_split = True
+        toks = list(lex)
     except ValueError:
         toks = None
     check_gate_label_add(cmd, toks)

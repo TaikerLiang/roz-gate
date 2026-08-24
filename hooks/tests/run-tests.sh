@@ -119,6 +119,13 @@ run "semicolon-joined quote-opening comment still denied" 2 "open with its marke
 
 **[qa] · addressed** done."'
 run "pipe segment does not leak flags across the boundary" 0 "" 'gh api "repos/o/r/pulls/12/comments" -F per_page=50 | head -5 && gh issue comment 5 --body "**[review] · answer** see thread."'
+# Glued (unspaced) operators — codex review on PR #2: token-equality alone
+# missed `x=y&&gh`, reproducing the very false positive the PR fixes.
+run "glued && operator: api -F + marker comment allowed" 0 "" 'gh api graphql -f query="q" -F owner=acme&&gh issue comment 5 --body "**[intake] · note** all clean."'
+run "glued pipe does not leak flags across the boundary" 0 "" 'gh pr list --limit 50|head -3 && gh issue comment 5 --body "**[review] · answer** done."'
+run "glued semicolon quote-opening comment still denied" 2 "open with its marker" 'gh pr view 12;gh pr comment 12 --body "> quoted claim
+
+**[qa] · addressed** done."'
 
 # --- rule A: intake summary triggers (GitHub) ---
 export GH_FIXTURE="$S/fx/gh_no_trigger.json"
