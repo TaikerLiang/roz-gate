@@ -1,0 +1,36 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, expired offers never apply.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec", "status: in-user-review"],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer expiry enforcement",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [
+        {"id": "T1", "isResolved": false,
+         "comments": [
+           {"databaseId": 9001, "author": "paul", "body": "Is R4 also enforced for bundle offers?", "createdAt": "2026-08-21T08:00:00Z"},
+           {"databaseId": 9002, "author": "paul", "body": "**[review] · answer**\n\nYes — R4 · Expired offers don't count applies to every offer type; bundles are S3's scenario. Link: docs/specs/5/spec.md.", "createdAt": "2026-08-21T09:00:00Z"}
+         ]}
+      ],
+      "reviews": [],
+      "comments": [
+        {"id": 800, "author": "paul", "body": "手機上留言:如果 offer 在結帳當下剛好過期,要算進去嗎?", "created_at": "2026-08-22T08:00:00Z"}
+      ]
+    }
+  }
+}

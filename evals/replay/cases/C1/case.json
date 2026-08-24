@@ -1,0 +1,6 @@
+{
+  "ledger": "C1 · A STOP strips the gate label",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 1200
+}
