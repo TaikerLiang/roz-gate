@@ -112,6 +112,13 @@ run "ANSI-C quoted body denied" 2 "open with its marker" "gh pr comment 12 --bod
 run "glued --field=body= form denied" 2 "open with its marker" 'gh api -X POST "repos/o/r/pulls/12/comments/9/replies" --field=body="> the finding
 
 ✅ [reviewer] resolved — fixed."'
+# Segment splitting (1.14.1): a compound line's api -F must never be read
+# as the comment segment's --body-file (the dogfooded false positive).
+run "compound api -F + marker comment allowed" 0 "" 'gh api graphql -f query="q" -F owner=acme -F repo=demo -F pr=101 && gh issue comment 5 --body "**[intake] · note** all three channels are clean."'
+run "semicolon-joined quote-opening comment still denied" 2 "open with its marker" 'gh pr view 12; gh pr comment 12 --body "> quoted claim
+
+**[qa] · addressed** done."'
+run "pipe segment does not leak flags across the boundary" 0 "" 'gh api "repos/o/r/pulls/12/comments" -F per_page=50 | head -5 && gh issue comment 5 --body "**[review] · answer** see thread."'
 
 # --- rule A: intake summary triggers (GitHub) ---
 export GH_FIXTURE="$S/fx/gh_no_trigger.json"
