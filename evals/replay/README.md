@@ -16,7 +16,9 @@ whole-stack — seats ride the same endpoint as the main agent, because
 ## Running
 
 ```sh
-evals/replay/run-replay.sh [--sut NAME] [--k N] [case ...]
+cd evals/replay && uv run run-replay.py [--sut NAME] [--k N] [case ...]
+# (plain `python3 run-replay.py` works identically — the tier is stdlib-only;
+#  uv standardizes the interpreter, python >= 3.12 per pyproject.toml)
 ```
 
 - SUT rows live in `models.yaml`. `opus` is the fixed reference baseline;
@@ -35,6 +37,14 @@ evals/replay/run-replay.sh [--sut NAME] [--k N] [case ...]
   rows record tokens labeled quota, no dollar figure. Measured single-run
   costs (fable): a quiet patrol pass ≈ 209k in / 2.7k out; a review-turn
   pass ≈ 114k in.
+
+## Language boundary
+
+The replay tier is Python end to end — `run-replay.py`, `replaylib.py`
+(the ONE place that parses journal/state/transcript/results), per-case
+`check.py`, and the forge stub. Only `seed.sh` scripts stay bash (git
+plumbing). The lint tier stays bash by design: millisecond greps in the
+hooks/tests idiom. The boundary is per-tier, not per-file.
 
 ## The smoke gate
 
@@ -62,7 +72,7 @@ The same guard invalidates a session that never produced a result event,
 so an empty run can never pass a zero-writes case vacuously.
 
 **Blindness**: every assertion derives from the ledger case text and the
-prose that owns the behaviour, cited inline (`# source:`) with the quoted
+prose that owns the behaviour, cited inline (`# source:`) in each case's `check.py` with the quoted
 rule; the runner refuses an uncited checker, and the checkers land in a
 distinct commit that precedes the first recorded baseline run — the
 history is the proof they were not written from observed output.
