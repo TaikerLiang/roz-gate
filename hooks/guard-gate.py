@@ -225,9 +225,40 @@ def check_quote_open(cmd, toks):
     file read back, heredoc parsed, anything else fails closed when the
     command shows a marker. Unparseable commands are left alone: without
     tokens there is no body to judge.
+
+    Classification happens PER SHELL SEGMENT (tokens split on && / || /
+    ; / |): in a compound line like `gh api -F pr=101 && gh issue
+    comment 5 --body "**[...]"`, the api segment's `-F` must never be
+    read as the comment segment's `--body-file` — that misattribution
+    was a live false positive. The heredoc extraction stays against the
+    WHOLE command text (a `--body-file -` heredoc body may itself
+    contain separator-looking tokens; body_from_file never uses the
+    segmentation).
     """
     if toks is None:
         return
+    for seg in shell_segments(toks):
+        check_quote_open_segment(cmd, seg)
+
+
+def shell_segments(toks):
+    """Split a token list on shell separators. The tokenizer runs with
+    punctuation_chars, so every operator — spaced or glued — arrives as
+    its own token made purely of `();<>|&` characters. Redirects count
+    as boundaries too, which is harmless: a body flag always sits left
+    of its redirect."""
+    segments, seg = [], []
+    for tok in toks:
+        if tok and not tok.strip("();<>|&"):
+            segments.append(seg)
+            seg = []
+        else:
+            seg.append(tok)
+    segments.append(seg)
+    return segments
+
+
+def check_quote_open_segment(cmd, toks):
     gh_comment = "gh" in toks and "comment" in toks and (
         "issue" in toks or "pr" in toks
     )
@@ -235,7 +266,7 @@ def check_quote_open(cmd, toks):
         "issue" in toks or "mr" in toks
     )
     api_comment = "api" in toks and ("gh" in toks or "glab" in toks) and (
-        re.search(r"/(comments|replies|notes|discussions)\b", cmd)
+        re.search(r"/(comments|replies|notes|discussions)\b", " ".join(toks))
     )
     if not (gh_comment or glab_note or api_comment):
         return
@@ -420,7 +451,14 @@ def main():
     if not cmd:
         return
     try:
-        toks = shlex.split(cmd, posix=True)
+        # punctuation_chars so unspaced operators (`x=y&&gh`, `50|head`)
+        # come out as standalone tokens — token-equality segmentation is
+        # then complete, not an enumeration of spaced spellings (the B1
+        # lesson: fix the class, not the instance). Quoted bodies are
+        # unaffected; punctuation inside quotes is never split.
+        lex = shlex.shlex(cmd, posix=True, punctuation_chars=True)
+        lex.whitespace_split = True
+        toks = list(lex)
     except ValueError:
         toks = None
     check_gate_label_add(cmd, toks)
