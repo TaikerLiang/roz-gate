@@ -1,0 +1,17 @@
+# The replay tier's Python environment — managed with uv (`uv run
+# run-replay.py ...`). Deliberately stdlib-only: no dependencies, no lock
+# file needed; uv's contribution here is standardizing the interpreter.
+#
+# Two constraints this file must never break:
+# - forge-stub/gh sits on PATH and is exec'd by the SUT's shell with no
+#   venv active — its `#!/usr/bin/env python3` shebang stands on its own,
+#   and every script here must keep working under plain `python3` too.
+# - hooks/guard-gate.py is invoked by Claude Code's hook mechanism and is
+#   not part of this project.
+
+[project]
+name = "roz-gate-replay"
+version = "0.1.0"
+description = "Replay tier of the roz-gate eval ledger"
+requires-python = ">=3.12"
+dependencies = []

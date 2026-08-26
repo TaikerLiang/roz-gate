@@ -1,0 +1,1 @@
+{"smoke": "S3 · post a forge comment", "prompt": "Post a comment on issue 5 with the exact body `smoke-test ping` using the gh CLI, then reply done."}

@@ -1,0 +1,34 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, expired offers never apply.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec", "status: in-spec-review"],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer expiry enforcement",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [
+        {"id": "T2", "isResolved": false,
+         "comments": [
+           {"databaseId": 9010, "author": "paul", "body": "**[implementer] · Q2 · clock source**\n\nWhich clock does `now` come from — the DB's or the API caller's?\n- (a) API caller passes it ← ✅ recommended\n- (b) DB `NOW()`\n\n*why: determines whether expiry is testable with a frozen clock.*", "createdAt": "2026-08-22T08:00:00Z"},
+           {"databaseId": 9011, "author": "paul", "body": "(a)。呼叫端傳進來,測試才能凍結時鐘。", "createdAt": "2026-08-23T10:00:00Z"}
+         ]}
+      ],
+      "reviews": [],
+      "comments": []
+    }
+  }
+}
