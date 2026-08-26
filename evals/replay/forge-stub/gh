@@ -298,7 +298,22 @@ def main():
 
     # ---- gh api
     if argv[:1] == ["api"]:
-        rest = [a for a in argv[1:] if not a.startswith("-")]
+        # Options that consume a value: their VALUE is not a positional.
+        # (`-X POST repos/...` must yield target repos/..., never POST.)
+        VALUE_FLAGS = {"-X", "--method", "-f", "-F", "--field", "--raw-field",
+                       "-H", "--header", "--jq", "-q", "--input", "-t",
+                       "--template", "--hostname", "--cache", "-p", "--preview"}
+        rest, i = [], 1
+        while i < len(argv):
+            a = argv[i]
+            if a in VALUE_FLAGS:
+                i += 2
+                continue
+            if a.startswith("-"):
+                i += 1
+                continue
+            rest.append(a)
+            i += 1
         target = rest[0] if rest else ""
 
         if target == "graphql":

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# A4 sandbox: gated repo with the spec branch and docs present, so a
-# review-answers turn has artifacts to read.
+# C2 sandbox (A4's shape): gated repo with spec/5 and its docs; the CR
+# itself is CLOSED in the forge fixture — the no-blocked-exit case.
 set -eu
 bash "$(dirname "$0")/../../lib/seed-common.sh" "$1"
 git checkout -qb spec/5

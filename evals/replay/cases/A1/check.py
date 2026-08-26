@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from replaylib import Run, Checker
 
 r, c = Run(), Checker()
-c.expect("ledger A1 + patrol.md:56",
-         "the bare-✅ comment was classified unheard and acted on",
-         r.route_taken("5"))
+c.expect("ledger A1 + patrol.md:56 + review-answers.md:63 (cites the URL)",
+         "a marker reply binds to the bare-✅ comment itself",
+         r.item_bound_reply("#issuecomment-800", "邊界條件"))
 c.finish()

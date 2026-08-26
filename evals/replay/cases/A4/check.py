@@ -15,6 +15,9 @@ from replaylib import Run, Checker
 
 r, c = Run(), Checker()
 c.expect("ledger A4 + patrol.md:56 + review-answers.md:35",
-         "the pass acted on the unheard comment (lock taken or marker reply posted)",
+         "the pass acted on the unheard item (lock or marker reply)",
          r.route_taken("5"))
+c.expect("ledger A4 + review-answers.md:63 (cites the URL)",
+         "the reply binds to the three-day-old comment itself",
+         r.item_bound_reply("#issuecomment-800", "下單時間"))
 c.finish()

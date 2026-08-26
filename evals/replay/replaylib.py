@@ -73,6 +73,18 @@ class Run:
         return [c.get("body", "") for c in
                 self.state()["issues"][issue].get("comments", [])]
 
+    def item_bound_reply(self, *needles):
+        """A marker-prefixed reply whose body cites the ITEM it answers —
+        one of the given needles (the item's URL fragment or distinctive
+        fixture text). The A-group cases are about WHICH item was seen,
+        so the assertion binds to the item, never just the issue."""
+        return any(e.get("write")
+                   and e.get("route") in ("pr-comment", "thread-reply",
+                                          "thread-post-inline")
+                   and e.get("body", "").startswith(MARKERS)
+                   and any(n in e.get("body", "") for n in needles)
+                   for e in self.journal())
+
     def route_taken(self, issue):
         """The A-family predicate: the pass acted on the unheard item —
         the review-answers lock was taken on the issue, or a

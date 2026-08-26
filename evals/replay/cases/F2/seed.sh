@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# A4 sandbox: gated repo with the spec branch and docs present, so a
-# review-answers turn has artifacts to read.
+# F2 sandbox (A4's shape): gated repo with spec/5 and its docs, so the
+# review turn can answer all three channels from artifacts.
 set -eu
 bash "$(dirname "$0")/../../lib/seed-common.sh" "$1"
 git checkout -qb spec/5

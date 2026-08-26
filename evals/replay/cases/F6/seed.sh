@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# A4 sandbox: gated repo with the spec branch and docs present, so a
-# review-answers turn has artifacts to read.
+# F6 sandbox (A4's shape): gated repo with spec/5 and its docs; the
+# 12-turn driver injects a fresh unheard comment before each measured turn.
 set -eu
 bash "$(dirname "$0")/../../lib/seed-common.sh" "$1"
 git checkout -qb spec/5

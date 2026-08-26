@@ -13,7 +13,7 @@ from replaylib import Run, Checker
 r, c = Run(), Checker()
 c.expect("patrol.md:56", "CR-COMMENTS-LIST was actually read",
          any(e.get("route") == "cr-comments-list" for e in r.journal()))
-c.expect("ledger A3 + patrol.md:56",
-         "the unanswered top-level comment was classified unheard and acted on",
-         r.route_taken("5"))
+c.expect("ledger A3 + patrol.md:56 + review-answers.md:63 (cites the URL)",
+         "a marker reply binds to the top-level comment itself",
+         r.item_bound_reply("#issuecomment-800", "剛好過期"))
 c.finish()

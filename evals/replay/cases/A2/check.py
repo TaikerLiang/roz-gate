@@ -15,7 +15,7 @@ from replaylib import Run, Checker
 r, c = Run(), Checker()
 c.expect("patrol.md:56 + forge-github.md:114", "REVIEWS-LIST was actually read",
          any(e.get("route") == "reviews-list" for e in r.journal()))
-c.expect("ledger A2 + patrol.md:56",
-         "the body-only review was classified unheard and acted on",
-         r.route_taken("5"))
+c.expect("ledger A2 + patrol.md:56 + review-answers.md:63 (cites the URL)",
+         "a marker reply binds to the body-only review itself",
+         r.item_bound_reply("pullrequestreview-501", "tie-break"))
 c.finish()

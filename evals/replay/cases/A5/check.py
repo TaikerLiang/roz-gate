@@ -15,7 +15,7 @@ r, c = Run(), Checker()
 c.expect("patrol.md:56", "the fast CR's channels were read (CR 102, head fast/5)",
          any(e.get("route") == "cr-comments-list" and e.get("target") == "102"
              for e in r.journal()))
-c.expect("ledger A5 + patrol.md:56",
-         "the fast-track comment was detected and acted on",
-         r.route_taken("5"))
+c.expect("ledger A5 + patrol.md:56 + review-answers.md:63 (cites the URL)",
+         "a marker reply binds to the fast-track comment itself",
+         r.item_bound_reply("#issuecomment-810", "footer"))
 c.finish()

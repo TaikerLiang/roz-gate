@@ -18,6 +18,30 @@ from replaylib import Run, Checker
 r, c = Run(), Checker()
 c.expect("ledger F2 (counts are the assertion)",
          "exactly three marker-prefixed replies", r.marker_replies() == 3)
+
+# Codex review, PR #1: a count alone is spoofable — three replies to the
+# SAME thread passes while two items go unanswered. The mapping is the
+# assertion: each reply binds to a DISTINCT requested item, one per
+# channel (review-answers.md:63 — every write cites the URL of the
+# comment it answers). Items: inline thread databaseId 9001, review 501,
+# top-level comment 800.
+def one_reply_per_item():
+    thread_ok = sum(1 for e in r.journal()
+                    if e.get("route") == "thread-reply"
+                    and e.get("base") == 9001
+                    and e.get("body", "").startswith(("**[", "✅ ["))) == 1
+    top = [e.get("body", "") for e in r.journal()
+           if e.get("route") == "pr-comment" and e.get("write")
+           and e.get("body", "").startswith(("**[", "✅ ["))]
+    review_cited = sum(1 for b in top
+                       if "pullrequestreview-501" in b or "mid-session" in b)
+    comment_cited = sum(1 for b in top
+                        if "#issuecomment-800" in b or "now 參數" in b)
+    return thread_ok and review_cited == 1 and comment_cited == 1
+
+c.expect("ledger F2 + review-answers.md:63 (the mapping, not the total)",
+         "each reply binds to a distinct item across the three channels",
+         one_reply_per_item)
 c.expect("ledger F2 + review-answers.md:63", "zero threads resolved",
          r.journal_writes(r"^thread-resolve$") == 0)
 c.expect("review-answers.md:34-36", "lock taken and released (processing absent at end)",

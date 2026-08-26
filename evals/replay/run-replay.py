@@ -254,13 +254,13 @@ def aggregate(sut, report):
             r = load_json(os.path.join(d, run, "result.json"))
             if r is None:
                 continue
+            if not r.get("valid"):
+                inv += 1  # instrument runs included: an aborted session's
+                continue  # partial curve is never published
             if r.get("instrument_only"):
                 rows.append({"case": case, "run": run, "instrument": True,
                              "curve": r.get("curve", {}),
                              "tokens": r.get("tokens")})
-                continue
-            if not r.get("valid"):
-                inv += 1
                 continue
             n += 1
             p += 1 if r.get("pass") else 0
@@ -270,9 +270,17 @@ def aggregate(sut, report):
             usd += (r.get("cost") or {}).get("usd") or 0
         if n == 0 and inv == 0:
             continue
+        if n == 0:
+            # All iterations invalid: a harness failure, never a scored 0%
+            # — publishing it as a rate would break invalid-never-red.
+            rows.append({"case": case, "runs": 0, "passes": 0, "invalid": inv,
+                         "rate": None, "wilson90": None,
+                         "note": "unavailable — every iteration invalid",
+                         "tokens": {"in": tin, "out": tout}})
+            continue
         lo, hi = wilson90(p, n)
         rows.append({"case": case, "runs": n, "passes": p, "invalid": inv,
-                     "rate": round(p / n, 3) if n else 0.0,
+                     "rate": round(p / n, 3),
                      "wilson90": [round(lo, 3), round(hi, 3)],
                      "tokens": {"in": tin, "out": tout},
                      **({"cost_usd": round(usd, 4)} if sut["mode"] == "api"
@@ -296,6 +304,10 @@ def aggregate(sut, report):
     for r in rows:
         if r.get("instrument"):
             print("%-8s instrument-only  curve: %s" % (r["case"], r["curve"]))
+            continue
+        if r["rate"] is None:
+            print("%-8s n/a — every iteration invalid (%d invalid)"
+                  % (r["case"], r["invalid"]))
             continue
         extra = "  (%d invalid)" % r["invalid"] if r["invalid"] else ""
         print("%-8s %5.0f%% %3d  [%.0f%%,%.0f%%]      %d/%d%s"
