@@ -68,6 +68,11 @@ primary observation channel, alongside the session transcript
 bare remote (pushes are refs, nothing leaves the machine). An invocation
 matching no route **invalidates the iteration** — invalid, never red: a
 reach the fixture doesn't define is a fixture gap, not a model failure.
+Benign read-only probes (`--version`, `--help`, bare `gh`) are routed
+with canned output — a cautious SUT pokes the CLI before trusting it
+(the opus smoke gate died on a pre-flight `gh --version` around an
+otherwise perfect run); the UNKNOWN policy is untouched for writes and
+semantic reads.
 The same guard invalidates a session that never produced a result event,
 so an empty run can never pass a zero-writes case vacuously.
 

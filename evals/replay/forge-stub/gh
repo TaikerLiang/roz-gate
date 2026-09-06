@@ -8,8 +8,9 @@ tier's primary observation channel. Writes mutate state so a command
 that reads back its own write mid-run sees it (canned responses would
 desynchronize by step two).
 
-Routes cover exactly the operations references/forge-github.md names.
-An invocation matching no route exits 64 and journals route=UNKNOWN —
+Routes cover exactly the operations references/forge-github.md names,
+plus a small class of benign read-only probes (PROBES below). An
+invocation matching no route exits 64 and journals route=UNKNOWN —
 the runner fails the whole case on any UNKNOWN (a reach the fixture
 does not define is the same disease as a silent network reach). Nothing
 here touches the network, ever.
@@ -124,8 +125,53 @@ def next_id(st):
     return st["_id"]
 
 
+# Benign read-only probes — stateless, canned, journaled under a real
+# route name. A cautious SUT pokes the CLI before trusting it (observed:
+# opus ran `gh --version` at the smoke gate and was invalidated by the
+# UNKNOWN policy while completing the task perfectly). Only this class is
+# exempt; UNKNOWN stays exactly as-is for writes and semantic reads. The
+# canned output is realistic rather than stub-branded: the probe exists
+# because the SUT is sanity-checking its tools, and output that flags a
+# simulation invites exactly the off-script investigation these routes
+# absorb. Different SUTs probe differently — extend the list as
+# transcripts show new probe shapes.
+VERSION_TEXT = ("gh version 2.62.0 (2026-01-01)\n"
+                "https://github.com/cli/cli/releases/tag/v2.62.0")
+HELP_TEXT = """Work seamlessly with GitHub from the command line.
+
+USAGE
+  gh <command> <subcommand> [flags]
+
+CORE COMMANDS
+  api:         Make an authenticated GitHub API request
+  auth:        Authenticate gh and git with GitHub
+  issue:       Manage issues
+  label:       Manage labels
+  pr:          Manage pull requests
+  repo:        Manage repositories
+
+FLAGS
+  --help      Show help for command
+  --version   Show gh version"""
+
+PROBES = (
+    # (route, matcher, canned stdout, exit code)
+    ("probe-version",
+     lambda a: a[:1] in (["--version"], ["version"]), VERSION_TEXT, 0),
+    ("probe-help",
+     lambda a: "--help" in a or "-h" in a or a[:1] == ["help"], HELP_TEXT, 0),
+    ("probe-help",  # bare `gh` — usage + exit 1, like the real CLI
+     lambda a: not a, HELP_TEXT, 1),
+)
+
+
 def main():
     argv = sys.argv[1:]
+    for route, match, text, rc in PROBES:
+        if match(argv):
+            journal(route)
+            print(text)
+            sys.exit(rc)
     st = load()
 
     # ---- gh repo view --json owner,name
