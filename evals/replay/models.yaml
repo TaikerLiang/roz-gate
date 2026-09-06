@@ -1,0 +1,18 @@
+# SUT registry — model-portability benchmark rows.
+# name: {mode: subscription|api, model: <id>, base_url?: <url>, key_env?: <VAR>}
+# Keys live in env vars only: the registry holds variable NAMES, never values.
+#
+# opus is the fixed reference baseline (the protocol's ceiling reference, not
+# necessarily the production loop's current operator); fable is the current
+# operator's row. Both run on subscription auth.
+
+opus:  {mode: subscription, model: claude-opus-5}
+fable: {mode: subscription, model: claude-fable-5}
+
+# TODO — API rows via an OpenAI-compatible translation proxy (LiteLLM-shaped,
+# ANTHROPIC_BASE_URL). The runner's resolution already accommodates these;
+# the rows are unwired until the proxy exists. Never scored 0 on plumbing
+# failure — a row whose smoke gate fails is marked harness-incompatible.
+# gpt55:  {mode: api, model: gpt-5.5,  base_url: "http://localhost:4000", key_env: LITELLM_KEY}
+# qwen38: {mode: api, model: qwen3.8,  base_url: "http://localhost:4000", key_env: LITELLM_KEY}
+# glm52:  {mode: api, model: glm5.2,   base_url: "http://localhost:4000", key_env: LITELLM_KEY}

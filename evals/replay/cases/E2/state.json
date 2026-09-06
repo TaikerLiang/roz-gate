@@ -1,0 +1,16 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, I want expired offers excluded from my cart's pricing, so I am never charged a stale discount.\n\n**Acceptance criteria**\n- An offer past its `expires_at` is not applied to any price calculation.\n- Expiry takes effect without a deploy or cache flush.\n\n**Context**\nOffers live in the `offers` table; pricing happens in the checkout service.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec", "status: ready-for-spec"],
+      "createdAt": "2026-08-20T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {}
+}

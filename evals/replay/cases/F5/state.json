@@ -1,0 +1,35 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, expired offers never apply.\n\n**Acceptance criteria**\n- Expired offers are excluded from pricing.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec", "status: ready-for-dev"],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer expiry enforcement",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [
+        {"id": "T1", "isResolved": true,
+         "comments": [
+           {"databaseId": 9001, "author": "paul", "body": "**[em] · Q1 · lock strategy**\n\nRow lock or optimistic?\n- (a) row lock ← ✅ recommended\n- (b) optimistic\n\n*why: bounds contention.*", "createdAt": "2026-08-18T08:00:00Z"},
+           {"databaseId": 9002, "author": "paul", "body": "(a)", "createdAt": "2026-08-18T09:00:00Z"},
+           {"databaseId": 9003, "author": "paul", "body": "✅ [em] resolved — (a) row lock, folded into spec.md.", "createdAt": "2026-08-18T10:00:00Z"}
+         ]}
+      ],
+      "reviews": [],
+      "comments": []
+    }
+  }
+}

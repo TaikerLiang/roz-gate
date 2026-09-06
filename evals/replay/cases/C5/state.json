@@ -1,0 +1,56 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, expired offers never apply.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec", "status: in-spec-review"],
+      "createdAt": "2026-08-10T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer expiry enforcement",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [
+        {"id": "T1", "isResolved": false,
+         "comments": [
+           {"databaseId": 9001, "author": "paul", "body": "**[em] · Q3 · grace window**\n\nYour (7) comment says expiry feels too abrupt — should R4 gain a grace window?\n- (a) none, keep strict expiry\n- (b) 24h grace ← ✅ recommended\n\n*why: changes what R4 means, so it must be ruled here, not in the review thread.*", "createdAt": "2026-08-23T08:00:00Z"},
+           {"databaseId": 9002, "author": "paul", "body": "(b) 24h。到期後一天內結帳的還是算有效。", "createdAt": "2026-08-23T10:00:00Z"}
+         ]}
+      ],
+      "reviews": [],
+      "comments": []
+    },
+    "102": {
+      "number": 102,
+      "title": "feat: implement #5",
+      "state": "MERGED",
+      "isDraft": false,
+      "headRefName": "feat/5",
+      "baseRefName": "spec/5",
+      "threads": [],
+      "reviews": [],
+      "comments": []
+    },
+    "103": {
+      "number": 103,
+      "title": "test: #5 black-box (QA)",
+      "state": "MERGED",
+      "isDraft": false,
+      "headRefName": "qa/5",
+      "baseRefName": "spec/5",
+      "threads": [],
+      "reviews": [],
+      "comments": []
+    }
+  }
+}

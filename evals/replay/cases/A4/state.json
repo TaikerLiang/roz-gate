@@ -1,0 +1,30 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, expired offers never apply.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec", "status: in-user-review"],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer expiry enforcement",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [],
+      "reviews": [],
+      "comments": [
+        {"id": 800, "author": "paul", "body": "看起來可以。merge 之前想確認一件事:R4 的過期判斷是用下單時間還是結帳時間?", "created_at": "2026-08-21T08:00:00Z"}
+      ]
+    }
+  }
+}

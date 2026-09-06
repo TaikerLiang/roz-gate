@@ -1,0 +1,6 @@
+{
+  "ledger": "F2 · One review turn answers exactly what was asked",
+  "prompt": "/roz-gate:review-answers 5",
+  "k": 10,
+  "timeout": 1200
+}

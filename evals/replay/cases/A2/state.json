@@ -1,0 +1,32 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, expired offers never apply.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec", "status: in-user-review"],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer expiry enforcement",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [],
+      "reviews": [
+        {"id": 501, "state": "CHANGES_REQUESTED",
+         "body": "R4 needs a tie-break: an offer expiring exactly at the pricing instant — in or out? Blocking until the spec says.",
+         "author": "paul", "submitted_at": "2026-08-22T08:00:00Z"}
+      ],
+      "comments": []
+    }
+  }
+}

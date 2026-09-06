@@ -1,0 +1,1 @@
+{"smoke": "S2 · run a command", "prompt": "Run `git rev-parse --abbrev-ref HEAD` in this repository and reply with exactly the branch name it prints, nothing else."}

@@ -1,0 +1,39 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, expired offers never apply.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec", "status: in-user-review"],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer expiry enforcement",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [
+        {"id": "T1", "isResolved": false,
+         "comments": [
+           {"databaseId": 9001, "author": "paul", "body": "R4 這行的 read time 是指哪個時鐘?DB 的還是 API 的?", "createdAt": "2026-08-22T08:00:00Z"}
+         ]}
+      ],
+      "reviews": [
+        {"id": 501, "state": "COMMENTED",
+         "body": "Overall fine. One worry: S1 only covers yesterday-expired; what about expiring mid-session?",
+         "author": "paul", "submitted_at": "2026-08-22T08:30:00Z"}
+      ],
+      "comments": [
+        {"id": 800, "author": "paul", "body": "從手機留言:文件裡 technical-spec 的 now 參數是誰決定的?", "created_at": "2026-08-22T09:00:00Z"}
+      ]
+    }
+  }
+}

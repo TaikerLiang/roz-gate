@@ -1,0 +1,483 @@
+#!/usr/bin/env python3
+"""Stateful GitHub forge stub for the replay tier.
+
+Shadows the real `gh` via PATH inside a replay sandbox. State lives in
+$FORGE_STATE/state.json (seeded from the case fixture); every invocation
+appends one line to $FORGE_STATE/journal.jsonl — the journal is the
+tier's primary observation channel. Writes mutate state so a command
+that reads back its own write mid-run sees it (canned responses would
+desynchronize by step two).
+
+Routes cover exactly the operations references/forge-github.md names.
+An invocation matching no route exits 64 and journals route=UNKNOWN —
+the runner fails the whole case on any UNKNOWN (a reach the fixture
+does not define is the same disease as a silent network reach). Nothing
+here touches the network, ever.
+"""
+
+import json
+import os
+import re
+import sys
+
+STATE_DIR = os.environ.get("FORGE_STATE")
+if not STATE_DIR:
+    sys.stderr.write("forge-stub: FORGE_STATE not set\n")
+    sys.exit(64)
+STATE = os.path.join(STATE_DIR, "state.json")
+JOURNAL = os.path.join(STATE_DIR, "journal.jsonl")
+
+
+def load():
+    with open(STATE, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save(st):
+    with open(STATE, "w", encoding="utf-8") as f:
+        json.dump(st, f, indent=1)
+
+
+def journal(route, write=False, **kw):
+    entry = {"route": route, "write": write, "argv": sys.argv[1:]}
+    entry.update(kw)
+    with open(JOURNAL, "a", encoding="utf-8") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+
+def out(obj):
+    print(json.dumps(obj, ensure_ascii=False))
+
+
+def unknown(why):
+    journal("UNKNOWN", note=why)
+    sys.stderr.write("forge-stub: no route for: gh %s (%s)\n"
+                     % (" ".join(sys.argv[1:]), why))
+    sys.exit(64)
+
+
+def flag_val(argv, *names):
+    for i, a in enumerate(argv):
+        for n in names:
+            if a == n and i + 1 < len(argv):
+                return argv[i + 1]
+            if a.startswith(n + "="):
+                return a.split("=", 1)[1]
+    return None
+
+
+def flag_vals(argv, *names):
+    vals = []
+    for i, a in enumerate(argv):
+        for n in names:
+            if a == n and i + 1 < len(argv):
+                vals.append(argv[i + 1])
+            elif a.startswith(n + "="):
+                vals.append(a.split("=", 1)[1])
+    return vals
+
+
+def api_fields(argv):
+    """-f/-F key=value pairs of a gh api call."""
+    fields = {}
+    for i, a in enumerate(argv):
+        if a in ("-f", "-F", "--field", "--raw-field") and i + 1 < len(argv):
+            kv = argv[i + 1]
+            if "=" in kv:
+                k, v = kv.split("=", 1)
+                fields[k] = v
+    return fields
+
+
+def issue_shape(n, iss, want):
+    full = {
+        "number": int(n),
+        "title": iss.get("title", ""),
+        "body": iss.get("body", ""),
+        "labels": [{"name": l} for l in iss.get("labels", [])],
+        "assignees": [{"login": a} for a in iss.get("assignees", [])],
+        "author": {"login": iss.get("author", "")},
+        "createdAt": iss.get("createdAt", "2026-08-01T00:00:00Z"),
+        "comments": [
+            {"id": c.get("id"), "author": {"login": c.get("author", "")},
+             "body": c.get("body", ""), "createdAt": c.get("createdAt", "")}
+            for c in iss.get("comments", [])
+        ],
+    }
+    return {k: v for k, v in full.items() if not want or k in want}
+
+
+def pr_shape(pr, want):
+    full = {
+        "number": pr.get("number"),
+        "title": pr.get("title", ""),
+        "isDraft": pr.get("isDraft", False),
+        "state": pr.get("state", "OPEN"),
+        "headRefName": pr.get("headRefName", ""),
+        "baseRefName": pr.get("baseRefName", ""),
+    }
+    return {k: v for k, v in full.items() if not want or k in want}
+
+
+def next_id(st):
+    st["_id"] = st.get("_id", 1000) + 1
+    return st["_id"]
+
+
+def main():
+    argv = sys.argv[1:]
+    st = load()
+
+    # ---- gh repo view --json owner,name
+    if argv[:2] == ["repo", "view"]:
+        journal("repo-view")
+        repo = st.get("repo", {})
+        out({"owner": {"login": repo.get("owner", "acme")},
+             "name": repo.get("name", "demo")})
+        return
+
+    # ---- gh auth status
+    if argv[:2] == ["auth", "status"]:
+        journal("auth-status")
+        print("Logged in (forge-stub)")
+        return
+
+    # ---- issues
+    if argv[:2] == ["issue", "list"]:
+        journal("issue-list")
+        want = (flag_val(argv, "--json") or "").split(",")
+        label = flag_val(argv, "--label")
+        rows = []
+        for n, iss in sorted(st.get("issues", {}).items(), key=lambda x: int(x[0])):
+            if iss.get("state", "open") != "open":
+                continue
+            if label and label not in iss.get("labels", []):
+                continue
+            rows.append(issue_shape(n, iss, want))
+        out(rows)
+        return
+
+    if argv[:2] == ["issue", "view"]:
+        n = argv[2]
+        if n not in st.get("issues", {}):
+            unknown("issue %s not in fixture" % n)
+        journal("issue-view", issue=n)
+        want = (flag_val(argv, "--json") or "").split(",")
+        out(issue_shape(n, st["issues"][n], want))
+        return
+
+    if argv[:2] == ["issue", "edit"]:
+        n = argv[2]
+        if n not in st.get("issues", {}):
+            unknown("issue %s not in fixture" % n)
+        iss = st["issues"][n]
+        added = flag_vals(argv, "--add-label")
+        removed = flag_vals(argv, "--remove-label")
+        body = flag_val(argv, "--body")
+        for l in added:
+            if l not in iss.setdefault("labels", []):
+                iss["labels"].append(l)
+        for l in removed:
+            if l in iss.get("labels", []):
+                iss["labels"].remove(l)
+        if body is not None:
+            iss["body"] = body
+        journal("issue-edit", write=True, issue=n, add=added, remove=removed,
+                body_edit=body is not None)
+        save(st)
+        return
+
+    if argv[:2] == ["issue", "comment"]:
+        n = argv[2]
+        body = flag_val(argv, "--body", "-b") or ""
+        cid = next_id(st)
+        # GitHub semantics: every PR is an issue — `gh issue comment <pr>`
+        # legally lands a top-level PR comment.
+        if n in st.get("prs", {}):
+            st["prs"][n].setdefault("comments", []).append(
+                {"id": cid, "author": st.get("agent_login", "paul"),
+                 "body": body, "created_at": "2026-08-24T12:00:00Z"})
+            journal("pr-comment", write=True, pr=n, body=body, via="issue-comment")
+        elif n in st.get("issues", {}):
+            st["issues"][n].setdefault("comments", []).append(
+                {"id": cid, "author": st.get("agent_login", "paul"),
+                 "body": body, "createdAt": "2026-08-24T12:00:00Z"})
+            journal("issue-comment", write=True, issue=n, body=body)
+        else:
+            unknown("issue %s not in fixture" % n)
+        save(st)
+        print("https://github.com/x/y/issues/%s#issuecomment-%d" % (n, cid))
+        return
+
+    if argv[:2] == ["issue", "create"]:
+        title = flag_val(argv, "--title") or ""
+        body = flag_val(argv, "--body") or ""
+        n = str(max([int(k) for k in st.get("issues", {})] + [0]) + 1)
+        st.setdefault("issues", {})[n] = {
+            "title": title, "body": body, "labels": flag_vals(argv, "--label"),
+            "assignees": flag_vals(argv, "--assignee"),
+            "author": st.get("agent_login", "paul"), "comments": []}
+        journal("issue-create", write=True, issue=n, title=title)
+        save(st)
+        print("https://github.com/x/y/issues/%s" % n)
+        return
+
+    # ---- pull requests
+    if argv[:2] == ["pr", "list"]:
+        journal("pr-list", state=flag_val(argv, "--state") or "open")
+        want = (flag_val(argv, "--json") or "").split(",")
+        head = flag_val(argv, "--head")
+        state = (flag_val(argv, "--state") or "open").lower()
+        rows = []
+        for pr in st.get("prs", {}).values():
+            if head and pr.get("headRefName") != head:
+                continue
+            pr_state = pr.get("state", "OPEN").lower()
+            if state != "all" and pr_state != state:
+                continue
+            rows.append(pr_shape(pr, want))
+        out(rows)
+        return
+
+    if argv[:2] == ["pr", "view"]:
+        n = argv[2]
+        pr = st.get("prs", {}).get(n)
+        if not pr:
+            unknown("pr %s not in fixture" % n)
+        journal("pr-view", pr=n)
+        want = (flag_val(argv, "--json") or "").split(",")
+        out(pr_shape(pr, want))
+        return
+
+    if argv[:2] == ["pr", "create"]:
+        n = str(max([int(k) for k in st.get("prs", {})] + [100]) + 1)
+        st.setdefault("prs", {})[n] = {
+            "number": int(n), "title": flag_val(argv, "--title") or "",
+            "body": flag_val(argv, "--body") or "",
+            "state": "OPEN", "isDraft": "--draft" in argv,
+            "headRefName": flag_val(argv, "--head") or "",
+            "baseRefName": flag_val(argv, "--base") or "",
+            "threads": [], "reviews": [], "comments": []}
+        journal("pr-create", write=True, pr=n,
+                head=flag_val(argv, "--head"), draft="--draft" in argv)
+        save(st)
+        print("https://github.com/x/y/pull/%s" % n)
+        return
+
+    if argv[:2] == ["pr", "ready"]:
+        n = argv[2]
+        if n not in st.get("prs", {}):
+            unknown("pr %s not in fixture" % n)
+        st["prs"][n]["isDraft"] = False
+        journal("pr-ready", write=True, pr=n)
+        save(st)
+        return
+
+    if argv[:2] == ["pr", "comment"]:
+        n = argv[2]
+        if n not in st.get("prs", {}):
+            unknown("pr %s not in fixture" % n)
+        body = flag_val(argv, "--body", "-b") or ""
+        cid = next_id(st)
+        st["prs"][n].setdefault("comments", []).append(
+            {"id": cid, "author": st.get("agent_login", "paul"),
+             "body": body, "created_at": "2026-08-24T12:00:00Z"})
+        journal("pr-comment", write=True, pr=n, body=body)
+        save(st)
+        print("https://github.com/x/y/pull/%s#issuecomment-%d" % (n, cid))
+        return
+
+    if argv[:2] == ["pr", "merge"]:
+        n = argv[2]
+        if n not in st.get("prs", {}):
+            unknown("pr %s not in fixture" % n)
+        st["prs"][n]["state"] = "MERGED"
+        journal("pr-merge", write=True, pr=n)
+        save(st)
+        return
+
+    # ---- gh api
+    if argv[:1] == ["api"]:
+        # Options that consume a value: their VALUE is not a positional.
+        # (`-X POST repos/...` must yield target repos/..., never POST.)
+        VALUE_FLAGS = {"-X", "--method", "-f", "-F", "--field", "--raw-field",
+                       "-H", "--header", "--jq", "-q", "--input", "-t",
+                       "--template", "--hostname", "--cache", "-p", "--preview"}
+        rest, i = [], 1
+        while i < len(argv):
+            a = argv[i]
+            if a in VALUE_FLAGS:
+                i += 2
+                continue
+            if a.startswith("-"):
+                i += 1
+                continue
+            rest.append(a)
+            i += 1
+        target = rest[0] if rest else ""
+
+        if target == "graphql":
+            q = flag_val(argv, "-f", "--field") or ""
+            for i, a in enumerate(argv):  # -f query='...' arrives as one token
+                if a in ("-f", "--field") and i + 1 < len(argv) \
+                        and argv[i + 1].startswith("query="):
+                    q = argv[i + 1].split("=", 1)[1]
+            fields = api_fields(argv)
+            if "reviewThreads" in q:
+                pr = fields.get("pr") or fields.get("number")
+                prd = st.get("prs", {}).get(str(pr))
+                if not prd:
+                    unknown("graphql threads: pr %s not in fixture" % pr)
+                journal("threads-list", pr=str(pr))
+                nodes = [{"id": t.get("id"), "isResolved": t.get("isResolved", False),
+                          "comments": {"nodes": [
+                              {"databaseId": c.get("databaseId"),
+                               "body": c.get("body", ""),
+                               "author": {"login": c.get("author", "")},
+                               "createdAt": c.get("createdAt", "")}
+                              for c in t.get("comments", [])]}}
+                         for t in prd.get("threads", [])]
+                out({"data": {"repository": {"pullRequest":
+                    {"reviewThreads": {"nodes": nodes}}}}})
+                return
+            if "resolveReviewThread" in q:
+                tid = fields.get("t") or fields.get("threadId")
+                for pr in st.get("prs", {}).values():
+                    for t in pr.get("threads", []):
+                        if t.get("id") == tid:
+                            t["isResolved"] = True
+                            journal("thread-resolve", write=True, thread=tid)
+                            save(st)
+                            out({"data": {"resolveReviewThread":
+                                {"thread": {"isResolved": True}}}})
+                            return
+                unknown("resolve: thread %s not in fixture" % tid)
+            unknown("graphql query not routed")
+
+        m = re.match(r"repos/[^/]+/[^/]+/pulls/(\d+)/reviews$", target)
+        if m:
+            pr = st.get("prs", {}).get(m.group(1))
+            if pr is None:
+                unknown("reviews: pr %s not in fixture" % m.group(1))
+            journal("reviews-list", pr=m.group(1))
+            rows = [{"id": r.get("id"), "state": r.get("state"),
+                     "body": r.get("body", ""),
+                     "author": r.get("author", ""),
+                     "submitted_at": r.get("submitted_at", "")}
+                    for r in pr.get("reviews", [])]
+            if flag_val(argv, "--jq"):
+                for r in rows:
+                    out(r)
+            else:
+                out([{"id": r["id"], "state": r["state"], "body": r["body"],
+                      "user": {"login": r["author"]},
+                      "submitted_at": r["submitted_at"]} for r in rows])
+            return
+
+        m = re.match(r"repos/[^/]+/[^/]+/issues/(\d+)/comments$", target)
+        if m and flag_val(argv, "-X") == "POST":
+            # POST to the issues comments endpoint = top-level comment write
+            # (works for PRs too — they are issues).
+            n = m.group(1)
+            fields = api_fields(argv)
+            cid = next_id(st)
+            tgt = st.get("prs", {}).get(n) or st.get("issues", {}).get(n)
+            if tgt is None:
+                unknown("comments POST: %s not in fixture" % n)
+            key = "created_at" if n in st.get("prs", {}) else "createdAt"
+            tgt.setdefault("comments", []).append(
+                {"id": cid, "author": st.get("agent_login", "paul"),
+                 "body": fields.get("body", ""), key: "2026-08-24T12:00:00Z"})
+            journal("pr-comment" if n in st.get("prs", {}) else "issue-comment",
+                    write=True, pr=n, body=fields.get("body", ""), via="api")
+            save(st)
+            out({"id": cid})
+            return
+
+        m = re.match(r"repos/[^/]+/[^/]+/issues/(\d+)/comments$", target)
+        if m:
+            n = m.group(1)
+            src = st.get("prs", {}).get(n) or st.get("issues", {}).get(n)
+            if src is None:
+                unknown("comments: %s not in fixture" % n)
+            journal("cr-comments-list", target=n)
+            rows = [{"id": c.get("id"), "body": c.get("body", ""),
+                     "author": c.get("author", ""),
+                     "created_at": c.get("created_at", c.get("createdAt", "")),
+                     "html_url": "https://github.com/x/y/pull/%s#issuecomment-%s"
+                                 % (n, c.get("id"))}
+                    for c in src.get("comments", [])]
+            if flag_val(argv, "--jq"):
+                for r in rows:
+                    out(r)
+            else:
+                out(rows)
+            return
+
+        m = re.match(r"repos/[^/]+/[^/]+/pulls/(\d+)/comments$", target)
+        if m and "-X" in argv and flag_val(argv, "-X") == "POST":
+            n = m.group(1)
+            if n not in st.get("prs", {}):
+                unknown("thread-post: pr %s not in fixture" % n)
+            fields = api_fields(argv)
+            cid = next_id(st)
+            st["prs"][n].setdefault("threads", []).append(
+                {"id": "T%d" % cid, "isResolved": False,
+                 "path": fields.get("path"), "line": fields.get("line"),
+                 "comments": [{"databaseId": cid,
+                               "author": st.get("agent_login", "paul"),
+                               "body": fields.get("body", ""),
+                               "createdAt": "2026-08-24T12:00:00Z"}]})
+            journal("thread-post-inline", write=True, pr=n,
+                    body=fields.get("body", ""), path=fields.get("path"))
+            save(st)
+            out({"id": cid})
+            return
+
+        m = re.match(r"repos/[^/]+/[^/]+/pulls/(\d+)/comments/(\d+)/replies$",
+                     target)
+        if m:
+            n, base = m.group(1), int(m.group(2))
+            fields = api_fields(argv)
+            for t in st.get("prs", {}).get(n, {}).get("threads", []):
+                if any(c.get("databaseId") == base for c in t.get("comments", [])):
+                    cid = next_id(st)
+                    t["comments"].append(
+                        {"databaseId": cid,
+                         "author": st.get("agent_login", "paul"),
+                         "body": fields.get("body", ""),
+                         "createdAt": "2026-08-24T12:00:00Z"})
+                    journal("thread-reply", write=True, pr=n, base=base,
+                            body=fields.get("body", ""))
+                    save(st)
+                    out({"id": cid})
+                    return
+            unknown("reply: comment %d not in fixture" % base)
+
+        m = re.match(r"repos/[^/]+/[^/]+/issues/comments/(\d+)$", target)
+        if m and flag_val(argv, "-X") == "PATCH":
+            cid = int(m.group(1))
+            fields = api_fields(argv)
+            for coll in (st.get("issues", {}), st.get("prs", {})):
+                for item in coll.values():
+                    for c in item.get("comments", []):
+                        if c.get("id") == cid:
+                            c["body"] = fields.get("body", c.get("body"))
+                            journal("comment-edit", write=True, comment=cid,
+                                    body=fields.get("body", ""))
+                            save(st)
+                            out({"id": cid})
+                            return
+            unknown("comment-edit: %d not in fixture" % cid)
+
+        unknown("api target not routed: %s" % target)
+
+    # ---- label create (init only; accept and journal)
+    if argv[:2] == ["label", "create"]:
+        journal("label-create", write=True, label=argv[2] if len(argv) > 2 else "")
+        return
+
+    unknown("no matching route")
+
+
+main()

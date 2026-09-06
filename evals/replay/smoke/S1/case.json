@@ -1,0 +1,1 @@
+{"smoke": "S1 · read a file", "prompt": "Read the file NOTES.md in this repository and reply with exactly the code word it contains, nothing else."}

@@ -1,0 +1,49 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, expired offers never apply.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec", "status: in-user-review"],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": []
+    },
+    "7": {
+      "title": "Idea: bulk CSV import",
+      "body": "Rough idea: let admins import offers from CSV.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": [],
+      "createdAt": "2026-08-20T09:00:00Z",
+      "comments": [
+        {"id": 700, "author": "paul", "body": "Would save the team a lot of manual entry.", "createdAt": "2026-08-20T10:00:00Z"},
+        {"id": 701, "author": "paul", "body": "**[intake]**\n\n3 questions — when it settles the assignee comments `summary`.\n\n**Q1 · Scope** — one sentence?\n- (a) full CSV ← ✅ recommended\n- (b) subset\n\n*why: bounds the parser.*", "createdAt": "2026-08-20T11:00:00Z"}
+      ]
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer expiry enforcement",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [
+        {"id": "T1", "isResolved": false,
+         "comments": [
+           {"databaseId": 9001, "author": "paul", "body": "Should R4 also cover grace periods?", "createdAt": "2026-08-22T08:00:00Z"},
+           {"databaseId": 9002, "author": "paul", "body": "**[review] · question**\n\nR4 · Expired offers don't count — do you want a grace window, (a) none ← ✅ recommended, (b) 24h?\n\n*why: changes the contract.*", "createdAt": "2026-08-22T09:00:00Z"}
+         ]}
+      ],
+      "reviews": [],
+      "comments": [
+        {"id": 800, "author": "paul", "body": "Looks close. One question in the thread.", "created_at": "2026-08-22T07:00:00Z"},
+        {"id": 801, "author": "paul", "body": "✅ [review] resolved — noted, waiting on your grace-window ruling in the thread.", "created_at": "2026-08-22T09:30:00Z"}
+      ]
+    }
+  }
+}
