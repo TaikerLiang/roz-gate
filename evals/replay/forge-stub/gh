@@ -39,11 +39,48 @@ def save(st):
         json.dump(st, f, indent=1)
 
 
+# Where the last body came from, when not inline: "file" | "stdin" |
+# "input-file". Set by read_body_file / api_fields, attached to the next
+# journal entry as body_from — diagnostics only; the body field itself
+# always carries the CONTENT (rule C's --body-file hole, stub instance:
+# a journal that records `@/tmp/x.md` or "" where the forge received a
+# marker-prefixed reply blinds every checker downstream).
+BODY_ORIGIN = {"origin": None}
+
+
 def journal(route, write=False, **kw):
     entry = {"route": route, "write": write, "argv": sys.argv[1:]}
+    if BODY_ORIGIN["origin"]:
+        entry["body_from"] = BODY_ORIGIN["origin"]
     entry.update(kw)
     with open(JOURNAL, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+
+def read_body_file(path, origin="file"):
+    """Contents behind gh's file conventions; `-` reads stdin. A missing
+    file is journaled as its own condition and errors like the real CLI —
+    never silently an empty body."""
+    if path == "-":
+        BODY_ORIGIN["origin"] = "stdin"
+        return sys.stdin.read()
+    try:
+        with open(path, encoding="utf-8") as f:
+            BODY_ORIGIN["origin"] = origin
+            return f.read()
+    except OSError:
+        journal("body-file-missing", path=path)
+        sys.stderr.write("forge-stub: could not read body file: %s\n" % path)
+        sys.exit(1)
+
+
+def body_arg(argv):
+    """Body of an issue/pr command: --body/-b inline, or --body-file/-F
+    <path> (gh reads the file; `-` = stdin). None when neither is given."""
+    path = flag_val(argv, "--body-file", "-F")
+    if path is not None:
+        return read_body_file(path)
+    return flag_val(argv, "--body", "-b")
 
 
 def out(obj):
@@ -79,13 +116,32 @@ def flag_vals(argv, *names):
 
 
 def api_fields(argv):
-    """-f/-F key=value pairs of a gh api call."""
+    """-f/-F key=value pairs of a gh api call, plus --input.
+
+    -F/--field resolves gh's @file / @- convention (the value is the
+    file's contents); -f/--raw-field stays LITERAL, as in the real CLI —
+    resolving a raw field would journal content the real forge never
+    received, and the instrument must not lie in either direction.
+    --input <file|-> is a JSON request body; its keys merge in under any
+    explicit fields."""
     fields = {}
+    inp = flag_val(argv, "--input")
+    if inp is not None:
+        try:
+            parsed = json.loads(read_body_file(inp, origin="input-file"))
+            if isinstance(parsed, dict):
+                fields.update(parsed)
+        except ValueError:
+            journal("input-file-unparseable", path=inp)
+            sys.stderr.write("forge-stub: --input is not JSON: %s\n" % inp)
+            sys.exit(1)
     for i, a in enumerate(argv):
         if a in ("-f", "-F", "--field", "--raw-field") and i + 1 < len(argv):
             kv = argv[i + 1]
             if "=" in kv:
                 k, v = kv.split("=", 1)
+                if a in ("-F", "--field") and v.startswith("@"):
+                    v = read_body_file(v[1:])
                 fields[k] = v
     return fields
 
@@ -219,7 +275,7 @@ def main():
         iss = st["issues"][n]
         added = flag_vals(argv, "--add-label")
         removed = flag_vals(argv, "--remove-label")
-        body = flag_val(argv, "--body")
+        body = body_arg(argv)
         for l in added:
             if l not in iss.setdefault("labels", []):
                 iss["labels"].append(l)
@@ -235,7 +291,7 @@ def main():
 
     if argv[:2] == ["issue", "comment"]:
         n = argv[2]
-        body = flag_val(argv, "--body", "-b") or ""
+        body = body_arg(argv) or ""
         cid = next_id(st)
         # GitHub semantics: every PR is an issue — `gh issue comment <pr>`
         # legally lands a top-level PR comment.
@@ -257,7 +313,7 @@ def main():
 
     if argv[:2] == ["issue", "create"]:
         title = flag_val(argv, "--title") or ""
-        body = flag_val(argv, "--body") or ""
+        body = body_arg(argv) or ""
         n = str(max([int(k) for k in st.get("issues", {})] + [0]) + 1)
         st.setdefault("issues", {})[n] = {
             "title": title, "body": body, "labels": flag_vals(argv, "--label"),
@@ -299,7 +355,7 @@ def main():
         n = str(max([int(k) for k in st.get("prs", {})] + [100]) + 1)
         st.setdefault("prs", {})[n] = {
             "number": int(n), "title": flag_val(argv, "--title") or "",
-            "body": flag_val(argv, "--body") or "",
+            "body": body_arg(argv) or "",
             "state": "OPEN", "isDraft": "--draft" in argv,
             "headRefName": flag_val(argv, "--head") or "",
             "baseRefName": flag_val(argv, "--base") or "",
@@ -323,7 +379,7 @@ def main():
         n = argv[2]
         if n not in st.get("prs", {}):
             unknown("pr %s not in fixture" % n)
-        body = flag_val(argv, "--body", "-b") or ""
+        body = body_arg(argv) or ""
         cid = next_id(st)
         st["prs"][n].setdefault("comments", []).append(
             {"id": cid, "author": st.get("agent_login", "paul"),

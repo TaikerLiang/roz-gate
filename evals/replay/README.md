@@ -76,6 +76,21 @@ semantic reads.
 The same guard invalidates a session that never produced a result event,
 so an empty run can never pass a zero-writes case vacuously.
 
+Bodies passed by reference — `--body-file <path|->`, `-F body=@path`,
+`--input <file>` — are resolved at write time and journaled as
+**content** (tagged `body_from`; a missing file is its own journaled
+condition, never a silent empty body). A journal recording
+`@/tmp/x.md` or `""` where the forge received a marker-prefixed reply
+blinds every checker downstream: in the first live opus sweep, 7 of 8
+recorded A1/A2 failures were exactly this, not non-compliance. This is
+the third instance of one defect class — content read through an
+indirection the instrument doesn't follow — after guard-gate's
+`--body-file` hole (caught in the v1.14.0 review) and the prose greps'
+fix-landed-where-written-not-read (lint B1). Each fix landed on an
+instance; when touching any component that reads agent-produced text,
+audit it for the class: every spelling that can carry a body off the
+command line.
+
 **Blindness**: every assertion derives from the ledger case text and the
 prose that owns the behaviour, cited inline (`# source:`) in each case's `check.py` with the quoted
 rule; the runner refuses an uncited checker, and the checkers land in a
