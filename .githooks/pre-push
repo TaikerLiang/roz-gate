@@ -6,6 +6,12 @@ BEHAVIOR_PATHS="agents commands references templates"
 PLUGIN_JSON=".claude-plugin/plugin.json"
 ZERO=0000000000000000000000000000000000000000
 
+# Hook-time git exports GIT_DIR; the suites below create sandbox repos
+# whose git calls must never act on THIS repo (a push from a linked
+# worktree false-fails 4 hook tests otherwise). The gate's own git
+# commands below resolve fine from the working directory.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
+
 # Release gate: the hook unit tests and the eval ledger's lint tier must be
 # green on every push (both are sub-second; --no-verify is the human
 # override, CI the backstop).

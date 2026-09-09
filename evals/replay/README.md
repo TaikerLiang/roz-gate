@@ -74,7 +74,12 @@ with canned output — a cautious SUT pokes the CLI before trusting it
 otherwise perfect run); the UNKNOWN policy is untouched for writes and
 semantic reads.
 The same guard invalidates a session that never produced a result event,
-so an empty run can never pass a zero-writes case vacuously.
+so an empty run can never pass a zero-writes case vacuously — and a
+session whose result event IS an error (quota/limit banner, `is_error`,
+zero tokens consumed) is invalid, never a FAIL: the live opus sweep
+scored 45 quota-exhausted iterations as "0% compliance" before this
+guard existed. A quota-exhausted iteration also stops the sweep on the
+spot; resumability makes the restart free.
 
 Bodies passed by reference — `--body-file <path|->`, `-F body=@path`,
 `--input <file>` — are resolved at write time and journaled as
