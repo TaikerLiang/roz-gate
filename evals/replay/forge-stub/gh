@@ -19,6 +19,7 @@ here touches the network, ever.
 import json
 import os
 import re
+import subprocess
 import sys
 
 STATE_DIR = os.environ.get("FORGE_STATE")
@@ -164,9 +165,51 @@ def issue_shape(n, iss, want):
     return {k: v for k, v in full.items() if not want or k in want}
 
 
+# Real gh accepts a head branch name (or nothing — the current branch)
+# wherever it accepts a PR number; the live sweep's biggest invalid class
+# (C5 5/5, 29 iterations total) was branch-name lookups the stub refused.
+PR_VALUE_FLAGS = {"--json", "-q", "--jq", "-t", "--template", "--repo", "-R"}
+
+
+def positional(argv, start):
+    """First non-flag token, skipping value-taking flags."""
+    i = start
+    while i < len(argv):
+        a = argv[i]
+        if a in PR_VALUE_FLAGS:
+            i += 2
+            continue
+        if a.startswith("-"):
+            i += 1
+            continue
+        return a
+    return None
+
+
+def current_branch():
+    try:
+        r = subprocess.run(["git", "branch", "--show-current"],
+                           capture_output=True, text=True)
+        return r.stdout.strip() or None
+    except OSError:
+        return None
+
+
+def pr_lookup(st, sel):
+    """(number, pr) by PR number or head branch name; (None, None) if absent."""
+    prs = st.get("prs", {})
+    if sel in prs:
+        return sel, prs[sel]
+    for n, pr in prs.items():
+        if pr.get("headRefName") == sel:
+            return n, pr
+    return None, None
+
+
 def pr_shape(pr, want):
     full = {
         "number": pr.get("number"),
+        "url": "https://github.com/x/y/pull/%s" % pr.get("number"),
         "title": pr.get("title", ""),
         "isDraft": pr.get("isDraft", False),
         "state": pr.get("state", "OPEN"),
@@ -342,13 +385,39 @@ def main():
         return
 
     if argv[:2] == ["pr", "view"]:
-        n = argv[2]
-        pr = st.get("prs", {}).get(n)
-        if not pr:
-            unknown("pr %s not in fixture" % n)
+        sel = positional(argv, 2)
+        if sel is None:
+            sel = current_branch()
+        n, pr = pr_lookup(st, sel or "")
+        if pr is None:
+            if sel is not None and sel.isdigit():
+                unknown("pr %s not in fixture" % sel)
+            # branch-name / current-branch miss: the real CLI answer is
+            # "no PR", not a fixture gap — journal it, error like gh
+            journal("pr-view-nomatch", selector=sel)
+            sys.stderr.write("no pull requests found for branch %s\n" % sel)
+            sys.exit(1)
         journal("pr-view", pr=n)
         want = (flag_val(argv, "--json") or "").split(",")
         out(pr_shape(pr, want))
+        return
+
+    # ---- gh pr diff <number|branch> — read-only; the sandbox repo has the
+    # real branches, so the honest answer is git's own diff
+    if argv[:2] == ["pr", "diff"]:
+        sel = positional(argv, 2) or current_branch()
+        n, pr = pr_lookup(st, sel or "")
+        if pr is None:
+            unknown("pr %s not in fixture" % sel)
+        journal("pr-diff", pr=n)
+        try:
+            d = subprocess.run(
+                ["git", "diff", "%s...%s" % (pr.get("baseRefName", ""),
+                                             pr.get("headRefName", ""))],
+                capture_output=True, text=True)
+            sys.stdout.write(d.stdout)
+        except OSError:
+            pass
         return
 
     if argv[:2] == ["pr", "create"]:
@@ -367,18 +436,18 @@ def main():
         return
 
     if argv[:2] == ["pr", "ready"]:
-        n = argv[2]
-        if n not in st.get("prs", {}):
-            unknown("pr %s not in fixture" % n)
+        n, _pr = pr_lookup(st, argv[2])
+        if n is None:
+            unknown("pr %s not in fixture" % argv[2])
         st["prs"][n]["isDraft"] = False
         journal("pr-ready", write=True, pr=n)
         save(st)
         return
 
     if argv[:2] == ["pr", "comment"]:
-        n = argv[2]
-        if n not in st.get("prs", {}):
-            unknown("pr %s not in fixture" % n)
+        n, _pr = pr_lookup(st, argv[2])
+        if n is None:
+            unknown("pr %s not in fixture" % argv[2])
         body = body_arg(argv) or ""
         cid = next_id(st)
         st["prs"][n].setdefault("comments", []).append(
@@ -390,9 +459,9 @@ def main():
         return
 
     if argv[:2] == ["pr", "merge"]:
-        n = argv[2]
-        if n not in st.get("prs", {}):
-            unknown("pr %s not in fixture" % n)
+        n, _pr = pr_lookup(st, argv[2])
+        if n is None:
+            unknown("pr %s not in fixture" % argv[2])
         st["prs"][n]["state"] = "MERGED"
         journal("pr-merge", write=True, pr=n)
         save(st)
@@ -427,6 +496,9 @@ def main():
             fields = api_fields(argv)
             if "reviewThreads" in q:
                 pr = fields.get("pr") or fields.get("number")
+                if pr is None:  # number written into the query itself
+                    m2 = re.search(r"pullRequest\(\s*number:\s*(\d+)", q)
+                    pr = m2.group(1) if m2 else None
                 prd = st.get("prs", {}).get(str(pr))
                 if not prd:
                     unknown("graphql threads: pr %s not in fixture" % pr)
@@ -573,6 +645,22 @@ def main():
             unknown("comment-edit: %d not in fixture" % cid)
 
         unknown("api target not routed: %s" % target)
+
+    # ---- gh label list — read-only; a roz-gate fixture repo has the
+    # plugin's label scheme installed (state may override via "labels")
+    if argv[:2] == ["label", "list"]:
+        journal("label-list")
+        names = st.get("labels") or [
+            "track: spec", "track: fast", "status: ready-for-spec",
+            "status: ready-for-dev", "status: in-spec-review",
+            "status: in-user-review", "status: processing",
+            "status: blocked"]
+        if flag_val(argv, "--jq"):
+            for nm in names:
+                print(nm)
+        else:
+            out([{"name": nm} for nm in names])
+        return
 
     # ---- label create (init only; accept and journal)
     if argv[:2] == ["label", "create"]:
