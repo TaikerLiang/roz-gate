@@ -18,7 +18,8 @@ whole-stack — seats ride the same endpoint as the main agent, because
 ```sh
 cd evals/replay && uv run run-replay.py [--sut NAME] [--k N] [case ...]
 # (plain `python3 run-replay.py` works identically — the tier is stdlib-only;
-#  uv standardizes the interpreter, python >= 3.12 per pyproject.toml)
+#  uv standardizes the interpreter, python >= 3.12. The uv project root is
+#  evals/pyproject.toml — one environment for every eval tier.)
 ```
 
 - SUT rows live in `models.yaml`. `opus` is the fixed reference baseline;
@@ -40,11 +41,15 @@ cd evals/replay && uv run run-replay.py [--sut NAME] [--k N] [case ...]
 
 ## Language boundary
 
-The replay tier is Python end to end — `run-replay.py`, `replaylib.py`
-(the ONE place that parses journal/state/transcript/results), per-case
-`check.py`, and the forge stub. Only `seed.sh` scripts stay bash (git
-plumbing). The lint tier stays bash by design: millisecond greps in the
-hooks/tests idiom. The boundary is per-tier, not per-file.
+The eval suite is Python end to end (evals/README.md § Language — an
+ownership constraint, and it superseded this tier's original "lint
+stays bash" boundary): `run-replay.py`, `replaylib.py` (the ONE place
+that parses journal/state/transcript/results), per-case `check.py`,
+the forge stub, and the lint tier's `run_lint.py`. Shared mechanics
+live thin in `evals/lib/checkkit.py` (tally, probe-error guard,
+citation guard) — the lint tier never inherits replay's Run/artifact
+machinery. Only `seed.sh` scripts stay bash (git plumbing), and
+`hooks/tests/` stays bash as the hook suite, not an eval tier.
 
 ## The smoke gate
 
@@ -74,7 +79,12 @@ with canned output — a cautious SUT pokes the CLI before trusting it
 otherwise perfect run); the UNKNOWN policy is untouched for writes and
 semantic reads.
 The same guard invalidates a session that never produced a result event,
-so an empty run can never pass a zero-writes case vacuously.
+so an empty run can never pass a zero-writes case vacuously — and a
+session whose result event IS an error (quota/limit banner, `is_error`,
+zero tokens consumed) is invalid, never a FAIL: the live opus sweep
+scored 45 quota-exhausted iterations as "0% compliance" before this
+guard existed. A quota-exhausted iteration also stops the sweep on the
+spot; resumability makes the restart free.
 
 Bodies passed by reference — `--body-file <path|->`, `-F body=@path`,
 `--input <file>` — are resolved at write time and journaled as

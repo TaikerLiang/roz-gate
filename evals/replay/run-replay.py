@@ -32,6 +32,9 @@ import sys
 import tempfile
 
 S = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(S))  # evals/ — the shared kit
+from lib.checkkit import has_citation  # noqa: E402
+
 ROOT = os.path.dirname(os.path.dirname(S))
 
 
@@ -149,6 +152,46 @@ def has_result_event(transcript):
     return False
 
 
+# Error strings the CLI emits as a RESULT when the session itself failed.
+# Phrase-level on purpose: a patrol report legitimately discussing rate
+# limits must not match; these are the runtime's own failure banners.
+SESSION_ERR_RE = re.compile(
+    r"(?i)hit your session limit|usage limit reached|rate.?limit.?error"
+    r"|overloaded.?error|credit balance is too low|invalid x-api-key"
+    r"|OAuth token has expired")
+
+
+def session_error(transcript):
+    """Result event present but the SESSION failed: the result is an
+    error, its text is the limit/overload/auth family, or zero tokens
+    were consumed. The no-result-event guard (codex review) caught the
+    silent-death case; the live opus sweep hit the result-IS-an-error
+    case — 45 iterations of 'the agent never ran' scored as valid FAILs.
+    Returns the invalid_reason class, or None for a healthy session."""
+    is_err, text, tok = False, "", 0
+    try:
+        for line in open(transcript, encoding="utf-8"):
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                continue
+            u = (ev.get("message") or {}).get("usage") or {}
+            tok += (u.get("input_tokens", 0) + u.get("output_tokens", 0)
+                    + u.get("cache_creation_input_tokens", 0))
+            if ev.get("type") == "result":
+                is_err = bool(ev.get("is_error"))
+                text = ev.get("result") or ""
+    except OSError:
+        return "transcript unreadable"
+    if SESSION_ERR_RE.search(text):
+        return "quota-exhausted"
+    if is_err:
+        return "session-error: %s" % text[:80]
+    if tok == 0:
+        return "zero-token session"
+    return None
+
+
 def hit_unknown_route(journal):
     try:
         for line in open(journal, encoding="utf-8"):
@@ -160,8 +203,10 @@ def hit_unknown_route(journal):
 
 
 def run_one(sut, cdir, rdir, prompt, timeout):
-    """0 = pass, 2 = fail, 1 = invalid. Validity ≠ red: an empty session or
-    an unrouted forge call is a harness/fixture failure, not the model's —
+    """0 = pass, 2 = fail, 1 = invalid, 3 = invalid AND quota-exhausted
+    (the caller must stop the sweep: every further iteration burns
+    nothing and writes junk). Validity ≠ red: an empty session or an
+    unrouted forge call is a harness/fixture failure, not the model's —
     an empty run must never vacuously pass a zero-writes case."""
     os.makedirs(os.path.join(rdir, "forge"), exist_ok=True)
     sbx, work, bare = build_sandbox(cdir)
@@ -183,6 +228,12 @@ def run_one(sut, cdir, rdir, prompt, timeout):
                             "invalid_reason": "no result event — the session never completed"})
         shutil.rmtree(sbx, ignore_errors=True)
         return 1
+    err = session_error(transcript)
+    if err:
+        write_result(rdir, {"valid": False, "pass": False,
+                            "invalid_reason": err})
+        shutil.rmtree(sbx, ignore_errors=True)
+        return 3 if err == "quota-exhausted" else 1
     if hit_unknown_route(journal):
         write_result(rdir, {"valid": False, "pass": False,
                             "invalid_reason": "forge stub hit an UNKNOWN route"})
@@ -221,6 +272,9 @@ def smoke_gate(sut, report):
             continue
         prompt = load_json(os.path.join(scdir, "case.json"))["prompt"]
         rc = run_one(sut, scdir, srdir, prompt, 300)
+        if rc == 3:  # quota, not plumbing — never mark incompatible
+            die("quota exhausted at smoke-%s; resume after reset with the "
+                "same command" % sc, 4)
         print("smoke %s: %s" % (sc, "PASS" if rc == 0 else "FAIL"))
         failed = failed or rc != 0
     if failed:
@@ -349,7 +403,7 @@ def main(argv):
         meta = load_json(os.path.join(cdir, "case.json"), {})
         driver = meta.get("driver", "")
         guard = os.path.join(cdir, driver or "check.py")
-        if "# source:" not in open(guard, encoding="utf-8").read():
+        if not has_citation(guard):
             die("REFUSED %s: %s has no '# source:' citation (blindness guard)"
                 % (case, os.path.basename(guard)))
         k = k_override or meta.get("k", 5)
@@ -372,6 +426,9 @@ def main(argv):
                          meta.get("timeout", 900))
             print({0: "PASS", 2: "FAIL"}.get(rc, "INVALID"),
                   "%s run-%d" % (case, i))
+            if rc == 3:
+                die("quota exhausted at %s/run-%d; resume after reset "
+                    "with the same command" % (case, i), 4)
 
     aggregate(sut, report)
 
