@@ -32,6 +32,9 @@ import sys
 import tempfile
 
 S = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(S))  # evals/ — the shared kit
+from lib.checkkit import has_citation  # noqa: E402
+
 ROOT = os.path.dirname(os.path.dirname(S))
 
 
@@ -400,7 +403,7 @@ def main(argv):
         meta = load_json(os.path.join(cdir, "case.json"), {})
         driver = meta.get("driver", "")
         guard = os.path.join(cdir, driver or "check.py")
-        if "# source:" not in open(guard, encoding="utf-8").read():
+        if not has_citation(guard):
             die("REFUSED %s: %s has no '# source:' citation (blindness guard)"
                 % (case, os.path.basename(guard)))
         k = k_override or meta.get("k", 5)

@@ -5,8 +5,8 @@ built.
 
 | Tier | Cases | Status | Cost class |
 |---|---|---|---|
-| **lint** | 10 | built — `lint/run-lint.sh` | static text checks, milliseconds, deterministic |
-| replay | 19 | not built | needs a running loop and pass^k over repeated runs |
+| **lint** | 10 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
+| **replay** | 18 | built — `replay/run-replay.py` | needs a running loop and pass^k over repeated runs |
 | judgment | 1 | not built | needs a model-graded rubric |
 
 Two failure modes exist, and only one of them is what people expect:
@@ -30,6 +30,17 @@ migration with no UI, no API surface, no multi-person collaboration. A
 fully green suite proves *this loop does not regress on work shaped like
 that issue*, and nothing about shapes never run. Do not read the badge as
 "the rules work".
+
+## Language
+
+The suite is Python end to end — a design constraint, not a preference:
+the suite's owner reads Python, not shell, and a check list its owner
+cannot read gives him no control over the rule corpus, which defeats
+the suite's purpose. Everything runs under one uv project
+(`evals/pyproject.toml`, stdlib-only; plain `python3` works
+identically). The one deliberate exception is `hooks/tests/` — the
+HOOK suite, not an eval tier: bash testing a Python hook through its
+stdin/exit-code contract, exactly the interface Claude Code invokes.
 
 ## Method: linting rules that a model executes
 
@@ -80,8 +91,9 @@ planned promotion).
 
 ## The gate
 
-`.githooks/pre-push` (wired via `core.hooksPath`) runs this suite and the
-hook unit tests on **every push** and blocks on red. "Must pass before
+`.githooks/pre-push` (wired via `core.hooksPath`) runs this suite
+(`python3 evals/lint/run_lint.py`) and the hook unit tests on **every
+push** and blocks on red. "Must pass before
 every version bump" is a subset of that; unconditional is simpler and the
 cost is milliseconds. `git push --no-verify` is the documented human
 override; `.github/workflows/checks.yml` is its backstop.
@@ -89,5 +101,5 @@ override; `.github/workflows/checks.yml` is its backstop.
 Run locally:
 
 ```sh
-bash evals/lint/run-lint.sh
+python3 evals/lint/run_lint.py     # or: cd evals && uv run lint/run_lint.py
 ```

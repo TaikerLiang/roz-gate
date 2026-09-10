@@ -8,4 +8,4 @@ jobs:
       - name: hook unit tests
         run: bash hooks/tests/run-tests.sh
       - name: eval ledger lint tier
-        run: bash evals/lint/run-lint.sh
+        run: python3 evals/lint/run_lint.py
