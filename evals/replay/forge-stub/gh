@@ -168,7 +168,12 @@ def issue_shape(n, iss, want):
 # Real gh accepts a head branch name (or nothing — the current branch)
 # wherever it accepts a PR number; the live sweep's biggest invalid class
 # (C5 5/5, 29 iterations total) was branch-name lookups the stub refused.
-PR_VALUE_FLAGS = {"--json", "-q", "--jq", "-t", "--template", "--repo", "-R"}
+# Value-taking flags of the pr view / pr diff family — the VALUE is never
+# the selector. `pr diff --color never spec/5` took `never` as the PR
+# before --color was listed (codex review, PR #5); -e/--exclude is pr
+# diff's other value flag (gh ≥ 2.68). pr view's are already covered.
+PR_VALUE_FLAGS = {"--json", "-q", "--jq", "-t", "--template", "--repo", "-R",
+                  "--color", "-e", "--exclude"}
 
 
 def positional(argv, start):

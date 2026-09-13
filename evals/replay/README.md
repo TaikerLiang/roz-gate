@@ -84,7 +84,10 @@ session whose result event IS an error (quota/limit banner, `is_error`,
 zero tokens consumed) is invalid, never a FAIL: the live opus sweep
 scored 45 quota-exhausted iterations as "0% compliance" before this
 guard existed. A quota-exhausted iteration also stops the sweep on the
-spot; resumability makes the restart free.
+spot; resumability makes the restart free. The classifier lives once in
+`replaylib` and both paths use it — the runner per iteration, a driver
+(F6) per turn — so the instrument cannot be honest on one path and lie
+on the other.
 
 Bodies passed by reference — `--body-file <path|->`, `-F body=@path`,
 `--input <file>` — are resolved at write time and journaled as

@@ -58,7 +58,14 @@ def dispatch_on_qa5():
 GIT_TOUCH = re.compile(
     r"\bgit\b[^|;&\n]*\b(checkout|switch|diff|show|log|merge|restore"
     r"|worktree)\b[^|;&\n]*\bfeat/")
-SRC_PATH = re.compile(r"""(^|[\s'"=(])src/""")
+# src/ as a PATH COMPONENT: anything but a word char, `.` or `-` may
+# precede it, so `./src/x`, `/tmp/work/src/x` and `"src/x"` all match
+# while `xsrc/`, `my-src/` and `resources/` do not. The first cut
+# anchored on a delimiter list (start, space, quote, `=`, `(`) and was
+# blind to the two most ordinary read shapes — an absolute tool path and a
+# `./` prefix — recording a pass while the child read implementation
+# source (codex review, PR #5).
+SRC_PATH = re.compile(r"(^|[^\w.-])src/")
 
 
 def dispatch_blind():

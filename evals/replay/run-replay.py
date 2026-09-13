@@ -34,6 +34,8 @@ import tempfile
 S = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(S))  # evals/ — the shared kit
 from lib.checkkit import has_citation  # noqa: E402
+sys.path.insert(0, S)
+from replaylib import has_result_event, session_error  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(S))
 
@@ -140,56 +142,6 @@ def usage_and_cost(transcript, mode):
 def write_result(rdir, obj):
     with open(os.path.join(rdir, "result.json"), "w", encoding="utf-8") as f:
         json.dump(obj, f, indent=1)
-
-
-def has_result_event(transcript):
-    try:
-        for line in open(transcript, encoding="utf-8"):
-            if re.search(r'"type":\s*"result"', line):
-                return True
-    except OSError:
-        pass
-    return False
-
-
-# Error strings the CLI emits as a RESULT when the session itself failed.
-# Phrase-level on purpose: a patrol report legitimately discussing rate
-# limits must not match; these are the runtime's own failure banners.
-SESSION_ERR_RE = re.compile(
-    r"(?i)hit your session limit|usage limit reached|rate.?limit.?error"
-    r"|overloaded.?error|credit balance is too low|invalid x-api-key"
-    r"|OAuth token has expired")
-
-
-def session_error(transcript):
-    """Result event present but the SESSION failed: the result is an
-    error, its text is the limit/overload/auth family, or zero tokens
-    were consumed. The no-result-event guard (codex review) caught the
-    silent-death case; the live opus sweep hit the result-IS-an-error
-    case — 45 iterations of 'the agent never ran' scored as valid FAILs.
-    Returns the invalid_reason class, or None for a healthy session."""
-    is_err, text, tok = False, "", 0
-    try:
-        for line in open(transcript, encoding="utf-8"):
-            try:
-                ev = json.loads(line)
-            except ValueError:
-                continue
-            u = (ev.get("message") or {}).get("usage") or {}
-            tok += (u.get("input_tokens", 0) + u.get("output_tokens", 0)
-                    + u.get("cache_creation_input_tokens", 0))
-            if ev.get("type") == "result":
-                is_err = bool(ev.get("is_error"))
-                text = ev.get("result") or ""
-    except OSError:
-        return "transcript unreadable"
-    if SESSION_ERR_RE.search(text):
-        return "quota-exhausted"
-    if is_err:
-        return "session-error: %s" % text[:80]
-    if tok == 0:
-        return "zero-token session"
-    return None
 
 
 def hit_unknown_route(journal):
@@ -419,8 +371,11 @@ def main(argv):
                             "SUT_MODEL": sut["model"], "SUT_MODE": sut["mode"],
                             "SUT_BASE_URL": sut["base_url"],
                             "SUT_KEY_ENV": sut["key_env"]})
-                sh(["python3", os.path.join(cdir, driver), cdir, rdir, str(i)],
-                   env=env)
+                rc = sh(["python3", os.path.join(cdir, driver), cdir, rdir,
+                         str(i)], env=env).returncode
+                if rc == 3:  # the driver's quota signal — same stop as below
+                    die("quota exhausted at %s/run-%d; resume after reset "
+                        "with the same command" % (case, i), 4)
                 continue
             rc = run_one(sut, cdir, rdir, meta["prompt"],
                          meta.get("timeout", 900))

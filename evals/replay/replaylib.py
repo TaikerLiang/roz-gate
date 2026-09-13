@@ -24,6 +24,59 @@ from lib.checkkit import Checker  # noqa: E402,F401 — shared kit; case
 MARKERS = ("**[", "✅ [")
 
 
+# ---- session validity — shared by the runner (check.py path) and the
+# drivers (F6): one classifier, or the two paths drift and the driver
+# path scores a quota-exhausted session as data (codex review, PR #5).
+def has_result_event(transcript):
+    try:
+        for line in open(transcript, encoding="utf-8"):
+            if re.search(r'"type":\s*"result"', line):
+                return True
+    except OSError:
+        pass
+    return False
+
+
+# Error strings the CLI emits as a RESULT when the session itself failed.
+# Phrase-level on purpose: a patrol report legitimately discussing rate
+# limits must not match; these are the runtime's own failure banners.
+SESSION_ERR_RE = re.compile(
+    r"(?i)hit your session limit|usage limit reached|rate.?limit.?error"
+    r"|overloaded.?error|credit balance is too low|invalid x-api-key"
+    r"|OAuth token has expired")
+
+
+def session_error(transcript):
+    """Result event present but the SESSION failed: the result is an
+    error, its text is the limit/overload/auth family, or zero tokens
+    were consumed. The no-result-event guard (codex review) caught the
+    silent-death case; the live opus sweep hit the result-IS-an-error
+    case — 45 iterations of 'the agent never ran' scored as valid FAILs.
+    Returns the invalid_reason class, or None for a healthy session."""
+    is_err, text, tok = False, "", 0
+    try:
+        for line in open(transcript, encoding="utf-8"):
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                continue
+            u = (ev.get("message") or {}).get("usage") or {}
+            tok += (u.get("input_tokens", 0) + u.get("output_tokens", 0)
+                    + u.get("cache_creation_input_tokens", 0))
+            if ev.get("type") == "result":
+                is_err = bool(ev.get("is_error"))
+                text = ev.get("result") or ""
+    except OSError:
+        return "transcript unreadable"
+    if SESSION_ERR_RE.search(text):
+        return "quota-exhausted"
+    if is_err:
+        return "session-error: %s" % text[:80]
+    if tok == 0:
+        return "zero-token session"
+    return None
+
+
 class Run:
     """Read-side view of one replay iteration's artifacts."""
 

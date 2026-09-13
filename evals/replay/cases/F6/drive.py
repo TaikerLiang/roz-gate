@@ -29,6 +29,8 @@ import tempfile
 
 CDIR, RDIR = sys.argv[1], sys.argv[2]
 ROOT, S = os.environ["ROOT"], os.environ["S"]
+sys.path.insert(0, S)
+from replaylib import has_result_event, session_error  # noqa: E402
 SUT = {"model": os.environ["SUT_MODEL"], "mode": os.environ["SUT_MODE"],
        "base_url": os.environ.get("SUT_BASE_URL", ""),
        "key_env": os.environ.get("SUT_KEY_ENV", "")}
@@ -110,20 +112,17 @@ def session_id(outfile):
     return sid
 
 
-def turn_completed(outfile):
-    """A turn counts only if its session produced a result event — a
-    timed-out or partial turn must never be recorded as non-compliance
-    (the per-turn form of the empty-run-vacuous-outcome guard)."""
-    try:
-        for line in open(outfile, encoding="utf-8"):
-            try:
-                if json.loads(line).get("type") == "result":
-                    return True
-            except ValueError:
-                continue
-    except OSError:
-        pass
-    return False
+def turn_failed(outfile):
+    """Why this turn cannot be scored, or None. A turn counts only if its
+    session completed AND the session itself did not fail — a timed-out,
+    partial, quota-exhausted or errored turn must never be recorded as
+    non-compliance (the per-turn form of the empty-run-vacuous-outcome
+    guard). Same classifier as the runner's check.py path: the first
+    driver-side cut accepted ANY result event, so a limit banner filled
+    the curve with false values through turn 12 (codex review, PR #5)."""
+    if not has_result_event(outfile):
+        return "no result event — the turn never completed"
+    return session_error(outfile)
 
 
 def main():
@@ -144,31 +143,27 @@ def main():
 
     sid = None
     curve = {}
-    aborted = False
+    aborted = None
     for turn in range(1, 13):
         outfile = os.path.join(RDIR, "turn-%d.jsonl" % turn)
         if turn in MEASURED:
             inject_comment(turn)
             mark = journal_mark()
             run_turn(work, "/roz-gate:patrol", outfile, sid)
-            if not turn_completed(outfile):
-                # Runtime failure, not compliance decay: no curve entry,
-                # the whole session is invalid.
-                print("turn %d never completed — aborting session (invalid)"
-                      % turn, file=sys.stderr)
-                aborted = True
-                break
-            curve[str(turn)] = turn_compliant(mark)
-            print("turn %d: compliant=%s" % (turn, curve[str(turn)]))
         else:
             run_turn(work, "One sentence: what is the loop currently waiting "
                            "on? Do not run any command or write anything.",
                      outfile, sid)
-            if not turn_completed(outfile):
-                print("turn %d never completed — aborting session (invalid)"
-                      % turn, file=sys.stderr)
-                aborted = True
-                break
+        aborted = turn_failed(outfile)
+        if aborted:
+            # Runtime failure, not compliance decay: no curve entry, the
+            # whole session is invalid.
+            print("turn %d: %s — aborting session (invalid)"
+                  % (turn, aborted), file=sys.stderr)
+            break
+        if turn in MEASURED:
+            curve[str(turn)] = turn_compliant(mark)
+            print("turn %d: compliant=%s" % (turn, curve[str(turn)]))
         sid = session_id(outfile) or sid
 
     usage = {"in": 0, "out": 0}
@@ -185,10 +180,14 @@ def main():
     result = {"valid": complete, "pass": False, "instrument_only": True,
               "curve": curve, "tokens": usage}
     if not complete:
-        result["invalid_reason"] = "session aborted before turn 12"
+        result["invalid_reason"] = aborted or "session aborted before turn 12"
     json.dump(result, open(os.path.join(RDIR, "result.json"), "w"), indent=1)
     print("curve:", curve)
     shutil.rmtree(sbx, ignore_errors=True)
+    if aborted == "quota-exhausted":
+        # The runner's stop signal (run_one's rc=3): every further
+        # iteration burns nothing and writes junk.
+        sys.exit(3)
 
 
 main()
