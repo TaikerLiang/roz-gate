@@ -32,6 +32,11 @@ import sys
 import tempfile
 
 S = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(S))  # evals/ — the shared kit
+from lib.checkkit import has_citation  # noqa: E402
+sys.path.insert(0, S)
+from replaylib import has_result_event, session_error  # noqa: E402
+
 ROOT = os.path.dirname(os.path.dirname(S))
 
 
@@ -139,16 +144,6 @@ def write_result(rdir, obj):
         json.dump(obj, f, indent=1)
 
 
-def has_result_event(transcript):
-    try:
-        for line in open(transcript, encoding="utf-8"):
-            if re.search(r'"type":\s*"result"', line):
-                return True
-    except OSError:
-        pass
-    return False
-
-
 def hit_unknown_route(journal):
     try:
         for line in open(journal, encoding="utf-8"):
@@ -160,8 +155,10 @@ def hit_unknown_route(journal):
 
 
 def run_one(sut, cdir, rdir, prompt, timeout):
-    """0 = pass, 2 = fail, 1 = invalid. Validity ≠ red: an empty session or
-    an unrouted forge call is a harness/fixture failure, not the model's —
+    """0 = pass, 2 = fail, 1 = invalid, 3 = invalid AND quota-exhausted
+    (the caller must stop the sweep: every further iteration burns
+    nothing and writes junk). Validity ≠ red: an empty session or an
+    unrouted forge call is a harness/fixture failure, not the model's —
     an empty run must never vacuously pass a zero-writes case."""
     os.makedirs(os.path.join(rdir, "forge"), exist_ok=True)
     sbx, work, bare = build_sandbox(cdir)
@@ -183,6 +180,12 @@ def run_one(sut, cdir, rdir, prompt, timeout):
                             "invalid_reason": "no result event — the session never completed"})
         shutil.rmtree(sbx, ignore_errors=True)
         return 1
+    err = session_error(transcript)
+    if err:
+        write_result(rdir, {"valid": False, "pass": False,
+                            "invalid_reason": err})
+        shutil.rmtree(sbx, ignore_errors=True)
+        return 3 if err == "quota-exhausted" else 1
     if hit_unknown_route(journal):
         write_result(rdir, {"valid": False, "pass": False,
                             "invalid_reason": "forge stub hit an UNKNOWN route"})
@@ -221,6 +224,9 @@ def smoke_gate(sut, report):
             continue
         prompt = load_json(os.path.join(scdir, "case.json"))["prompt"]
         rc = run_one(sut, scdir, srdir, prompt, 300)
+        if rc == 3:  # quota, not plumbing — never mark incompatible
+            die("quota exhausted at smoke-%s; resume after reset with the "
+                "same command" % sc, 4)
         print("smoke %s: %s" % (sc, "PASS" if rc == 0 else "FAIL"))
         failed = failed or rc != 0
     if failed:
@@ -349,7 +355,7 @@ def main(argv):
         meta = load_json(os.path.join(cdir, "case.json"), {})
         driver = meta.get("driver", "")
         guard = os.path.join(cdir, driver or "check.py")
-        if "# source:" not in open(guard, encoding="utf-8").read():
+        if not has_citation(guard):
             die("REFUSED %s: %s has no '# source:' citation (blindness guard)"
                 % (case, os.path.basename(guard)))
         k = k_override or meta.get("k", 5)
@@ -365,13 +371,19 @@ def main(argv):
                             "SUT_MODEL": sut["model"], "SUT_MODE": sut["mode"],
                             "SUT_BASE_URL": sut["base_url"],
                             "SUT_KEY_ENV": sut["key_env"]})
-                sh(["python3", os.path.join(cdir, driver), cdir, rdir, str(i)],
-                   env=env)
+                rc = sh(["python3", os.path.join(cdir, driver), cdir, rdir,
+                         str(i)], env=env).returncode
+                if rc == 3:  # the driver's quota signal — same stop as below
+                    die("quota exhausted at %s/run-%d; resume after reset "
+                        "with the same command" % (case, i), 4)
                 continue
             rc = run_one(sut, cdir, rdir, meta["prompt"],
                          meta.get("timeout", 900))
             print({0: "PASS", 2: "FAIL"}.get(rc, "INVALID"),
                   "%s run-%d" % (case, i))
+            if rc == 3:
+                die("quota exhausted at %s/run-%d; resume after reset "
+                    "with the same command" % (case, i), 4)
 
     aggregate(sut, report)
 
