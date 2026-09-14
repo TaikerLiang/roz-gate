@@ -174,12 +174,15 @@ Refs #<n>".
 
 ### A6. Post open questions as inline review threads
 **Sweep first:** check the other spec docs for question-shaped content (an
-open-questions section, unresolved "TBD"/"open:" items). Found → relocate it
-verbatim into `spec.md`'s `## Open Questions`, tagged with the raising role,
-before posting anything — a question outside the threaded surface is invisible
-to every gate that counts threads, and resolves the only way it can: silent
-interpretation. Then, for EACH item in the `## Open Questions` section of
-`spec.md`:
+open-questions section, unresolved "TBD"/"open:" items). Found → **move** it:
+copy it verbatim into `spec.md`'s `## Open Questions`, tagged with the raising
+role, and **delete it from the source document** — the section goes; at most a
+one-line pointer to the Q-ID stays (A3's rule: the owning document never
+carries the question body). A copy left behind is a second home for the same
+text, and two homes drift. Do this before posting anything — a question
+outside the threaded surface is invisible to every gate that counts threads,
+and resolves the only way it can: silent interpretation. Then, for EACH item
+in the `## Open Questions` section of `spec.md`:
 THREAD-POST-INLINE on the spec CR, anchored to that item's line in
 `<specs_dir>/<n>/spec.md`, body = **the item verbatim** (title line, blank
 line, question, option bullets with the marked recommendation, italic why —
