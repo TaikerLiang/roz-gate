@@ -110,9 +110,12 @@ stage executes it faithfully and reports green. The first live opus sweep
 produced an instance of the second: E2's "relocate it verbatim" read as
 *copy* — 5/5 runs left the question in the source document alongside its
 new home in `spec.md`, a frontier model resolving a prose ambiguity the
-wrong way every time. The ruling (relocate = move; the copy is duplication
-that drifts) went into the prose (next-stage.md A6, v1.14.2) and the
-checker cites it. An eval that only ever catches the model is half an eval.
+wrong way every time — and F3, a different case with the same relocation
+step, failed 2/5 on exactly that shape, so the reading has two cases
+behind it. The ruling (relocate = move; the copy is duplication that
+drifts) went into the prose (next-stage.md A6, v1.14.2) and the E2 checker
+cites it; F3's assertion was already the move semantics. An eval that only
+ever catches the model is half an eval.
 
 **Blindness**: every assertion derives from the ledger case text and the
 prose that owns the behaviour, cited inline (`# source:`) in each case's `check.py` with the quoted

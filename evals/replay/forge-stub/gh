@@ -649,6 +649,36 @@ def main():
                             return
             unknown("comment-edit: %d not in fixture" % cid)
 
+        # GET one comment by id — read-only (F5 run-2 went invalid on
+        # `gh api repos/x/y/issues/comments/1001 --jq .body`; same read-
+        # route class as PR #3/#5). `--jq .field` projects that field the
+        # way gh prints it (strings raw); anything else prints the object.
+        if m and flag_val(argv, "-X") in (None, "GET"):
+            cid = int(m.group(1))
+            for kind, coll in (("pr", st.get("prs", {})),
+                               ("issue", st.get("issues", {}))):
+                for n, item in coll.items():
+                    for c in item.get("comments", []):
+                        if c.get("id") == cid:
+                            journal("issue-comment-view", comment=cid)
+                            obj = {"id": cid, "body": c.get("body", ""),
+                                   "user": {"login": c.get("author", "")},
+                                   "created_at": c.get("created_at",
+                                                       c.get("createdAt", "")),
+                                   "html_url": "https://github.com/x/y/%s/%s"
+                                               "#issuecomment-%d"
+                                               % ("pull" if kind == "pr"
+                                                  else "issues", n, cid)}
+                            jq = flag_val(argv, "--jq", "-q") or ""
+                            mm = re.match(r"^\.(\w+)$", jq)
+                            if mm and mm.group(1) in obj:
+                                v = obj[mm.group(1)]
+                                print(v if isinstance(v, str) else json.dumps(v))
+                            else:
+                                out(obj)
+                            return
+            unknown("comment-view: %d not in fixture" % cid)
+
         unknown("api target not routed: %s" % target)
 
     # ---- gh label list — read-only; a roz-gate fixture repo has the

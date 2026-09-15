@@ -15,6 +15,12 @@ sed -i.bak \
   -e 's#^- test: true$#- test: python3 -m unittest discover -s tests -q#' \
   -e 's#^- acceptance_test: true$#- acceptance_test: python3 -m unittest discover -s tests/acceptance -q#' \
   CLAUDE.md && rm CLAUDE.md.bak
+# Committed on MAIN, before branching: the SUT starts on main and
+# spec-answers §0 reads config from the working tree there — a config
+# change that only rides onto spec/5 leaves C5 reading `true` (codex
+# review, PR #7).
+git add CLAUDE.md
+git -c user.email=paul@example.com -c user.name=paul commit -qm "C5: real test commands"
 git checkout -qb spec/5
 mkdir -p docs/specs/5 src tests/acceptance
 cat > docs/specs/5/spec.md <<'EOF'
