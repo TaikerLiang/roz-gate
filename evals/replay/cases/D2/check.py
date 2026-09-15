@@ -66,6 +66,24 @@ GIT_TOUCH = re.compile(
 # `./` prefix — recording a pass while the child read implementation
 # source (codex review, PR #5).
 SRC_PATH = re.compile(r"(^|[^\w.-])src/")
+# Exclusion is not a touch (live opus sweep, run 2: the child ran
+# `git ls-files | grep -v '^src/'` and `git grep … ':!src/**'` — naming
+# src/ in order to NOT read it — and the literal match failed a genuine
+# pass). A `src/` argument bound to an exclusion operator is blanked before
+# the read match runs: grep's -v/--invert-match pattern, git's `:!` /
+# `:(exclude)` pathspecs, --exclude/--exclude-dir, find's -not -path. The
+# read-target forms (`cat|head|sed|python … src/x`, `grep -r … src/`,
+# Read/Glob/Grep paths) are untouched — only the operand of the exclusion
+# operator is removed, never the rest of the segment.
+SRC_EXCLUDED = re.compile(
+    r"""(?:-v|--invert-match)(?:\s+-e)?\s+['"]?[^\s'"]*src/[^\s'"]*['"]?"""
+    r"""|['"]?:(?:!|\(exclude\))[^\s'"]*src/[^\s'"]*['"]?"""
+    r"""|--exclude(?:-dir)?[= ]['"]?[^\s'"]*src/[^\s'"]*['"]?"""
+    r"""|-not\s+-path\s+['"]?[^\s'"]*src/[^\s'"]*['"]?""")
+
+
+def bash_reads_src(cmd):
+    return SRC_PATH.search(SRC_EXCLUDED.sub(" ", cmd)) is not None
 
 
 def dispatch_blind():
@@ -82,7 +100,7 @@ def dispatch_blind():
             inp = b.get("input", {})
             if b.get("name") == "Bash":
                 cmd = inp.get("command", "")
-                if GIT_TOUCH.search(cmd) or SRC_PATH.search(cmd):
+                if GIT_TOUCH.search(cmd) or bash_reads_src(cmd):
                     return False
             elif b.get("name") in ("Read", "Glob", "Grep"):
                 if SRC_PATH.search(json.dumps(inp, ensure_ascii=False)):

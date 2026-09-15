@@ -104,6 +104,19 @@ instance; when touching any component that reads agent-produced text,
 audit it for the class: every spelling that can carry a body off the
 command line.
 
+**The other failure mode, observed.** The tiers exist for two defects: the
+model does not follow the rule, and the rule itself is broken so every
+stage executes it faithfully and reports green. The first live opus sweep
+produced an instance of the second: E2's "relocate it verbatim" read as
+*copy* — 5/5 runs left the question in the source document alongside its
+new home in `spec.md`, a frontier model resolving a prose ambiguity the
+wrong way every time — and F3, a different case with the same relocation
+step, failed 2/5 on exactly that shape, so the reading has two cases
+behind it. The ruling (relocate = move; the copy is duplication that
+drifts) went into the prose (next-stage.md A6, v1.14.2) and the E2 checker
+cites it; F3's assertion was already the move semantics. An eval that only
+ever catches the model is half an eval.
+
 **Blindness**: every assertion derives from the ledger case text and the
 prose that owns the behaviour, cited inline (`# source:`) in each case's `check.py` with the quoted
 rule; the runner refuses an uncited checker, and the checkers land in a
