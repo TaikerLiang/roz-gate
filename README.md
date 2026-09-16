@@ -193,9 +193,11 @@ The rules that protect you from the agents are not just prose: bundled
 **PreToolUse hooks** enforce them at the tool layer. An agent that tries to
 apply a gate label, to post an intake summary without the gate holder's
 trigger, to open a protocol comment with a quote block — the malformed write
-that makes patrol answer itself — or to edit the acceptance suite on a spec
+that makes patrol answer itself — to edit the acceptance suite on a spec
 branch — the one move that would turn the verdict into an echo of the
-implementation — is blocked before
+implementation — or to commit a technical spec that still carries an
+open-questions section (the question belongs in `spec.md`, threaded, or it
+resolves by silent interpretation) — is blocked before
 the tool runs, fail-closed, with a message pointing back at the protocol.
 Prompt discipline is the manners; the hook is the law.
 

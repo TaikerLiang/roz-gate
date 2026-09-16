@@ -593,6 +593,34 @@ def main():
                 out(rows)
             return
 
+        # GET a PR's review comments (REST, flattened threads) — read-only
+        # (F2 run-1 went invalid on `gh api repos/o/r/pulls/101/comments
+        # --jq …`; same read-route class). `--jq` prints one row per line.
+        m = re.match(r"repos/[^/]+/[^/]+/pulls/(\d+)/comments$", target)
+        if m and flag_val(argv, "-X") in (None, "GET"):
+            n = m.group(1)
+            if n not in st.get("prs", {}):
+                unknown("review-comments: pr %s not in fixture" % n)
+            journal("review-comments-list", pr=n)
+            rows = []
+            for t in st["prs"][n].get("threads", []):
+                root = (t.get("comments") or [{}])[0].get("databaseId")
+                for c in t.get("comments", []):
+                    cid = c.get("databaseId")
+                    rows.append({"id": cid, "body": c.get("body", ""),
+                                 "user": {"login": c.get("author", "")},
+                                 "path": t.get("path"), "line": t.get("line"),
+                                 "created_at": c.get("createdAt", ""),
+                                 **({"in_reply_to_id": root} if cid != root else {}),
+                                 "html_url": "https://github.com/x/y/pull/%s"
+                                             "#discussion_r%s" % (n, cid)})
+            if flag_val(argv, "--jq", "-q"):
+                for r in rows:
+                    out(r)
+            else:
+                out(rows)
+            return
+
         m = re.match(r"repos/[^/]+/[^/]+/pulls/(\d+)/comments$", target)
         if m and "-X" in argv and flag_val(argv, "-X") == "POST":
             n = m.group(1)

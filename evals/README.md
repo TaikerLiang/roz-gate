@@ -5,7 +5,7 @@ built.
 
 | Tier | Cases | Status | Cost class |
 |---|---|---|---|
-| **lint** | 10 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
+| **lint** | 11 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
 | **replay** | 18 | built — `replay/run-replay.py` | needs a running loop and pass^k over repeated runs |
 | judgment | 1 | not built | needs a model-graded rubric |
 
@@ -86,8 +86,12 @@ restore. Record the mutation in the case's commit message.
 refused) is in the case list but has no lint: it is enforced by
 `hooks/guard-gate` and proven in `hooks/tests/run-tests.sh`, which the
 same release gate runs. It is the worked example of the stronger option —
-when a rule can be a hook, make it a hook (B4's deny rule is the next
-planned promotion).
+when a rule can be a hook, make it a hook. B4 was promoted in 1.14.0 (rule
+C). E2 was promoted in 1.15.0 (rule D) on the replay tier's evidence: the
+prose said "relocate", 5/5 copied; the prose was made as explicit as prose
+gets ("move … delete it from the source document"), 5/5 still left the
+section behind. Lint E2 keeps the hook, the replay checker and the proof on
+one literal and sweeps this repo's specs tree at push time.
 
 ## The gate
 

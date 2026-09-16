@@ -12,8 +12,9 @@ input=$(cat)
 # Marker tokens (`**[` / `✅ [`) escalate for the quote-open rule; the ✅ may
 # arrive JSON-escaped as ✅ depending on the caller's encoder. body-file
 # forms escalate marker-blind: their body (and so the marker) lives outside
-# the command text.
-if ! printf '%s' "$input" | grep -qE '\[intake\]|ready-for-(spec|dev)|\*\*\[|✅ \[|\\u2705 \[|body-file|-F '; then
+# the command text. `git … commit` escalates for rule D (the open-questions
+# section check) — the python side confirms the segment shape.
+if ! printf '%s' "$input" | grep -qE '\[intake\]|ready-for-(spec|dev)|\*\*\[|✅ \[|\\u2705 \[|body-file|-F |git .*commit'; then
   exit 0
 fi
 

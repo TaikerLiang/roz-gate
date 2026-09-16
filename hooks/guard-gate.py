@@ -2,7 +2,7 @@
 """Roz Gate enforcement — layer 2: trigger validation.
 
 Invoked by guard-gate.sh only when a Bash command mentions a guarded
-pattern. Three rules, each the mechanical form of existing protocol text:
+pattern. Four rules, each the mechanical form of existing protocol text:
 
   A. An ``**[intake] · summary**`` comment may be posted only when the
      async-intake trigger holds (commands/patrol.md step 2): a gate label
@@ -18,6 +18,16 @@ pattern. Three rules, each the mechanical form of existing protocol text:
      quote-opening agent comment reads as a human answer and the loop
      replies to itself once per pass, dispatching seats and committing
      each time (the 1.11.0 runaway).
+  D. A ``git commit`` never carries a ``technical-spec.md`` under the
+     project's ``specs_dir`` that still holds an open-questions section
+     (commands/next-stage.md A6: "move it … and delete it from the source
+     document — the section goes"). The first opus baseline measured the
+     prose at 0/5 AFTER it was made explicit: every run copied the
+     question into spec.md, threaded it, and left the source untouched —
+     a two-obligation instruction with the second silently dropped. The
+     deny lands at the moment the agent can still act on it, and its
+     message is the remedy. Working tree AND index are checked: a fixed
+     file that was never re-staged would commit the stale section.
 
 Exit 0 allows the tool call; exit 2 blocks it and feeds stderr to the
 model. Forge API failures fail closed, with a message that says it is an
@@ -41,6 +51,11 @@ import subprocess
 import sys
 
 GATE = re.compile(r"ready-for-(spec|dev)")
+# Rule D's predicate — the same literal the E2 replay checker asserts
+# (evals/replay/cases/E2/check.py) and the lint tier proves; the three
+# are held byte-identical by lint E2's conformance layer.
+OPEN_QUESTIONS_SECTION = re.compile(r"^#+ .*open questions", re.I | re.M)
+DEFAULT_SPECS_DIR = "docs/specs"
 SUMMARY_MARKER = re.compile(r"\[intake\]\**\s*[·•\-–—:|]\s*summary", re.IGNORECASE)
 ROZ_MARKER = re.compile(r"\*\*\[|✅ \[")
 API_TIMEOUT = 20
@@ -93,6 +108,15 @@ UNPARSEABLE_MSG = (
     "was not found in the command. Use the adapter form "
     "(`gh issue comment <number> ...` / `glab issue note <number> ...`) so "
     "the guard can check the issue."
+)
+
+OPEN_QUESTIONS_MSG = (
+    "Roz Gate: blocked — `%s` (%s) still carries an open-questions section "
+    "(`%s`). Move it to spec.md's `## Open Questions` and delete it here — "
+    "the section goes; at most a one-line pointer to the Q-ID stays under "
+    "another heading (commands/next-stage.md A6) — then `git add` the file "
+    "and commit. Why: a question outside the threaded surface is invisible "
+    "to every gate that counts threads, and a copy left behind drifts."
 )
 
 NO_HOLDER_MSG = (
@@ -148,6 +172,75 @@ def load_bot_logins():
 def deny(message):
     print(message, file=sys.stderr)
     sys.exit(2)
+
+
+def git_out(*args):
+    try:
+        out = subprocess.run(["git"] + list(args), capture_output=True,
+                             text=True, timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return out.stdout if out.returncode == 0 else None
+
+
+def load_specs_dir(top):
+    """`specs_dir` from the project's CLAUDE.md Roz Gate config block.
+    None → not a roz-gate project (no config block): nothing to enforce.
+    Block present but the key absent → the documented default, the same
+    fallback /roz-gate:init writes (mirrors guard-acceptance)."""
+    try:
+        with open(top.rstrip("/") + "/CLAUDE.md", encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        return None
+    if not re.search(r"^###\s+(Roz Gate|Gated Loop) config\s*$", text, re.M):
+        return None
+    m = re.search(r"^-\s*specs_dir:\s*(.+)$", text, re.M)
+    return (m.group(1).strip().strip("`") if m else DEFAULT_SPECS_DIR)
+
+
+def check_open_questions_commit(toks):
+    """Rule D: judged only when a shell segment IS a git commit (first
+    non-assignment token `git`, `commit` among its tokens) — a comment
+    body that mentions committing is not one. Every technical-spec.md
+    under specs_dir is read in the working tree and in the index; either
+    carrying the section denies, naming which."""
+    if toks is None:
+        return
+    def is_commit(seg):
+        seg = [t for t in seg if "=" not in t] or [""]
+        return seg[0] == "git" and "commit" in seg
+    if not any(is_commit(seg) for seg in shell_segments(toks)):
+        return
+    top = (git_out("rev-parse", "--show-toplevel") or "").strip()
+    if not top:
+        return
+    specs_dir = load_specs_dir(top)
+    if not specs_dir:
+        return
+    pattern = specs_dir.strip("/") + "/*/technical-spec.md"
+    rels = set()
+    # Paths resolve against the toplevel, not the shell's cwd (the command
+    # may run from a subdirectory).
+    for line in (git_out("-C", top, "ls-files", "--cached", "--others",
+                         "--exclude-standard", "--", pattern) or "").splitlines():
+        if line.strip():
+            rels.add(line.strip())
+    for rel in sorted(rels):
+        versions = []
+        try:
+            with open(top + "/" + rel, encoding="utf-8", errors="replace") as f:
+                versions.append(("working tree", f.read()))
+        except OSError:
+            pass
+        staged = git_out("-C", top, "show", ":" + rel)
+        if staged is not None:
+            versions.append(("staged — the index still has it; `git add` "
+                             "after editing", staged))
+        for where, text in versions:
+            m = OPEN_QUESTIONS_SECTION.search(text)
+            if m:
+                deny(OPEN_QUESTIONS_MSG % (rel, where, m.group(0).strip()))
 
 
 def deny_api_failure(detail):
@@ -463,6 +556,7 @@ def main():
         toks = None
     check_gate_label_add(cmd, toks)
     check_quote_open(cmd, toks)
+    check_open_questions_commit(toks)
     if SUMMARY_MARKER.search(cmd):
         bots = load_bot_logins()
         check_github_summary(cmd, bots)

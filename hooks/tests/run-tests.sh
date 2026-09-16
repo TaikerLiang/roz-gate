@@ -127,6 +127,70 @@ run "glued semicolon quote-opening comment still denied" 2 "open with its marker
 
 **[qa] · addressed** done."'
 
+# --- rule D: a commit never carries an open-questions section in a
+# technical-spec.md under specs_dir (1.15.0; E2 measured 0/5 on prose).
+NOCFGREPO=$(mktemp -d)
+git init -q "$NOCFGREPO" && (cd "$NOCFGREPO" \
+  && git -c user.email=t@t -c user.name=t commit -q --allow-empty -m init \
+  && git checkout -qb spec/1)
+QREPO=$(mktemp -d)
+git init -q -b main "$QREPO" && mkdir -p "$QREPO/docs/specs/5" "$QREPO/sub"
+cat > "$QREPO/CLAUDE.md" <<'EOF'
+### Roz Gate config
+
+- forge: github
+- specs_dir: docs/specs
+EOF
+# The E2 fixture's exact technical-spec.md (the scripted double's output).
+TS_WITH_SECTION='# Technical spec #5
+
+## Contract
+- `price(cart, now)` excludes offers with `expires_at < now`.
+
+## §9 Open questions
+- **[implementer] · Qx · clock source**
+
+  Which clock does `now` come from — the DB'"'"'s or the API caller'"'"'s?
+'
+TS_MOVED='# Technical spec #5
+
+## Contract
+- `price(cart, now)` excludes offers with `expires_at < now`.
+  (open question on the clock source: spec.md Q9)
+'
+qrepo_set() { # technical-spec content, then stage everything
+  printf '%s' "$1" > "$QREPO/docs/specs/5/technical-spec.md"
+  printf '# Spec #5\n\n## Open Questions\n- **[implementer] · Q9 · Clock source**\n' > "$QREPO/docs/specs/5/spec.md"
+  (cd "$QREPO" && git add -A)
+}
+qrepo_set "$TS_WITH_SECTION"
+RUN_CWD=$QREPO run "rule D: §9 section left in technical-spec.md denied" 2 "open-questions section" 'git commit -m "spec: #5 refinement"'
+RUN_CWD=$QREPO run "rule D: message carries the remedy (move + delete, A6)" 2 "delete it here" 'git commit -m "spec: #5 refinement"'
+RUN_CWD=$QREPO/sub run "rule D: judged from a subdirectory" 2 "open-questions section" 'git commit -am x'
+RUN_CWD=$QREPO run "rule D: compound line (cd && git commit) denied" 2 "open-questions section" 'git add -A && git -c user.name=t commit -m x'
+RUN_CWD=$QREPO run "rule D: a comment body mentioning git commit is not a commit" 0 "" 'gh pr comment 12 --body "**[review] · answer** run git commit after the fix"'
+qrepo_set "$TS_MOVED"
+RUN_CWD=$QREPO run "rule D: moved — pointer line under another heading — allowed" 0 "" 'git commit -m "spec: #5 refinement"'
+qrepo_set '# Technical spec #5
+
+## §9 Open questions
+- moved → spec.md Q9
+'
+RUN_CWD=$QREPO run "rule D: heading kept as pointer-only section still denied" 2 "open-questions section" 'git commit -m x'
+qrepo_set "$TS_WITH_SECTION"; printf '%s' "$TS_MOVED" > "$QREPO/docs/specs/5/technical-spec.md"
+RUN_CWD=$QREPO run "rule D: fixed in the working tree but stale in the index denied" 2 "git add" 'git commit -m x'
+(cd "$QREPO" && git add -A)
+RUN_CWD=$QREPO run "rule D: spec.md's own Open Questions is the destination, not a hit" 0 "" 'git commit -m x'
+printf '%s' "$TS_WITH_SECTION" > "$QREPO/docs/specs/5/technical-spec.md"
+RUN_CWD=$QREPO run "rule D: unstaged working-tree section denied (commit -a would take it)" 2 "working tree" 'git commit -am x'
+(cd "$QREPO" && git checkout -q -- docs/specs/5/technical-spec.md)
+mkdir -p "$QREPO/notes/9" && printf '%s' "$TS_WITH_SECTION" > "$QREPO/notes/9/technical-spec.md"
+RUN_CWD=$QREPO run "rule D: a technical-spec.md outside specs_dir is not in scope" 0 "" 'git add -A && git commit -m x'
+mkdir -p "$NOCFGREPO/docs/specs/1" && printf '%s' "$TS_WITH_SECTION" > "$NOCFGREPO/docs/specs/1/technical-spec.md"
+(cd "$NOCFGREPO" && git add -A)
+RUN_CWD=$NOCFGREPO run "rule D: repo without a Roz Gate config block untouched" 0 "" 'git commit -m x'
+trap 'rm -f "$STUB_LOG"; rm -rf "$USERREPO" "$BOTREPO" "$QREPO" "$NOCFGREPO"' EXIT
+
 # --- rule A: intake summary triggers (GitHub) ---
 export GH_FIXTURE="$S/fx/gh_no_trigger.json"
 run "summary without trigger blocked (#54 case)" 2 "human decision point" "$SUMMARY_CMD"
@@ -182,12 +246,9 @@ cat > "$SPECREPO/CLAUDE.md" <<'EOF'
 EOF
 (cd "$SPECREPO" && git add -A && git -c user.email=t@t -c user.name=t commit -qm init \
   && git checkout -qb spec/63)
-# A repo with no Roz Gate config block: the guard has nothing to enforce.
-NOCFGREPO=$(mktemp -d)
-git init -q "$NOCFGREPO" && (cd "$NOCFGREPO" \
-  && git -c user.email=t@t -c user.name=t commit -q --allow-empty -m init \
-  && git checkout -qb spec/1)
-trap 'rm -f "$STUB_LOG"; rm -rf "$USERREPO" "$BOTREPO" "$SPECREPO" "$NOCFGREPO"' EXIT
+# A repo with no Roz Gate config block (created above, before rule D): the
+# guard has nothing to enforce.
+trap 'rm -f "$STUB_LOG"; rm -rf "$USERREPO" "$BOTREPO" "$QREPO" "$SPECREPO" "$NOCFGREPO"' EXIT
 
 run_edit() { # name expected_exit stderr_substr repo tool file_path
   local name="$1" want="$2" substr="$3" repo="$4" tool="$5" path="$6"

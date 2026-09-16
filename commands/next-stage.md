@@ -179,7 +179,9 @@ copy it verbatim into `spec.md`'s `## Open Questions`, tagged with the raising
 role, and **delete it from the source document** — the section goes; at most a
 one-line pointer to the Q-ID stays (A3's rule: the owning document never
 carries the question body). A copy left behind is a second home for the same
-text, and two homes drift. Do this before posting anything — a question
+text, and two homes drift — and guard-gate denies the commit mechanically
+while a `technical-spec.md` under `<specs_dir>` still holds the section (the
+deny message is the remedy). Do this before posting anything — a question
 outside the threaded surface is invisible to every gate that counts threads,
 and resolves the only way it can: silent interpretation. Then, for EACH item
 in the `## Open Questions` section of `spec.md`:
