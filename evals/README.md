@@ -1,13 +1,12 @@
 # The eval ledger
 
-Three tiers of evidence that the workflow's rules hold. Only the first is
-built.
+Three tiers of evidence that the workflow's rules hold.
 
 | Tier | Cases | Status | Cost class |
 |---|---|---|---|
-| **lint** | 12 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
+| **lint** | 13 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
 | **replay** | 18 | built — `replay/run-replay.py` | needs a running loop and pass^k over repeated runs |
-| judgment | 1 | not built | needs a model-graded rubric |
+| **judgment** | 7 items / 4 fixtures | built — `judgment/run-judgment.py`, k pending calibration | a real repo per iteration plus an opus judge; the only tier that measures whether the spec stage earns its cost |
 
 Two failure modes exist, and only one of them is what people expect:
 
