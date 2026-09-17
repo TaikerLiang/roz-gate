@@ -1,0 +1,17 @@
+{
+ "_comment": "One checkable proposition per graded item. The judge sees the proposition and the document only — never the human's reply, the design change, the thread URL, or this file's polarity. Committed before the first recorded run (the blindness commit). P = must be surfaced (recall); N = raising it as a question costs precision.",
+ "P1": {"polarity": "P", "fixture": "F-63",
+        "criterion": "Does the document raise, as an open question or finding for the human, that membership between users and workspaces may need its own relation (a set of user–workspace pairs) rather than a workspace field on the users table?"},
+ "P2": {"polarity": "P", "fixture": "F-63",
+        "criterion": "Does the document raise that the HTTP trigger cannot interrupt a long-running migration (it times out while the job keeps running), or ask which trigger surface should run the production migration?"},
+ "N1": {"polarity": "N", "fixture": "F-63",
+        "criterion": "Does the document ask the human to decide whether department-granted membership (a user's department field) should count as workspace membership?"},
+ "N5": {"polarity": "N", "fixture": "F-63",
+        "criterion": "Does the document ask the human to decide how usernames with no matching user record ('ghosts') should be reported or skipped, beyond what the acceptance criteria already state?"},
+ "P8": {"polarity": "P", "fixture": "F-54",
+        "criterion": "Does the document raise that the system's identity or membership model is split — a users table alongside raw username strings in role mappings, workspace owners, or audit columns with no referential integrity — or that the source of truth for workspace membership must be named before workspace-scoped reads can be enforced?"},
+ "P12": {"polarity": "P", "fixture": "F-67",
+         "criterion": "Does the document report, as a finding, that a Makefile with the same or overlapping targets already exists in the repository?"},
+ "N10": {"polarity": "N", "fixture": "F-51", "mechanical": "question count == 0 and an `**[intake] · summary**` comment was posted",
+         "criterion": "Does the document record explicit assumptions the author made instead of asking questions?"}
+}
