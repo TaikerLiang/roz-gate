@@ -2,7 +2,7 @@
 """Judgment-tier runner. Usage:
 
     run-judgment.py --check                       # fixtures frozen? (no tokens)
-    run-judgment.py --redproof                    # judge red-proof (~14 judge calls) — BEFORE any SUT spend
+    run-judgment.py --redproof [--rejudge]        # judge red-proof (28 judge calls, verdicts cached) — BEFORE any SUT spend
     run-judgment.py [--sut NAME] [--k N] [case ...]   # SUT iterations + judging; default fable, k=1
 
 What this tier measures: not "did the agent follow a rule" but "did the
@@ -51,7 +51,13 @@ from materialize import check_frozen  # noqa: E402
 ROOT = rr.ROOT
 JUDGE_MODEL = "claude-opus-5"
 MIN_QUOTE = 40
-QUESTION_RE = re.compile(r"^\*\*(\[[^\]]+\] · )?Q\d+\b", re.M)
+# A question is a TITLE LINE — `**[role] · Q<k> · label**` (spec threads
+# and spec.md items) or `**Q<k> · label**` (intake batches) — counted by
+# DISTINCT id: the spec-cr surface carries each item twice (the thread
+# body and spec.md's Open Questions, verbatim by A6), and a `**Q6**.`
+# cross-reference inside a body is not a question (both caught by the
+# judge red-proof's count check on the real F-63 output: 18 for 8).
+QUESTION_RE = re.compile(r"^\*\*(?:\[[^\]]+\] · )?Q(\d+) · ", re.M)
 SUMMARY_MARKER = "**[intake] · summary**"
 SECTION_START = "## Development Workflow (Roz Gate)"
 CONFIG_SOURCE = "d2ded1269c1c"   # the last commit whose CLAUDE.md carries the section in git
@@ -141,22 +147,42 @@ def verdict(cid, document):
 
 
 def question_count(document):
-    return len(QUESTION_RE.findall(document))
+    return len(set(QUESTION_RE.findall(document)))
 
 
 # ---- red-proof --------------------------------------------------------------
-def redproof(report):
+def redproof(report, rejudge=False):
+    """Judge verdicts already recorded in report/judge-redproof.json are
+    reused (a judge call is ~11k tokens; the mechanical checks are free)
+    unless --rejudge; a changed criterion or document still re-asks,
+    since the cache key carries a hash of both."""
     exp = json.load(open(os.path.join(S, "redproof", "expected.json"), encoding="utf-8"))
     para = json.load(open(os.path.join(S, "redproof", "paraphrase.json"), encoding="utf-8"))
     rows, mism, tok = [], 0, {"in": 0, "out": 0}
+    prior = {} if rejudge else {
+        (r["doc"], r["criterion"], r.get("key")): r
+        for r in (rr.load_json(os.path.join(report, "judge-redproof.json")) or {}).get("rows", [])
+        if r.get("got") in ("yes", "no") and r.get("key")}
 
-    def record(doc, cid, want, got, quote=""):
+    def key(cid, text):
+        import hashlib
+        return hashlib.sha256((CRITERIA[cid]["criterion"] + "\0" + text).encode("utf-8")).hexdigest()[:16]
+
+    def judged(doc, cid, text):
+        k = key(cid, text)
+        hit = prior.get((doc, cid, k))
+        if hit:
+            return {"answer": hit["got"], "quote": hit.get("quote", ""), "tokens": {"in": 0, "out": 0}, "cached": True}, k
+        return verdict(cid, text), k
+
+    def record(doc, cid, want, got, quote="", k=None, cached=False):
         nonlocal mism
         ok = str(got) == str(want)
         mism += 0 if ok else 1
-        rows.append({"doc": doc, "criterion": cid, "want": want, "got": got, "ok": ok, "quote": quote})
-        print("%s %-22s %-5s want %-4s got %-13s %s" % ("ok " if ok else "XX ", doc, cid, want, got,
-                                                      ("— " + norm(quote)[:70]) if quote else ""))
+        rows.append({"doc": doc, "criterion": cid, "want": want, "got": got, "ok": ok, "quote": quote, "key": k})
+        print("%s %-22s %-5s want %-4s got %-13s %s%s" % ("ok " if ok else "XX ", doc, cid, want, got,
+                                                        ("— " + norm(quote)[:70]) if quote else "",
+                                                        "  (cached)" if cached else ""))
 
     for doc, expect in exp["documents"].items():
         text = open(os.path.join(S, "redproof", doc), encoding="utf-8").read()
@@ -164,17 +190,18 @@ def redproof(report):
             if cid == "question_count":
                 record(doc, cid, want, question_count(text))
                 continue
-            v = verdict(cid, text)
+            v, k = judged(doc, cid, text)
             tok["in"] += v["tokens"]["in"]; tok["out"] += v["tokens"]["out"]
-            record(doc, cid, want, v["answer"], v["quote"])
+            record(doc, cid, want, v["answer"], v["quote"], k, v.get("cached", False))
     for cid, sets in para.items():
         if cid.startswith("_"):
             continue
         for kind in ("yes", "no"):
             for i, d in enumerate(sets[kind]):
-                v = verdict(cid, d)
+                doc = "paraphrase/%s-%s%d" % (cid, kind, i + 1)
+                v, k = judged(doc, cid, d)
                 tok["in"] += v["tokens"]["in"]; tok["out"] += v["tokens"]["out"]
-                record("paraphrase/%s-%s%d" % (cid, kind, i + 1), cid, kind, v["answer"], v["quote"])
+                record(doc, cid, kind, v["answer"], v["quote"], k, v.get("cached", False))
     os.makedirs(report, exist_ok=True)
     with open(os.path.join(report, "judge-redproof.json"), "w", encoding="utf-8") as f:
         json.dump({"judge": JUDGE_MODEL, "rows": rows, "mismatches": mism, "tokens": tok}, f, indent=1, ensure_ascii=False)
@@ -377,7 +404,7 @@ def aggregate(sut, report):
 
 
 def main(argv):
-    sut_name, k, cases, mode = "fable", 1, [], "run"
+    sut_name, k, cases, mode, rejudge = "fable", 1, [], "run", False
     i = 0
     while i < len(argv):
         a = argv[i]
@@ -387,6 +414,8 @@ def main(argv):
             k = int(argv[i + 1]); i += 2
         elif a in ("--check", "--redproof"):
             mode = a[2:]; i += 1
+        elif a == "--rejudge":
+            rejudge = True; i += 1
         else:
             cases.append(a); i += 1
     bad = check_frozen(os.path.join(S, "cases"))
@@ -397,7 +426,7 @@ def main(argv):
         return
     report_root = os.path.join(S, "report")
     if mode == "redproof":
-        sys.exit(0 if redproof(report_root) else 1)
+        sys.exit(0 if redproof(report_root, rejudge) else 1)
     sut = rr.resolve_sut(sut_name)
     if not sut:
         die("unknown SUT '%s' (see replay/models.yaml)" % sut_name)

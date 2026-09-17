@@ -25,7 +25,7 @@ trees already hold the questions in `specs/<n>/`. Caught at design time.
 
 ```sh
 python3 evals/judgment/run-judgment.py --check       # fixtures frozen? no tokens
-python3 evals/judgment/run-judgment.py --redproof    # judge red-proof, ~14 judge calls — first, always
+python3 evals/judgment/run-judgment.py --redproof    # judge red-proof, 28 judge calls (cached; --rejudge to re-ask) — first, always
 python3 evals/judgment/run-judgment.py --sut opus --k 1 F-63   # one iteration
 python3 evals/judgment/run-judgment.py --sut opus --k 3        # the sweep (k ruled after calibration)
 ```
@@ -88,8 +88,11 @@ mechanically** — whitespace-normalized, ≥40 chars, a substring of the
 document. A `yes` whose quote fails is re-asked once with the failure
 stated; a second failure is **judge-invalid** — never yes, never no —
 counted in its own column. A `no` needs no quote (absence cannot be
-quoted). Question count is mechanical, never judged: title lines matching
-`^**([role] · )?Q<k>`.
+quoted). Question count is mechanical, never judged: **distinct** Q-ids on
+title lines (`**[role] · Q<k> · label**` or `**Q<k> · label**`) — the
+spec-cr surface carries each item twice (thread body + spec.md, verbatim
+by A6), and a `**Q6**.` cross-reference inside a body is not a question;
+the red-proof's count check on the real F-63 output caught both (18 for 8).
 
 ## Scoring — two numbers, never blended
 
@@ -131,7 +134,7 @@ A mismatch fails the red-proof and the runner refuses to start the sweep.
 Anchors: replay E2 130–230k in/iteration on a tiny fixture; a quiet
 patrol pass ≈209k. ADMC is a real Java repo and three seats read it —
 estimate F-63/F-54 ≈600k, F-67 ≈250k, F-51 ≈200k → ≈1.65M per k; judge
-≈10k per criterion call. Paul's sequence: red-proof → ONE F-63
+≈11k per criterion call, measured (the red-proof's 28 calls: 309k in). Paul's sequence: red-proof → ONE F-63
 calibration iteration → measured cost reported → k ruled. Fixture-gap
 UNKNOWNs on a real repo are expected on the first runs (~0.5M allowance);
 every UNKNOWN prints in the report so routes are added in one batch.
