@@ -20,6 +20,16 @@
             "timeout": 60
           }
         ]
+      },
+      {
+        "matcher": "Bash|Read|Glob|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/guard-blind.sh\"",
+            "timeout": 60
+          }
+        ]
       }
     ]
   }

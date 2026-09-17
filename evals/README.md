@@ -5,7 +5,7 @@ built.
 
 | Tier | Cases | Status | Cost class |
 |---|---|---|---|
-| **lint** | 11 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
+| **lint** | 12 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
 | **replay** | 18 | built — `replay/run-replay.py` | needs a running loop and pass^k over repeated runs |
 | judgment | 1 | not built | needs a model-graded rubric |
 
@@ -91,7 +91,11 @@ C). E2 was promoted in 1.15.0 (rule D) on the replay tier's evidence: the
 prose said "relocate", 5/5 copied; the prose was made as explicit as prose
 gets ("move … delete it from the source document"), 5/5 still left the
 section behind. Lint E2 keeps the hook, the replay checker and the proof on
-one literal and sweeps this repo's specs tree at push time.
+one literal and sweeps this repo's specs tree at push time. D2 was
+promoted in 1.16.0 (guard-blind rule E) at 4/5 — one QA child read
+`src/app.txt` under the fidelity dispatch — because that failure is
+invisible at the gate: the class that gets teeth regardless of rate. Lint
+D2 holds the hook's three regexes byte-identical to the replay checker's.
 
 ## The gate
 

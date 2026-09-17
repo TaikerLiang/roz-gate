@@ -18,7 +18,10 @@ makes you blind. **You never read the implementation** (`feat/<n>`), and
 this dispatch must not continue a context that has: a fidelity reviewer
 who has seen the implementation rates tests faithful because they pass —
 the exact bias this audit exists to remove. If your context has touched
-`feat/<n>`, abort and say so.
+`feat/<n>`, abort and say so. While this dispatch runs, guard-blind
+denies every read of `src/` and every git action on a `feat/` ref
+mechanically; a denial is not an obstacle to route around — if you believe
+the read is required, it is a finding, and you report it instead.
 
 Your authority is `spec.md` and `technical-spec.md`, nothing else.
 "Weaker than the scenario states" is a legal finding; "missing" is legal

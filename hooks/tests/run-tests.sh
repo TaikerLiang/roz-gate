@@ -191,6 +191,56 @@ mkdir -p "$NOCFGREPO/docs/specs/1" && printf '%s' "$TS_WITH_SECTION" > "$NOCFGRE
 RUN_CWD=$NOCFGREPO run "rule D: repo without a Roz Gate config block untouched" 0 "" 'git commit -m x'
 trap 'rm -f "$STUB_LOG"; rm -rf "$USERREPO" "$BOTREPO" "$QREPO" "$NOCFGREPO"' EXIT
 
+# --- rule E (guard-blind, 1.16.0): the fidelity dispatch is blind while
+# the dispatching command's marker exists (D2 measured 4/5 on prose).
+GUARD_BLIND="$S/../guard-blind.sh"
+BREPO=$(mktemp -d)
+git init -q -b main "$BREPO" && mkdir -p "$BREPO/src" "$BREPO/tests/acceptance" "$BREPO/sub"
+echo demo > "$BREPO/src/app.txt"; echo "# S1" > "$BREPO/tests/acceptance/test_expiry.py"
+(cd "$BREPO" && git add -A && git -c user.email=t@t -c user.name=t commit -qm seed \
+  && git branch -q feat/5 && git checkout -qb qa/5)
+BMARK="$BREPO/.git/roz-gate/fidelity-dispatch"
+marker_on() { mkdir -p "$(dirname "$BMARK")" && printf 'issue=5\n' > "$BMARK"; }
+marker_off() { rm -f "$BMARK"; }
+run_blind() { # name expected_exit stderr_substr tool json_tool_input [cwd]
+  local name="$1" want="$2" substr="$3" tool="$4" inp="$5" cwd="${6:-$BREPO}"
+  local payload err rc
+  payload=$(python3 - "$tool" "$inp" <<'PY'
+import json, sys
+print(json.dumps({"tool_name": sys.argv[1], "tool_input": json.loads(sys.argv[2]), "agent_type": "roz-gate:qa"}))
+PY
+)
+  err=$( (cd "$cwd" && printf '%s' "$payload" | "$GUARD_BLIND" 2>&1 >/dev/null) ); rc=$?
+  if [ "$rc" != "$want" ]; then
+    echo "FAIL $name: exit $rc, want $want"; echo "  stderr: $err"; fail=$((fail+1)); return
+  fi
+  if [ -n "$substr" ] && ! grep -qF "$substr" <<<"$err"; then
+    echo "FAIL $name: stderr missing '$substr'"; echo "  stderr: $err"; fail=$((fail+1)); return
+  fi
+  echo "PASS $name"; pass=$((pass+1))
+}
+RUN4='{"command": "git status --short && git rev-parse --abbrev-ref HEAD && cat src/app.txt"}'
+run_blind "rule E: D2 run-4's exact command without a marker allowed" 0 "" Bash "$RUN4"
+marker_on
+run_blind "rule E: D2 run-4's exact command under the marker denied" 2 "implementation-blind" Bash "$RUN4"
+run_blind "rule E: message states the remedy (report it as a finding)" 2 "report it as a finding" Bash "$RUN4"
+run_blind "rule E: message names the agent when the payload carries one" 2 "agent: roz-gate:qa" Bash "$RUN4"
+run_blind "rule E: git checkout feat/5 under the marker denied" 2 "feat/ ref" Bash '{"command": "git checkout feat/5"}'
+run_blind "rule E: git diff qa/5...feat/5 denied" 2 "feat/ ref" Bash '{"command": "git diff qa/5...feat/5 -- tests/"}'
+run_blind "rule E: Read of an absolute src/ path denied" 2 "Read under src/" Read "{\"file_path\": \"$BREPO/src/app.txt\"}"
+run_blind "rule E: Grep with path src/ denied" 2 "Grep under src/" Grep '{"pattern": "price", "path": "src/"}'
+run_blind "rule E: Glob under src/ denied" 2 "Glob under src/" Glob '{"pattern": "src/**/*.py"}'
+run_blind "rule E: exclusion form grep -v '^src/' allowed" 0 "" Bash '{"command": "git ls-files | grep -v '"'"'^src/'"'"'"}'
+run_blind "rule E: exclusion pathspec ':!src/**' allowed" 0 "" Bash '{"command": "git grep -n price -- '"'"':!src/**'"'"'"}'
+run_blind "rule E: qa/<n> work — tests and spec docs — allowed" 0 "" Bash '{"command": "cat tests/acceptance/test_expiry.py && git status"}'
+run_blind "rule E: Read of a spec doc allowed" 0 "" Read "{\"file_path\": \"$BREPO/docs/specs/5/spec.md\"}"
+run_blind "rule E: judged from a subdirectory (marker found via git dir)" 2 "implementation-blind" Bash "$RUN4" "$BREPO/sub"
+run_blind "rule E: stale marker still denies and names the marker file" 2 "roz-gate/fidelity-dispatch" Bash "$RUN4"
+marker_off
+run_blind "rule E: marker removed — the same read is allowed again" 0 "" Bash "$RUN4"
+run_blind "rule E: outside any git repo the prefilter exits 0" 0 "" Bash "$RUN4" "$(mktemp -d)"
+trap 'rm -f "$STUB_LOG"; rm -rf "$USERREPO" "$BOTREPO" "$QREPO" "$NOCFGREPO" "$BREPO"' EXIT
+
 # --- rule A: intake summary triggers (GitHub) ---
 export GH_FIXTURE="$S/fx/gh_no_trigger.json"
 run "summary without trigger blocked (#54 case)" 2 "human decision point" "$SUMMARY_CMD"
@@ -248,7 +298,7 @@ EOF
   && git checkout -qb spec/63)
 # A repo with no Roz Gate config block (created above, before rule D): the
 # guard has nothing to enforce.
-trap 'rm -f "$STUB_LOG"; rm -rf "$USERREPO" "$BOTREPO" "$QREPO" "$SPECREPO" "$NOCFGREPO"' EXIT
+trap 'rm -f "$STUB_LOG"; rm -rf "$USERREPO" "$BOTREPO" "$QREPO" "$SPECREPO" "$NOCFGREPO" "$BREPO"' EXIT
 
 run_edit() { # name expected_exit stderr_substr repo tool file_path
   local name="$1" want="$2" substr="$3" repo="$4" tool="$5" path="$6"

@@ -318,6 +318,15 @@ Launch both at once (they never see each other):
   `${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md` as its contract,
   on a `qa/<n>` checkout — that branch contains no implementation code,
   which is what makes this dispatch structurally implementation-blind.
+- **Blindness is hook-enforced while the dispatch runs** (guard-blind,
+  rule E): immediately before the dispatch, write the marker
+  `mkdir -p "$(git rev-parse --git-dir)/roz-gate" && printf 'issue=<n>\n' > "$(git rev-parse --git-dir)/roz-gate/fidelity-dispatch"`;
+  immediately after it returns, `rm -f "$(git rev-parse --git-dir)/roz-gate/fidelity-dispatch"`.
+  While the marker exists, every read of `src/` and every git action on a
+  `feat/` ref is denied mechanically, with the remedy in the message. The
+  brief's "you never read the implementation" stays in the dispatch text —
+  the marker is what makes it a fact. This is **the fidelity-dispatch
+  procedure**; every implementation-blind dispatch on `qa/<n>` uses it.
 - It audits the QA suite's fidelity to the spec (four questions:
   scenario fidelity, vacuous assertions, coverage honesty, over-assertion)
   and posts two-way-cited findings as inline threads on the **QA CR**
