@@ -1,0 +1,20 @@
+{
+ "repo": {
+  "owner": "emilyorz",
+  "name": "ADMC"
+ },
+ "agent_login": "roz-gatekeeper",
+ "issues": {
+  "67": {
+   "title": "Create the makefile for daily operation in dlh-api",
+   "body": "you can refer to the following content to prepare the makefile\n\n```\n# Makefile for Liquibase Migration Management\n# Provides Django-like commands for database migrations\n\n# Load environment variables from .env file\n-include .env\nexport\n\n.PHONY: help makemigration migrate showmigrations\n\n# Default target\nhelp:\n\t@echo \"=== Liquibase Migration Commands ===\"\n\t@echo \"\"\n\t@echo \"Migration Generation:\"\n\t@echo \"  make makemigration              - Generate new migration (auto-numbered)\"\n\t@echo \"  make makemigration NAME=example - Generate migration with custom name\"\n\t@echo \"\"\n\t@echo \"Migration Execution:\"\n\t@echo \"  make migrate                           - Apply all pending migrations\"\n\t@echo \"  make showmigrations             - Show migration status\"\n\t@echo \"\"\n\n# Variables\nCHANGES_DIR := src/main/resources/db/changelog/changes\nMVN := mvn\nNAME ?= auto_generated\nCOUNT ?= 1\n\n# Auto-detect next migration number\nLATEST_NUM := $(shell ls $(CHANGES_DIR) 2>/dev/null | grep -E '^[0-9]+' | sed 's/^0*//' | sed 's/[^0-9].*//' | sort -n | tail -1)\nifeq ($(LATEST_NUM),)\n\tNEXT_NUM := 1\nelse\n\tNEXT_NUM := $(shell echo $$(($(LATEST_NUM) + 1)))\nendif\nNEXT_FORMATTED := $(shell printf \"%04d\" $(NEXT_NUM))\n\n# Migration Generation\nmakemigration:\n\t@echo \"Generating migration $(NEXT_FORMATTED)_$(NAME).yaml...\"\n\t@if [ ! -d \"$(CHANGES_DIR)\" ]; then \\\n\t\techo \"Error: Directory $(CHANGES_DIR) does not exist\"; \\\n\t\texit 1; \\\n\tfi\n\t@FILEPATH=\"$(CHANGES_DIR)/$(NEXT_FORMATTED)_$(NAME).yaml\"; \\\n\t$(MVN) liquibase:diff -Dliquibase.diffChangeLogFile=$$FILEPATH; \\\n\tif [ -f $$FILEPATH ]; then \\\n\t\techo \"\" >> $$FILEPATH; \\\n\t\techo \"- changeSet:\" >> $$FILEPATH; \\\n\t\techo \"    id: tag-$(NEXT_FORMATTED)\" >> $$FILEPATH; \\\n\t\techo \"    author: taiker\" >> $$FILEPATH; \\\n\t\techo \"    changes:\" >> $$FILEPATH; \\\n\t\techo \"      - tagDatabase:\" >> $$FILEPATH; \\\n\t\techo \"          tag: \\\"$(NEXT_FORMATTED)\\\"\" >> $$FILEPATH; \\\n\t\techo \"✓ Migration created: $$FILEPATH\"; \\\n\t\techo \"✓ Tag $(NEXT_FORMATTED) added\"; \\\n\telse \\\n\t\techo \"Error: Failed to generate migration file\"; \\\n\t\texit 1; \\\n\tfi\n\n# Migration Execution\nmigrate:\n\t@echo \"Applying all pending migrations...\"\n\t@$(MVN) liquibase:update\n\nshowmigrations:\n\t@echo \"Checking migration status...\"\n\t@$(MVN) liquibase:status\n\n```\n\nhope you can refer to the content `dlh-api/console/src/main/resources/db/changelog.yaml` and provide me the feedback, since this is not the user side feature, you should call EM agent to help me to refine the issue.",
+   "author": "TaikerLiang",
+   "createdAt": "2026-08-14T14:07:30Z",
+   "state": "open",
+   "labels": [],
+   "assignees": [],
+   "comments": []
+  }
+ },
+ "prs": {}
+}

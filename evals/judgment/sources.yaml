@@ -1,0 +1,3 @@
+# Machine-local sources the judgment tier clones from — never the network.
+# The ADMC checkout must contain every pin SHA in cases/*/fixture.json.
+admc: /Users/taiker/dev/ADMC

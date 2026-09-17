@@ -1,0 +1,29 @@
+{
+ "issue": 51,
+ "T": "2026-08-08T10:40:53Z",
+ "pin": "d2ded1269c1c",
+ "refinement_commit": null,
+ "identity": "user",
+ "command": "/roz-gate:patrol",
+ "timeout": 1800,
+ "include_issues": [
+  51
+ ],
+ "include_prs": [],
+ "surface": "issue",
+ "criteria": [
+  "N10"
+ ],
+ "question_cap": 0,
+ "historical": {
+  "count": 0,
+  "recall": "n/a",
+  "precision": "1/1",
+  "note": "correct silence: zero questions, summary with assumptions"
+ },
+ "frozen_at": "2026-08-08T10:40:53Z",
+ "labels_at_T": [],
+ "assignees_at_T": [],
+ "comments_at_T": 1,
+ "caveats": []
+}

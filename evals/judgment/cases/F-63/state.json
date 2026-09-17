@@ -1,0 +1,403 @@
+{
+ "repo": {
+  "owner": "emilyorz",
+  "name": "ADMC"
+ },
+ "agent_login": "roz-gatekeeper",
+ "issues": {
+  "63": {
+   "title": "One-time CLI job: copy workspace membership from the authorization roles into user records",
+   "body": "## User story\n\nAs a platform operator, I want a one-time job that copies each user's workspace membership from the authorization role mappings onto their user record, so that the console can tell which workspace a user belongs to without reaching into consoleauth, leaving consoleauth's own responsibilities untouched.\n\n## Acceptance criteria\n\n- [ ] After the job runs against existing data, every username that has authorization role mappings carries the workspace(s) from those mappings on their user record.\n- [ ] A username with mappings in several workspaces ends up represented once per workspace; a given username-and-workspace pair can exist only once, and a second attempt to record the same pair is rejected.\n- [ ] A user with no authorization role mappings keeps their record and simply carries no workspace.\n- [ ] A username that appears in the authorization role mappings but has no matching user record is written to the log and skipped; no user record is invented for it, and the job carries on with the rest.\n- [ ] Running the job a second time over data it has already migrated changes nothing and reports no error.\n- [ ] On completion the job reports how many memberships were copied and how many usernames were skipped.\n- [ ] Authorization behaviour is unchanged: the role mappings are only read, never written, and consoleauth continues to decide access exactly as it does today.\n\n## Out of scope\n\n- Keeping the copied workspace current as memberships change afterwards. The gate holder ruled this belongs to **#61**, not to a new sibling issue — so #61 owns the drift, and #54's workspace-scoped read must not ship on a snapshot #61 has not yet taken responsibility for keeping current.\n- Copying any field other than workspace out of the role mappings (the role value itself stays in consoleauth).\n- Any change to workspace owners, the admin audit log's actor strings, or any UI surfacing of the new workspace value.\n\n## Context\n\nThe system holds two disconnected identity models for the same person: user records, and raw username strings in the authorization role mappings that drive access decisions. On #61 the gate holder ruled that consoleauth keeps its isolation — it has its own purpose and stays as it is — but that the workspace information it holds should also live on the user record, with username as the anchor.\n\nThis matters now because #54 (the user-console audit log) cannot enforce its workspace-scoped read boundary until something names what makes a caller a member of a workspace. Workspace on the user record becomes that answer. This job is the one-time backfill that puts the existing data in place; #61 then owns keeping it true over time.\n\nDependency chain: this issue blocks #61, which blocks #54.\n\nNote for the spec stage: a username may hold mappings in more than one workspace, so a user is no longer necessarily one record — the spec stage should confirm what that means for anything today that assumes one record per person.\n\n## Recorded assumptions\n\n- \"Set this issue to block state\" read as the dependency chain above; the new issue itself is ready to work.\n- Usernames present in the role mappings but absent from user records are logged and skipped rather than provisioned, since a role mapping carries no email or department to provision from.\n",
+   "author": "roz-gatekeeper[bot]",
+   "createdAt": "2026-08-12T15:42:00Z",
+   "state": "open",
+   "labels": [
+    "track: spec",
+    "status: ready-for-spec"
+   ],
+   "assignees": [
+    "TaikerLiang"
+   ],
+   "comments": []
+  },
+  "61": {
+   "title": "Unify user identity model: users table vs raw username strings (roles / owners / audit)",
+   "body": "Raw idea filed from the #54 spec-review discussion (gate holder: TaikerLiang). This issue BLOCKS #54.\n\n## The problem\n\nThe system has two disconnected identity models for the same concept:\n\n1. **`users` table** — surrogate PK (`id`), `username` unique, `enabled` flag, lazily provisioned on first login (`findOrCreateAndProvisionUser`).\n2. **Raw `username` strings, no FK to `users`** — `console_opa_username_roles` (PK = username+workspace, drives OPA authorization), `workspaces.owner` (string list), and the admin audit log's `created_by` (from MDC).\n\n`UserEntity.username` and `UsernameRoleEntity.id.username` are the same identifier, maintained in two places with no referential integrity.\n\n## Why it is serious — membership is time-varying\n\nA user can **change workspace over time** (roles rows are granted/revoked per workspace). With identity spread across unlinked raw strings:\n\n- A role can be granted to a username that does not exist in `users` (typo lives forever); disabling a user (`enabled=false`) does not revoke or flag their roles — OPA still authorizes.\n- A username rename orphans every roles / owner / audit string that references the old name.\n- For the planned user-console audit log (#54): the workspace-scoped read boundary is evaluated against **current** membership while records are historical — without a defined relationship between identity, membership history, and the trail, attribution and visibility cannot be made consistent (who moved out no longer resolves; who moved in sees or misses history undefined).\n\n## Impact\n\n#54 (user-console audit log, spec CR #60 in review — see its Q1/Q6/Q9 threads) is **blocked** on the direction set here. PRD §11 Q1 (owner identifier: username vs userId, pending in #55 Q3) is the same root problem.\n\n## Sketch of scope (intake to clarify)\n\n- Single source of truth for identity (FK roles/owners to `users`, or migrate to `user_id` keys)\n- Whether authorization must consult `users.enabled`\n- Username-rename policy\n- How membership changes over time relate to workspace-scoped data (esp. audit visibility)",
+   "author": "TaikerLiang",
+   "createdAt": "2026-08-09T15:52:21Z",
+   "state": "open",
+   "labels": [],
+   "assignees": [],
+   "comments": [
+    {
+     "id": 5232446306,
+     "author": "TaikerLiang",
+     "body": "**[intake]**\n\n**5 questions — asked once.** Discuss freely below (`1a 2b` shorthand welcome). When it settles — or right now, if the recommendations look right — the assignee ends a comment with the line `summary` (corrections and the request can share one comment). Whatever stays unanswered resolves to the ✅ recommendation, recorded as an explicit assumption.\n\n---\n\n**Q1 · Identity key**\n\nWhich key becomes the single source of truth linking roles / owners to the `users` table?\n\n- (a) Keep **username** as the join key, add real integrity — every username written into roles or owners must exist in `users` (FK or enforced validation) ← ✅ recommended\n- (b) Migrate the referencing tables to the numeric **users.id** — username becomes display-only\n\n*(a) is the smallest change that kills typo-grants and orphan strings; usernames come straight from the JWT and sit at the OPA boundary anyway, so (b) still translates back to usernames at the edges — pay that migration only if renames must be first-class (see Q4).*\n\n<details><summary>Background</summary>\n\n`users` today actually holds **three** candidate keys: the surrogate PK `id` (Long), the unique `username`, and a nullable, backfill-incomplete external `user_id` (Integer, added late \"for backward compatibility\"). OPA authorization reads `console_opa_username_roles` keyed by username+workspace, with no link to `users`. Answering (a) here also settles #55 Q3 and PRD §11 Q1 in one stroke: owner identifier = username, validated against `users`.\n\n</details>\n\n**Q2 · Membership vs history** *(story-level)*\n\nFor workspace-scoped reads — most urgently #54's audit trail (spec CR #60, Q6/Q9) — does visibility follow **current** membership only, or must membership **history** be modelled?\n\n- (a) **Current membership governs** — whoever is a member now sees the workspace's full trail, including actions from before they joined; whoever leaves sees nothing ← ✅ recommended\n- (b) Model a membership timeline (grant/revoke history) and time-bound each user's visibility → say what the bound is\n\n*(a) matches #54's spec as written (S7 workspace-wide visibility, S9 trail outlives the actor's membership), needs no new tables, and unblocks #54 immediately; (b) is real domain modelling that no stated user need requires yet — it can always arrive as a sibling.*\n\n**Q3 · Disabled users**\n\nMust authorization consult `users.enabled` — i.e., does disabling a user immediately cut their workspace access?\n\n- (a) **Yes** — `enabled=false` blocks authorization everywhere; role rows remain but are inert ← ✅ recommended\n- (b) No — `enabled` stays bookkeeping; locking someone out requires explicitly revoking every role\n\n*An admin who flips a user to disabled expects them locked out — today the flag is never consulted anywhere, so a \"disabled\" user keeps acting, which no admin's mental model survives.*\n\n<details><summary>Background</summary>\n\nVerified in the codebase: `enabled` is only echoed in user response DTOs; no authorization or login path reads it. Note also the parallel `console_opa_deptid_roles` table (deptid+workspace) — access can arrive through department membership, which a manual per-role revocation sweep would miss entirely. A central enabled check covers both paths; per-role revocation (b) does not.\n\n</details>\n\n**Q4 · Username rename** *(story-level)*\n\nAssuming username stays the key (Q1a): what is the rename policy?\n\n- (a) **Out of scope** — a renamed corporate account is treated as a new identity; old rows orphan, and reconciliation is parked as a future sibling issue ← ✅ recommended\n- (b) Support rename with cascade across roles and owners (audit strings stay historical) — which requires finishing the external `user_id` backfill as the stable anchor\n\n*Identity arrives from the JWT `WINDOWS_ACCT` claim and lazily self-provisions on first login — a corporate rename already materializes as a brand-new user row whether we support renames or not; (b) is a full story of its own, not a clause in this one.*\n\n**Q5 · This story's slice** *(story-level)*\n\nGiven the direction settles above, what does #61 itself deliver — and what becomes siblings?\n\n- (a) **Direction + the roles-table slice**: the decided identity rules enforced on `console_opa_username_roles` (no grant to a nonexistent user; Q3's enabled behavior) — `workspaces.owner` migration and owner-UI changes parked as siblings ← ✅ recommended\n- (b) All three surfaces in one story — roles, owners, and audit strings together\n\n*The roles table is where authorization lives — the stated severity driver — and it alone unblocks #54; the audit side is already ruled by #54's spec (actors are historical string snapshots, deliberately no FK), and owners drag in #55/PRD §11 UI decisions, so (b) turns a blocker-clearing issue into a slow omnibus.*\n\n---\n\nTrack: `spec` — domain/data modelling with authorization impact; not treated as open.",
+     "createdAt": "2026-08-09T16:04:53Z"
+    },
+    {
+     "id": 5268784785,
+     "author": "TaikerLiang",
+     "body": "Q1: I want to keep the isolation for the consoleauth functionality, since this functionality has its own purpose, but I want to copy some field info in the table `console_opa_username_roles` to the table `users` such as workspace field to the `users` table. Based on this purpose I want you to create another issue to create the cli job for one-time migration that need to create the new field called `workspace` to the `users` table and set the `username` and `workspace` as unique key then copy the workspace info from the `console_opa_username_roles` to `user` table with username as anchor. Set this issue to block state",
+     "createdAt": "2026-08-12T15:19:26Z"
+    }
+   ]
+  },
+  "54": {
+   "title": "Add the audit log to the user console",
+   "body": "In the dlh-api, we provide APIs for two frontend console services:\n\n1. User Console\n2. Admin Console\n\nFor the Admin Console, we implemented UserActionLogs to record audit logs for every user action. However, the User Console does not currently have the same audit logging capability.\n\nThis issue is to add UserActionLogs support to the User Console so that user actions are audited consistently across both console services.",
+   "author": "TaikerLiang",
+   "createdAt": "2026-08-02T07:05:19Z",
+   "state": "open",
+   "labels": [
+    "track: spec",
+    "status: blocked"
+   ],
+   "assignees": [
+    "TaikerLiang"
+   ],
+   "comments": [
+    {
+     "id": 5201940407,
+     "author": "TaikerLiang",
+     "body": "**[intake]**\n\n**4 open questions** — All recommendations fine? Reply `all recs`. Otherwise answer by number and letter (e.g. `1b 2a 3a 4a`), or just reply in free text.\n\n---\n\n**Q1 · Scope**\n\n- (a) Every state-changing action in the **user console** only (~25 endpoints: workspaces, clusters, domains, products, buckets, pipeline configs, table configs, bulk import, approval workflow)\n- (b) Every state-changing action in **both consoles** — the user console *plus* the admin-console actions that turn out to be unaudited today ← ✅ **recommended**\n\n*The issue's premise is that the admin console is already fully audited; it isn't, so (a) would ship and still leave the two consoles inconsistent — the exact gap this issue exists to close.*\n\n<details><summary>Background</summary>\n\nOnly **two** audit-writing call sites exist in the entire codebase:\n\n1. A user super-admin-flag update — which **no controller currently exposes**, so it is unreachable over HTTP.\n2. Workspace create/replace — which is itself a **user-console** endpoint, not an admin one.\n\nUnaudited admin-console actions: feature toggle create/update/delete, and CLI job execution. Several entity types (pipeline, table config, cluster, feature toggle) are declared as loggable but never actually logged.\n\nSeparately, the log table has no retention or cleanup and grows unbounded. Recommend treating retention as a sibling issue rather than part of this story.\n</details>\n\n---\n\n**Q2 · Driver**\n\n- (a) **Operational traceability** — so an owner or admin can answer \"who changed this pipeline config, and when?\" ← ✅ **recommended**\n- (b) **Compliance / security audit** — a defensible, complete, tamper-evident record for an external auditor\n\n*(b) makes completeness, immutability and a retention policy non-negotiable acceptance criteria and roughly triples the story; nothing in the PRD or the current code points to an external audit obligation today.*\n\n---\n\n**Q3 · Log access**\n\n- (a) **Write-only** for now — user-console actions land in the same log, read through the existing admin log endpoint ← ✅ **recommended**\n- (b) Also give user-console users a way to **view** the audit trail for their own workspace\n\n*(a) is the smallest change that delivers \"actions are audited\"; a workspace-scoped viewer needs its own UI and permission model and deserves its own issue.*\n\n<details><summary>Background</summary>\n\nThe single existing read endpoint (`GET /api/v1/admin-console/user-action-logs`) has **no authorization check at all** — no role gate, no super-admin check, no Spring Security in this module. Anyone who can reach the service reads every audit record.\n\nThat is pre-existing, but this issue makes it worse: recording pipeline and table-config changes adds field-level before/after values to a log that is currently readable by anyone. Recommend filing the authorization gap as its own issue rather than bundling it here — but flagging it now so it isn't discovered after the data volume grows.\n</details>\n\n---\n\n**Q4 · Failure coverage**\n\n- (a) Log **successful state changes only** ← ✅ **recommended**\n- (b) Also log **failed or rejected attempts** — validation errors and permission denials\n\n*(a) matches how the existing log already behaves and keeps the record to \"what actually changed\"; (b) is the compliance-flavoured answer and only earns its cost if Q2 is (b).*\n\n---\n\nReply `all recs` to take every recommendation, or answer by number and letter (e.g. `1a 2a 3b 4a`). Free text is fine too.\n",
+     "createdAt": "2026-08-06T07:54:10Z"
+    },
+    {
+     "id": 5203540554,
+     "author": "TaikerLiang",
+     "body": "Q1: a, since we have an admin_portal_user_action_logs table for recording the audit log for admin console, we need another table for user console.\nQ2: a\nQ3: b, we need to provide a controller to FE to let user can view their action\nQ4: a",
+     "createdAt": "2026-08-06T10:38:02Z"
+    },
+    {
+     "id": 5225820762,
+     "author": "TaikerLiang",
+     "body": "Summary",
+     "createdAt": "2026-08-08T11:04:45Z"
+    },
+    {
+     "id": 5225826952,
+     "author": "TaikerLiang",
+     "body": "**[intake] · summary**\n\n**Story**\n\n> As a user-console user, I want every state-changing action I take through the user console recorded in an audit log I can view, so that anyone operating a workspace can trace who changed what, and when.\n\n**Acceptance criteria**\n\n- [x] Every **successful** state-changing action performed through the user console produces an audit record capturing at least: who acted, what action, what target, and when.\n- [ ] User-console audit records are kept in their **own log, separate from the existing admin-console log** (gate holder's call — see decision trail).\n- [ ] A user can retrieve **their own** action history through the API (a read endpoint the frontend can consume); they see only records they authored.\n- [ ] Failed or rejected attempts (validation errors, permission denials) produce **no** record.\n- [ ] Read-only actions produce no record.\n- [ ] Existing admin-console audit behavior is unchanged.\n\n**Context**\n\nThe dlh-api serves two frontend consoles (User and Admin). The admin console records user actions to an audit log; the user console records nothing. This story brings the user console up to parity: successful state-changing actions get logged, and users get a way to see their own trail. The driver is **operational traceability** (\"who changed this, and when?\"), not external compliance — so completeness/immutability/retention guarantees are explicitly not part of the bar.\n\n**Out of scope** (parked as future siblings)\n\n- Admin-console audit gaps discovered during intake (unaudited feature-toggle CRUD, CLI job execution, entity types declared loggable but never logged).\n- Log retention / cleanup — both logs currently grow unbounded.\n- **Authorization on the existing admin log read endpoint** — it currently has no access check at all; anyone reaching the service can read every record. Pre-existing, but worth its own issue *before* log volume and sensitivity grow.\n- Any workspace-scoped audit viewer UI beyond the user's own-actions endpoint above.\n\n**Proposed track**: `track: spec` — user-facing behavior plus data modelling (new log store, viewer endpoint shape, which actions count as state-changing) leaves real decisions that two engineers would settle differently.\n\n**Decision trail**\n\n- Intake batch (4 questions with recommendations) posted 2026-08-06; **TaikerLiang** (gate holder) answered same day: `Q1: a, Q2: a, Q3: b, Q4: a`.\n- **Q1 · Scope — contested.** Batch recommended (b) audit both consoles, since the admin console turned out not to be fully audited either. TaikerLiang chose **(a) user console only**, reasoning that the admin console already has its `admin_portal_user_action_logs` table and the user console should get **its own separate table**. Summary takes (a) with a separate log store; the admin-side gaps are parked as a sibling.\n- **Q2 · Driver** — TaikerLiang: **(a) operational traceability**, per recommendation.\n- **Q3 · Log access — contested.** Batch recommended (a) write-only for now, viewer as its own issue. TaikerLiang chose **(b)**: provide a controller so the frontend can let users view their own actions. Summary takes (b) — the own-actions read endpoint is in scope.\n- **Q4 · Failure coverage** — TaikerLiang: **(a) successful changes only**, per recommendation.\n\n**Assumptions**\n\n- None — all four intake questions were answered by the gate holder.\n\n---\n*Right? Apply `status: ready-for-spec` (or `ready-for-dev` for the fast track) — the label is the confirmation. Off? Reply corrections and comment `summary` again.*",
+     "createdAt": "2026-08-08T11:06:32Z"
+    },
+    {
+     "id": 5225893991,
+     "author": "TaikerLiang",
+     "body": "> Authorization on the existing admin log read endpoint — it currently has no access check at all; anyone reaching the service can read every record. Pre-existing, but worth its own issue before log volume and sensitivity grow.\n\nWe should add a restriction to ensure that workspace users can only view logs from their own workspace. They should not be allowed to access logs from other workspaces.\n\n> Every successful state-changing action performed through the user console produces an audit record capturing at least: who acted, what action, what target, and when.\n\nBesides the basic audit information mentioned above, such as who performed the action, what action was performed, and when it happened, we should also follow the diff-log approach used in the Admin Console to capture the value change before and after each action.",
+     "createdAt": "2026-08-08T11:26:06Z"
+    },
+    {
+     "id": 5230035973,
+     "author": "TaikerLiang",
+     "body": "summary",
+     "createdAt": "2026-08-09T05:53:46Z"
+    },
+    {
+     "id": 5230043237,
+     "author": "TaikerLiang",
+     "body": "**[intake] · summary**\n\n**Story**\n\n> As a user-console user, I want every state-changing action taken through the user console recorded in an audit log with before/after values, viewable within my own workspace, so that anyone operating a workspace can trace who changed what, when, and to which value.\n\n**Acceptance criteria**\n\n- [ ] Every **successful** state-changing action performed through the user console produces an audit record capturing at least: who acted, what action, what target, when — **and the before/after value of each change (diff log), following the same approach the admin console uses**.\n- [ ] User-console audit records are kept in their **own log, separate from the existing admin-console log** (gate holder's call — see decision trail).\n- [ ] A workspace user can retrieve audit logs through the API (a read endpoint the frontend can consume) — **scoped to their own workspace only: a request for another workspace's logs is denied and returns no records**.\n- [ ] Failed or rejected attempts (validation errors, permission denials) produce **no** record.\n- [ ] Read-only actions produce no record.\n- [ ] Existing admin-console audit behavior is unchanged.\n\n**Context**\n\nThe dlh-api serves two frontend consoles (User and Admin). The admin console records user actions to an audit log — including a diff log of value changes; the user console records nothing. This story brings the user console up to parity: successful state-changing actions get logged with before/after values, and workspace users get a way to view the audit trail — hard-bounded to their own workspace. The driver is **operational traceability** (\"who changed this, and when?\"), not external compliance — so completeness/immutability/retention guarantees are explicitly not part of the bar.\n\n**Out of scope** (parked as future siblings)\n\n- Admin-console audit gaps discovered during intake (unaudited feature-toggle CRUD, CLI job execution, entity types declared loggable but never logged).\n- Log retention / cleanup — both logs currently grow unbounded.\n- Authorization on the **existing admin-console** log read endpoint — it currently has no access check at all. The gate holder's workspace-scoping correction is applied to **this story's new user-console read endpoint** (see decision trail); whether the pre-existing admin endpoint also gets an access check stays parked unless the holder says otherwise.\n- Any workspace audit viewer UI beyond the read endpoint above.\n\n**Proposed track**: `track: spec` — user-facing behavior plus data modelling (new log store with diff capture, workspace-scoped viewer endpoint, which actions count as state-changing) leaves real decisions that two engineers would settle differently.\n\n**Decision trail**\n\n- Intake batch (4 questions with recommendations) posted 2026-08-06; **TaikerLiang** (gate holder) answered same day: `Q1: a, Q2: a, Q3: b, Q4: a`.\n- **Q1 · Scope — contested.** Batch recommended (b) audit both consoles, since the admin console turned out not to be fully audited either. TaikerLiang chose **(a) user console only**, reasoning that the admin console already has its own log table and the user console should get **its own separate table**. Summary takes (a) with a separate log store; the admin-side gaps are parked as a sibling.\n- **Q2 · Driver** — TaikerLiang: **(a) operational traceability**, per recommendation.\n- **Q3 · Log access — contested.** Batch recommended (a) write-only for now. TaikerLiang chose **(b)**: provide a controller so the frontend can let users view the audit trail. Summary takes (b) — the read endpoint is in scope.\n- **Correction 1 (TaikerLiang, 2026-08-08) — access scope.** Replying to the previous summary, the holder set the access rule in **workspace terms**: workspace users may only view logs from **their own workspace**, never other workspaces'. This **replaces the previous summary's \"own actions only\"** framing: the boundary is the workspace, not the author. The correction quoted the admin-endpoint out-of-scope bullet, but speaks of workspace users' log access — the summary applies it to this story's new user-console read endpoint (see assumptions for the residual within-workspace question).\n- **Correction 2 (TaikerLiang, 2026-08-08) — diff log.** Beyond who/what/when, audit records must capture the **before and after value of each change**, following the diff-log approach already used in the admin console. Folded into the first acceptance criterion.\n- **Q4 · Failure coverage** — TaikerLiang: **(a) successful changes only**, per recommendation.\n\n**Assumptions**\n\n- **Within-workspace visibility**: the correction fixes the outer boundary (never another workspace's logs) but does not say whether, inside their own workspace, a user sees **all members' actions** or only **their own**. Read plainly, \"view logs from their own workspace\" means workspace-wide visibility, and that is what this summary takes — a user sees every audit record in their workspace. If you meant each user still sees only records they authored, say so and the read endpoint narrows accordingly.\n- **Admin endpoint untouched**: the workspace-scoping rule is applied to the new user-console endpoint only; the pre-existing unauthorized admin read endpoint remains a parked sibling issue.\n\n---\n*Right? Apply `status: ready-for-spec` (or `ready-for-dev` for the fast track) — the label is the confirmation. Off? Reply corrections — end the comment with a line `summary` to see a revised summary first, or apply the label directly: finalize folds your corrections either way.*",
+     "createdAt": "2026-08-09T05:56:14Z"
+    },
+    {
+     "id": 5232396310,
+     "author": "TaikerLiang",
+     "body": "**[blocked]** — by gate holder's decision during spec review.\n\n**What happened:** the spec-review discussion (Q1/Q6/Q9 on spec CR #60) surfaced that the system's identity model is split — `users` table vs raw username strings in `console_opa_username_roles` / `workspaces.owner` / audit `created_by`, with no referential integrity — and that **membership is time-varying** (users change workspaces). The workspace-scoped visibility and attribution this story depends on cannot be specified soundly until the identity/membership direction is set.\n\n**Blocker:** #61 (unify user identity model). It must settle direction first.\n\n**What already exists:** spec CR #60 stays open with `specs/54/spec.md` + `technical-spec.md` and 10 unresolved Q&A threads — no work is lost.\n\n**To resume:** when #61 sets direction, the gate holder clears `status: blocked` back to `status: in-spec-review`; the Q&A loop continues and the affected answers (Q1/Q6/Q9, identity fields in the record contract) fold in per #61's outcome.",
+     "createdAt": "2026-08-09T15:52:40Z"
+    }
+   ]
+  }
+ },
+ "prs": {
+  "60": {
+   "number": 60,
+   "title": "Spec: #54 Add the audit log to the user console",
+   "body": "Stage (2) spec refinement for #54. For review. Refs #54",
+   "state": "OPEN",
+   "isDraft": false,
+   "headRefName": "spec/54",
+   "baseRefName": "main",
+   "createdAt": "2026-08-09T06:15:08Z",
+   "threads": [
+    {
+     "id": "T3742862358",
+     "isResolved": false,
+     "path": "specs/54/spec.md",
+     "line": 271,
+     "comments": [
+      {
+       "databaseId": 3742862358,
+       "author": "TaikerLiang",
+       "body": "**[em] · Q1 · Within-workspace visibility (story-level)**\n\nInside their own workspace, whose actions does a user see?\n\n- (a) **All members' actions** — workspace-wide trail ← ✅ recommended (the plain reading of your correction; what the spec currently assumes)\n- (b) **Own actions only** — the read endpoint and scenario set narrow accordingly\n\n*This is the intake's one recorded open assumption — it needs an explicit ruling. If your decision changes the user story, I will mirror a note to issue #54.*",
+       "createdAt": "2026-08-09T06:16:01Z"
+      },
+      {
+       "databaseId": 3744217888,
+       "author": "TaikerLiang",
+       "body": "Yes, every member of the same workspace can view all actions that occurred within that workspace.",
+       "createdAt": "2026-08-09T15:03:52Z"
+      }
+     ]
+    },
+    {
+     "id": "T3742862390",
+     "isResolved": false,
+     "path": "specs/54/spec.md",
+     "line": 277,
+     "comments": [
+      {
+       "databaseId": 3742862390,
+       "author": "TaikerLiang",
+       "body": "**[em] · Q2 · Audit-write failure semantics**\n\nIf the audit insert fails after the business action succeeded, what happens?\n\n- (a) **Best-effort** — the action commits; the audit loss is logged loudly server-side ← ✅ recommended\n- (b) **Atomic** — audit write joins the same transaction; the user sees an error\n\n*The driver is operational traceability, not compliance — best-effort matches; but atomicity is cheap for same-DB writes, so it is your call. Intake explicitly deferred this.*",
+       "createdAt": "2026-08-09T06:16:02Z"
+      },
+      {
+       "databaseId": 3744285522,
+       "author": "TaikerLiang",
+       "body": "I believe option B is better, since users would also expect to see the successful action in the audit log once the action has been completed successfully.",
+       "createdAt": "2026-08-09T15:28:06Z"
+      }
+     ]
+    },
+    {
+     "id": "T3742862415",
+     "isResolved": false,
+     "path": "specs/54/spec.md",
+     "line": 285,
+     "comments": [
+      {
+       "databaseId": 3742862415,
+       "author": "TaikerLiang",
+       "body": "**[em] · Q3 · Auditable-operation survey**\n\nFour ambiguous cases need rulings — answer like 3a/3b/3c/3d:\n\n- **(3a) Bulk pipeline-config import**: one record **per imported config** ← ✅ recommended · or one per import request\n- **(3b) Bucket bulk operation**: one record **per bucket** ← ✅ recommended · or one per request\n- **(3c) Approval-request execute**: log **the resulting entity change only** ← ✅ recommended · the execute action · or both\n- **(3d) Async background-handler trigger**: **excluded** (internal hook, not a user-console action) ← ✅ recommended · or included\n\n*Per-entity records keep the trail answerable at the object level; the async handler has no acting console user.*",
+       "createdAt": "2026-08-09T06:16:03Z"
+      },
+      {
+       "databaseId": 3744296305,
+       "author": "TaikerLiang",
+       "body": "follow all your recommendations. ",
+       "createdAt": "2026-08-09T15:32:18Z"
+      }
+     ]
+    },
+    {
+     "id": "T3742862442",
+     "isResolved": false,
+     "path": "specs/54/spec.md",
+     "line": 294,
+     "comments": [
+      {
+       "databaseId": 3742862442,
+       "author": "TaikerLiang",
+       "body": "**[em] · Q4 · Workspace attribution for global entities (story-level)**\n\nClusters, domains, and products have no owning workspace — 'every action recorded' and 'viewable within one's workspace' cannot both hold for them. Their records are:\n\n- (a) **Recorded with null workspace, invisible via this endpoint** ← ✅ recommended (the contract's current pending choice)\n- (b) Visible to everyone\n- (c) Attributed to the acting user's workspace(s)\n\n*(a) keeps recording complete and the read boundary intact; a global-entity viewer can be a later sibling. If your decision changes the user story, I will mirror a note to issue #54.*",
+       "createdAt": "2026-08-09T06:16:04Z"
+      },
+      {
+       "databaseId": 3744300763,
+       "author": "TaikerLiang",
+       "body": "I believe these changes (global entities) belong to the admin console, we should add these change logs to admin_portal_user_action_logs",
+       "createdAt": "2026-08-09T15:34:04Z"
+      }
+     ]
+    },
+    {
+     "id": "T3742862476",
+     "isResolved": false,
+     "path": "specs/54/spec.md",
+     "line": 303,
+     "comments": [
+      {
+       "databaseId": 3742862476,
+       "author": "TaikerLiang",
+       "body": "**[em] · Q5 · Workspace create/replace double-log collision (story-level)**\n\nThe only reachable audit write today is the user-console workspace create/replace endpoint writing into the **admin** table. For this one endpoint:\n\n- (a) **Double-write to both logs** — admin trail stays literally unchanged ← ✅ recommended\n- (b) Move to the new log — changes what the admin log receives\n\n*'Every user-console action lands in the new log' and 'admin audit behavior unchanged' collide here; it must be an explicit decision. If your decision changes the user story, I will mirror a note to issue #54.*",
+       "createdAt": "2026-08-09T06:16:05Z"
+      },
+      {
+       "databaseId": 3744304148,
+       "author": "TaikerLiang",
+       "body": "A",
+       "createdAt": "2026-08-09T15:35:20Z"
+      }
+     ]
+    },
+    {
+     "id": "T3742862496",
+     "isResolved": false,
+     "path": "specs/54/spec.md",
+     "line": 312,
+     "comments": [
+      {
+       "databaseId": 3742862496,
+       "author": "TaikerLiang",
+       "body": "**[em] · Q6 · Workspace-membership predicate**\n\nWhat makes a caller a member of a workspace for read access?\n\n- (a) **Consoleauth role mapping** ← ✅ recommended (the contract's current pending choice)\n- (b) Presence in the workspace's owner list\n- (c) Something else — say what\n\n*Rule 6 (workspace-scoped read) cannot be enforced until the membership source of truth is named.*",
+       "createdAt": "2026-08-09T06:16:06Z"
+      }
+     ]
+    },
+    {
+     "id": "T3742862517",
+     "isResolved": false,
+     "path": "specs/54/spec.md",
+     "line": 317,
+     "comments": [
+      {
+       "databaseId": 3742862517,
+       "author": "TaikerLiang",
+       "body": "**[em] · Q7 · Diff payload bounds for large configs**\n\nPipeline/table configs are large documents; a create/delete diff stores a full before- or after-image. Acceptable?\n\n- (a) **Full snapshot** — simplest, matches admin semantics ← ✅ recommended\n- (b) Capped or summarized change maps\n\n*Storage growth is already a known parked issue; this decides how fast it grows.*",
+       "createdAt": "2026-08-09T06:16:07Z"
+      }
+     ]
+    },
+    {
+     "id": "T3742862549",
+     "isResolved": false,
+     "path": "specs/54/spec.md",
+     "line": 323,
+     "comments": [
+      {
+       "databaseId": 3742862549,
+       "author": "TaikerLiang",
+       "body": "**[product] · Q8 · No-op update**\n\nA successful update that changes zero fields — rule 1 (success-only ⇒ record) and rule 3 (changed-fields-only ⇒ empty map) pull opposite ways:\n\n- (a) Record with an empty change map — 'someone saved, nothing changed'\n- (b) **No record at all** ← ✅ recommended\n\n*An empty diff answers no 'who changed what' question and only adds noise to the trail.*",
+       "createdAt": "2026-08-09T06:16:08Z"
+      }
+     ]
+    },
+    {
+     "id": "T3742862583",
+     "isResolved": false,
+     "path": "specs/54/spec.md",
+     "line": 331,
+     "comments": [
+      {
+       "databaseId": 3742862583,
+       "author": "TaikerLiang",
+       "body": "**[product] · Q9 · Trail visibility after workspace deletion (story-level)**\n\nOnce workspace W is deleted, can anyone still view W's trail — including the delete record itself?\n\n- (a) **Retained but membership-gated** — history exists, effectively write-only after deletion ← ✅ contract's current pending choice\n- (b) Still viewable by former members / some audience — say who\n\n*If membership-gated, the story's 'viewable within one's workspace' clause silently fails for the terminal action. Companion to Q4 — both are cases where the two story clauses cannot hold together. If your decision changes the user story, I will mirror a note to issue #54.*",
+       "createdAt": "2026-08-09T06:16:09Z"
+      }
+     ]
+    },
+    {
+     "id": "T3742862660",
+     "isResolved": false,
+     "path": "specs/54/spec.md",
+     "line": 340,
+     "comments": [
+      {
+       "databaseId": 3742862660,
+       "author": "TaikerLiang",
+       "body": "**[product] · Q10 · Sensitive values in workspace-wide diffs**\n\nPipeline/table configs may carry connection strings or credential-like fields; workspace-wide visibility shows full before/after values to every member (the admin precedent exposed them to admins only):\n\n- (a) **Raw values** — simplest, matches admin semantics ← ✅ recommended unless a real credential-bearing field is identified in the in-scope entities\n- (b) Mask known-sensitive fields in the read path\n\n*Someone should look at the actual in-scope entities before we widen the audience.*",
+       "createdAt": "2026-08-09T06:16:10Z"
+      }
+     ]
+    }
+   ],
+   "reviews": [
+    {
+     "id": 4890667531,
+     "state": "COMMENTED",
+     "body": "",
+     "author": "TaikerLiang",
+     "submitted_at": "2026-08-09T06:16:01Z"
+    },
+    {
+     "id": 4890667565,
+     "state": "COMMENTED",
+     "body": "",
+     "author": "TaikerLiang",
+     "submitted_at": "2026-08-09T06:16:02Z"
+    },
+    {
+     "id": 4890667587,
+     "state": "COMMENTED",
+     "body": "",
+     "author": "TaikerLiang",
+     "submitted_at": "2026-08-09T06:16:03Z"
+    },
+    {
+     "id": 4890667614,
+     "state": "COMMENTED",
+     "body": "",
+     "author": "TaikerLiang",
+     "submitted_at": "2026-08-09T06:16:04Z"
+    },
+    {
+     "id": 4890667636,
+     "state": "COMMENTED",
+     "body": "",
+     "author": "TaikerLiang",
+     "submitted_at": "2026-08-09T06:16:05Z"
+    },
+    {
+     "id": 4890667659,
+     "state": "COMMENTED",
+     "body": "",
+     "author": "TaikerLiang",
+     "submitted_at": "2026-08-09T06:16:06Z"
+    },
+    {
+     "id": 4890667675,
+     "state": "COMMENTED",
+     "body": "",
+     "author": "TaikerLiang",
+     "submitted_at": "2026-08-09T06:16:07Z"
+    },
+    {
+     "id": 4890667705,
+     "state": "COMMENTED",
+     "body": "",
+     "author": "TaikerLiang",
+     "submitted_at": "2026-08-09T06:16:08Z"
+    },
+    {
+     "id": 4890667719,
+     "state": "COMMENTED",
+     "body": "",
+     "author": "TaikerLiang",
+     "submitted_at": "2026-08-09T06:16:09Z"
+    },
+    {
+     "id": 4890667755,
+     "state": "COMMENTED",
+     "body": "",
+     "author": "TaikerLiang",
+     "submitted_at": "2026-08-09T06:16:10Z"
+    },
+    {
+     "id": 4891675796,
+     "state": "COMMENTED",
+     "body": "",
+     "author": "TaikerLiang",
+     "submitted_at": "2026-08-09T15:03:52Z"
+    },
+    {
+     "id": 4891726699,
+     "state": "COMMENTED",
+     "body": "",
+     "author": "TaikerLiang",
+     "submitted_at": "2026-08-09T15:28:06Z"
+    },
+    {
+     "id": 4891734758,
+     "state": "COMMENTED",
+     "body": "",
+     "author": "TaikerLiang",
+     "submitted_at": "2026-08-09T15:32:18Z"
+    },
+    {
+     "id": 4891737915,
+     "state": "COMMENTED",
+     "body": "",
+     "author": "TaikerLiang",
+     "submitted_at": "2026-08-09T15:34:04Z"
+    },
+    {
+     "id": 4891740018,
+     "state": "COMMENTED",
+     "body": "",
+     "author": "TaikerLiang",
+     "submitted_at": "2026-08-09T15:35:21Z"
+    }
+   ],
+   "comments": []
+  }
+ }
+}

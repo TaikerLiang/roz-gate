@@ -1,0 +1,29 @@
+{
+ "issue": 67,
+ "T": "2026-08-14T14:07:30Z",
+ "pin": "d188a207562a",
+ "refinement_commit": null,
+ "identity": "bot",
+ "command": "/roz-gate:patrol",
+ "timeout": 1800,
+ "include_issues": [
+  67
+ ],
+ "include_prs": [],
+ "surface": "issue",
+ "criteria": [
+  "P12"
+ ],
+ "question_cap": 1,
+ "historical": {
+  "count": 5,
+  "recall": "1/1",
+  "precision": "cap fail (5 > 1)",
+  "note": "the five questions were moot; the finding was the value"
+ },
+ "frozen_at": "2026-08-14T14:07:30Z",
+ "labels_at_T": [],
+ "assignees_at_T": [],
+ "comments_at_T": 0,
+ "caveats": []
+}
