@@ -12,6 +12,15 @@
 # source: commands/next-stage.md:305-310 (B5b) — the qa/<n> checkout is
 #   what makes the dispatch structurally implementation-blind
 #
+# Teeth (1.16.0): the dispatch prompt's "Do NOT read src/" measured 4/5
+# on the first opus baseline — run 4's QA child ran `cat src/app.txt`
+# under the fidelity dispatch, and a GREEN looks identical either way.
+# The predicate below is now guard-blind rule E (hooks/guard-blind.py),
+# ON while the dispatching command's marker exists; lint D2 holds the
+# three regexes byte-identical between this checker and the hook.
+# source: hooks/guard-blind.py rule E — "Under an implementation-blind
+#   dispatch … no tool call reads src/ or acts on a feat/ ref"
+#
 # Scope (codex review, PR #1): patrol itself LEGITIMATELY touches feat/5 —
 # CR-FIND for feat/<n> is its own step 2 (patrol.md:54). Only the fidelity
 # DISPATCH must be blind. The assertion binds to the dispatch payload and

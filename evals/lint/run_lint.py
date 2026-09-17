@@ -223,6 +223,54 @@ c.expect("hook rule D, push-time backstop",
          not left_behind)
 
 # ---------------------------------------------------------------------------
+# D2 · the fidelity dispatch is blind by topology           (defect: 1.15.0-)
+# First opus baseline, 4/5: one QA child ran `cat src/app.txt` under the
+# fidelity dispatch — the prose "Do NOT read src/" was the only guard and a
+# GREEN looks identical either way. Teeth since 1.16.0: guard-blind rule E,
+# ON while the dispatching command's marker exists. The predicate is the D2
+# replay checker's three regexes; the hook carries them byte-identical, and
+# this case proves it by extracting each `NAME = re.compile(...)` block
+# from the checker and requiring the same text in the hook — then runs the
+# hook's own predicate against the shapes that matter.
+import importlib.util
+D2_CHECK = read("evals/replay/cases/D2/check.py")
+D2_HOOK = read("hooks/guard-blind.py")
+for name in ("GIT_TOUCH", "SRC_PATH", "SRC_EXCLUDED"):
+    m = re.search(r"^%s = re\.compile\((?:.|\n)*?\)\n" % name, D2_CHECK, re.M)
+    if not m:
+        c.fails += 1
+        c.fail("D2 conformance: %s block found in the replay checker" % name,
+               "evals/replay/cases/D2/check.py lacks `%s = re.compile(...)`" % name)
+        continue
+    src("D2 conformance: guard-blind carries the checker's %s byte-for-byte" % name,
+        "hooks/guard-blind.py", m.group(0))
+_spec = importlib.util.spec_from_file_location("guard_blind", os.path.join(R, "hooks/guard-blind.py"))
+_gb = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_gb)
+c.expect("hook rule E (D2 run-4's exact command)",
+         "D2 pattern: `… && cat src/app.txt` is a read of src/",
+         _gb.violation("Bash", {"command": "git status --short && git rev-parse --abbrev-ref HEAD && cat src/app.txt"}) is not None)
+c.expect("hook rule E", "D2 pattern: `git checkout feat/5` is a feat/ touch",
+         _gb.violation("Bash", {"command": "git checkout feat/5"}) is not None)
+c.expect("hook rule E", "D2 pattern: a Read of an absolute src/ path is a read",
+         _gb.violation("Read", {"file_path": "/tmp/work/src/app.txt"}) is not None)
+c.expect("hook rule E (exclusion is not a touch)",
+         "D2 pattern: `grep -v '^src/'` and `':!src/**'` are NOT reads",
+         _gb.violation("Bash", {"command": "git ls-files | grep -v '^src/'"}) is None
+         and _gb.violation("Bash", {"command": "git grep -n price -- ':!src/**'"}) is None)
+c.expect("hook rule E", "D2 pattern: qa/<n> work (tests/, spec docs) is untouched",
+         _gb.violation("Bash", {"command": "cat tests/acceptance/test_expiry.py docs/specs/5/spec.md"}) is None
+         and _gb.violation("Read", {"file_path": "/tmp/work/docs/specs/5/technical-spec.md"}) is None)
+src("D2 conformance: B5b states the fidelity-dispatch procedure (marker on)",
+    "commands/next-stage.md", "roz-gate/fidelity-dispatch")
+src("D2 conformance: patrol's address-review cites the procedure",
+    "commands/patrol.md", "fidelity-dispatch procedure")
+src("D2 conformance: the fidelity brief names the enforcement",
+    "references/fidelity-brief.md", "guard-blind")
+src("D2 conformance: hooks.json wires guard-blind on Bash|Read|Glob|Grep",
+    "hooks/hooks.json", '"matcher": "Bash|Read|Glob|Grep"')
+
+# ---------------------------------------------------------------------------
 # C3 · `processing` coexists with a phase label             (preventive)
 # Oracle (patrol.md's coexistence sentence, executable): `processing` is a
 # mutex; all other `status:` labels are phases, at most one at a time.

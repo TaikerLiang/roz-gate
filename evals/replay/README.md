@@ -149,7 +149,10 @@ three-step fixture measures nothing).
    text-based rate is a **lower bound on violation**.
 3. **D2's deep blindness**: the transcript proves no observable touch of
    `feat/<n>`; it cannot prove absence of in-context leakage from text
-   already in the session.
+   already in the session. (Since 1.16.0 the observable touch is denied
+   by guard-blind rule E while the dispatch marker exists — the same
+   predicate, now a wall instead of a measurement; the in-context leak
+   stays invisible to both.)
 4. **Judgment quality**: E1 stays in the judgment tier, deferred.
 5. **Fixture shape bias**: one fixture per case measures the fixtured
    shape. The lint tier's sampling-bias statement applies verbatim: every

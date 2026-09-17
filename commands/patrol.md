@@ -81,14 +81,18 @@ For an in-flight CR with open review threads:
 1. Lock: LABEL-ADD `status: processing` (so the next pass doesn't
    double-dispatch).
 2. Spec track: implementation CR threads → dispatch `implementer` on
-   `feat/<n>`; QA CR fidelity threads → dispatch `qa` on `qa/<n>` (it may
+   `feat/<n>`; QA CR fidelity threads → dispatch `qa` on `qa/<n>` **under
+   the fidelity-dispatch procedure** (next-stage.md B5b: marker on,
+   dispatch, marker off — guard-blind denies any `src/` read or `feat/`
+   action while it runs) (it may
    decline a finding that lacks verbatim citations) — fix and/or reply,
    push. Fast track: the main agent addresses its own CR's threads directly
    (it wrote the code; `implementer` is never dispatched onto `fast/<n>`).
 3. Dispatch `reviewer` to re-check the addressed threads and THREAD-RESOLVE
    those it is satisfied with; what stays open waits for the next round.
    Re-checks of QA-CR fidelity threads use a fresh implementation-blind
-   dispatch under the fidelity brief, on `qa/<n>` only.
+   dispatch under the fidelity brief, on `qa/<n>` only — the same
+   fidelity-dispatch procedure (marker on, dispatch, marker off).
 4. Clear the lock. Failures follow the STOP protocol.
 
 ### The async-intake action — the inbox's engine ((1b))
