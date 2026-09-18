@@ -35,7 +35,10 @@ python3 evals/judgment/run-judgment.py --sut opus --k 3        # the sweep (k ru
 - Resumable like replay: `report/<sut>/<case>/run-<i>/result.json` is
   never re-run; a quota banner stops the sweep (exit 4).
 - The runner refuses to spend SUT tokens until `--redproof` has run green
-  (`report/judge-redproof.json`).
+  **under the current judge fingerprint** — a hash of the prompt, model,
+  quote policy, criteria, expectations and every red-proof document. Any
+  change to those makes the stored red-proof stale: cached verdicts miss,
+  `--redproof` re-judges, and the sweep refuses until it is green again.
 - `--sut` (replay's `models.yaml`) is the SUT only; **the judge is opus on
   every row**, including the opus SUT row.
 

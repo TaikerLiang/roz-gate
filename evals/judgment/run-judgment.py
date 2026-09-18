@@ -27,6 +27,8 @@ validity / quota / resumability. Never network: the sandbox is a clone of
 the machine-local ADMC checkout named in sources.yaml.
 """
 
+import glob
+import hashlib
 import importlib.util
 import json
 import os
@@ -63,6 +65,33 @@ SECTION_START = "## Development Workflow (Roz Gate)"
 CONFIG_SOURCE = "d2ded1269c1c"   # the last commit whose CLAUDE.md carries the section in git
 CRITERIA = json.load(open(os.path.join(S, "criteria.json"), encoding="utf-8"))
 JUDGE_PROMPT = open(os.path.join(S, "judge-prompt.md"), encoding="utf-8").read()
+# Bump when quote_ok / norm / the re-ask policy change: the policy is code,
+# and the fingerprint below must move with it.
+QUOTE_POLICY = "v1: whitespace-normalized substring, >=MIN_QUOTE chars, one re-ask then judge-invalid"
+
+
+def judge_fingerprint():
+    """Everything the red-proof's verdicts depend on, hashed: prompt,
+    model, quote policy, criteria, expectations, paraphrases, the
+    unrelated and historical documents. A cached verdict is reused only
+    under the same fingerprint, and the sweep refuses to start unless the
+    stored red-proof carries the current one — a judge configuration that
+    changed after its last red-proof is an unmeasured judge (codex review,
+    PR #10: the stale green this tier exists to prevent)."""
+    h = hashlib.sha256()
+    for part in (JUDGE_PROMPT, JUDGE_MODEL, str(MIN_QUOTE), QUOTE_POLICY):
+        h.update(part.encode("utf-8") + b"\0")
+    files = [os.path.join(S, "criteria.json"), os.path.join(S, "redproof", "expected.json"),
+             os.path.join(S, "redproof", "paraphrase.json"), os.path.join(S, "redproof", "unrelated.md")]
+    files += sorted(glob.glob(os.path.join(S, "redproof", "historical", "*.md")))
+    for f in files:
+        h.update(os.path.relpath(f, S).encode("utf-8") + b"\0")
+        with open(f, "rb") as fh:
+            h.update(fh.read() + b"\0")
+    return h.hexdigest()[:16]
+
+
+JUDGE_FP = judge_fingerprint()
 
 
 def die(msg, code=2):
@@ -154,19 +183,22 @@ def question_count(document):
 def redproof(report, rejudge=False):
     """Judge verdicts already recorded in report/judge-redproof.json are
     reused (a judge call is ~11k tokens; the mechanical checks are free)
-    unless --rejudge; a changed criterion or document still re-asks,
-    since the cache key carries a hash of both."""
+    unless --rejudge — and only under the SAME judge fingerprint: a
+    changed prompt, model, quote policy, criterion, expectation or
+    document misses the cache and re-judges."""
     exp = json.load(open(os.path.join(S, "redproof", "expected.json"), encoding="utf-8"))
     para = json.load(open(os.path.join(S, "redproof", "paraphrase.json"), encoding="utf-8"))
     rows, mism, tok = [], 0, {"in": 0, "out": 0}
-    prior = {} if rejudge else {
+    stored = rr.load_json(os.path.join(report, "judge-redproof.json")) or {}
+    prior = {} if rejudge or stored.get("fingerprint") != JUDGE_FP else {
         (r["doc"], r["criterion"], r.get("key")): r
-        for r in (rr.load_json(os.path.join(report, "judge-redproof.json")) or {}).get("rows", [])
-        if r.get("got") in ("yes", "no") and r.get("key")}
+        for r in stored.get("rows", []) if r.get("got") in ("yes", "no") and r.get("key")}
+    if stored and not prior and not rejudge:
+        print("judge configuration changed since the last red-proof (fingerprint %s → %s): re-judging"
+              % (stored.get("fingerprint"), JUDGE_FP))
 
     def key(cid, text):
-        import hashlib
-        return hashlib.sha256((CRITERIA[cid]["criterion"] + "\0" + text).encode("utf-8")).hexdigest()[:16]
+        return hashlib.sha256((JUDGE_FP + "\0" + CRITERIA[cid]["criterion"] + "\0" + text).encode("utf-8")).hexdigest()[:16]
 
     def judged(doc, cid, text):
         k = key(cid, text)
@@ -204,9 +236,10 @@ def redproof(report, rejudge=False):
                 record(doc, cid, kind, v["answer"], v["quote"], k, v.get("cached", False))
     os.makedirs(report, exist_ok=True)
     with open(os.path.join(report, "judge-redproof.json"), "w", encoding="utf-8") as f:
-        json.dump({"judge": JUDGE_MODEL, "rows": rows, "mismatches": mism, "tokens": tok}, f, indent=1, ensure_ascii=False)
-    print("\njudge red-proof: %d checks, %d mismatches, judge tokens %d in / %d out"
-          % (len(rows), mism, tok["in"], tok["out"]))
+        json.dump({"judge": JUDGE_MODEL, "fingerprint": JUDGE_FP, "rows": rows, "mismatches": mism, "tokens": tok},
+                  f, indent=1, ensure_ascii=False)
+    print("\njudge red-proof: %d checks, %d mismatches, judge tokens %d in / %d out (fingerprint %s)"
+          % (len(rows), mism, tok["in"], tok["out"], JUDGE_FP))
     return mism == 0
 
 
@@ -430,9 +463,12 @@ def main(argv):
     sut = rr.resolve_sut(sut_name)
     if not sut:
         die("unknown SUT '%s' (see replay/models.yaml)" % sut_name)
-    rp = os.path.join(report_root, "judge-redproof.json")
-    if not (rr.load_json(rp) or {}).get("rows") or (rr.load_json(rp) or {}).get("mismatches"):
+    stored = rr.load_json(os.path.join(report_root, "judge-redproof.json")) or {}
+    if not stored.get("rows") or stored.get("mismatches"):
         die("run `--redproof` first (and green) — the judge is unmeasured until then")
+    if stored.get("fingerprint") != JUDGE_FP:
+        die("judge configuration changed since the last red-proof (stored %s, current %s) — "
+            "the judge is unmeasured; run `--redproof` first" % (stored.get("fingerprint"), JUDGE_FP))
     report = os.path.join(report_root, sut_name)
     os.makedirs(report, exist_ok=True)
     for name in cases or sorted(os.listdir(os.path.join(S, "cases"))):
