@@ -235,7 +235,7 @@ c.expect("hook rule D, push-time backstop",
 import importlib.util
 D2_CHECK = read("evals/replay/cases/D2/check.py")
 D2_HOOK = read("hooks/guard-blind.py")
-for name in ("GIT_TOUCH", "SRC_PATH", "SRC_EXCLUDED"):
+for name in ("GIT_TOUCH", "SRC_PATH", "SRC_EXCLUDED", "SRC_MENTIONED"):
     m = re.search(r"^%s = re\.compile\((?:.|\n)*?\)\n" % name, D2_CHECK, re.M)
     if not m:
         c.fails += 1
@@ -258,6 +258,16 @@ c.expect("hook rule E (exclusion is not a touch)",
          "D2 pattern: `grep -v '^src/'` and `':!src/**'` are NOT reads",
          _gb.violation("Bash", {"command": "git ls-files | grep -v '^src/'"}) is None
          and _gb.violation("Bash", {"command": "git grep -n price -- ':!src/**'"}) is None)
+c.expect("hook rule E (mention is not use, third form)",
+         "D2 pattern: src/ inside an echo string next to a blanked ':!src/**' is NOT a read",
+         _gb.violation("Bash", {"command": "git ls-files && echo \"--- grep fixtures (tracked files, excluding src/)\" && git grep -n -E 'expires' -- ':!src/**' ; echo \"--- diff of fix\" && git show e61367c -- tests/acceptance/"}) is None
+         and _gb.violation("Bash", {"command": "# src/ is off-limits here\ncat tests/x"}) is None)
+c.expect("hook rule E", "D2 pattern: a read after an echo mention is still a read",
+         _gb.violation("Bash", {"command": "echo \"excluding src/\" && cat src/app.txt"}) is not None)
+src("D2 conformance: the checker pairs denials by guard-blind's own message literal",
+    "evals/replay/cases/D2/check.py", "Roz Gate: blocked — this is a fidelity dispatch")
+src("D2 conformance: guard-blind's deny message opens with that literal",
+    "hooks/guard-blind.py", "Roz Gate: blocked — this is a fidelity dispatch")
 c.expect("hook rule E", "D2 pattern: qa/<n> work (tests/, spec docs) is untouched",
          _gb.violation("Bash", {"command": "cat tests/acceptance/test_expiry.py docs/specs/5/spec.md"}) is None
          and _gb.violation("Read", {"file_path": "/tmp/work/docs/specs/5/technical-spec.md"}) is None)

@@ -22,7 +22,9 @@ D2/check.py) — already red-proofed against the exclusion forms: a
 checkout/switch/diff/show/log/merge/restore/worktree on a ``feat/`` ref,
 or a read of ``src/`` after blanking the operand of an exclusion operator
 (``grep -v '^src/'``, ``':!src/**'``, ``--exclude``, ``-not -path`` name
-src/ in order to NOT read it). The three regexes are held byte-identical
+src/ in order to NOT read it), and after blanking echo/printf operands
+and comments (a string literal that MENTIONS src/ is not a read — the
+D2 re-run's only denial). The four regexes are held byte-identical
 between hook and checker by the lint tier (lint D2).
 
 Scoping — the marker: PreToolUse carries ``agent_id``/``agent_type`` inside
@@ -60,9 +62,20 @@ SRC_EXCLUDED = re.compile(
     r"""|--exclude(?:-dir)?[= ]['"]?[^\s'"]*src/[^\s'"]*['"]?"""
     r"""|-not\s+-path\s+['"]?[^\s'"]*src/[^\s'"]*['"]?""")
 
+# Mention is not use, third form (D2 re-run under 1.16.0, the only denial):
+# `echo "--- grep fixtures (tracked files, excluding src/)"` — `src/` inside
+# a shell string literal, next to a correctly blanked `:!src/**`. The
+# operands of echo/printf up to the next separator, and `#` comments to
+# end of line, are blanked before the read match. Known cost: a command
+# substitution inside an echo operand (`echo $(cat src/x)`) is blanked
+# with it — a read the hook no longer sees; recorded in the cannot-see
+# list rather than widened into another false positive.
+SRC_MENTIONED = re.compile(
+    r"""\b(?:echo|printf)\b[^|;&\n]*|(?:^|\s)#[^\n]*""")
+
 
 def bash_reads_src(cmd):
-    return SRC_PATH.search(SRC_EXCLUDED.sub(" ", cmd)) is not None
+    return SRC_PATH.search(SRC_MENTIONED.sub(" ", SRC_EXCLUDED.sub(" ", cmd))) is not None
 # --------------------------------------------------------------------------
 
 BLIND_MSG = (

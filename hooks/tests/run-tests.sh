@@ -231,6 +231,10 @@ run_blind "rule E: Read of an absolute src/ path denied" 2 "Read under src/" Rea
 run_blind "rule E: Grep with path src/ denied" 2 "Grep under src/" Grep '{"pattern": "price", "path": "src/"}'
 run_blind "rule E: Glob under src/ denied" 2 "Glob under src/" Glob '{"pattern": "src/**/*.py"}'
 run_blind "rule E: exclusion form grep -v '^src/' allowed" 0 "" Bash '{"command": "git ls-files | grep -v '"'"'^src/'"'"'"}'
+# Mention is not use, third form (D2 re-run under 1.16.0: the only denial).
+run_blind "rule E: the re-run's exact echo-mention command allowed" 0 "" Bash '{"command": "git ls-files && echo \"--- grep fixtures (tracked files, excluding src/)\" && git grep -n -E '"'"'expires'"'"' -- '"'"':!src/**'"'"' ; echo \"--- diff of fix\" && git show e61367c -- tests/acceptance/"}'
+run_blind "rule E: a comment mentioning src/ allowed" 0 "" Bash '{"command": "# never read src/ here\ngit status"}'
+run_blind "rule E: a read after an echo mention still denied" 2 "read of src/" Bash '{"command": "echo \"excluding src/\" && cat src/app.txt"}'
 run_blind "rule E: exclusion pathspec ':!src/**' allowed" 0 "" Bash '{"command": "git grep -n price -- '"'"':!src/**'"'"'"}'
 run_blind "rule E: qa/<n> work — tests and spec docs — allowed" 0 "" Bash '{"command": "cat tests/acceptance/test_expiry.py && git status"}'
 run_blind "rule E: Read of a spec doc allowed" 0 "" Read "{\"file_path\": \"$BREPO/docs/specs/5/spec.md\"}"

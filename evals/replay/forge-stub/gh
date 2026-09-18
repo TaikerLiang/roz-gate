@@ -224,6 +224,21 @@ def pr_shape(pr, want):
     return {k: v for k, v in full.items() if not want or k in want}
 
 
+def jq_project(obj, expr):
+    """The jq subset the read routes serve: comma-separated simple paths
+    (`.title, .body`, `.user.login`) printed one per line the way gh
+    prints them (strings raw, else JSON). Anything else prints the object."""
+    parts = [p.strip() for p in (expr or "").split(",")]
+    if not parts or not all(re.match(r"^\.[\w.]+$", p) for p in parts):
+        out(obj)
+        return
+    for p in parts:
+        v = obj
+        for seg in p[1:].split("."):
+            v = v.get(seg) if isinstance(v, dict) else None
+        print(v if isinstance(v, str) else json.dumps(v))
+
+
 def next_id(st):
     st["_id"] = st.get("_id", 1000) + 1
     return st["_id"]
@@ -697,15 +712,49 @@ def main():
                                                "#issuecomment-%d"
                                                % ("pull" if kind == "pr"
                                                   else "issues", n, cid)}
-                            jq = flag_val(argv, "--jq", "-q") or ""
-                            mm = re.match(r"^\.(\w+)$", jq)
-                            if mm and mm.group(1) in obj:
-                                v = obj[mm.group(1)]
-                                print(v if isinstance(v, str) else json.dumps(v))
-                            else:
-                                out(obj)
+                            jq_project(obj, flag_val(argv, "--jq", "-q"))
                             return
             unknown("comment-view: %d not in fixture" % cid)
+
+        # GET one issue by number through REST — `gh issue view`'s twin
+        # (D2 re-run: `gh api repos/o/r/issues/5 --jq '.title, .body'`).
+        m = re.match(r"repos/[^/]+/[^/]+/issues/(\d+)$", target)
+        if m and flag_val(argv, "-X") in (None, "GET"):
+            n = m.group(1)
+            iss = st.get("issues", {}).get(n)
+            if iss is None:
+                unknown("issue %s not in fixture" % n)
+            journal("issue-view", issue=n, via="api")
+            shape = issue_shape(n, iss, None)
+            jq_project({"number": int(n), "title": shape["title"], "body": shape["body"],
+                        "state": iss.get("state", "open"),
+                        "labels": shape["labels"], "assignees": shape["assignees"],
+                        "user": {"login": iss.get("author", "")},
+                        "created_at": shape["createdAt"],
+                        "comments": len(shape["comments"]),
+                        "html_url": "https://github.com/x/y/issues/%s" % n},
+                       flag_val(argv, "--jq", "-q"))
+            return
+
+        # GET one REVIEW comment by id — sibling of issue-comment-view
+        # (D2 re-run: `gh api repos/o/r/pulls/103/comments/9101 [--jq .body]`).
+        m = re.match(r"repos/[^/]+/[^/]+/pulls/(\d+)/comments/(\d+)$", target)
+        if m and flag_val(argv, "-X") in (None, "GET"):
+            n, cid = m.group(1), int(m.group(2))
+            for t in st.get("prs", {}).get(n, {}).get("threads", []):
+                root = (t.get("comments") or [{}])[0].get("databaseId")
+                for c in t.get("comments", []):
+                    if c.get("databaseId") == cid:
+                        journal("review-comment-view", pr=n, comment=cid)
+                        jq_project({"id": cid, "body": c.get("body", ""),
+                                    "user": {"login": c.get("author", "")},
+                                    "path": t.get("path"), "line": t.get("line"),
+                                    "created_at": c.get("createdAt", ""),
+                                    **({"in_reply_to_id": root} if cid != root else {}),
+                                    "html_url": "https://github.com/x/y/pull/%s#discussion_r%s" % (n, cid)},
+                                   flag_val(argv, "--jq", "-q"))
+                        return
+            unknown("review-comment-view: pr %s comment %d not in fixture" % (n, cid))
 
         unknown("api target not routed: %s" % target)
 

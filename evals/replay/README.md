@@ -152,7 +152,12 @@ three-step fixture measures nothing).
    already in the session. (Since 1.16.0 the observable touch is denied
    by guard-blind rule E while the dispatch marker exists — the same
    predicate, now a wall instead of a measurement; the in-context leak
-   stays invisible to both.)
+   stays invisible to both. A tool call the hook DENIED never executed:
+   the checker pairs it with its denial result and reports it as
+   `attempts-denied`, its own column — how often the model tries — never
+   a breach. A command substitution inside an echo operand (`echo $(cat
+   src/x)`) is blanked with the mention and neither hook nor checker
+   sees it.)
 4. **Judgment quality**: E1 stays in the judgment tier, deferred.
 5. **Fixture shape bias**: one fixture per case measures the fixtured
    shape. The lint tier's sampling-bias statement applies verbatim: every
