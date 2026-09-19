@@ -1,0 +1,11 @@
+{
+ "_comment": "Expected judge verdicts, committed before any judge call. (a) real historical outputs: every P criterion yes with a verified quote — and F-63's N1/N5 yes, because the historical run DID raise them (that is the reference row's 0/2 precision); (b) an unrelated spec output: every criterion no; (c) paraphrases: yes/no as listed in paraphrase.json. A mismatch fails the red-proof before the sweep starts.",
+ "documents": {
+  "historical/F-63.md": {"P1": "yes", "P2": "yes", "N1": "yes", "N5": "yes", "question_count": 8},
+  "historical/F-54.md": {"P8": "yes", "question_count": 10},
+  "historical/F-67.md": {"P12": "yes", "question_count": 5},
+  "historical/F-51.md": {"N10": "yes", "question_count": 0},
+  "unrelated.md": {"P1": "no", "P2": "no", "P8": "no", "P12": "no", "N1": "no", "N5": "no"}
+ },
+ "paraphrase": "every `yes` entry in paraphrase.json → yes; every `no` entry → no"
+}

@@ -1,0 +1,39 @@
+{
+ "_comment": "Hand-written rewordings of each P item — a judge that only matches the historical wording is a judge with no paraphrase recall. Two YES rewordings and one near-miss NO per criterion. Each document is the reworded item alone, in the spec-thread shape.",
+ "P1": {
+  "yes": [
+   "**[product] · Q1 · membership shape (story-level)**\n\nShould membership be modelled as a join table of (user_id, workspace_id) rows instead of a workspace attribute stored on the users table? A person with roles in three workspaces would then be one user row with three membership rows.\n- (a) join table ← ✅ recommended\n- (b) workspace column on users, username no longer unique",
+   "**[em] · Q2 · where the workspace lives**\n\nThe issue asks for a `workspace` field on `users`, but one username can map to several workspaces. Do we keep `users` unchanged and hold the username↔workspace pairs in a table of their own, or add the column and allow duplicate user rows?"
+  ],
+  "no": [
+   "**[product] · Q3 · workspace label in the console**\n\nWhich workspace name should the console display next to a user — the raw workspace key or its display name from the workspaces table?\n- (a) display name ← ✅ recommended\n- (b) raw key"
+  ]
+ },
+ "P2": {
+  "yes": [
+   "**[implementer] · Q5 · running it in production**\n\nCalling the job over HTTP returns a timeout after three minutes while the migration keeps running in the background, so the operator sees a failure and the log later reports success. Should production runs go through the startup argument instead?\n- (a) startup argument only ← ✅ recommended\n- (b) keep HTTP",
+   "**[em] · Q4 · trigger surface**\n\nWhich surface starts the real migration: the REST endpoint (which cannot cancel or wait past its request timeout) or the command-line startup flag? The answer decides whether a long run can ever report its outcome to the person who started it."
+  ],
+  "no": [
+   "**[implementer] · Q6 · log format**\n\nShould the completion summary be one line per workspace or one aggregate line?\n- (a) aggregate ← ✅ recommended\n- (b) per workspace"
+  ]
+ },
+ "P8": {
+  "yes": [
+   "**[em] · Q1 · who counts as a member**\n\nWorkspace-scoped reads need a definition of membership, and today the codebase has two disconnected answers: rows in `users`, and free-text usernames sprinkled through role mappings and `workspaces.owner` with nothing enforcing that they match. Which one is the source of truth for 'member of workspace X'?",
+   "**[product] · Q6 · identity is split**\n\nBefore rule 6 can be enforced we have to name where membership comes from. The users table and the authorization role strings do not reference each other — a username in the roles table may not exist in users at all. Is membership defined by the role mapping, by ownership, or by a relation we have yet to build?"
+  ],
+  "no": [
+   "**[em] · Q2 · retention**\n\nHow long are audit rows kept before archival?\n- (a) 90 days ← ✅ recommended\n- (b) indefinitely"
+  ]
+ },
+ "P12": {
+  "yes": [
+   "**Before the questions — one finding.** The repository already contains `dlh-api/console/Makefile` with `migrate`, `rollback` and `status` targets, i.e. the same three the issue asks us to create. The issue's reference file differs from it in one place only (the changelog path).",
+   "**[intake]**\n\nHeads-up: this work appears to be done already. A Makefile providing these targets is checked in under the console module on main; the request would duplicate it."
+  ],
+  "no": [
+   "**[intake]**\n\n**Q1 · Makefile location**\n\nShould the new Makefile live at the repository root or inside `dlh-api/`?\n- (a) `dlh-api/` ← ✅ recommended\n- (b) root"
+  ]
+ }
+}

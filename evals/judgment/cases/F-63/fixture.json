@@ -1,0 +1,41 @@
+{
+ "issue": 63,
+ "T": "2026-08-12T16:16:16Z",
+ "pin": "d188a207562a",
+ "refinement_commit": "b2a0fca9a3cb",
+ "identity": "bot",
+ "command": "/roz-gate:next-stage 63",
+ "timeout": 3600,
+ "include_issues": [
+  63,
+  61,
+  54
+ ],
+ "include_prs": [
+  60
+ ],
+ "surface": "spec-cr",
+ "criteria": [
+  "P1",
+  "P2",
+  "N1",
+  "N5"
+ ],
+ "question_cap": 16,
+ "historical": {
+  "count": 8,
+  "recall": "2/2",
+  "precision": "0/2",
+  "note": "the historical run raised N1 and N5 as questions"
+ },
+ "frozen_at": "2026-08-12T16:16:16Z",
+ "labels_at_T": [
+  "track: spec",
+  "status: ready-for-spec"
+ ],
+ "assignees_at_T": [
+  "TaikerLiang"
+ ],
+ "comments_at_T": 0,
+ "caveats": []
+}

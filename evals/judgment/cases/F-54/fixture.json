@@ -1,0 +1,34 @@
+{
+ "issue": 54,
+ "T": "2026-08-09T06:14:57Z",
+ "pin": "d2ded1269c1c",
+ "refinement_commit": "b198ac57c982",
+ "identity": "user",
+ "command": "/roz-gate:next-stage 54",
+ "timeout": 3600,
+ "include_issues": [
+  54
+ ],
+ "include_prs": [],
+ "surface": "spec-cr",
+ "criteria": [
+  "P8"
+ ],
+ "question_cap": 20,
+ "historical": {
+  "count": 10,
+  "recall": "1/1",
+  "precision": "n/a",
+  "note": "P8 is graded on the batch"
+ },
+ "frozen_at": "2026-08-09T06:14:57Z",
+ "labels_at_T": [
+  "track: spec",
+  "status: ready-for-spec"
+ ],
+ "assignees_at_T": [
+  "TaikerLiang"
+ ],
+ "comments_at_T": 7,
+ "caveats": []
+}
