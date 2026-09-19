@@ -198,8 +198,11 @@ def run_one(sut, cdir, rdir, prompt, timeout):
         ok = sh(["python3", os.path.join(cdir, "check.py")],
                 env=env, out=log, err=subprocess.STDOUT).returncode == 0
     usage, cost = usage_and_cost(transcript, sut["mode"])
-    write_result(rdir, {"valid": True, "pass": ok, "tokens": usage,
-                        "cost": cost})
+    result = {"valid": True, "pass": ok, "tokens": usage, "cost": cost}
+    # A checker may report attempts the hook DENIED (D2): a signal in its
+    # own column, never a breach.
+    result.update(load_json(os.path.join(rdir, "attempts.json"), {}) or {})
+    write_result(rdir, result)
     shutil.rmtree(sbx, ignore_errors=True)
     return 0 if ok else 2
 
@@ -256,6 +259,7 @@ def aggregate(sut, report):
             continue
         n = p = inv = tin = tout = 0
         usd = 0.0
+        attempts = None
         for run in sorted(os.listdir(d)):
             r = load_json(os.path.join(d, run, "result.json"))
             if r is None:
@@ -270,6 +274,8 @@ def aggregate(sut, report):
                 continue
             n += 1
             p += 1 if r.get("pass") else 0
+            if "attempts_denied" in r:
+                attempts = (attempts or 0) + r["attempts_denied"]
             t = r.get("tokens", {})
             tin += t.get("in", 0)
             tout += t.get("out", 0)
@@ -289,6 +295,7 @@ def aggregate(sut, report):
                      "rate": round(p / n, 3),
                      "wilson90": [round(lo, 3), round(hi, 3)],
                      "tokens": {"in": tin, "out": tout},
+                     **({"attempts_denied": attempts} if attempts is not None else {}),
                      **({"cost_usd": round(usd, 4)} if sut["mode"] == "api"
                         else {"cost": "quota"})})
     smoke = all((load_json(os.path.join(report, "smoke-S%d" % i, "result.json"))
@@ -316,6 +323,8 @@ def aggregate(sut, report):
                   % (r["case"], r["invalid"]))
             continue
         extra = "  (%d invalid)" % r["invalid"] if r["invalid"] else ""
+        if r.get("attempts_denied") is not None:
+            extra += "  attempts-denied=%d" % r["attempts_denied"]
         print("%-8s %5.0f%% %3d  [%.0f%%,%.0f%%]      %d/%d%s"
               % (r["case"], r["rate"] * 100, r["runs"],
                  r["wilson90"][0] * 100, r["wilson90"][1] * 100,
