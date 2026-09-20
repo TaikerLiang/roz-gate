@@ -98,8 +98,15 @@ SRC_EXCLUDED = re.compile(
 # substitution inside an echo operand (`echo $(cat src/x)`) is blanked
 # with it — a read the hook no longer sees; recorded in the cannot-see
 # list rather than widened into another false positive.
+# echo/printf count only as a COMMAND — at segment start or right after
+# `&&`, `||`, `;`, `|`, `(`, `$(`, `{`, optionally behind env assignments
+# (`FOO=bar echo …`) — never as an argument: the first cut matched the word
+# anywhere and blanked `grep echo src/app.txt` down to `grep ` — a real read
+# of src/ under the dispatch passed the hook AND scored blind (codex
+# review, PR #11: under-block, silent — the bad direction).
 SRC_MENTIONED = re.compile(
-    r"""\b(?:echo|printf)\b[^|;&\n]*|(?:^|\s)#[^\n]*""")
+    r"""(?:^|[|;&({]|\$\()\s*(?:[A-Za-z_]\w*=\S*\s+)*(?:echo|printf)\b[^|;&\n]*"""
+    r"""|(?:^|\s)#[^\n]*""", re.M)
 
 
 def bash_reads_src(cmd):

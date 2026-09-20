@@ -235,6 +235,14 @@ run_blind "rule E: exclusion form grep -v '^src/' allowed" 0 "" Bash '{"command"
 run_blind "rule E: the re-run's exact echo-mention command allowed" 0 "" Bash '{"command": "git ls-files && echo \"--- grep fixtures (tracked files, excluding src/)\" && git grep -n -E '"'"'expires'"'"' -- '"'"':!src/**'"'"' ; echo \"--- diff of fix\" && git show e61367c -- tests/acceptance/"}'
 run_blind "rule E: a comment mentioning src/ allowed" 0 "" Bash '{"command": "# never read src/ here\ngit status"}'
 run_blind "rule E: a read after an echo mention still denied" 2 "read of src/" Bash '{"command": "echo \"excluding src/\" && cat src/app.txt"}'
+# echo/printf are commands, never arguments (codex, PR #11: `grep echo src/app.txt` passed).
+run_blind "rule E: grep echo src/app.txt denied (echo as an argument)" 2 "read of src/" Bash '{"command": "grep echo src/app.txt"}'
+run_blind "rule E: grep -n echo src/a.py denied" 2 "read of src/" Bash '{"command": "grep -n echo src/a.py"}'
+run_blind "rule E: printf_helper src/x denied (word inside a token)" 2 "read of src/" Bash '{"command": "printf_helper src/x"}'
+run_blind "rule E: echo mention then ls allowed" 0 "" Bash '{"command": "echo \"excluding src/\" && ls tests"}'
+run_blind "rule E: FOO=1 echo src/ && ls allowed (env-assignment prefix)" 0 "" Bash '{"command": "FOO=1 echo src/ && ls"}'
+run_blind "rule E: ls && echo src/ | cat allowed (echo after &&)" 0 "" Bash '{"command": "ls && echo src/ | cat"}'
+run_blind "rule E: cat src/app.txt | grep printf still denied" 2 "read of src/" Bash '{"command": "cat src/app.txt | grep printf"}'
 run_blind "rule E: exclusion pathspec ':!src/**' allowed" 0 "" Bash '{"command": "git grep -n price -- '"'"':!src/**'"'"'"}'
 run_blind "rule E: qa/<n> work — tests and spec docs — allowed" 0 "" Bash '{"command": "cat tests/acceptance/test_expiry.py && git status"}'
 run_blind "rule E: Read of a spec doc allowed" 0 "" Read "{\"file_path\": \"$BREPO/docs/specs/5/spec.md\"}"
