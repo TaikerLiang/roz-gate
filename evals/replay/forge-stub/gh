@@ -506,6 +506,63 @@ def main():
             rest.append(a)
             i += 1
         target = rest[0] if rest else ""
+        # A query string rides on the target (`pulls?state=all`); GET-mode
+        # -f/-F fields are query parameters too. Split them off before
+        # route matching — the judgment sweep's first UNKNOWN on a real
+        # repo was exactly this shape.
+        query = {}
+        if "?" in target:
+            target, qs = target.split("?", 1)
+            for kv in qs.split("&"):
+                if "=" in kv:
+                    k, v = kv.split("=", 1)
+                    query[k] = v
+        if flag_val(argv, "-X", "--method") in (None, "GET"):
+            query.update(api_fields(argv))
+
+        # ---- gh api user — the caller's own identity (the "who am I"
+        # probe; judgment sweep F-67). The login is the fixture's
+        # agent_login, so a SUT comparing it against comment authors sees
+        # a consistent world.
+        if target == "user":
+            journal("user-view")
+            login_ = st.get("agent_login", "paul")
+            jq_project({"login": login_, "id": 1, "type": "User",
+                        "html_url": "https://github.com/%s" % login_},
+                       flag_val(argv, "--jq", "-q"))
+            return
+
+        # ---- gh api repos/o/r/pulls[?state=…&head=…] — REST PR list, the
+        # `gh pr list` twin (D2 re-run on 1.16.2). Same filters, REST shape
+        # (`state` lower-case, `head.ref`/`base.ref`, `draft`).
+        if re.match(r"repos/[^/]+/[^/]+/pulls$", target) \
+                and flag_val(argv, "-X", "--method") in (None, "GET"):
+            state_q = (query.get("state") or "open").lower()
+            head_q = query.get("head")
+            if head_q and ":" in head_q:
+                head_q = head_q.split(":", 1)[1]
+            journal("pr-list", state=state_q, via="api")
+            rows = []
+            for pr in st.get("prs", {}).values():
+                pr_state = pr.get("state", "OPEN").lower()
+                rest_state = "open" if pr_state == "open" else "closed"
+                if head_q and pr.get("headRefName") != head_q:
+                    continue
+                if state_q != "all" and rest_state != state_q:
+                    continue
+                rows.append({"number": pr.get("number"), "title": pr.get("title", ""),
+                             "state": rest_state, "draft": pr.get("isDraft", False),
+                             "merged_at": "2026-08-24T12:00:00Z" if pr_state == "merged" else None,
+                             "head": {"ref": pr.get("headRefName", "")},
+                             "base": {"ref": pr.get("baseRefName", "")},
+                             "user": {"login": st.get("agent_login", "paul")},
+                             "html_url": "https://github.com/x/y/pull/%s" % pr.get("number")})
+            if flag_val(argv, "--jq", "-q"):
+                for r in rows:
+                    out(r)
+            else:
+                out(rows)
+            return
 
         if target == "graphql":
             q = flag_val(argv, "-f", "--field") or ""
