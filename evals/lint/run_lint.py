@@ -263,6 +263,16 @@ c.expect("hook rule E (mention is not use, third form)",
          "D2 pattern: src/ inside an echo string next to a blanked ':!src/**' is NOT a read",
          _gb.violation("Bash", {"command": "git ls-files && echo \"--- grep fixtures (tracked files, excluding src/)\" && git grep -n -E 'expires' -- ':!src/**' ; echo \"--- diff of fix\" && git show e61367c -- tests/acceptance/"}) is None
          and _gb.violation("Bash", {"command": "# src/ is off-limits here\ncat tests/x"}) is None)
+c.expect("hook rule E (echo is a command, never an argument)",
+         "D2 pattern: `grep echo src/app.txt` and `printf_helper src/x` are reads",
+         _gb.violation("Bash", {"command": "grep echo src/app.txt"}) is not None
+         and _gb.violation("Bash", {"command": "grep -n echo src/a.py"}) is not None
+         and _gb.violation("Bash", {"command": "printf_helper src/x"}) is not None)
+c.expect("hook rule E (echo in command position)",
+         "D2 pattern: `FOO=1 echo src/ && ls` and `ls && echo src/ | cat` are NOT reads",
+         _gb.violation("Bash", {"command": "FOO=1 echo src/ && ls"}) is None
+         and _gb.violation("Bash", {"command": "ls && echo src/ | cat"}) is None
+         and _gb.violation("Bash", {"command": "echo \"excluding src/\" && ls tests"}) is None)
 c.expect("hook rule E", "D2 pattern: a read after an echo mention is still a read",
          _gb.violation("Bash", {"command": "echo \"excluding src/\" && cat src/app.txt"}) is not None)
 src("D2 conformance: the checker pairs denials by guard-blind's own message literal",
