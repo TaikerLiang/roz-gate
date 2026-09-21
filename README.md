@@ -40,6 +40,17 @@ agents are forbidden to guess.
 - Python ≥ 3.12 and `uv` **only to run the eval suite** (`evals/`) — not to
   use the plugin
 
+**Developing the plugin itself?** A fresh clone's gates are inert until git
+is pointed at them — run once:
+
+```sh
+scripts/dev-setup.sh        # = git config core.hooksPath .githooks
+```
+
+That wires `.githooks/pre-commit` (naming convention) and
+`.githooks/pre-push` (hook tests + lint tier + version-bump check). CI runs
+the lint tier as the backstop for a clone that never did this.
+
 ## Install
 
 ```
