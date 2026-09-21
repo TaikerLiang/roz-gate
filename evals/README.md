@@ -36,7 +36,7 @@ The suite is Python end to end — a design constraint, not a preference:
 the suite's owner reads Python, not shell, and a check list its owner
 cannot read gives him no control over the rule corpus, which defeats
 the suite's purpose. Everything runs under one uv project
-(`evals/pyproject.toml`, stdlib-only; plain `python3` works
+(the root `pyproject.toml`, stdlib-only; plain `python3` works
 identically). The one deliberate exception is `hooks/tests/` — the
 HOOK suite, not an eval tier: bash testing a Python hook through its
 stdin/exit-code contract, exactly the interface Claude Code invokes.
@@ -157,10 +157,11 @@ prototype for `evals/status.py`.
 
 ## The gate
 
-`.githooks/pre-commit` (live once `scripts/dev-setup.sh` has set
+`.githooks/pre-commit` (live once `tools/dev-setup.sh` has set
 `core.hooksPath`; CI is the backstop for a clone that never did) refuses a staged file
-that breaks the naming convention (`evals/lint/naming.py`, shared with lint
-N1). `.githooks/pre-push` (same wiring) runs this suite
+that breaks the naming convention (`tools/naming.py` — repo hygiene, run
+again by CI over the tree; deliberately not a ledger case). `.githooks/pre-push`
+(same wiring) runs this suite
 (`python3 evals/lint/run_lint.py`) and the hook unit tests on **every
 push** and blocks on red. "Must pass before
 every version bump" is a subset of that; unconditional is simpler and the
@@ -170,5 +171,5 @@ override; `.github/workflows/checks.yml` is its backstop.
 Run locally:
 
 ```sh
-python3 evals/lint/run_lint.py     # or: cd evals && uv run lint/run_lint.py
+python3 evals/lint/run_lint.py     # or, from the repo root: uv run evals/lint/run_lint.py
 ```

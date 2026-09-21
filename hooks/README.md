@@ -43,13 +43,13 @@ reported in the message but never relied on.
 ## This repo's own gates (not plugin hooks)
 
 `.githooks/` guards the plugin repository itself — **only after
-`scripts/dev-setup.sh` (= `git config core.hooksPath .githooks`) has been
+`tools/dev-setup.sh` (= `git config core.hooksPath .githooks`) has been
 run once in the clone**; a fresh clone's gates are silently inert until
 then, and CI's lint tier is the backstop. Two gates: **pre-commit** rejects a staged file whose name breaks the naming
 convention (Python `snake_case`, shell `kebab-case`, markdown
 lowercase-kebab outside the ecosystem caps and fixture data — one
-predicate, `evals/lint/naming.py`, shared with lint case N1 so a
-`--no-verify` commit is caught on push); **pre-push** runs the hook unit
+predicate, `tools/naming.py`, which CI re-runs over the tree so a
+`--no-verify` commit is caught one step later); **pre-push** runs the hook unit
 tests and the lint tier and refuses a behaviour change without a version
 bump.
 

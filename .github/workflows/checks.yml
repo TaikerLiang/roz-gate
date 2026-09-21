@@ -9,3 +9,5 @@ jobs:
         run: bash hooks/tests/run-tests.sh
       - name: eval ledger lint tier
         run: python3 evals/lint/run_lint.py
+      - name: naming convention (repo hygiene, tools/ — not the ledger)
+        run: python3 tools/naming.py $(git ls-files)
