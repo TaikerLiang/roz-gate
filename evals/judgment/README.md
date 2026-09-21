@@ -24,10 +24,10 @@ trees already hold the questions in `specs/<n>/`. Caught at design time.
 ## Running
 
 ```sh
-python3 evals/judgment/run-judgment.py --check       # fixtures frozen? no tokens
-python3 evals/judgment/run-judgment.py --redproof    # judge red-proof, 28 judge calls (cached; --rejudge to re-ask) — first, always
-python3 evals/judgment/run-judgment.py --sut opus --k 1 F-63   # one iteration
-python3 evals/judgment/run-judgment.py --sut opus --k 2        # the sweep (k=2 ruled after calibration)
+python3 evals/judgment/run_judgment.py --check       # fixtures frozen? no tokens
+python3 evals/judgment/run_judgment.py --redproof    # judge red-proof, 28 judge calls (cached; --rejudge to re-ask) — first, always
+python3 evals/judgment/run_judgment.py --sut opus --k 1 F-63   # one iteration
+python3 evals/judgment/run_judgment.py --sut opus --k 2        # the sweep (k=2 ruled after calibration)
 ```
 
 - Never CI, never pre-push: a spec-refinement iteration on a real repo is

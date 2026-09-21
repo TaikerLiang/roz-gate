@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Replay-tier runner. Usage:
 
-    run-replay.py [--sut NAME] [--k N] [case ...]    # default: fable, all
+    run_replay.py [--sut NAME] [--k N] [case ...]    # default: fable, all
 
 Measurement, not a gate: per-case observed rates with Wilson 90% intervals
 into report/<sut>/report.json, no pass thresholds anywhere — the gate

@@ -23,10 +23,10 @@
 #
 # Teeth (1.15.0): the explicit prose measured 0/5 — every run copied,
 # threaded, and never touched the source again. The no-section predicate
-# is now guard-gate rule D (hooks/guard-gate.py: a `git commit` is denied
+# is now guard-gate rule D (hooks/guard_gate.py: a `git commit` is denied
 # while a technical-spec.md under specs_dir carries the section) and lint
 # E2 (evals/lint/run_lint.py) holds the three literals identical.
-# source: hooks/guard-gate.py rule D — "A `git commit` never carries a
+# source: hooks/guard_gate.py rule D — "A `git commit` never carries a
 #   `technical-spec.md` under the project's `specs_dir` that still holds
 #   an open-questions section"
 import os, re, sys

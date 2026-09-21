@@ -28,12 +28,16 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   # branch deletion — nothing to check
   [ "$local_sha" = "$ZERO" ] && continue
 
-  if [ "$remote_sha" = "$ZERO" ]; then
-    # new remote branch: compare against the closest point origin already has
+  if [ "$remote_ref" = "refs/heads/main" ] && [ "$remote_sha" != "$ZERO" ]; then
+    # main itself: everything since the remote's head must carry its bump
+    base=$remote_sha
+  else
+    # a feature branch, new or existing: the rule is "bumped somewhere since
+    # the branch left main", so compare against the merge-base — a second
+    # push of behaviour prose to a branch that already bumped is not a second
+    # bump (the docs catch-up PR hit exactly this).
     base=$(git merge-base "$local_sha" origin/main 2>/dev/null) || continue
     [ "$base" = "$local_sha" ] && continue
-  else
-    base=$remote_sha
   fi
 
   changed=$(git diff --name-only "$base" "$local_sha" -- $BEHAVIOR_PATHS)

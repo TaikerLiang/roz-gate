@@ -15,6 +15,6 @@ case "$branch" in
   *) exit 0 ;;
 esac
 
-exec python3 "${BASH_SOURCE[0]%/*}/guard-acceptance.py" <<EOF
+exec python3 "${BASH_SOURCE[0]%/*}/guard_acceptance.py" <<EOF
 $input
 EOF

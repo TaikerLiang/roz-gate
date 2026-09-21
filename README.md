@@ -37,6 +37,8 @@ agents are forbidden to guess.
 - `gh` (GitHub) **or** `glab` (GitLab) authenticated for the repo's host
 - A git repo on that forge, with issues and PRs/MRs enabled
 - A test runner invocable from the CLI
+- Python ≥ 3.12 and `uv` **only to run the eval suite** (`evals/`) — not to
+  use the plugin
 
 ## Install
 
@@ -190,18 +192,20 @@ CRs are the state). Commands validate invariants and **stop on violations —
 they never repair labels**.
 
 The rules that protect you from the agents are not just prose: bundled
-**PreToolUse hooks** enforce them at the tool layer. An agent that tries to
-apply a gate label, to post an intake summary without the gate holder's
-trigger, to open a protocol comment with a quote block — the malformed write
-that makes patrol answer itself — to edit the acceptance suite on a spec
-branch — the one move that would turn the verdict into an echo of the
-implementation — to commit a technical spec that still carries an
-open-questions section (the question belongs in `spec.md`, threaded, or it
-resolves by silent interpretation) — or, inside a fidelity dispatch, to
-read `src/` or touch `feat/<n>` (the blindness the integration verdict
-rests on; a green looks identical either way) — is blocked before
-the tool runs, fail-closed, with a message pointing back at the protocol.
-Prompt discipline is the manners; the hook is the law.
+**PreToolUse hooks** enforce them at the tool layer, before the tool runs,
+fail-closed, with a message pointing back at the protocol. *Prompt
+discipline is the manners; the hook is the law.*
+
+| rule | blocks | why | since |
+|---|---|---|---|
+| **A** | an `**[intake] · summary**` posted without the gate holder's `summary` request (or a gate label) | the summary is a human decision point; answered questions alone never trigger it | 1.5.0 |
+| **B** | an agent applying `status: ready-for-spec` / `ready-for-dev` | a gate label is an authorization — only the human moves it | 1.5.0 |
+| **C** | a marker-carrying comment that opens with a quote block | patrol classifies by the opening token; a quote-opening agent comment reads as a human answer and the loop replies to itself | 1.14.0 |
+| **D** | a `git commit` while `technical-spec.md` still carries an open-questions section | a question outside the threaded surface resolves by silent interpretation; the prose measured 0/5 after it was made explicit | 1.15.0 |
+| **E** | inside a fidelity dispatch, any read of `src/` or git action on a `feat/<n>` ref | the blindness the integration verdict rests on — a green looks identical either way | 1.16.0 |
+| **acceptance** | editing the acceptance suite on a `spec/<n>` branch | a weakened assertion re-runs green and turns the verdict into an echo of the implementation | 1.11.0 |
+
+Details, the fidelity-dispatch marker, and how to add a rule: `hooks/README.md`.
 
 Every state-mutating command has exactly two exits: **Done** (deliverable
 produced, lock removed) or **STOP** (discard local work, set `blocked` alone,
@@ -331,6 +335,67 @@ Retirement is two steps, **in this order**:
    matters — uninstalling first deletes `/roz-gate:uninit` along with the
    plugin, leaving the cleanup to you by hand.
 
+## Repository layout
+
+| directory | role | who reads it | when it takes effect |
+|---|---|---|---|
+| `commands/` | the entry points (`/roz-gate:*`) | Claude Code, then the agent | invocation |
+| `references/` | protocol docs, seat briefs, forge adapters | the agent, on every invocation | runtime |
+| `agents/` | the built-in personas (product, em, qa, reviewer) — referenced, never copied | the agent, at dispatch | dispatch |
+| `templates/` | consumer scaffolding, instantiated by `init` and removed by `uninit` | the consumer repo | install time |
+| `hooks/` | deterministic enforcement and its tests ([hooks/README.md](hooks/README.md)) | the machine, before a tool runs | tool time |
+| `evals/` | the eval ledger — lint, replay, judgment ([evals/README.md](evals/README.md)) | developers of the plugin | dev time; lint on pre-push and CI |
+| `.githooks/` | this repo's own release gate | git, on push | push |
+| `docs/` | human-facing pages (roadmap, site) | humans | never loaded by the agent |
+| `scripts/` | operator utilities | operators | on demand |
+| `.claude-plugin/` | the manifest (name, version) | Claude Code | install |
+
+Two axes organize this. **Who reads it**: the agent at runtime
+(`commands/`, `references/`, `agents/`), the machine (`hooks/`,
+`.githooks/`), humans (`docs/`, `evals/`), or the consumer repo
+(`templates/`, instantiated). **When it takes effect**: install
+(`templates/`, the manifest), runtime (everything the agent loads), or dev
+time (`evals/`, the gate).
+
+One deliberate asymmetry: four personas live in `agents/` and are
+*referenced* by the consumer's config, but the implementer lives in
+`templates/` and is *copied* — it is the only seat that must absorb the
+consumer's own coding guidelines, so it has to be a file the consumer owns.
+
+File names: Python is `snake_case` (importable), shell is `kebab-case`,
+markdown is lowercase-kebab except the ecosystem caps (`README`,
+`CHANGELOG`, `ROADMAP`, `CLAUDE.md`) and the eval fixtures, which are data
+keyed by ledger case id. Enforced by `.githooks/pre-commit` and re-checked
+by the lint tier on push and in CI (one predicate: `evals/lint/naming.py`).
+
+And the line between `references/` and `docs/`: everything in
+`references/` is agent input on every invocation, so every line there is a
+token cost on every turn (the 46–72 live-rules figure in the roadmap);
+`docs/` is for humans and is never loaded. Do not put human reading
+material in `references/`.
+
+## How we know it works
+
+Three evidence tiers under `evals/` (the ledger: `evals/README.md`):
+
+- **lint** — static checks on the plugin's own prose and hook code, on every
+  push: each case is a defect that actually shipped, or its identical shape,
+  proven against positive and negative fixtures.
+- **replay** — the real commands run headless in a sandbox repo against a
+  stateful forge stub, graded by code from the forge journal, the transcript
+  and the pushed refs; pass^k with Wilson intervals — rates, never booleans;
+  an invalid run is never a red.
+- **judgment** — LLM-as-judge on real historical issues frozen at the moment
+  before the loop ran: "did it surface the thing that changed the human's
+  mind", quote-verified, recall and precision reported separately.
+
+The release gate runs lint and the hook unit tests on every push. The opus
+baseline as of 2026-09-21: replay 17/18 cases at 100% (k=5), F6 no
+in-session decay across three 12-turn sessions; judgment at k=2, F-63 recall
+1/2 · precision 1/2 against the historical run's 2/2 · 0/2. Every case
+derives from one repository and one operator — green proves no regression on
+work shaped like that, nothing about shapes never run.
+
 ## Design principles (the short version)
 
 1. One accountable orchestrator; specialists never share a session.
@@ -344,6 +409,7 @@ Retirement is two steps, **in this order**:
 6. Humans hold the gates; the machine cannot authorize itself.
 7. State lives in labels and CRs, never in a session — crash-safe, auditable,
    schedulable.
+8. A rule either has teeth or is measured; prose alone is a hope.
 
 ## Troubleshooting
 

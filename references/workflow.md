@@ -101,7 +101,9 @@ feature umbrella for the whole feature.
 threads on the spec CR, each tagged with the role that raised it. `spec.md`'s
 `## Open Questions` is the **single collection point for every seat's
 questions**, whatever document the seat owns — a question written anywhere
-else has no route to you. You answer inline; the fold command re-spawns the
+else has no route to you, so a seat's question is *moved* there, never
+copied (since 1.15.0 guard-gate rule D refuses the commit while
+`technical-spec.md` still carries an open-questions section). You answer inline; the fold command re-spawns the
 owning role agent and folds the decision into **the document the raising seat
 owns** (`spec.md`; `technical-spec.md` for `[implementer]` questions — the
 contract QA tests against must learn the answer, or the pipe is one-way), and
@@ -125,7 +127,9 @@ both CRs targeting the spec CR:
   **draft** and is marked ready only when the suite is complete —
   ready-not-draft is the completeness signal integration waits for.
 - **(5q)** `reviewer`, in a separate implementation-blind dispatch on
-  `qa/{n}` (the branch topology enforces the blindness), audits the QA
+  `qa/{n}` (the branch topology enforces the blindness, and since 1.16.0
+  guard-blind rule E enforces it at the tool layer while the dispatch's
+  marker exists — no read of `src/`, no touch of `feat/{n}`), audits the QA
   suite's fidelity to the spec — the suite the verdict is computed from
   is otherwise the loop's only unaudited artifact. Findings are two-way
   cited threads on the QA CR; both CRs must be thread-clean before (6).

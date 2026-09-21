@@ -1,6 +1,6 @@
 # The eval suite's Python environment — ONE uv project for every tier
 # (lint, replay, and the judgment tier when it lands): `uv run
-# lint/run_lint.py`, `uv run replay/run-replay.py`. Deliberately
+# lint/run_lint.py`, `uv run replay/run_replay.py`. Deliberately
 # stdlib-only: no dependencies; uv's contribution is standardizing the
 # interpreter (plain `python3` works identically everywhere).
 #
@@ -9,7 +9,7 @@
 #   with no venv active — its `#!/usr/bin/env python3` shebang stands on
 #   its own, and every script here must keep working under plain
 #   `python3` too.
-# - hooks/guard-gate.py is invoked by Claude Code's hook mechanism and
+# - hooks/guard_gate.py is invoked by Claude Code's hook mechanism and
 #   is not part of this project; hooks/tests/ is the hook suite, not an
 #   eval tier, and stays bash.
 

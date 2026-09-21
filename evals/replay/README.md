@@ -16,8 +16,8 @@ whole-stack — seats ride the same endpoint as the main agent, because
 ## Running
 
 ```sh
-cd evals/replay && uv run run-replay.py [--sut NAME] [--k N] [case ...]
-# (plain `python3 run-replay.py` works identically — the tier is stdlib-only;
+cd evals/replay && uv run run_replay.py [--sut NAME] [--k N] [case ...]
+# (plain `python3 run_replay.py` works identically — the tier is stdlib-only;
 #  uv standardizes the interpreter, python >= 3.12. The uv project root is
 #  evals/pyproject.toml — one environment for every eval tier.)
 ```
@@ -43,7 +43,7 @@ cd evals/replay && uv run run-replay.py [--sut NAME] [--k N] [case ...]
 
 The eval suite is Python end to end (evals/README.md § Language — an
 ownership constraint, and it superseded this tier's original "lint
-stays bash" boundary): `run-replay.py`, `replaylib.py` (the ONE place
+stays bash" boundary): `run_replay.py`, `replaylib.py` (the ONE place
 that parses journal/state/transcript/results), per-case `check.py`,
 the forge stub, and the lint tier's `run_lint.py`. Shared mechanics
 live thin in `evals/lib/checkkit.py` (tally, probe-error guard,
