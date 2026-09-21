@@ -200,21 +200,70 @@ holder's pain points became a proposal package; a four-seat evaluation
   last comment in an unresolved thread (patrol/spec-answers would flip it
   to waiting-on-user) — top-level CR comments only.
 
-## Current state (as of 2026-08-11)
+## The measurement track (2026-08-21 →)
 
-- **v1.7.1 shipped.** Agent identity separation is live: `agent_identity:
-  bot` with a GitHub App or GitLab project access token, bot never holds a
-  gate, hook enforcement at 27 test cases, intake batches capped at 5 with
-  the gate-label-direct hint, init creates `acceptance_dir`/`specs_dir`,
-  README/guide surface identity + hook.
-- **GitHub App `roz-gatekeeper`**: registered, public, logo shipped
-  (`images/roz-gate-logo.png`) — awaiting installation by emilyorz.
-  Ops learning: cross-account installation on personal repos needs the
-  repo owner to install; if multi-repo friction grows, the fallback lane
-  is a machine account + PAT (config change = `bot_login` only).
-- **ADMC** (the first real project): identity config keys not yet filled.
+The quality-audit track above stops at 1.12.0. What followed was a change
+of question: not "what rule is missing" but "how do we know any of them
+hold". Everything below is recorded in the release notes (`CHANGELOG.md`)
+and the eval ledger (`evals/README.md`).
+
+- **Architecture self-review (2026-08-21)**: the plugin's prose was
+  counted — 175 rules, 2 of them mechanically enforced, 46–72 live in any
+  one invocation's context. The number that mattered was the second one.
+- **Lint tier, 1.13.0**: ten static cases, each a defect that shipped or
+  its identical shape; writing the specs found two more shipped defects
+  (B1, C6 — both fixed where the rule was written, never where it was
+  read). Release gate on every push.
+- **Rule C, 1.14.0**: the quote-open guard — B4 promoted from prose to
+  hook; 1.14.1 per-segment classification after a dogfooded false
+  positive.
+- **Replay tier (PR #1 → #7)**: the real commands in a sandbox against a
+  stateful forge stub, 18 cases, pass^k. The instrument lied before it
+  measured anything, and each lie became a fix with a red-proof: a vacuous
+  pass on an empty run; every-iteration-invalid published as 0%; a
+  spoofable reply count; quota exhaustion scored as FAIL; the stub blind
+  to bodies passed by file; and D2's "mention is not use" three times over
+  (a prohibition in the prompt, an exclusion pathspec, a shell string).
+- **Rule D, 1.15.0**: E2 measured 0/5 *after* the prose was made explicit
+  ("move it … delete it from the source document") — every run copied and
+  never touched the source again. Predicate became a commit-time hook,
+  same literal held in hook, checker and lint; re-run 5/5. The eval
+  loop's first full cycle: measure → find → fix → verify.
+- **Rule E, 1.16.0**: D2 measured 4/5 — one QA child read `src/app.txt`
+  under the fidelity dispatch, invisible at the gate. Hook-enforced
+  blindness scoped by a marker the dispatching command writes; 1.16.1 /
+  1.16.2 narrowed two mention false positives found by the re-runs (one
+  of them a real bypass caught by review). Re-run 4/4, zero attempts.
+- **Judgment tier (PR #10)**: four ADMC issues frozen at the moment before
+  the loop ran, opus judge, quote-verified, recall/precision never
+  blended. k=2 on 1.16.2: F-51 correct silence 2/2; F-54 P8 1/2; F-63
+  P1 2/2 but P2 (the trigger-surface question that changed the design)
+  0/3 including calibration, N5 raised 3/3 — a consistent recall miss
+  pointing at the seat brief, not at sample size; F-67 finding surfaced,
+  question cap missed. Historical row for F-63: 2/2 · 0/2.
+- **Enforced rules: 2 → 5** (A, B, C, D, E) plus the acceptance guard.
+- **Open**: the pruning question (which of the 175 rules earn their
+  context) — deferred by Paul; the rules-compile proposal (rules →
+  compiled context, design debated, pilot was waiting on the baseline —
+  now unblocked); the experiment notebook (a SQLite ledger keyed by
+  experiment with an autopsy class per anomaly) — pending Paul's
+  direction.
+
+## Current state (as of 2026-09-21)
+
+- **v1.16.2 shipped; 1.16.3 is this docs catch-up** (two clauses in
+  `references/workflow.md` — behaviour prose, so the release gate
+  required the bump). Five hook rules (A–E) plus the acceptance guard,
+  99 hook tests; three eval tiers built (lint 70 checks on every push,
+  replay 18 cases, judgment 4 fixtures / 7 items); opus baseline recorded.
+- **GitHub App `roz-gatekeeper`**: installed on ADMC — agent comments
+  post as `roz-gatekeeper[bot]` since 2026-08-12; the bot never holds a
+  gate.
+- **ADMC** (the first real project): bot-mode identity config in place
+  (in the untracked `CLAUDE.local.md` since its PR #62); the judgment
+  fixtures re-create the config block on each sandbox.
 - **2.0.0: deferred.** The frozen items below are design-approved but
-  unshipped.
+  unshipped; the measurement track has not changed that decision.
 
 ## The vision (why 2.0.0 exists)
 
