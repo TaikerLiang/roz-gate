@@ -27,7 +27,7 @@ trees already hold the questions in `specs/<n>/`. Caught at design time.
 python3 evals/judgment/run_judgment.py --check       # fixtures frozen? no tokens
 python3 evals/judgment/run_judgment.py --redproof    # judge red-proof, 28 judge calls (cached; --rejudge to re-ask) — first, always
 python3 evals/judgment/run_judgment.py --sut opus --k 1 F-63   # one iteration
-python3 evals/judgment/run_judgment.py --sut opus --k 3        # the sweep (k ruled after calibration)
+python3 evals/judgment/run_judgment.py --sut opus --k 2        # the sweep (k=2 ruled after calibration)
 ```
 
 - Never CI, never pre-push: a spec-refinement iteration on a real repo is
@@ -141,6 +141,36 @@ estimate F-63/F-54 ≈600k, F-67 ≈250k, F-51 ≈200k → ≈1.65M per k; judge
 calibration iteration → measured cost reported → k ruled. Fixture-gap
 UNKNOWNs on a real repo are expected on the first runs (~0.5M allowance);
 every UNKNOWN prints in the report so routes are added in one batch.
+
+## Results — k=2, opus SUT, opus judge, plugin v1.16.2 (2026-09-20/21)
+
+| fixture | run | recall | precision | questions | cap | verdicts |
+|---|---|---|---|---|---|---|
+| F-51 | 1, 2 | — | 1/1, 1/1 | 0, 0 | ok | N10 yes, yes |
+| F-54 | 1 | 1/1 | — | 12 | ok | P8 yes |
+| F-54 | 2 | 0/1 | — | 19 | ok | P8 no |
+| F-63 | 1 | 1/2 | 0/2 | 14 | ok | P1 yes · P2 no · N1 yes · N5 yes |
+| F-63 | 2 | 1/2 | 1/2 | 15 | ok | P1 yes · P2 no · N1 no · N5 yes |
+| F-67 | 1, 2 | 1/1, 1/1 | — | 5, 4 | **fail** (cap 1) | P12 yes, yes |
+| *historical* F-63 | | 2/2 | 0/2 | 8 | | |
+| *historical* F-67 | | 1/1 | | 5 | fail | |
+
+Zero judge-invalid across 9 valid runs; one invalid iteration (F-67, stub
+route `gh api user`, fixed in the same week). Measured cost per run:
+F-51 ≈ 110–120k in, F-54 ≈ 670k, F-63 ≈ 320–560k, F-67 ≈ 135–150k; judge
+≈ 10–25k per fixture.
+
+**Reading.** F-51 is perfect: when the right move is silence, opus is
+silent. P1 (the user↔workspace relation) surfaces 3/3 including
+calibration; P12 (the Makefile already exists) 2/2. **P2 never surfaces —
+0/3** — the one item whose historical answer required reading the
+trigger implementation (`command-timeout-seconds`); the 2026-08 run asked
+it, the current loop does not look there. N5 is asked 3/3 (the human
+dismissed it in one letter). F-67 reproduces the historical shape exactly:
+the finding plus moot questions. Question counts run higher than the
+historical run (14–15 vs 8; 19 on the F-54 miss). The consistent recall
+gap is a stage-(2) brief question, not a sampling one; it is the first
+thing this tier has told us that the replay tier could not.
 
 ## What this tier cannot see
 

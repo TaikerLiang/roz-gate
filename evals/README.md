@@ -6,7 +6,7 @@ Three tiers of evidence that the workflow's rules hold.
 |---|---|---|---|
 | **lint** | 13 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
 | **replay** | 18 | built — `replay/run_replay.py` | needs a running loop and pass^k over repeated runs |
-| **judgment** | 7 items / 4 fixtures | built — `judgment/run_judgment.py`, k pending calibration | a real repo per iteration plus an opus judge; the only tier that measures whether the spec stage earns its cost |
+| **judgment** | 7 items / 4 fixtures | built — `judgment/run_judgment.py`, k=2 baseline complete (2026-09-21) | a real repo per iteration plus an opus judge; the only tier that measures whether the spec stage earns its cost |
 
 Two failure modes exist, and only one of them is what people expect:
 
@@ -48,7 +48,7 @@ conventions written into prose that a model executes at runtime. A lint
 cannot execute prose, so every case that guards a runtime check gets two
 layers:
 
-- **Pattern proof** — the canonical pattern lives once in `run-lint.sh`
+- **Pattern proof** — the canonical pattern lives once in `run_lint.py`
   and runs against positive AND negative fixtures (`fx/`). Proves the
   pattern behaves.
 - **Source conformance** — the plugin source must carry that same pattern
@@ -95,6 +95,65 @@ promoted in 1.16.0 (guard-blind rule E) at 4/5 — one QA child read
 `src/app.txt` under the fidelity dispatch — because that failure is
 invisible at the gate: the class that gets teeth regardless of rate. Lint
 D2 holds the hook's three regexes byte-identical to the replay checker's.
+
+## Baseline results (opus SUT, plugin v1.14.2 → v1.16.2, 2026-09-16 → 21)
+
+**Replay, k=5 (F6 = three 12-turn sessions):** 17 of 18 cases at 100%.
+The two genuine violations the sweep found were both promoted to hooks
+and re-measured green: E2 0/5 → 5/5 (rule D), D2 4/5 → 4/4 with zero
+denied attempts (rule E). D2's remaining shortfall is one stub-route
+invalid, not a miss. F6's curve is all-true at turns 1/3/5/8/12 in every
+session — **no in-session decay observed**, against the literature's
+prediction of ~5.6% odds loss per step. Cost ≈ $150 API-equivalent
+including re-runs; cache reads dominate.
+
+**Judgment, k=2 (opus judge, quote-verified, zero judge-invalid):**
+
+| fixture | recall | precision | questions | historical |
+|---|---|---|---|---|
+| F-51 (#51 intake — correct silence) | — | 1/1, 1/1 | 0, 0 | 0 |
+| F-54 (#54 spec refinement) | 1/1, **0/1** | — | 12, **19** | 10 |
+| F-63 (#63 spec refinement) | 1/2, 1/2 | 0/2, 1/2 | 14, 15 | 2/2 · 0/2 · 8 |
+| F-67 (#67 intake — the finding) | 1/1, 1/1 | cap fail ×2 | 5, 4 (cap 1) | 5 |
+
+The consistent signal, not noise: **P2 — the HTTP trigger cannot
+interrupt a long migration — is 0/3 including the calibration run**, while
+N5 (ghost usernames) is raised 3/3. The current loop asks more questions
+than the 2026-08 run (14–15 vs 8) and hits the design-changing one less.
+A recall miss this consistent points at the seat brief (what stage (2)
+reads before it asks), not at k. Open item.
+
+## Autopsy taxonomy — read this before trusting any red
+
+Every red in every sweep was autopsied before it counted. Four classes
+emerged and they are the most reusable knowledge in this directory:
+
+| class | example | what to do |
+|---|---|---|
+| **instrument defect** | stub blind to `--body-file` bodies; quota banner scored as FAIL; `echo "… src/"` denied as a read | fix the harness, purge the affected iterations, re-run |
+| **fixture defect** | C5's `test: true` was the shell builtin — a vacuous suite | fix the fixture; the model's behaviour was defensible |
+| **rule ambiguity** | "relocate": copy or move? (E2/F3, resolved by ruling: move) | ruling → prose → if prose still fails, teeth |
+| **model violation** | D2: `cat src/app.txt` under the fidelity dispatch | promote to a hook if invisible at the gate |
+
+Across the opus baseline the ratio was roughly **ten instrument/fixture
+findings to three model findings**. The instrument lies first, and in the
+direction that looks like success — a green that should have been grey.
+Hence: red-proof before trusting, invalid ≠ fail, and every purge recorded
+with its reason (a purge without a reason is the history of this suite
+disappearing).
+
+## Running sweeps on macOS
+
+Run long sweeps **detached** (`nohup … & disown`) and poll the report
+directory. Claude Code's background-task watchdog kills a task when the
+system "runs low on memory", but it reads macOS's free-page count, which
+the OS keeps near zero by design (file cache) — two sweeps were killed
+with swap at 0.3 GB and 7 GB of reclaimable pages. Docker Desktop's VM
+inflates the same number through its mmap'd disk image regardless of its
+memory limit. None of that is real pressure; the runner is resumable
+either way. A live dashboard (`~/Desktop/eval-dashboard.html`,
+regenerated every 60 s by a detached watcher, zero model tokens) is the
+prototype for `evals/status.py`.
 
 ## The gate
 
