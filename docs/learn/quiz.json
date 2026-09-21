@@ -1,6 +1,6 @@
 {
  "_meta": {
-  "version": "draft-2 (2026-09-22, ADMC feedback folded; for Paul's spot review)",
+  "version": "draft-3 (2026-09-22, background added to every question)",
   "pass": {
    "overall": 0.8,
    "per_module": 0.6,
@@ -67,7 +67,8 @@
    ],
    "a": 0,
    "why": "「No third exit」——任何終端狀態都能只從 label 讀出來。唯一例外是 stage (7)：issue 已在你的 gate 上，失敗就是一則說明的 comment，沒有 blocked 出口。",
-   "src": "README.md § Labels & state machine"
+   "src": "README.md § Labels & state machine",
+   "bg": "Roz Gate 的 command（next-stage、spec-answers、integrate、patrol…）都會改變 issue 的 label 與 CR 狀態。設計上它們被要求「任何終端狀態都能只從 label 讀出來」——也就是說一個 command 結束之後，不需要看 log，光看 issue 上的 label 就知道它是成功了還是卡住了。這個要求限制了 command 可以有幾種結束方式。"
   },
   {
    "id": 2,
@@ -88,7 +89,8 @@
     2
    ],
    "why": "三個 gate 是 ready-for-spec、ready-for-dev、merge。in-user-review 是 main agent 套的 transient 狀態；processing 是 lock。commands 和 agents 永遠不套 gate label——機器能跑 pipeline，不能授權它。",
-   "src": "README.md § The loop in one page · § Labels"
+   "src": "README.md § The loop in one page · § Labels",
+   "bg": "README 說「the human guards every gate」：loop 可以自動跑，但不能自己授權自己。哪些 label 或動作算「gate」是被明確列舉的，而且和 transient 狀態、lock 分開——因為 hook rule B 只擋 gate label，不擋其他 label。"
   },
   {
    "id": 3,
@@ -104,7 +106,8 @@
    ],
    "a": 0,
    "why": "No `track:` label = inbox（pre-loop）；no `status:` label = in flight（open CR 就是狀態）。手機上開一個沒 label 的 issue 就是進 inbox。",
-   "src": "README.md § The inbox"
+   "src": "README.md § The inbox",
+   "bg": "你從手機的 GitHub app 開了一個 issue，只寫兩句話，沒有套任何 label。Roz Gate 的 loop 對這個 issue 會怎麼看待它？README 用一個特定的詞稱呼這種 issue，並且用「有沒有 track: label」「有沒有 status: label」兩個維度定義 issue 處在哪個階段。"
   },
   {
    "id": 4,
@@ -120,7 +123,8 @@
    ],
    "a": 0,
    "why": "「a contract ambiguity mid-build is never interpreted by the contractor: it goes back through a change order」。在 code 裡單方面決定是 E3 那條被明文禁止的路；reviewer↔implementer 私下 settle 是 E4 禁止的路。",
-   "src": "README.md § The loop (change order) · commands/next-stage.md B3/B5"
+   "src": "README.md § The loop (change order) · commands/next-stage.md B3/B5",
+   "bg": "Stage (3) 是 implementer 在 feat/{n} 上實作；contract 是 stage (2) 寫好的 technical-spec.md。README 用「owner / contractor / inspector」的商業結構比喻整個 loop，而且說 loop 只有一個 backward transition。你是 implementer，寫到一半發現 contract 對某個行為沒說清楚。"
   },
   {
    "id": 5,
@@ -141,7 +145,8 @@
     2
    ],
    "why": "processing 是 lock（可和一個 phase label 並存）；ready-for-* 是 gate。C3 這條 lint 的 oracle 就是：processing 是 mutex，其他 status 最多一個。",
-   "src": "README.md § Labels · evals/lint/run_lint.py C3"
+   "src": "README.md § Labels · evals/lint/run_lint.py C3",
+   "bg": "`status:` 這個 label 前綴底下有六個值，但它們的「種類」不同：有的是人類專屬的 gate，有的是階段狀態（transient），有一個是 lock。lint 的 C3 case 把這個分類寫成可執行的 oracle，用來抓「同時掛了兩個階段 label」這類非法組合。"
   },
   {
    "id": 6,
@@ -157,7 +162,8 @@
    ],
    "a": 1,
    "why": "processing 由每個執行中的 command 套上、結束時拿掉；和 phase label 並存是設計，但沒有 command 在跑時的 stale pair 就是「死在這一 stage」的證據。",
-   "src": "README.md § Labels（processing 行）"
+   "src": "README.md § Labels（processing 行）",
+   "bg": "`status: processing` 是每個執行中的 command 開始時套上、結束時拿掉的 lock，設計上它可以和一個階段 label 並存。你在 patrol 報告裡看到一個 issue 同時有 `in-spec-review` 和 `processing`，但你確認現在沒有任何 command 在跑。"
   },
   {
    "id": 7,
@@ -173,7 +179,8 @@
    ],
    "a": 0,
    "why": "「Commands validate invariants and stop on violations — they never repair labels.」自動修 label 會讓狀態機失去可審計性；修復是人類的決定。",
-   "src": "README.md § Labels & state machine"
+   "src": "README.md § Labels & state machine",
+   "bg": "Command 啟動時會先驗證 label 的不變量（例如：階段 label 最多一個、gate label 只能由人套）。這一題考的是「發現不變量被違反時該做什麼」——README 對此有一句非常明確的話，而且它和 Done / STOP 兩個出口的設計直接相關。"
   },
   {
    "id": 8,
@@ -192,7 +199,8 @@
     0
    ],
    "why": "ask once → summarize on demand → the label confirms。只有 assignee 的話會被寫進 issue body；旁觀者的 comment 不會被 fold 進去。",
-   "src": "README.md § The inbox"
+   "src": "README.md § The inbox",
+   "bg": "Inbox 的 intake 流程被設計成「ask once, summarize on demand, the label confirms」三個節拍：agent 只問一次、人類決定何時要 summary、最後由 label 確認。這個順序刻意把「何時往前走」的決定權留給 assignee。"
   },
   {
    "id": 9,
@@ -208,7 +216,8 @@
    ],
    "a": 0,
    "why": "references/ 是 agent input on every invocation（roadmap 的 46–72 live rules 就是在算它）。docs/ 是給人的，agent 永遠不載入——所以「不要把人看的材料放進 references/」。",
-   "src": "README.md § Repository layout"
+   "src": "README.md § Repository layout",
+   "bg": "README 的 Repository layout 把每個目錄按「誰讀」和「何時生效」分類。有一個目錄是 agent 每次 invocation 都會載入的 protocol docs 與 seat briefs——roadmap 裡「46–72 條規則在任一次 invocation 的 context 裡是活的」就是在算它。"
   },
   {
    "id": 10,
@@ -224,7 +233,8 @@
    ],
    "a": 0,
    "why": "docs/ 是 human-facing pages（roadmap、site）。它和 references/ 的分界是這個 repo 最容易踩的線。",
-   "src": "README.md § Repository layout"
+   "src": "README.md § Repository layout",
+   "bg": "同一張 layout 表裡，`docs/` 和 `references/` 看起來都是「文件」，但讀者完全不同。搞錯這條線的後果是：把給人看的長篇材料放進 agent 每輪都要付 token 的地方。"
   },
   {
    "id": 11,
@@ -240,7 +250,8 @@
    ],
    "a": 0,
    "why": "README 明說的「one deliberate asymmetry」。",
-   "src": "README.md § Repository layout"
+   "src": "README.md § Repository layout",
+   "bg": "Roz Gate 有五個固定的 seat：product、em、implementer、qa、reviewer。其中四個 persona 放在 plugin 的 `agents/`，consumer 的 CLAUDE.md 只是「引用」它們；但 implementer 的 persona 放在 `templates/`，`init` 時會「複製」一份進 consumer repo。README 稱這是「one deliberate asymmetry」。"
   },
   {
    "id": 12,
@@ -256,7 +267,8 @@
    ],
    "a": 0,
    "why": "templates/ 是 consumer scaffolding：CLAUDE.md 的 workflow 段、implementer persona、Idea issue template。",
-   "src": "README.md § Repository layout · commands/init.md"
+   "src": "README.md § Repository layout · commands/init.md",
+   "bg": "`/roz-gate:init` 是一次性的 bootstrap：建 label、在 CLAUDE.md 寫 workflow 段與 config、seat 化 agent team、加 Idea issue template。`/roz-gate:uninit` 則把 init 裝的東西拿掉但保留所有工作產物。這兩個 command 操作的素材放在同一個目錄。"
   },
   {
    "id": 13,
@@ -277,7 +289,8 @@
     2
    ],
    "why": "hooks/ 在 consumer 機器上每次 tool call 都跑（tool time）；scripts/ 是 consumer/operator-facing runtime utilities（gh-app-token.sh）。tools/、evals/、.githooks/ 是 dev time。",
-   "src": "README.md § Repository layout"
+   "src": "README.md § Repository layout",
+   "bg": "Layout 表的「when it takes effect」欄有三種值：install、runtime、dev time。這一題要你分辨哪些目錄是「開發這個 plugin repo 本身」才會用到、在 consumer 機器上跑 plugin 時永遠不會被碰的。注意 `hooks/` 和 `scripts/` 都是在 consumer 端執行的。"
   },
   {
    "id": 14,
@@ -293,7 +306,8 @@
    ],
    "a": 0,
    "why": "references/ 的每一行都進 context。「Do not put human reading material in references/.」",
-   "src": "README.md § Repository layout"
+   "src": "README.md § Repository layout",
+   "bg": "承上題的分界線。你是新加入的貢獻者，剛寫完一篇解釋設計理由的長文，想放進 repo 讓後來的人和 agent 都能受益。README 對 `references/` 有一句明確的禁令。"
   },
   {
    "id": 15,
@@ -309,7 +323,8 @@
    ],
    "a": 0,
    "why": "root pyproject.toml 寫明的兩個約束之一（另一個是 .venv/ 絕不 commit）。forge-stub 也是同一條規則。",
-   "src": "pyproject.toml · README.md § Requirements"
+   "src": "pyproject.toml · README.md § Requirements",
+   "bg": "Repo 根目錄有一個 uv project（pyproject.toml + uv.lock），涵蓋 evals/、hooks/、tools/。但 hooks 是 Claude Code 在 consumer 的機器上、每次 tool call 前透過 `.sh` shim 呼叫的；那台機器不一定裝了 uv。pyproject.toml 的註解寫了兩條「永遠不能破壞」的約束。"
   },
   {
    "id": 16,
@@ -325,7 +340,8 @@
    ],
    "a": 0,
    "why": "qa 只從 spec.md + contract 寫 black-box tests，never the implementation；它只向 main agent 回報。",
-   "src": "references/workflow.md § Roles (R&R)"
+   "src": "references/workflow.md § Roles (R&R)",
+   "bg": "references/workflow.md 的 R&R 表每個 seat 有 Owns 和 Never 兩欄。README 說「roles are defined by what they must not do — that's what buys independent derivations」：qa 的價值來自它的推導和 implementer 是獨立的。這一題問 qa 那一欄裡最核心的禁令。"
   },
   {
    "id": 17,
@@ -341,7 +357,8 @@
    ],
    "a": 0,
    "why": "「blindness asserted in a prompt is a request; blindness enforced by which branch is checked out is a fact」（ledger D2）。1.16.0 之後 rule E 再在 tool layer 加一道牆。",
-   "src": "references/workflow.md (4) · evals/replay/cases/D2/check.py"
+   "src": "references/workflow.md (4) · evals/replay/cases/D2/check.py",
+   "bg": "Stage (4) 的 QA 在 `qa/{n}` 分支上工作，這個分支從 `spec/{n}` 分出來，只放 test plan 與 acceptance suite。README 說這個安排「structurally enforces the black box」；D2 這條 ledger case 的原話是「blindness asserted in a prompt is a request; blindness enforced by which branch is checked out is a fact」。"
   },
   {
    "id": 18,
@@ -357,7 +374,8 @@
    ],
    "a": 0,
    "why": "(5q) 是 (5) 之外的另一次 reviewer dispatch，必須是 fresh context——看過 implementation 的 fidelity reviewer 會因為測試會過而評它 faithful，正是這次審查要移除的偏差。",
-   "src": "commands/next-stage.md B5b · references/fidelity-brief.md"
+   "src": "commands/next-stage.md B5b · references/fidelity-brief.md",
+   "bg": "Stage (5) 是 reviewer 審 implementation code；1.9.0 加了 stage (5q)：QA suite 本身也要被審，因為 integration verdict 是從 QA suite 算出來的，沒審它就是 loop 裡唯一沒被審計的節點。fidelity-brief.md 是這次 dispatch 的契約，它對「誰、在哪個 checkout、產出什麼」有明確要求。"
   },
   {
    "id": 19,
@@ -373,7 +391,8 @@
    ],
    "a": 0,
    "why": "文件查證過：PreToolUse 在 subagent 內確實帶 agent_id/agent_type，但兩次 dispatch 同一個 seat。marker 放在 `<git-dir>/roz-gate/fidelity-dispatch`，per worktree、不進 git status。",
-   "src": "hooks/README.md § The fidelity-dispatch marker"
+   "src": "hooks/README.md § The fidelity-dispatch marker",
+   "bg": "Rule E（guard-blind）要在 fidelity dispatch 期間擋掉 src/ 的讀取。設計時查過 Claude Code 的文件：subagent 內的 PreToolUse hook input 確實帶 `agent_id` 和 `agent_type`。但最後的設計是讓 dispatching command 在 `<git-dir>/roz-gate/fidelity-dispatch` 寫一個 marker 檔，hook 只看檔案存不存在。"
   },
   {
    "id": 20,
@@ -389,7 +408,8 @@
    ],
    "a": 0,
    "why": "CLAUDE.md 的 `### Roz Gate personas` 把每個 seat 映射到 `roz-gate:<role>` 或使用者自己的 agent（例如 `implementer: backend`）。workflow 的詞彙永遠不變。",
-   "src": "references/workflow.md § Seats and personas"
+   "src": "references/workflow.md § Seats and personas",
+   "bg": "consumer 的 CLAUDE.md 有一段 `### Roz Gate personas`，內容像 `implementer: implementer`、`qa: roz-gate:qa`。workflow.md 說 role 名稱是固定的「seats」，而「who sits in a seat is per-project configuration」。"
   },
   {
    "id": 21,
@@ -410,7 +430,8 @@
     2
    ],
    "why": "qa/<n> 上的 tests 與 spec docs 都可讀；`:!src/**` 是排除語法，提到不是讀取。`git diff … feat/5` 是對 feat/ ref 的 git 動作；絕對路徑下的 src/ 一樣是讀。",
-   "src": "hooks/guard_blind.py · hooks/README.md rule E"
+   "src": "hooks/guard_blind.py · hooks/README.md rule E",
+   "bg": "Fidelity dispatch 是 reviewer（或 patrol 的 qa seat）在 `qa/<n>` 上做的 implementation-blind 工作；marker 存在時 rule E 對 Bash、Read、Glob、Grep 都會判。它的 predicate 是 D2 checker 的三個 regex：對 feat/ ref 的 git 動作、src/ 路徑成分、以及「排除語法的運算元先 blank 掉再比對」。"
   },
   {
    "id": 22,
@@ -426,7 +447,8 @@
    ],
    "a": 0,
    "why": "「every deny message states the remedy, not just the reason, because the agent is the reader.」",
-   "src": "hooks/README.md（開頭）"
+   "src": "hooks/README.md（開頭）",
+   "bg": "Roz Gate 的 hooks 是 Claude Code 的 PreToolUse hook：在 tool 真正執行前被呼叫，用 exit code 決定放不放行。hooks/README 開頭把這個契約講清楚，並且解釋為什麼 deny 訊息的寫法要考慮「讀者是誰」。"
   },
   {
    "id": 23,
@@ -442,7 +464,8 @@
    ],
    "a": 0,
    "why": "architecture review 的原話：「the hook binds this agent, the lint binds this push; neither binds the repository」。新人最常把 client-side 的保證讀成全域保證。",
-   "src": "hooks/README.md · docs/ROADMAP.md § The measurement track"
+   "src": "hooks/README.md · docs/ROADMAP.md § The measurement track",
+   "bg": "Rule B 是 guard-gate 裡的一條：agent 執行 `gh issue edit --add-label \"status: ready-for-dev\"` 會被 exit 2 擋下。architecture self-review 在 2026-08-21 對這類 hook 的保證範圍下了一個精確的結論，roadmap 與 hooks/README 都引用了它。新人常把 hook 的保證讀得比實際範圍大。"
   },
   {
    "id": 24,
@@ -458,7 +481,8 @@
    ],
    "a": 0,
    "why": "patrol 用 comment 的開頭 token 分類；以 `>` 開頭的 agent comment 會被當成人類的回答，loop 會自己回自己（1.11.0 的 runaway）。補救：marker 放第一行，引用放下面。",
-   "src": "hooks/guard_gate.py rule C · hooks/README.md"
+   "src": "hooks/guard_gate.py rule C · hooks/README.md",
+   "bg": "Rule C（1.14.0）來自一次真實的 runaway：patrol 是靠 comment 的「開頭 token」分辨 agent comment 與人類回答的——agent 的 comment 以 `**[role] · kind**` marker 開頭。有一次 agent 的 comment 以引用區塊 `>` 開頭、marker 在第三行，patrol 把它當成人類的新回答，於是每一輪都回覆自己一次。現在 agent 想貼一則 review 回覆，內容先引用對方的話再寫 marker。"
   },
   {
    "id": 25,
@@ -474,7 +498,8 @@
    ],
    "a": 0,
    "why": "E2 在 prose 寫到「move … delete it from the source document」之後仍 0/5——每次都複製不刪。所以 predicate 變成 commit 時的 hook。",
-   "src": "hooks/README.md rule D · CHANGELOG v1.15.0"
+   "src": "hooks/README.md rule D · CHANGELOG v1.15.0",
+   "bg": "Stage (2) 的 A6 要求：其他 spec 文件裡的 open question 要「move」到 spec.md 的 `## Open Questions`（單一收集點），來源檔的段落要刪掉。1.14.2 把 prose 寫到「delete it from the source document」之後，replay 量到的仍是 5/5 只複製不刪。1.15.0 於是加了 rule D。現在 agent 已經把問題複製到 spec.md，但 technical-spec.md 的 §9 還在，準備 commit。"
   },
   {
    "id": 26,
@@ -490,7 +515,8 @@
    ],
    "a": 0,
    "why": "1.16.1 的第一版把 `echo` 出現在任何位置都當 command 來 blank，於是這條命令被 blank 成 `grep ` 放行——一個真實的 bypass，codex review 抓到，1.16.2 修成只認 command position。",
-   "src": "CHANGELOG v1.16.2 · hooks/README.md § Instrument blindness"
+   "src": "CHANGELOG v1.16.2 · hooks/README.md § Instrument blindness",
+   "bg": "Rule E 有一個「mention is not use」的 blank 機制：`echo`/`printf` 的運算元和 `#` 註解會先被去掉再比對 src/，因為 `echo \"excluding src/\"` 只是提到。1.16.1 的第一版把「命令裡任何位置出現 echo」都當作 command 來 blank；codex review 在 1.16.2 前抓到一個後果。現在子代理在 fidelity dispatch 裡執行一條含 `echo` 這個字、但 echo 是 grep 的搜尋字串的命令。"
   },
   {
    "id": 27,
@@ -506,7 +532,8 @@
    ],
    "a": 0,
    "why": "fail direction 是這個 repo 反覆出現的原則：往看得見的方向失敗。",
-   "src": "hooks/README.md rule E（fail direction 欄）"
+   "src": "hooks/README.md rule E（fail direction 欄）",
+   "bg": "Rule E 的 ON/OFF 完全由 marker 檔決定：dispatching command 在 Task 之前寫、返回之後刪。hooks/README 的表有一欄叫「fail direction」，記錄每條 rule 在不確定時往哪個方向失敗。這一題的情境是 dispatch 中途崩潰，marker 沒被清掉。"
   },
   {
    "id": 28,
@@ -522,7 +549,8 @@
    ],
    "a": 0,
    "why": "body 經由 stdin pipe 對靜態 hook 是不可見的；只有 heredoc（文字就在命令裡）或真實檔案能被讀回。看不見又帶 marker → 往看得見的方向失敗。",
-   "src": "hooks/guard_gate.py BODY_FILE_MSG · hooks/tests（unjudgeable marker-carrying body-file）"
+   "src": "hooks/guard_gate.py BODY_FILE_MSG · hooks/tests（unjudgeable marker-carrying body-file）",
+   "bg": "Rule C 要判斷 comment body 是否以 `>` 開頭，所以它得先「看到」body。body 可能以 `--body` inline、`--body-file <path>`（hook 會把檔案讀回來）、或 `--body-file -` 加 heredoc（文字就在命令裡、可以 parse）出現。但 body 也可能從 pipe 的 stdin 來——那對靜態的 hook 是看不見的。hook 對「看不見但命令帶著 marker」的情況有一個明確的政策。"
   },
   {
    "id": 29,
@@ -538,7 +566,8 @@
    ],
    "a": 0,
    "why": "lint tier 的每一個 case 都是 class 2：曾經真的 ship 出去的 defect，或同形狀的預防檢查。",
-   "src": "evals/README.md（開頭）"
+   "src": "evals/README.md（開頭）",
+   "bg": "evals/README 開頭把「為什麼要有 eval ledger」講成兩種失敗模式，並說「only one of them is what people expect」。理解這個分法才能理解為什麼有 lint tier 和 replay tier 兩層、各自抓什麼。"
   },
   {
    "id": 30,
@@ -554,7 +583,8 @@
    ],
    "a": 0,
    "why": "「A suite nobody has seen fail is a decoration.」這條紀律貫穿 lint、replay、judgment 三層與每個 hook rule。",
-   "src": "evals/README.md § Method（Red-proof requirement）"
+   "src": "evals/README.md § Method（Red-proof requirement）",
+   "bg": "evals/README 的 Method 節有一段「Red-proof requirement」，這個要求後來擴散到每個 hook rule、replay checker、judgment 的 judge——每個 PR 的 commit message 都要記錄 red-proof。它針對的是一種特定的「假安全感」。"
   },
   {
    "id": 31,
@@ -570,7 +600,8 @@
    ],
    "a": 0,
    "why": "兩個曾經對照 release notes 檢查的 defect（B1、C6）都錯了：fix 落在寫的地方，不是讀的地方。lint 必須 anchor 在讀規則的那個位置。",
-   "src": "evals/README.md § Method"
+   "src": "evals/README.md § Method",
+   "bg": "lint tier 守護的很多規則不是 code，而是寫在 prose 裡、由模型在 runtime 執行的 grep 命令（例如找 `(unverified)` 標記）。lint 沒辦法「執行 prose」，所以每個這類 case 用兩層來證明。evals/README 還解釋了為什麼兩層缺一不可，並舉了 B1、C6 兩個歷史 defect。"
   },
   {
    "id": 32,
@@ -586,7 +617,8 @@
    ],
    "a": 0,
    "why": "「Measurement, not a gate」。gate 的決定在 baseline 之後才做。",
-   "src": "evals/replay/run_replay.py docstring · evals/replay/README.md § pass^k"
+   "src": "evals/replay/run_replay.py docstring · evals/replay/README.md § pass^k",
+   "bg": "replay tier 是把真正的 command 在 sandbox 裡用 headless Claude Code 跑起來，由 checker 打分。它的 docstring 第一句是「Measurement, not a gate」。因為模型行為是隨機的，同一個 case 跑一次和跑五次的意義不同。"
   },
   {
    "id": 33,
@@ -602,7 +634,8 @@
    ],
    "a": 0,
    "why": "「Do not read the badge as 'the rules work'.」sampling caveat 在三層的 README 都以同一句話出現。",
-   "src": "evals/README.md § What a green run proves"
+   "src": "evals/README.md § What a green run proves",
+   "bg": "evals/README 有一節「What a green run proves — and what it does not」。整個 ledger 的每個 case 來源是同一個地方——這決定了「全綠」這個 badge 可以被讀成什麼、不能被讀成什麼。README、replay README、judgment README 都用同一句話重述這個 caveat。"
   },
   {
    "id": 34,
@@ -618,7 +651,8 @@
    ],
    "a": 0,
    "why": "「A rule either has teeth or is measured; prose alone is a hope.」E2 是最好的例子：prose 寫到最明白仍 0/5。",
-   "src": "README.md § Design principles 8 · CHANGELOG v1.15.0"
+   "src": "README.md § Design principles 8 · CHANGELOG v1.15.0",
+   "bg": "README 的 design principles 在這個月加了第 8 條，來自 E2 的教訓：prose 寫到最明白之後 replay 仍 0/5，最後是 hook 才把它變成 5/5。你現在是貢獻者，想新增一條「reviewer 的 finding 必須引用 spec 條文」的規則。"
   },
   {
    "id": 35,
@@ -634,7 +668,8 @@
    ],
    "a": 0,
    "why": "replay 的 checkers 和 judgment 的 criteria.json / judge-prompt.md 都遵守：先承諾要量什麼，再看結果。",
-   "src": "evals/replay/README.md § Blindness · evals/judgment/README.md"
+   "src": "evals/replay/README.md § Blindness · evals/judgment/README.md",
+   "bg": "replay README 的 Blindness 節說 checker 必須「land in a distinct commit that precedes the first recorded baseline run」；judgment tier 的 criteria.json 與 judge-prompt.md 也是先 commit 才跑第一次。這個做法有一個名字，而且它證明的是一件關於「順序」的事。"
   },
   {
    "id": 36,
@@ -656,7 +691,8 @@
     3
    ],
    "why": "沒定義的路由 exit 64、journal `UNKNOWN`——「a reach the fixture does not define is the same disease as a silent network reach」。",
-   "src": "evals/replay/forge-stub/gh docstring · evals/replay/README.md § Method"
+   "src": "evals/replay/forge-stub/gh docstring · evals/replay/README.md § Method",
+   "bg": "replay tier 不能碰真正的 GitHub：每次 iteration 都要可重現、不能留下真實的 comment。所以 sandbox 的 PATH 上有一個 `gh` 是 plugin 自己寫的 stub（evals/replay/forge-stub/gh）。它有 state（fixture）、有 journal（觀察管道）、對沒定義的路由有一個明確政策。"
   },
   {
    "id": 37,
@@ -672,7 +708,8 @@
    ],
    "a": 0,
    "why": "invalid-never-red 是這一層的不變量；全部 invalid 的 case 報 n/a 而不是 0%。",
-   "src": "evals/replay/README.md § Method"
+   "src": "evals/replay/README.md § Method",
+   "bg": "承上題。stub 對「fixture 沒定義的 gh 命令」會 exit 64 並在 journal 記 `route: UNKNOWN`。這一題問 runner 拿到這樣一次 iteration 時怎麼記——這和「invalid never red」這條不變量有關：把 fixture 的缺口算成模型的失敗，會讓 0% 這個數字失去意義。"
   },
   {
    "id": 38,
@@ -693,7 +730,8 @@
     0
    ],
    "why": "seed → invoke → validity → check。有效性判定在 check 之前：無效的 run 永遠不會被 checker 評分。",
-   "src": "evals/replay/run_replay.py run_one"
+   "src": "evals/replay/run_replay.py run_one",
+   "bg": "run_replay.py 的 `run_one()` 是一次 iteration 的骨架。理解它的順序才能理解：為什麼 checker 永遠不會看到 invalid 的 run、為什麼 quota banner 不會變成 FAIL、為什麼 result.json 是唯一的產物。"
   },
   {
    "id": 39,
@@ -709,7 +747,8 @@
    ],
    "a": 0,
    "why": "第一次 live sweep 把 45 個「agent 根本沒跑」的 iteration 記成 valid FAIL（0% compliance）。現在 session_error() 分類，runner rc=3 停下；F6 driver 路徑共用同一個 classifier。",
-   "src": "evals/replay/README.md § Method · CHANGELOG（PR #5）"
+   "src": "evals/replay/README.md § Method · CHANGELOG（PR #5）",
+   "bg": "第一次 live opus sweep 中途 subscription quota 用完，之後每個 iteration 的 result event 都是一則 limit banner。當時的 runner 把這 45 個 iteration 記成 valid FAIL——「0% compliance」實際上是「agent 根本沒跑」。PR #5 之後 runner 有 `session_error()` 分類器，F6 的 driver 路徑也共用它。"
   },
   {
    "id": 40,
@@ -725,7 +764,8 @@
    ],
    "a": 0,
    "why": "smoke gate 是 plumbing proof，不是 compliance。quota 打在 smoke 上也不會標 incompatible，而是停下等 reset。",
-   "src": "evals/replay/README.md § The smoke gate"
+   "src": "evals/replay/README.md § The smoke gate",
+   "bg": "replay 的 SUT 可以換模型（models.yaml：opus、fable，之後透過 proxy 接其他模型）。每個 SUT 在花任何 sweep token 之前要先過三個「plumbing」case：讀一個檔、跑一個命令、貼一則 stub comment。replay README 的 smoke gate 一節說明失敗時怎麼記，理由是「不能讓壞掉的 adapter 指控無辜的模型」。"
   },
   {
    "id": 41,
@@ -741,7 +781,8 @@
    ],
    "a": 0,
    "why": "1.16.1 之前 checker 只看 tool_use，把被擋下的嘗試當 breach（一次 false FAIL）。現在 tool_use 與 tool_result 配對，用 hook 自己的訊息字面（lint 守住）辨認 denial。",
-   "src": "evals/replay/cases/D2/check.py · CHANGELOG v1.16.1"
+   "src": "evals/replay/cases/D2/check.py · CHANGELOG v1.16.1",
+   "bg": "1.16.0 之後 rule E 在 fidelity dispatch 期間會擋 src/ 的讀取；被擋的 tool call 在 transcript 裡仍然看得到 tool_use，但它的 tool_result 是一則 is_error 的 deny 訊息。D2 checker 1.16.1 之前只看 tool_use，1.16.1 之後把 tool_use 和 tool_result 配對，並多了一個 `attempts-denied` 欄位。"
   },
   {
    "id": 42,
@@ -757,7 +798,8 @@
    ],
    "a": 0,
    "why": "corpus 是 ADMC 真實歷史裡人類因為 agent 提問而改了設計的七個 item（P1 P2 P8 P12 · N1 N5 N10）。",
-   "src": "evals/judgment/README.md（開頭）"
+   "src": "evals/judgment/README.md（開頭）",
+   "bg": "三個 eval tier 各量不同的東西。judgment tier 是最貴、最不可靠的一層（LLM-as-judge），corpus 來自 ADMC 真實歷史裡「人類因為 agent 的提問而改了設計」的七個 item（P1 P2 P8 P12 · N1 N5 N10），evals/judgment/README 開頭一句話說它在量什麼。"
   },
   {
    "id": 43,
@@ -773,7 +815,8 @@
    ],
    "a": 0,
    "why": "人類的 `Summary` 是 trigger，要留（所以 T 是 inclusive）；四分鐘後 bot 的 summary 就是答案，必須丟。「every comment after T contains the answer」。",
-   "src": "evals/judgment/README.md § Contamination · materialize.py"
+   "src": "evals/judgment/README.md § Contamination · materialize.py",
+   "bg": "judgment fixture 的 forge state 要凍結在「問題被問出來的那一刻」T：每一則之後的 comment 都含答案。F-51 的 T 特別選成 inclusive，因為觸發 intake summary 的是人類那則 `Summary` comment。materialize.py 用 `created_at <= T` 篩選，並有 check_frozen() 守住。"
   },
   {
    "id": 44,
@@ -789,7 +832,8 @@
    ],
    "a": 0,
    "why": "mandate 原本給的 SHA 就是 refinement commit 本身，設計階段抓到並修正。",
-   "src": "evals/judgment/README.md § fixtures"
+   "src": "evals/judgment/README.md § fixtures",
+   "bg": "judgment 的 sandbox 是把 ADMC repo checkout 到某個 pin SHA。原始 mandate 給的 F-63 pin 是 `b2a0fca`——「docs: stage (2) spec refinement for #63」這個 commit；設計階段檢查 tree 時發現了問題，最後改成它的父節點 `d188a20`（main at T）。"
   },
   {
    "id": 45,
@@ -809,7 +853,8 @@
     1
    ],
    "why": "「Judge is blind to the answer.」它回 yes/no + 一段逐字引用；runner 機械驗證引用是 output 的 substring（≥40 字）——不能引用的 judge 是幻覺的 judge，記成 judge-invalid，never yes never no。",
-   "src": "evals/judgment/README.md § The judge"
+   "src": "evals/judgment/README.md § The judge",
+   "bg": "judgment 的 judge 是另一個 opus session、沒有工具、空目錄。設計原則是「judge is blind to the answer」：它回 `{answer, quote}`，runner 機械驗證 quote 是 output 的逐字子字串（≥40 字），驗證失敗的 yes 記成 judge-invalid。這一題問 judge 的輸入到底包含什麼、不包含什麼。"
   },
   {
    "id": 46,
@@ -825,7 +870,8 @@
    ],
    "a": 0,
    "why": "PR #10 review 抓到的 stale green：cache key 與 sweep guard 都必須綁在 fingerprint（prompt、model、quote policy、criteria、所有 red-proof 文件的 hash）上，否則 judge 行為改變的那一刻正是 red-proof 失效的那一刻。",
-   "src": "evals/judgment/run_judgment.py judge_fingerprint · CHANGELOG（PR #10）"
+   "src": "evals/judgment/run_judgment.py judge_fingerprint · CHANGELOG（PR #10）",
+   "bg": "judge 的 red-proof（29 個 check：真實歷史輸出、無關文件、paraphrase）跑過一次之後結果會快取。codex 在 PR #10 review 抓到一個洞：快取的 key 和 sweep 前的 guard 原本只看 criterion+document，於是後來加了 judge fingerprint——prompt、model、quote policy、criteria、所有 red-proof 文件的 hash。"
   },
   {
    "id": 47,
@@ -846,7 +892,8 @@
     0
    ],
    "why": "measure → find → fix → verify 的第一個完整循環。教訓：prose 寫到最明白也不是槓桿。",
-   "src": "docs/ROADMAP.md § The measurement track · CHANGELOG v1.14.2 → v1.15.0"
+   "src": "docs/ROADMAP.md § The measurement track · CHANGELOG v1.14.2 → v1.15.0",
+   "bg": "E2 這條 ledger case 是「seat 的問題要到達 holder，不管寫在哪個文件」：其他 spec 文件裡的 open question 要搬到 spec.md 的單一收集點。從第一次 replay 到 rule D 上線，roadmap 的 measurement track 稱它為「the eval loop's first full cycle: measure → find → fix → verify」。"
   },
   {
    "id": 48,
@@ -862,7 +909,8 @@
    ],
    "a": 0,
    "why": "「a fresh clone's gates are silently inert」——instrument 看起來在、其實不在的那一類問題。這也是動手 lab 的第一步。",
-   "src": "README.md § Requirements（Developing the plugin itself?）· hooks/README.md"
+   "src": "README.md § Requirements（Developing the plugin itself?）· hooks/README.md",
+   "bg": "這個 repo 自己的 gate（`.githooks/pre-commit` 檢查檔名規則、`.githooks/pre-push` 跑 hook tests + lint + version bump 檢查）是靠 git 的 `core.hooksPath` 設定接上的。README 的 Requirements 有一段「Developing the plugin itself?」，hooks/README 也有一段講這件事。你是剛 clone 的新人，做了 lab 的第一步。"
   },
   {
    "id": 49,
@@ -878,7 +926,8 @@
    ],
    "a": 0,
    "why": "兩個對照 release notes 檢查的 defect 都錯了：adapter 文件了 merged-CR query，consumer 從沒呼叫它。「A lint anchors on the site that reads the rule, or it proves nothing.」",
-   "src": "evals/README.md § Method（Why conformance must read the source）"
+   "src": "evals/README.md § Method（Why conformance must read the source）",
+   "bg": "lint tier 的 C6 case 守護「CR lookup 在該看到 merged CR 的地方要看到它」。evals/README 的 Method 節記錄了一個發現：兩個曾經對照 release notes 檢查的 defect（B1、C6）「都錯了」，原因是同一種——fix 落在寫規則的地方，而不是讀規則的地方。這決定了 lint 該 anchor 在哪裡。"
   },
   {
    "id": 50,
@@ -899,7 +948,8 @@
     0
    ],
    "why": "第一次 live sweep 的 45 個「0% compliance」是 agent 根本沒跑；D2 的 FAIL 是被擋下的 echo-mention；E2 的 5/5 是 prose 歧義。model violation 是排除法的最後一項，不是第一個假設。",
-   "src": "evals/replay/README.md § Method · docs/ROADMAP.md § The measurement track"
+   "src": "evals/replay/README.md § Method · docs/ROADMAP.md § The measurement track",
+   "bg": "你跑完一個 replay sweep，某個 case 是 0/5。roadmap 的 measurement track 列出了這個專案三週內遇到的 instrument-lying 事件（空跑 vacuous pass、全部 invalid 變 0%、quota 變 FAIL、mention ≠ use ×3、denied ≠ breach、退化的 fixture、prose 歧義）。ADMC 的 autopsy 分類是：instrument / fixture / rule-ambiguity / model-violation。"
   }
  ]
 }
