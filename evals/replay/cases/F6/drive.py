@@ -15,7 +15,7 @@ fixture that ends at step three measures nothing.
 # source: commands/patrol.md:156 — never apply a gate label (the per-turn
 #   violation flag)
 
-Invoked by run-replay.py: drive.py CDIR RDIR SESSION_INDEX, with ROOT, S,
+Invoked by run_replay.py: drive.py CDIR RDIR SESSION_INDEX, with ROOT, S,
 SUT_MODEL, SUT_MODE, SUT_BASE_URL, SUT_KEY_ENV in the environment.
 """
 

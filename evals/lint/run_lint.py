@@ -191,7 +191,7 @@ must_match("E2 pattern: a heading kept as a pointer-only section still counts",
 must_not_match("E2 pattern: a pointer line under another heading / prose mention NOT flagged",
                "(?i)" + OPEN_Q, fixture("e2_clean.md"))
 src("E2 conformance: guard-gate rule D carries the predicate literal",
-    "hooks/guard-gate.py", OPEN_Q)
+    "hooks/guard_gate.py", OPEN_Q)
 src("E2 conformance: the E2 replay checker carries the same literal",
     "evals/replay/cases/E2/check.py", OPEN_Q)
 src("E2 conformance: A6 prose states the move AND names the enforcement",
@@ -235,7 +235,7 @@ c.expect("hook rule D, push-time backstop",
 # hook's own predicate against the shapes that matter.
 import importlib.util
 D2_CHECK = read("evals/replay/cases/D2/check.py")
-D2_HOOK = read("hooks/guard-blind.py")
+D2_HOOK = read("hooks/guard_blind.py")
 for name in ("GIT_TOUCH", "SRC_PATH", "SRC_EXCLUDED", "SRC_MENTIONED"):
     m = re.search(r"^%s = re\.compile\((?:.|\n)*?\)\n" % name, D2_CHECK, re.M)
     if not m:
@@ -244,8 +244,8 @@ for name in ("GIT_TOUCH", "SRC_PATH", "SRC_EXCLUDED", "SRC_MENTIONED"):
                "evals/replay/cases/D2/check.py lacks `%s = re.compile(...)`" % name)
         continue
     src("D2 conformance: guard-blind carries the checker's %s byte-for-byte" % name,
-        "hooks/guard-blind.py", m.group(0))
-_spec = importlib.util.spec_from_file_location("guard_blind", os.path.join(R, "hooks/guard-blind.py"))
+        "hooks/guard_blind.py", m.group(0))
+_spec = importlib.util.spec_from_file_location("guard_blind", os.path.join(R, "hooks/guard_blind.py"))
 _gb = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_gb)
 c.expect("hook rule E (D2 run-4's exact command)",
@@ -278,7 +278,7 @@ c.expect("hook rule E", "D2 pattern: a read after an echo mention is still a rea
 src("D2 conformance: the checker pairs denials by guard-blind's own message literal",
     "evals/replay/cases/D2/check.py", "Roz Gate: blocked — this is a fidelity dispatch")
 src("D2 conformance: guard-blind's deny message opens with that literal",
-    "hooks/guard-blind.py", "Roz Gate: blocked — this is a fidelity dispatch")
+    "hooks/guard_blind.py", "Roz Gate: blocked — this is a fidelity dispatch")
 c.expect("hook rule E", "D2 pattern: qa/<n> work (tests/, spec docs) is untouched",
          _gb.violation("Bash", {"command": "cat tests/acceptance/test_expiry.py docs/specs/5/spec.md"}) is None
          and _gb.violation("Read", {"file_path": "/tmp/work/docs/specs/5/technical-spec.md"}) is None)
@@ -310,6 +310,22 @@ c.expect("judgment/criteria.json", "J1: all seven corpus items have a criterion"
          all(k in _crit for k in ("P1", "P2", "P8", "P12", "N1", "N5", "N10")))
 src("J1: the judge prompt carries the criterion slot", "evals/judgment/judge-prompt.md", "{criterion}")
 src("J1: the judge prompt carries the document slot", "evals/judgment/judge-prompt.md", "{document}")
+
+# ---------------------------------------------------------------------------
+# N1 · file names follow the convention                    (preventive)
+# One predicate (evals/lint/naming.py) shared with .githooks/pre-commit:
+# the hook guards the commit, this case guards the push and CI — a
+# --no-verify commit is caught one step later, never silently. Red-proofed
+# by planting a `Bad-Name.py`: the message names the file and the rule.
+sys.path.insert(0, os.path.join(R, "evals", "lint"))
+from naming import check as naming_check  # noqa: E402
+_tracked = __import__("subprocess").run(["git", "-C", R, "ls-files"], capture_output=True, text=True).stdout.split()
+_bad = naming_check(_tracked)
+c.expect("README § Repository layout (naming) — evals/lint/naming.py",
+         "N1: every tracked file name follows the convention%s"
+         % ("" if not _bad else " — " + "; ".join("%s (%s)" % b for b in _bad[:5])), not _bad)
+src("N1 conformance: pre-commit calls the shared predicate",
+    ".githooks/pre-commit", "python3 evals/lint/naming.py --staged")
 
 # ---------------------------------------------------------------------------
 # C3 · `processing` coexists with a phase label             (preventive)

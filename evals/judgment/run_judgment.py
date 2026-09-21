@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Judgment-tier runner. Usage:
 
-    run-judgment.py --check                       # fixtures frozen? (no tokens)
-    run-judgment.py --redproof [--rejudge]        # judge red-proof (28 judge calls, verdicts cached) — BEFORE any SUT spend
-    run-judgment.py [--sut NAME] [--k N] [case ...]   # SUT iterations + judging; default fable, k=1
+    run_judgment.py --check                       # fixtures frozen? (no tokens)
+    run_judgment.py --redproof [--rejudge]        # judge red-proof (28 judge calls, verdicts cached) — BEFORE any SUT spend
+    run_judgment.py [--sut NAME] [--k N] [case ...]   # SUT iterations + judging; default fable, k=1
 
 What this tier measures: not "did the agent follow a rule" but "did the
 agent surface the thing that changed the human's mind". Each fixture is a
@@ -44,7 +44,7 @@ RS = os.path.join(E, "replay")
 sys.path.insert(0, RS)
 sys.path.insert(0, E)
 from replaylib import Run, has_result_event, session_error  # noqa: E402
-_spec = importlib.util.spec_from_file_location("run_replay", os.path.join(RS, "run-replay.py"))
+_spec = importlib.util.spec_from_file_location("run_replay", os.path.join(RS, "run_replay.py"))
 rr = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(rr)
 sys.path.insert(0, S)
@@ -254,7 +254,7 @@ def overlay(work, fx, admc):
     i = src.index(SECTION_START)
     section = src[i:]
     stamp = re.search(r"<!-- roz-gate workflow-template v\d+ -->",
-                      open(os.path.join(ROOT, "templates", "CLAUDE-workflow.md"), encoding="utf-8").read()).group(0)
+                      open(os.path.join(ROOT, "templates", "claude-workflow.md"), encoding="utf-8").read()).group(0)
     section = re.sub(r"<!-- roz-gate workflow-template v\d+ -->", stamp, section)
     if fx.get("identity") == "bot":
         section = section.replace("- forge: github\n",

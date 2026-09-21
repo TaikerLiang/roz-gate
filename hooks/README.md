@@ -40,6 +40,17 @@ ON**: if a dispatch crashed and a later, non-blind read is denied, the deny
 message names the file to remove. `agent_type` from the hook input is
 reported in the message but never relied on.
 
+## This repo's own gates (not plugin hooks)
+
+`.githooks/` (wired via `core.hooksPath`) guards the plugin repository
+itself: **pre-commit** rejects a staged file whose name breaks the naming
+convention (Python `snake_case`, shell `kebab-case`, markdown
+lowercase-kebab outside the ecosystem caps and fixture data — one
+predicate, `evals/lint/naming.py`, shared with lint case N1 so a
+`--no-verify` commit is caught on push); **pre-push** runs the hook unit
+tests and the lint tier and refuses a behaviour change without a version
+bump.
+
 ## Running the tests
 
 ```sh
