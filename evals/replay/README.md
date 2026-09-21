@@ -16,10 +16,10 @@ whole-stack — seats ride the same endpoint as the main agent, because
 ## Running
 
 ```sh
-cd evals/replay && uv run run_replay.py [--sut NAME] [--k N] [case ...]
+uv run evals/replay/run_replay.py [--sut NAME] [--k N] [case ...]   # from the repo root
 # (plain `python3 run_replay.py` works identically — the tier is stdlib-only;
 #  uv standardizes the interpreter, python >= 3.12. The uv project root is
-#  evals/pyproject.toml — one environment for every eval tier.)
+#  the root pyproject.toml — one environment for evals/, hooks/, tools/.)
 ```
 
 - SUT rows live in `models.yaml`. `opus` is the fixed reference baseline;

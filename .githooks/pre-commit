@@ -1,12 +1,12 @@
 #!/bin/sh
 # Naming convention on every commit (README § Repository layout): Python
 # snake_case, shell kebab-case, markdown lowercase-kebab outside the
-# ecosystem caps and the eval fixtures. One predicate — evals/lint/naming.py
-# — shared with the lint tier, which re-checks the whole tree on push and in
-# CI (so a --no-verify commit is caught one step later, never silently).
+# ecosystem caps and the eval fixtures. One predicate — tools/naming.py —
+# which CI re-runs over the whole tree (so a --no-verify commit is caught
+# one step later, never silently).
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
-python3 evals/lint/naming.py --staged || {
-  echo "pre-commit: rename the file(s) above (or commit with --no-verify; the lint tier will still refuse the push)." >&2
+python3 tools/naming.py --staged || {
+  echo "pre-commit: rename the file(s) above (or commit with --no-verify; CI's naming step will still go red)." >&2
   exit 1
 }
 exit 0

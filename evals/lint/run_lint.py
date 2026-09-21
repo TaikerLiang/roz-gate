@@ -312,22 +312,6 @@ src("J1: the judge prompt carries the criterion slot", "evals/judgment/judge-pro
 src("J1: the judge prompt carries the document slot", "evals/judgment/judge-prompt.md", "{document}")
 
 # ---------------------------------------------------------------------------
-# N1 · file names follow the convention                    (preventive)
-# One predicate (evals/lint/naming.py) shared with .githooks/pre-commit:
-# the hook guards the commit, this case guards the push and CI — a
-# --no-verify commit is caught one step later, never silently. Red-proofed
-# by planting a `Bad-Name.py`: the message names the file and the rule.
-sys.path.insert(0, os.path.join(R, "evals", "lint"))
-from naming import check as naming_check  # noqa: E402
-_tracked = __import__("subprocess").run(["git", "-C", R, "ls-files"], capture_output=True, text=True).stdout.split()
-_bad = naming_check(_tracked)
-c.expect("README § Repository layout (naming) — evals/lint/naming.py",
-         "N1: every tracked file name follows the convention%s"
-         % ("" if not _bad else " — " + "; ".join("%s (%s)" % b for b in _bad[:5])), not _bad)
-src("N1 conformance: pre-commit calls the shared predicate",
-    ".githooks/pre-commit", "python3 evals/lint/naming.py --staged")
-
-# ---------------------------------------------------------------------------
 # C3 · `processing` coexists with a phase label             (preventive)
 # Oracle (patrol.md's coexistence sentence, executable): `processing` is a
 # mutex; all other `status:` labels are phases, at most one at a time.

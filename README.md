@@ -37,14 +37,17 @@ agents are forbidden to guess.
 - `gh` (GitHub) **or** `glab` (GitLab) authenticated for the repo's host
 - A git repo on that forge, with issues and PRs/MRs enabled
 - A test runner invocable from the CLI
-- Python ≥ 3.12 and `uv` **only to run the eval suite** (`evals/`) — not to
-  use the plugin
+- Python ≥ 3.12 and `uv` **only to run the eval suite and dev tooling**
+  (the root `pyproject.toml` covers `evals/`, `hooks/`, `tools/`; stdlib-only;
+  `.venv/` is gitignored) — not to use the plugin. The hooks never depend on
+  uv at runtime: Claude Code runs them through the `.sh` shims with plain
+  `python3`.
 
 **Developing the plugin itself?** A fresh clone's gates are inert until git
 is pointed at them — run once:
 
 ```sh
-scripts/dev-setup.sh        # = git config core.hooksPath .githooks
+tools/dev-setup.sh          # = git config core.hooksPath .githooks
 ```
 
 That wires `.githooks/pre-commit` (naming convention) and
@@ -356,9 +359,10 @@ Retirement is two steps, **in this order**:
 | `templates/` | consumer scaffolding, instantiated by `init` and removed by `uninit` | the consumer repo | install time |
 | `hooks/` | deterministic enforcement and its tests ([hooks/README.md](hooks/README.md)) | the machine, before a tool runs | tool time |
 | `evals/` | the eval ledger — lint, replay, judgment ([evals/README.md](evals/README.md)) | developers of the plugin | dev time; lint on pre-push and CI |
-| `.githooks/` | this repo's own release gate | git, on push | push |
+| `.githooks/` | this repo's own gates (thin entry points) | git, on commit and push | commit / push |
 | `docs/` | human-facing pages (roadmap, site) | humans | never loaded by the agent |
-| `scripts/` | operator utilities | operators | on demand |
+| `scripts/` | consumer/operator-facing runtime utilities (e.g. the GitHub App token helper) | operators, at runtime | on demand |
+| `tools/` | dev-only tooling for this repo (naming check, dev setup) — never used at plugin runtime | developers of the plugin | dev time; pre-commit and CI |
 | `.claude-plugin/` | the manifest (name, version) | Claude Code | install |
 
 Two axes organize this. **Who reads it**: the agent at runtime
@@ -377,7 +381,8 @@ File names: Python is `snake_case` (importable), shell is `kebab-case`,
 markdown is lowercase-kebab except the ecosystem caps (`README`,
 `CHANGELOG`, `ROADMAP`, `CLAUDE.md`) and the eval fixtures, which are data
 keyed by ledger case id. Enforced by `.githooks/pre-commit` and re-checked
-by the lint tier on push and in CI (one predicate: `evals/lint/naming.py`).
+by a CI step over the whole tree (one predicate: `tools/naming.py` — repo
+hygiene, deliberately not a case in the eval ledger).
 
 And the line between `references/` and `docs/`: everything in
 `references/` is agent input on every invocation, so every line there is a

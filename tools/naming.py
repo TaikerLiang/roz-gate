@@ -2,7 +2,7 @@
 """The file-naming convention, one predicate for two gates.
 
     naming.py --staged     # pre-commit: the files staged for this commit
-    naming.py [paths...]   # the given paths (lint: every tracked file)
+    naming.py [paths...]   # the given paths (CI: every tracked file)
 
 Rules (README § Repository layout):
   Python   snake_case  ^[a-z0-9_]+\\.py$      — importable
@@ -14,8 +14,10 @@ Rules (README § Repository layout):
            evals/judgment/cases/, evals/judgment/redproof/.
 
 Exit 0 when every name conforms; exit 1 listing each offender with the
-rule it broke. Called by .githooks/pre-commit and imported by the lint
-tier (so CI catches what a --no-verify commit slipped past).
+rule it broke. Called by .githooks/pre-commit on the staged files and by
+CI over the whole tree (so a --no-verify commit is caught one step
+later). Repo hygiene, not an eval of the workflow's rules — which is why
+it lives in tools/, not in the eval ledger.
 """
 
 import os

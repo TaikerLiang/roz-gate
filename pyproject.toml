@@ -1,0 +1,26 @@
+# The plugin repo's ONE uv project — stdlib-only; uv's contribution is
+# standardizing the interpreter (python >= 3.12; plain `python3` works
+# identically everywhere). It covers evals/ (the ledger's three tiers),
+# hooks/ (the guards and their tests) and tools/ (dev-only tooling):
+#   uv run evals/lint/run_lint.py
+#   uv run evals/replay/run_replay.py
+#   uv run evals/judgment/run_judgment.py --check
+#   uv run tools/naming.py --staged
+#
+# Two constraints this file must never break:
+# - hooks/ NEVER depend on uv at runtime. Claude Code invokes them on
+#   consumer machines through the .sh shims with plain `python3`, stdlib
+#   only, standalone shebangs — the same rule as evals/replay/forge-stub/gh,
+#   which is exec'd by the SUT's shell with no venv active. A dependency
+#   added here must not be imported by anything under hooks/.
+# - pyproject.toml and uv.lock ship with the plugin; .venv/ is gitignored
+#   and must never be committed.
+# hooks/tests/ is the hook suite (bash testing a Python hook through its
+# stdin/exit-code contract), not part of this project.
+
+[project]
+name = "roz-gate"
+version = "0.1.0"
+description = "Roz Gate plugin repo — eval ledger, hook guards, dev tooling"
+requires-python = ">=3.12"
+dependencies = []
