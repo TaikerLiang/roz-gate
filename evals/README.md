@@ -157,7 +157,8 @@ prototype for `evals/status.py`.
 
 ## The gate
 
-`.githooks/pre-commit` (wired via `core.hooksPath`) refuses a staged file
+`.githooks/pre-commit` (live once `scripts/dev-setup.sh` has set
+`core.hooksPath`; CI is the backstop for a clone that never did) refuses a staged file
 that breaks the naming convention (`evals/lint/naming.py`, shared with lint
 N1). `.githooks/pre-push` (same wiring) runs this suite
 (`python3 evals/lint/run_lint.py`) and the hook unit tests on **every
