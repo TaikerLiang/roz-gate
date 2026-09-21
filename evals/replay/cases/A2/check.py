@@ -8,9 +8,11 @@
 # source: commands/patrol.md:56 — the CR is read on all three channels
 # source: references/forge-github.md:114-125 — REVIEWS-LIST; a non-empty
 #   body counts on all three states
-import os, sys
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replaylib import Run, Checker
+from replaylib import Checker, Run
 
 r, c = Run(), Checker()
 c.expect("patrol.md:56 + forge-github.md:114", "REVIEWS-LIST was actually read",

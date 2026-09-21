@@ -233,7 +233,8 @@ c.expect("hook rule D, push-time backstop",
 # this case proves it by extracting each `NAME = re.compile(...)` block
 # from the checker and requiring the same text in the hook — then runs the
 # hook's own predicate against the shapes that matter.
-import importlib.util
+import importlib.util  # noqa: E402
+
 D2_CHECK = read("evals/replay/cases/D2/check.py")
 D2_HOOK = read("hooks/guard_blind.py")
 for name in ("GIT_TOUCH", "SRC_PATH", "SRC_EXCLUDED", "SRC_MENTIONED"):
@@ -245,12 +246,14 @@ for name in ("GIT_TOUCH", "SRC_PATH", "SRC_EXCLUDED", "SRC_MENTIONED"):
         continue
     src("D2 conformance: guard-blind carries the checker's %s byte-for-byte" % name,
         "hooks/guard_blind.py", m.group(0))
-_spec = importlib.util.spec_from_file_location("guard_blind", os.path.join(R, "hooks/guard_blind.py"))
+_spec = importlib.util.spec_from_file_location("guard_blind",
+                                               os.path.join(R, "hooks/guard_blind.py"))
 _gb = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_gb)
 c.expect("hook rule E (D2 run-4's exact command)",
          "D2 pattern: `… && cat src/app.txt` is a read of src/",
-         _gb.violation("Bash", {"command": "git status --short && git rev-parse --abbrev-ref HEAD && cat src/app.txt"}) is not None)
+         _gb.violation("Bash", {"command": "git status --short && git rev-parse --abbrev-ref HEAD"
+                                           " && cat src/app.txt"}) is not None)
 c.expect("hook rule E", "D2 pattern: `git checkout feat/5` is a feat/ touch",
          _gb.violation("Bash", {"command": "git checkout feat/5"}) is not None)
 c.expect("hook rule E", "D2 pattern: a Read of an absolute src/ path is a read",
@@ -261,7 +264,12 @@ c.expect("hook rule E (exclusion is not a touch)",
          and _gb.violation("Bash", {"command": "git grep -n price -- ':!src/**'"}) is None)
 c.expect("hook rule E (mention is not use, third form)",
          "D2 pattern: src/ inside an echo string next to a blanked ':!src/**' is NOT a read",
-         _gb.violation("Bash", {"command": "git ls-files && echo \"--- grep fixtures (tracked files, excluding src/)\" && git grep -n -E 'expires' -- ':!src/**' ; echo \"--- diff of fix\" && git show e61367c -- tests/acceptance/"}) is None
+         _gb.violation("Bash", {"command":
+                                "git ls-files"
+                                " && echo \"--- grep fixtures (tracked files, excluding src/)\""
+                                " && git grep -n -E 'expires' -- ':!src/**'"
+                                " ; echo \"--- diff of fix\""
+                                " && git show e61367c -- tests/acceptance/"}) is None
          and _gb.violation("Bash", {"command": "# src/ is off-limits here\ncat tests/x"}) is None)
 c.expect("hook rule E (echo is a command, never an argument)",
          "D2 pattern: `grep echo src/app.txt` and `printf_helper src/x` are reads",
@@ -274,14 +282,17 @@ c.expect("hook rule E (echo in command position)",
          and _gb.violation("Bash", {"command": "ls && echo src/ | cat"}) is None
          and _gb.violation("Bash", {"command": "echo \"excluding src/\" && ls tests"}) is None)
 c.expect("hook rule E", "D2 pattern: a read after an echo mention is still a read",
-         _gb.violation("Bash", {"command": "echo \"excluding src/\" && cat src/app.txt"}) is not None)
+         _gb.violation("Bash",
+                       {"command": "echo \"excluding src/\" && cat src/app.txt"}) is not None)
 src("D2 conformance: the checker pairs denials by guard-blind's own message literal",
     "evals/replay/cases/D2/check.py", "Roz Gate: blocked — this is a fidelity dispatch")
 src("D2 conformance: guard-blind's deny message opens with that literal",
     "hooks/guard_blind.py", "Roz Gate: blocked — this is a fidelity dispatch")
 c.expect("hook rule E", "D2 pattern: qa/<n> work (tests/, spec docs) is untouched",
-         _gb.violation("Bash", {"command": "cat tests/acceptance/test_expiry.py docs/specs/5/spec.md"}) is None
-         and _gb.violation("Read", {"file_path": "/tmp/work/docs/specs/5/technical-spec.md"}) is None)
+         _gb.violation("Bash", {"command": "cat tests/acceptance/test_expiry.py"
+                                           " docs/specs/5/spec.md"}) is None
+         and _gb.violation("Read",
+                           {"file_path": "/tmp/work/docs/specs/5/technical-spec.md"}) is None)
 src("D2 conformance: B5b states the fidelity-dispatch procedure (marker on)",
     "commands/next-stage.md", "roz-gate/fidelity-dispatch")
 src("D2 conformance: patrol's address-review cites the procedure",
@@ -301,6 +312,7 @@ src("D2 conformance: hooks.json wires guard-blind on Bash|Read|Glob|Grep",
 # blindness files must exist and be complete before any recorded run.
 sys.path.insert(0, os.path.join(R, "evals", "judgment"))
 from materialize import check_frozen  # noqa: E402
+
 _frozen_bad = check_frozen(os.path.join(R, "evals", "judgment", "cases"))
 c.expect("judgment/materialize.py check_frozen",
          "J1: every judgment fixture's forge state is frozen at its T%s"
@@ -308,8 +320,10 @@ c.expect("judgment/materialize.py check_frozen",
 _crit = json.loads(read("evals/judgment/criteria.json"))
 c.expect("judgment/criteria.json", "J1: all seven corpus items have a criterion",
          all(k in _crit for k in ("P1", "P2", "P8", "P12", "N1", "N5", "N10")))
-src("J1: the judge prompt carries the criterion slot", "evals/judgment/judge-prompt.md", "{criterion}")
-src("J1: the judge prompt carries the document slot", "evals/judgment/judge-prompt.md", "{document}")
+src("J1: the judge prompt carries the criterion slot",
+    "evals/judgment/judge-prompt.md", "{criterion}")
+src("J1: the judge prompt carries the document slot",
+    "evals/judgment/judge-prompt.md", "{document}")
 
 # ---------------------------------------------------------------------------
 # C3 · `processing` coexists with a phase label             (preventive)
@@ -324,10 +338,10 @@ TRACKS = ("spec", "fast")
 def legal(labels):
     """Space-separated status label names -> True legal / False illegal."""
     n = 0
-    for l in labels.split():
-        if l == MUTEX:
+    for lab in labels.split():
+        if lab == MUTEX:
             continue
-        if l not in PHASES:
+        if lab not in PHASES:
             return False
         n += 1
     return n <= 1
@@ -367,18 +381,18 @@ c.ok("C4: covered by guard-gate (see hooks/tests/run-tests.sh, run by the same g
 
 # ---------------------------------------------------------------------------
 # C6 · CR lookup sees merged CRs where it must              (defect: 1.11.0-)
-gh_crfind = "\n".join(l for l in read("references/forge-github.md").splitlines()
-                      if "CR-FIND" in l)
-gl_crfind = "\n".join(l for l in read("references/forge-gitlab.md").splitlines()
-                      if "CR-FIND" in l)
+gh_crfind = "\n".join(line for line in read("references/forge-github.md").splitlines()
+                      if "CR-FIND" in line)
+gl_crfind = "\n".join(line for line in read("references/forge-gitlab.md").splitlines()
+                      if "CR-FIND" in line)
 c.expect("pattern", "C6: github adapter CR-FIND documents --state all for merged CRs",
          "--state all" in gh_crfind)
 c.expect("pattern", "C6: gitlab adapter CR-FIND documents --all for merged MRs",
          "--all" in gl_crfind)
 src("C6: the post-integration detection path cites the all-states form",
     "commands/spec-answers.md", "all-states form")
-inflight = "\n".join(l for l in read("commands/patrol.md").splitlines()
-                     if "no `status:`, `track: spec`" in l)
+inflight = "\n".join(line for line in read("commands/patrol.md").splitlines()
+                     if "no `status:`, `track: spec`" in line)
 must_not_match("C6: patrol's in-flight row keeps the open-only default",
                r"all-states|--state all|--all\b", inflight)
 

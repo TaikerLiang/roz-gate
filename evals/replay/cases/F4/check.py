@@ -10,9 +10,12 @@
 #   and the licensed claim verbatim
 # source: commands/integrate.md:63 — CR-MERGE is the human's act at (7);
 #   commands never run it
-import os, re, sys
+import os
+import re
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replaylib import Run, Checker
+from replaylib import Checker, Run
 
 r, c = Run(), Checker()
 c.expect("integrate.md:53-54,75-76 (both merged, branch pushed)",

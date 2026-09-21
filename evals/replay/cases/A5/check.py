@@ -7,9 +7,11 @@
 #   the tracks)
 # source: commands/patrol.md:56 — "`spec/<n>` for `track: spec`,
 #   `fast/<n>` for `track: fast`"
-import os, sys
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replaylib import Run, Checker
+from replaylib import Checker, Run
 
 r, c = Run(), Checker()
 c.expect("patrol.md:56", "the fast CR's channels were read (CR 102, head fast/5)",

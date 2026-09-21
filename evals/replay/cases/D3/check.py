@@ -12,9 +12,11 @@
 # source: references/workflow.md:22 — product Owns: "actors, scenarios";
 #   Never: "architecture, code, impl tests"
 import json
-import os, sys
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replaylib import Run, Checker
+from replaylib import Checker, Run
 
 r, c = Run(), Checker()
 

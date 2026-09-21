@@ -9,9 +9,11 @@
 #   with `**[` or `✅ [`
 # source: commands/review-answers.md:35 — the review turn opens by taking
 #   the processing lock
-import os, sys
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replaylib import Run, Checker
+from replaylib import Checker, Run
 
 r, c = Run(), Checker()
 c.expect("ledger A1 + patrol.md:56 + review-answers.md:63 (cites the URL)",

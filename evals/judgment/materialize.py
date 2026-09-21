@@ -260,7 +260,8 @@ def check_frozen(cases_dir):
             for t in pr.get("threads", []):
                 for c in t.get("comments", []):
                     if c.get("createdAt", "") > T:
-                        bad.append("%s: pr %s thread comment %s after T" % (name, n, c.get("databaseId")))
+                        bad.append("%s: pr %s thread comment %s after T"
+                                   % (name, n, c.get("databaseId")))
             for r in pr.get("reviews", []):
                 if r.get("submitted_at", "") > T:
                     bad.append("%s: pr %s review %s after T" % (name, n, r.get("id")))
@@ -318,7 +319,8 @@ def main():
         os.makedirs(hdir, exist_ok=True)
         with open(os.path.join(hdir, name + ".md"), "w", encoding="utf-8") as f:
             f.write(historical_output(fx, admc))
-        print("%s: issue #%d at %s — labels %s, assignees %s, %d comments; %d issues, %d prs; caveats: %s"
+        print("%s: issue #%d at %s — labels %s, assignees %s, %d comments; "
+              "%d issues, %d prs; caveats: %s"
               % (name, fx["issue"], T, main_issue["labels"], main_issue["assignees"],
                  len(main_issue["comments"]), len(state["issues"]), len(state["prs"]),
                  caveats or "none"))

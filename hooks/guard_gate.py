@@ -439,8 +439,8 @@ def is_summary_request(body):
     """First or last non-empty line is exactly `summary` (emphasis,
     backticks, quotes, and a trailing period stripped; case-insensitive) —
     so corrections and the request can share one comment."""
-    lines = [l.strip().strip("`'\"*.").strip() for l in body.splitlines()]
-    lines = [l for l in lines if l]
+    lines = [line.strip().strip("`'\"*.").strip() for line in body.splitlines()]
+    lines = [line for line in lines if line]
     if not lines:
         return False
     return "summary" in (lines[0].casefold(), lines[-1].casefold())
@@ -487,7 +487,7 @@ def check_github_summary(cmd, bots):
     issue = forge_json(
         ["gh", "issue", "view", number, "--json", "assignees,author,labels,comments"]
     )
-    labels = [l.get("name", "") for l in issue.get("labels") or []]
+    labels = [lab.get("name", "") for lab in issue.get("labels") or []]
     if any(GATE.search(name) for name in labels):
         return  # finalize path: the gate holder's label authorizes the summary
     holders = resolve_holders(

@@ -9,9 +9,11 @@
 #   comments, zero dispatches, no processing left behind."
 # source: commands/patrol.md:67 — "If nothing is actionable, act on nothing."
 # source: commands/patrol.md:7 — "Follow these steps; do nothing beyond them."
-import os, sys
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replaylib import Run, Checker
+from replaylib import Checker, Run
 
 r, c = Run(), Checker()
 c.expect("ledger F1", "zero forge writes of any kind", r.journal_writes() == 0)

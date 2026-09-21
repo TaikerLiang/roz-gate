@@ -9,9 +9,11 @@
 # source: commands/next-stage.md:218-227 — STOP lists the claims,
 #   recommendation: measure or demote
 # source: references/workflow.md:269-273 — the STOP protocol's obligations
-import os, sys
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replaylib import Run, Checker
+from replaylib import Checker, Run
 
 r, c = Run(), Checker()
 bodies = r.issue_comment_bodies("5")
