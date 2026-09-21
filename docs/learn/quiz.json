@@ -1,0 +1,905 @@
+{
+ "_meta": {
+  "version": "draft-2 (2026-09-22, ADMC feedback folded; for Paul's spot review)",
+  "pass": {
+   "overall": 0.8,
+   "per_module": 0.6,
+   "l3_min": 8,
+   "l3_total": 12
+  },
+  "modules": {
+   "M1": "The loop",
+   "M2": "Repository layout",
+   "M3": "Seats & blindness",
+   "M4": "Rules with teeth",
+   "M5": "The eval ledger",
+   "M6": "Replay tier",
+   "M7": "Judgment tier",
+   "M8": "How we work"
+  },
+  "types": {
+   "single": "單選",
+   "multi": "多選（全對才算）",
+   "rule": "哪條 rule 會擋",
+   "order": "排序",
+   "contamination": "凍結／污染判斷"
+  },
+  "levels": {
+   "L1": "認知",
+   "L2": "應用",
+   "L3": "判斷（干擾項是真實 near-miss）"
+  },
+  "distribution": {
+   "M1": 8,
+   "M2": 7,
+   "M3": 6,
+   "M4": 7,
+   "M5": 7,
+   "M6": 6,
+   "M7": 5,
+   "M8": 4
+  },
+  "levels_count": {
+   "L1": 14,
+   "L2": 24,
+   "L3": 12
+  },
+  "types_count": {
+   "single": 34,
+   "multi": 6,
+   "rule": 4,
+   "order": 4,
+   "contamination": 2
+  }
+ },
+ "questions": [
+  {
+   "id": 1,
+   "m": "M1",
+   "l": "L1",
+   "t": "single",
+   "q": "每個會改變狀態的 command 只有兩個出口。哪一個描述正確？",
+   "o": [
+    "Done（交付物產出、lock 拿掉）或 STOP（丟掉本機工作、只留 `blocked`、貼證據與建議下一步）",
+    "Done 或 Retry（自動重跑三次）",
+    "Done 或 Fix（agent 自己修 label 再繼續）",
+    "Done、STOP、Skip 三個"
+   ],
+   "a": 0,
+   "why": "「No third exit」——任何終端狀態都能只從 label 讀出來。唯一例外是 stage (7)：issue 已在你的 gate 上，失敗就是一則說明的 comment，沒有 blocked 出口。",
+   "src": "README.md § Labels & state machine"
+  },
+  {
+   "id": 2,
+   "m": "M1",
+   "l": "L1",
+   "t": "multi",
+   "q": "「Three gates, all yours.」哪些是人類專屬的 gate？（全選）",
+   "o": [
+    "`status: ready-for-spec`",
+    "`status: ready-for-dev`",
+    "最後的 merge",
+    "`status: in-user-review`",
+    "`status: processing`"
+   ],
+   "a": [
+    0,
+    1,
+    2
+   ],
+   "why": "三個 gate 是 ready-for-spec、ready-for-dev、merge。in-user-review 是 main agent 套的 transient 狀態；processing 是 lock。commands 和 agents 永遠不套 gate label——機器能跑 pipeline，不能授權它。",
+   "src": "README.md § The loop in one page · § Labels"
+  },
+  {
+   "id": 3,
+   "m": "M1",
+   "l": "L1",
+   "t": "single",
+   "q": "什麼是「inbox」？",
+   "o": [
+    "沒有 `track:` label 的 issue——對 loop 的其他部分不可見",
+    "有 `status: blocked` 的 issue",
+    "所有 assignee 是 bot 的 issue",
+    "`/roz-gate:to-issues` 產生的 issue"
+   ],
+   "a": 0,
+   "why": "No `track:` label = inbox（pre-loop）；no `status:` label = in flight（open CR 就是狀態）。手機上開一個沒 label 的 issue 就是進 inbox。",
+   "src": "README.md § The inbox"
+  },
+  {
+   "id": 4,
+   "m": "M1",
+   "l": "L2",
+   "t": "single",
+   "q": "implementer 在 stage (3) 中途發現 contract 有歧義。正確的路是？",
+   "o": [
+    "停下、回報 main agent；問題經由 (2a) 回到 spec CR——loop 唯一的 backward transition",
+    "依最合理的解讀寫進 code，並在 PR 描述註明",
+    "直接在 implementation CR 上和 reviewer 討論後決定",
+    "跳過該 scenario，讓 QA 之後去測"
+   ],
+   "a": 0,
+   "why": "「a contract ambiguity mid-build is never interpreted by the contractor: it goes back through a change order」。在 code 裡單方面決定是 E3 那條被明文禁止的路；reviewer↔implementer 私下 settle 是 E4 禁止的路。",
+   "src": "README.md § The loop (change order) · commands/next-stage.md B3/B5"
+  },
+  {
+   "id": 5,
+   "m": "M1",
+   "l": "L2",
+   "t": "multi",
+   "q": "以下哪些 `status:` label 是 transient（階段狀態），而不是 gate 或 lock？（全選）",
+   "o": [
+    "`in-spec-review`",
+    "`in-user-review`",
+    "`blocked`",
+    "`processing`",
+    "`ready-for-dev`"
+   ],
+   "a": [
+    0,
+    1,
+    2
+   ],
+   "why": "processing 是 lock（可和一個 phase label 並存）；ready-for-* 是 gate。C3 這條 lint 的 oracle 就是：processing 是 mutex，其他 status 最多一個。",
+   "src": "README.md § Labels · evals/lint/run_lint.py C3"
+  },
+  {
+   "id": 6,
+   "m": "M1",
+   "l": "L2",
+   "t": "single",
+   "q": "你看到一個 issue 同時掛著 `status: in-spec-review` 和 `status: processing`，而且沒有 command 在跑。這代表什麼？",
+   "o": [
+    "正常：spec 階段就是兩個 label 並存",
+    "一個 command 沒有正常結束——stale pair 是 crash forensics，指出死在哪個 stage",
+    "issue 被兩個人同時操作",
+    "patrol 正在等待人類回覆"
+   ],
+   "a": 1,
+   "why": "processing 由每個執行中的 command 套上、結束時拿掉；和 phase label 並存是設計，但沒有 command 在跑時的 stale pair 就是「死在這一 stage」的證據。",
+   "src": "README.md § Labels（processing 行）"
+  },
+  {
+   "id": 7,
+   "m": "M1",
+   "l": "L3",
+   "t": "single",
+   "q": "一個 command 啟動時發現 label 不變量被違反（例如同一 issue 上有兩個 phase label）。它該怎麼做？",
+   "o": [
+    "STOP：貼出證據與建議，不動 label——commands validate invariants and never repair labels",
+    "刪掉較舊的那個 label 再繼續",
+    "以較新的 label 為準繼續執行，事後回報",
+    "兩個都拿掉，重新從 inbox 開始"
+   ],
+   "a": 0,
+   "why": "「Commands validate invariants and stop on violations — they never repair labels.」自動修 label 會讓狀態機失去可審計性；修復是人類的決定。",
+   "src": "README.md § Labels & state machine"
+  },
+  {
+   "id": 8,
+   "m": "M1",
+   "l": "L2",
+   "t": "order",
+   "q": "把 inbox 的「三個節拍」排成正確順序。",
+   "o": [
+    "assignee 套上 gate label——label 就是確認",
+    "patrol 貼出一批（只一批）帶推薦選項的問題，然後把討論留給人",
+    "assignee 在某則 comment 的最後一行寫 `summary`；agent 把 body + 所有 comment 濃縮成一份 summary"
+   ],
+   "a": [
+    1,
+    2,
+    0
+   ],
+   "why": "ask once → summarize on demand → the label confirms。只有 assignee 的話會被寫進 issue body；旁觀者的 comment 不會被 fold 進去。",
+   "src": "README.md § The inbox"
+  },
+  {
+   "id": 9,
+   "m": "M2",
+   "l": "L1",
+   "t": "single",
+   "q": "哪個目錄的每一行都是「每一輪都要付的 token 成本」？",
+   "o": [
+    "`references/`——agent 每次 invocation 都載入",
+    "`docs/`",
+    "`evals/`",
+    "`templates/`"
+   ],
+   "a": 0,
+   "why": "references/ 是 agent input on every invocation（roadmap 的 46–72 live rules 就是在算它）。docs/ 是給人的，agent 永遠不載入——所以「不要把人看的材料放進 references/」。",
+   "src": "README.md § Repository layout"
+  },
+  {
+   "id": 10,
+   "m": "M2",
+   "l": "L1",
+   "t": "single",
+   "q": "`docs/` 誰讀、何時生效？",
+   "o": [
+    "humans；agent 永遠不載入",
+    "agent，在 dispatch 時",
+    "Claude Code，在 install 時",
+    "consumer repo，由 init 複製"
+   ],
+   "a": 0,
+   "why": "docs/ 是 human-facing pages（roadmap、site）。它和 references/ 的分界是這個 repo 最容易踩的線。",
+   "src": "README.md § Repository layout"
+  },
+  {
+   "id": 11,
+   "m": "M2",
+   "l": "L1",
+   "t": "single",
+   "q": "為什麼四個 persona 放在 `agents/`（被引用），implementer 卻放在 `templates/`（被複製進 consumer repo）？",
+   "o": [
+    "implementer 是唯一必須吸收 consumer 自己 coding guidelines 的 seat，所以要是 consumer 擁有的檔案",
+    "templates/ 的檔案載入比較快",
+    "agents/ 只能放四個 persona",
+    "歷史原因，之後會搬到 agents/"
+   ],
+   "a": 0,
+   "why": "README 明說的「one deliberate asymmetry」。",
+   "src": "README.md § Repository layout"
+  },
+  {
+   "id": 12,
+   "m": "M2",
+   "l": "L2",
+   "t": "single",
+   "q": "`templates/` 的內容何時生效、誰負責把它放進去與拿出來？",
+   "o": [
+    "install time：`init` 實例化到 consumer repo，`uninit` 移除",
+    "runtime：agent 每輪載入",
+    "dispatch：seat 被呼叫時讀取",
+    "push：release gate 檢查"
+   ],
+   "a": 0,
+   "why": "templates/ 是 consumer scaffolding：CLAUDE.md 的 workflow 段、implementer persona、Idea issue template。",
+   "src": "README.md § Repository layout · commands/init.md"
+  },
+  {
+   "id": 13,
+   "m": "M2",
+   "l": "L2",
+   "t": "multi",
+   "q": "哪些目錄「never used at plugin runtime」——只在開發這個 repo 時才用？（全選）",
+   "o": [
+    "`tools/`",
+    "`evals/`",
+    "`.githooks/`",
+    "`hooks/`",
+    "`scripts/`"
+   ],
+   "a": [
+    0,
+    1,
+    2
+   ],
+   "why": "hooks/ 在 consumer 機器上每次 tool call 都跑（tool time）；scripts/ 是 consumer/operator-facing runtime utilities（gh-app-token.sh）。tools/、evals/、.githooks/ 是 dev time。",
+   "src": "README.md § Repository layout"
+  },
+  {
+   "id": 14,
+   "m": "M2",
+   "l": "L2",
+   "t": "single",
+   "q": "你寫了一篇 3000 字、給新人看的「為什麼 loop 這樣設計」。放哪裡？",
+   "o": [
+    "`docs/`——人看的；放進 references/ 會讓每一輪多付 3000 字的 token",
+    "`references/`——這樣 agent 也能理解設計理由",
+    "`commands/`——和 workflow 放一起",
+    "CLAUDE.md 的 workflow 段"
+   ],
+   "a": 0,
+   "why": "references/ 的每一行都進 context。「Do not put human reading material in references/.」",
+   "src": "README.md § Repository layout"
+  },
+  {
+   "id": 15,
+   "m": "M2",
+   "l": "L2",
+   "t": "single",
+   "q": "為什麼 `hooks/` 絕不能在 runtime 依賴 uv？",
+   "o": [
+    "Claude Code 在 consumer 機器上透過 `.sh` shim 用 plain `python3` 執行它們——stdlib only、獨立 shebang，consumer 不一定有 uv",
+    "uv 太慢",
+    "hooks/ 在 CI 才跑",
+    "因為 hooks 是 bash 寫的"
+   ],
+   "a": 0,
+   "why": "root pyproject.toml 寫明的兩個約束之一（另一個是 .venv/ 絕不 commit）。forge-stub 也是同一條規則。",
+   "src": "pyproject.toml · README.md § Requirements"
+  },
+  {
+   "id": 16,
+   "m": "M3",
+   "l": "L1",
+   "t": "single",
+   "q": "`qa` seat 的「Never」欄裡最核心的一條是？",
+   "o": [
+    "讀 implementation",
+    "寫 test-spec.md",
+    "回報給 main agent",
+    "從 spec.md 的 scenarios 寫 acceptance tests"
+   ],
+   "a": 0,
+   "why": "qa 只從 spec.md + contract 寫 black-box tests，never the implementation；它只向 main agent 回報。",
+   "src": "references/workflow.md § Roles (R&R)"
+  },
+  {
+   "id": 17,
+   "m": "M3",
+   "l": "L2",
+   "t": "single",
+   "q": "為什麼說 `qa/{n}` 分支「結構性地」讓 QA 盲測，而不只是靠 prompt？",
+   "o": [
+    "qa 分支不帶任何 implementation code——QA 能看到的只有 contract（或 port），這是 topology 而非請求",
+    "qa 分支有 branch protection",
+    "qa 的 prompt 裡寫了不要看 src/",
+    "qa 分支只在 CI 上存在"
+   ],
+   "a": 0,
+   "why": "「blindness asserted in a prompt is a request; blindness enforced by which branch is checked out is a fact」（ledger D2）。1.16.0 之後 rule E 再在 tool layer 加一道牆。",
+   "src": "references/workflow.md (4) · evals/replay/cases/D2/check.py"
+  },
+  {
+   "id": 18,
+   "m": "M3",
+   "l": "L2",
+   "t": "single",
+   "q": "stage (5q) fidelity review 是誰、在哪、產出什麼？",
+   "o": [
+    "reviewer，fresh context，在 `qa/<n>` checkout 上，審 QA suite 對 spec 的 fidelity；產出 two-way cited evidence，never a verdict",
+    "qa 自己，在 qa/<n> 上，產出 pass/fail",
+    "reviewer，接續 (5) code review 的 context，在 feat/<n> 上",
+    "main agent，在 integrate 時"
+   ],
+   "a": 0,
+   "why": "(5q) 是 (5) 之外的另一次 reviewer dispatch，必須是 fresh context——看過 implementation 的 fidelity reviewer 會因為測試會過而評它 faithful，正是這次審查要移除的偏差。",
+   "src": "commands/next-stage.md B5b · references/fidelity-brief.md"
+  },
+  {
+   "id": 19,
+   "m": "M3",
+   "l": "L3",
+   "t": "single",
+   "q": "hook 的 PreToolUse input 裡有 `agent_type`。為什麼 rule E 不能靠它判斷「現在是 fidelity dispatch」，而要靠 marker 檔？",
+   "o": [
+    "(5) code review 和 (5q) fidelity review 都是 `reviewer` seat——agent identity 分不出是哪一次 dispatch；只有 dispatching command 知道，所以由它寫 marker",
+    "agent_type 只在 SubagentStart 才有",
+    "marker 比較快",
+    "agent_type 可能被子代理竄改"
+   ],
+   "a": 0,
+   "why": "文件查證過：PreToolUse 在 subagent 內確實帶 agent_id/agent_type，但兩次 dispatch 同一個 seat。marker 放在 `<git-dir>/roz-gate/fidelity-dispatch`，per worktree、不進 git status。",
+   "src": "hooks/README.md § The fidelity-dispatch marker"
+  },
+  {
+   "id": 20,
+   "m": "M3",
+   "l": "L2",
+   "t": "single",
+   "q": "「seat」和「persona」的差別是？",
+   "o": [
+    "seat 是 workflow 固定的角色名（product/em/implementer/qa/reviewer）；persona 是 per-project config，把 seat 對應到實際 dispatch 的 subagent",
+    "同一件事的兩種叫法",
+    "seat 是 plugin 內建的 agent，persona 是使用者自己寫的",
+    "persona 只在 intake 用"
+   ],
+   "a": 0,
+   "why": "CLAUDE.md 的 `### Roz Gate personas` 把每個 seat 映射到 `roz-gate:<role>` 或使用者自己的 agent（例如 `implementer: backend`）。workflow 的詞彙永遠不變。",
+   "src": "references/workflow.md § Seats and personas"
+  },
+  {
+   "id": 21,
+   "m": "M3",
+   "l": "L3",
+   "t": "multi",
+   "q": "fidelity dispatch 期間（marker 存在），以下哪些 tool call 會被允許？（全選）",
+   "o": [
+    "Bash: `cat tests/acceptance/offers/test_expiry.py && git status`",
+    "Bash: `git grep -n price -- ':!src/**'`",
+    "Read: `docs/specs/5/technical-spec.md`",
+    "Bash: `git diff qa/5...feat/5 -- tests/`",
+    "Bash: `cat /tmp/work/src/app.txt`"
+   ],
+   "a": [
+    0,
+    1,
+    2
+   ],
+   "why": "qa/<n> 上的 tests 與 spec docs 都可讀；`:!src/**` 是排除語法，提到不是讀取。`git diff … feat/5` 是對 feat/ ref 的 git 動作；絕對路徑下的 src/ 一樣是讀。",
+   "src": "hooks/guard_blind.py · hooks/README.md rule E"
+  },
+  {
+   "id": 22,
+   "m": "M4",
+   "l": "L1",
+   "t": "single",
+   "q": "hook 的 exit code 契約是？",
+   "o": [
+    "exit 0 放行；exit 2 擋下，stderr 餵給 model——所以 deny 訊息要寫補救方法，讀者是 agent",
+    "exit 0 放行；exit 1 擋下",
+    "exit 2 放行；非 0 一律擋",
+    "任何輸出都會擋"
+   ],
+   "a": 0,
+   "why": "「every deny message states the remedy, not just the reason, because the agent is the reader.」",
+   "src": "hooks/README.md（開頭）"
+  },
+  {
+   "id": 23,
+   "m": "M4",
+   "l": "L3",
+   "t": "single",
+   "q": "「rule B 保證永遠不會有 gate label 被 agent 套上。」這句話對嗎？",
+   "o": [
+    "不完全對：hook 只綁「這個 agent」的 tool call。人類在 GitHub web UI 套 gate label 是設計如此、hook 根本看不到；lint 綁的是 push；兩者都不綁 repository——那要靠之後的 GitHub Action",
+    "對：PreToolUse hook 在任何 label 寫入前都會攔截",
+    "對：forge adapter 只允許人類帳號套 label",
+    "不對：rule B 只擋 GitLab，不擋 GitHub"
+   ],
+   "a": 0,
+   "why": "architecture review 的原話：「the hook binds this agent, the lint binds this push; neither binds the repository」。新人最常把 client-side 的保證讀成全域保證。",
+   "src": "hooks/README.md · docs/ROADMAP.md § The measurement track"
+  },
+  {
+   "id": 24,
+   "m": "M4",
+   "l": "L2",
+   "t": "rule",
+   "q": "agent 執行：`gh pr comment 12 --body \"> 你說的是讀取時就擋掉過期 offer\\n\\n**[review] · answer** 對。\"`。哪條 rule 會擋？",
+   "o": [
+    "rule C（marker-carrying comment 不能以 quote block 開頭）",
+    "rule A",
+    "rule D",
+    "不擋——引用是合理的回覆格式"
+   ],
+   "a": 0,
+   "why": "patrol 用 comment 的開頭 token 分類；以 `>` 開頭的 agent comment 會被當成人類的回答，loop 會自己回自己（1.11.0 的 runaway）。補救：marker 放第一行，引用放下面。",
+   "src": "hooks/guard_gate.py rule C · hooks/README.md"
+  },
+  {
+   "id": 25,
+   "m": "M4",
+   "l": "L2",
+   "t": "rule",
+   "q": "`specs/63/technical-spec.md` 還有一段 `## §9 Open questions`（已經複製到 spec.md 了）。agent 執行 `git commit -m \"spec: #63\"`。結果？",
+   "o": [
+    "rule D 擋：技術規格裡的 open-questions 段落必須移走（move，不是 copy）再 commit",
+    "放行：問題已經在 spec.md 了",
+    "rule E 擋",
+    "rule C 擋"
+   ],
+   "a": 0,
+   "why": "E2 在 prose 寫到「move … delete it from the source document」之後仍 0/5——每次都複製不刪。所以 predicate 變成 commit 時的 hook。",
+   "src": "hooks/README.md rule D · CHANGELOG v1.15.0"
+  },
+  {
+   "id": 26,
+   "m": "M4",
+   "l": "L3",
+   "t": "rule",
+   "q": "fidelity dispatch 期間，子代理執行：`grep echo src/app.txt`。結果？",
+   "o": [
+    "rule E 擋：`echo` 在這裡是 grep 的參數，不是 command，src/app.txt 是真的被讀了",
+    "不擋：命令裡有 echo，echo 的內容被 blank 掉",
+    "不擋：grep 是唯讀",
+    "rule C 擋"
+   ],
+   "a": 0,
+   "why": "1.16.1 的第一版把 `echo` 出現在任何位置都當 command 來 blank，於是這條命令被 blank 成 `grep ` 放行——一個真實的 bypass，codex review 抓到，1.16.2 修成只認 command position。",
+   "src": "CHANGELOG v1.16.2 · hooks/README.md § Instrument blindness"
+  },
+  {
+   "id": 27,
+   "m": "M4",
+   "l": "L3",
+   "t": "single",
+   "q": "fidelity dispatch 崩潰了，marker 檔留在原地（stale）。之後一個正常的 read 被 rule E 擋下。這是設計還是 bug？",
+   "o": [
+    "設計：stale marker 讓 rule 保持 ON——過度擋是看得見的麻煩（訊息會指出 marker 路徑讓你移除），漏擋是看不見的失敗",
+    "bug：marker 應該有 TTL 自動失效",
+    "bug：hook 應該檢查 dispatch 是否還在跑",
+    "設計：但應該只擋 Bash，不擋 Read"
+   ],
+   "a": 0,
+   "why": "fail direction 是這個 repo 反覆出現的原則：往看得見的方向失敗。",
+   "src": "hooks/README.md rule E（fail direction 欄）"
+  },
+  {
+   "id": 28,
+   "m": "M4",
+   "l": "L3",
+   "t": "rule",
+   "q": "agent 執行：`printf \"**[qa] · addressed** done\" | gh pr comment 12 --body-file -`（沒有 heredoc，body 從 pipe 來）。結果？",
+   "o": [
+    "rule C fail closed：命令帶 marker 但 body 讀不到，無法判斷是否以 quote 開頭——要求改用 inline --body 或 heredoc",
+    "放行：內容明顯以 marker 開頭",
+    "放行：--body-file 不受 rule C 管",
+    "rule A 擋"
+   ],
+   "a": 0,
+   "why": "body 經由 stdin pipe 對靜態 hook 是不可見的；只有 heredoc（文字就在命令裡）或真實檔案能被讀回。看不見又帶 marker → 往看得見的方向失敗。",
+   "src": "hooks/guard_gate.py BODY_FILE_MSG · hooks/tests（unjudgeable marker-carrying body-file）"
+  },
+  {
+   "id": 29,
+   "m": "M5",
+   "l": "L1",
+   "t": "single",
+   "q": "eval ledger 說有「兩種失敗模式」。哪一種是人們通常想不到的？",
+   "o": [
+    "規則本身壞了：每個 stage 都忠實執行壞規則並回報 green——compliance testing 永遠抓不到，lint tier 專門對付它",
+    "agent 不守規則：需要重複跑、看 rate",
+    "模型太慢",
+    "forge API 掛了"
+   ],
+   "a": 0,
+   "why": "lint tier 的每一個 case 都是 class 2：曾經真的 ship 出去的 defect，或同形狀的預防檢查。",
+   "src": "evals/README.md（開頭）"
+  },
+  {
+   "id": 30,
+   "m": "M5",
+   "l": "L1",
+   "t": "single",
+   "q": "「Red-proof requirement」是什麼意思？",
+   "o": [
+    "新 case 算數之前必須先讓它紅過：mutate 它守護的來源、看它清楚地失敗、再還原，並把 mutation 記在 commit message",
+    "每個 case 要有紅色的 badge",
+    "失敗時要輸出紅色文字",
+    "只在 CI 上跑紅的 case"
+   ],
+   "a": 0,
+   "why": "「A suite nobody has seen fail is a decoration.」這條紀律貫穿 lint、replay、judgment 三層與每個 hook rule。",
+   "src": "evals/README.md § Method（Red-proof requirement）"
+  },
+  {
+   "id": 31,
+   "m": "M5",
+   "l": "L2",
+   "t": "single",
+   "q": "lint tier 守護一條「模型在 runtime 執行的 grep」時，為什麼要有兩層？",
+   "o": [
+    "pattern proof（pattern 對 fixtures 的行為）+ source conformance（prose 逐字帶著同一個 pattern）——只有一層時：前者證明沒人 ship 的 pattern，後者 ship 一個沒證明的 pattern",
+    "一層給 GitHub、一層給 GitLab",
+    "一層快、一層慢",
+    "一層是 bash、一層是 python"
+   ],
+   "a": 0,
+   "why": "兩個曾經對照 release notes 檢查的 defect（B1、C6）都錯了：fix 落在寫的地方，不是讀的地方。lint 必須 anchor 在讀規則的那個位置。",
+   "src": "evals/README.md § Method"
+  },
+  {
+   "id": 32,
+   "m": "M5",
+   "l": "L1",
+   "t": "single",
+   "q": "replay tier 的結果怎麼報？",
+   "o": [
+    "每個 case 跑 k 次，報 observed rate 與 Wilson 90% interval——rate，never a boolean；沒有 pass threshold",
+    "pass/fail 一個布林",
+    "只報最好的一次",
+    "平均 token 數"
+   ],
+   "a": 0,
+   "why": "「Measurement, not a gate」。gate 的決定在 baseline 之後才做。",
+   "src": "evals/replay/run_replay.py docstring · evals/replay/README.md § pass^k"
+  },
+  {
+   "id": 33,
+   "m": "M5",
+   "l": "L2",
+   "t": "single",
+   "q": "整個 ledger 全綠證明了什麼？",
+   "o": [
+    "這個 loop 在「像那個 issue 形狀的工作」上不退化——所有 case 來自一個 repo、一位 operator、一個非典型 issue；對沒跑過的形狀什麼都不證明",
+    "規則都有效",
+    "模型不會犯錯",
+    "可以拿掉 hook"
+   ],
+   "a": 0,
+   "why": "「Do not read the badge as 'the rules work'.」sampling caveat 在三層的 README 都以同一句話出現。",
+   "src": "evals/README.md § What a green run proves"
+  },
+  {
+   "id": 34,
+   "m": "M5",
+   "l": "L3",
+   "t": "single",
+   "q": "你想新增一條規則：「reviewer 的每個 finding 必須引用 spec 條文」。依 design principle 8，正確做法是？",
+   "o": [
+    "先讓它被量測（一個 replay case 看現在的 rate）或做成有牙齒的東西（hook + lint conformance）；只寫進 prose 是 hope",
+    "寫進 references/fidelity-brief.md 就好，agent 會照做",
+    "寫進 CLAUDE.md 的 workflow 段",
+    "加到 README 的 design principles"
+   ],
+   "a": 0,
+   "why": "「A rule either has teeth or is measured; prose alone is a hope.」E2 是最好的例子：prose 寫到最明白仍 0/5。",
+   "src": "README.md § Design principles 8 · CHANGELOG v1.15.0"
+  },
+  {
+   "id": 35,
+   "m": "M5",
+   "l": "L2",
+   "t": "single",
+   "q": "什麼是「blindness commit」？",
+   "o": [
+    "checker / criteria 在第一次 recorded run 之前先 commit——git history 證明它們不是從觀察到的輸出反推出來的",
+    "把 src/ 藏起來的 commit",
+    "刪掉 marker 的 commit",
+    "把 fixture 凍結的 commit"
+   ],
+   "a": 0,
+   "why": "replay 的 checkers 和 judgment 的 criteria.json / judge-prompt.md 都遵守：先承諾要量什麼，再看結果。",
+   "src": "evals/replay/README.md § Blindness · evals/judgment/README.md"
+  },
+  {
+   "id": 36,
+   "m": "M6",
+   "l": "L1",
+   "t": "multi",
+   "q": "關於 replay tier 的 forge stub，哪些描述正確？（全選）",
+   "o": [
+    "透過 PATH 取代真正的 `gh`",
+    "state.json 是 fixture 的 forge 狀態，write 會改變它（command 能讀回自己剛寫的東西）",
+    "journal.jsonl 是主要的觀察管道",
+    "它永遠不碰網路",
+    "它會轉發沒定義的路由到真正的 GitHub"
+   ],
+   "a": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "why": "沒定義的路由 exit 64、journal `UNKNOWN`——「a reach the fixture does not define is the same disease as a silent network reach」。",
+   "src": "evals/replay/forge-stub/gh docstring · evals/replay/README.md § Method"
+  },
+  {
+   "id": 37,
+   "m": "M6",
+   "l": "L2",
+   "t": "single",
+   "q": "一次 iteration 裡 forge stub 遇到 UNKNOWN route。這次記成什麼？",
+   "o": [
+    "INVALID：fixture gap，不是模型的錯，也絕不能算成 red",
+    "FAIL：模型做了不該做的事",
+    "PASS：沒有任何 write 發生",
+    "略過，不寫 result.json"
+   ],
+   "a": 0,
+   "why": "invalid-never-red 是這一層的不變量；全部 invalid 的 case 報 n/a 而不是 0%。",
+   "src": "evals/replay/README.md § Method"
+  },
+  {
+   "id": 38,
+   "m": "M6",
+   "l": "L2",
+   "t": "order",
+   "q": "把 replay 一次 iteration 的步驟排成正確順序。",
+   "o": [
+    "跑 check.py，寫 result.json",
+    "有效性判定：有 result event？session error（quota）？journal 有 UNKNOWN？",
+    "seed.sh 建 sandbox repo + local bare remote，複製 state.json",
+    "用 `claude -p` 跑 command，收 stream-json transcript"
+   ],
+   "a": [
+    2,
+    3,
+    1,
+    0
+   ],
+   "why": "seed → invoke → validity → check。有效性判定在 check 之前：無效的 run 永遠不會被 checker 評分。",
+   "src": "evals/replay/run_replay.py run_one"
+  },
+  {
+   "id": 39,
+   "m": "M6",
+   "l": "L2",
+   "t": "single",
+   "q": "sweep 進行到一半，subscription quota 用完，接下來的 iteration 都拿到 limit banner。runner 怎麼做？",
+   "o": [
+    "把那次記成 INVALID（quota-exhausted）並當場停下 sweep；reset 後用同一個命令續跑",
+    "記成 FAIL 繼續跑完",
+    "記成 PASS（沒有 write）",
+    "重試直到成功"
+   ],
+   "a": 0,
+   "why": "第一次 live sweep 把 45 個「agent 根本沒跑」的 iteration 記成 valid FAIL（0% compliance）。現在 session_error() 分類，runner rc=3 停下；F6 driver 路徑共用同一個 classifier。",
+   "src": "evals/replay/README.md § Method · CHANGELOG（PR #5）"
+  },
+  {
+   "id": 40,
+   "m": "M6",
+   "l": "L2",
+   "t": "single",
+   "q": "一個新的 SUT（例如透過 proxy 接的 GPT）沒過 smoke gate（連「讀一個檔、跑一個命令、貼一則 stub comment」都做不到）。它的 row 怎麼記？",
+   "o": [
+    "HARNESS-INCOMPATIBLE，never scored 0——壞掉的 adapter 不能拿來指控一個無辜的模型",
+    "0%：三個 case 都沒過",
+    "跳過 smoke，直接跑 sweep",
+    "記成 quota-exhausted"
+   ],
+   "a": 0,
+   "why": "smoke gate 是 plumbing proof，不是 compliance。quota 打在 smoke 上也不會標 incompatible，而是停下等 reset。",
+   "src": "evals/replay/README.md § The smoke gate"
+  },
+  {
+   "id": 41,
+   "m": "M6",
+   "l": "L3",
+   "t": "single",
+   "q": "D2 的 transcript 裡，QA 子代理有一個 `cat src/app.txt` 的 tool_use，但它的 tool_result 是 guard-blind 的 deny 訊息（is_error）。checker 怎麼判？",
+   "o": [
+    "不算 breach：hook 擋下的 call 沒有執行，blindness 守住了；記在 `attempts-denied` 自己的欄位——模型「試了幾次」是真實訊號，但不是違規",
+    "FAIL：transcript 裡出現了對 src/ 的讀取",
+    "INVALID：hook 介入代表 fixture 有問題",
+    "PASS 但扣分"
+   ],
+   "a": 0,
+   "why": "1.16.1 之前 checker 只看 tool_use，把被擋下的嘗試當 breach（一次 false FAIL）。現在 tool_use 與 tool_result 配對，用 hook 自己的訊息字面（lint 守住）辨認 denial。",
+   "src": "evals/replay/cases/D2/check.py · CHANGELOG v1.16.1"
+  },
+  {
+   "id": 42,
+   "m": "M7",
+   "l": "L1",
+   "t": "single",
+   "q": "judgment tier 量的是什麼？",
+   "o": [
+    "「agent 有沒有 surface 那件改變了人類想法的事」——不是有沒有守規則；LLM-as-judge，昂貴且不可靠，但只有它能量 spec stage 值不值得",
+    "agent 有沒有守規則",
+    "模型的速度",
+    "token 成本"
+   ],
+   "a": 0,
+   "why": "corpus 是 ADMC 真實歷史裡人類因為 agent 提問而改了設計的七個 item（P1 P2 P8 P12 · N1 N5 N10）。",
+   "src": "evals/judgment/README.md（開頭）"
+  },
+  {
+   "id": 43,
+   "m": "M7",
+   "l": "L2",
+   "t": "contamination",
+   "q": "F-51 的 freeze T = 2026-08-08T10:40:53Z（inclusive）。issue #51 的 comment 如下，哪一則「不能」進 fixture？",
+   "o": [
+    "2026-08-08T10:44:27Z · bot：`**[intake] · summary** …`",
+    "2026-08-08T10:40:53Z · 人類：`Summary`",
+    "issue body（2026-06-17 建立）",
+    "全部都能進"
+   ],
+   "a": 0,
+   "why": "人類的 `Summary` 是 trigger，要留（所以 T 是 inclusive）；四分鐘後 bot 的 summary 就是答案，必須丟。「every comment after T contains the answer」。",
+   "src": "evals/judgment/README.md § Contamination · materialize.py"
+  },
+  {
+   "id": 44,
+   "m": "M7",
+   "l": "L3",
+   "t": "contamination",
+   "q": "F-63 的 pin 為什麼是 `d188a20`，而不是 spec refinement 那個 commit `b2a0fca`？",
+   "o": [
+    "b2a0fca 的 tree 已經含 `specs/63/` 與那 8 題——等於把答案交給受測者；pin 必須是 refinement commit 的父節點（main at T）",
+    "d188a20 比較新",
+    "b2a0fca 在另一個分支上 clone 不到",
+    "兩個都可以，d188a20 比較小"
+   ],
+   "a": 0,
+   "why": "mandate 原本給的 SHA 就是 refinement commit 本身，設計階段抓到並修正。",
+   "src": "evals/judgment/README.md § fixtures"
+  },
+  {
+   "id": 45,
+   "m": "M7",
+   "l": "L2",
+   "t": "multi",
+   "q": "judge 看得到哪些東西？（全選）",
+   "o": [
+    "SUT 的 human-facing output（spec CR 上的 write + spec.md 的 Open Questions，或 issue 上的 comment）",
+    "一條 criterion（可檢核的命題）",
+    "人類當年的回覆",
+    "設計最後改成什麼",
+    "criterion 是 P 還是 N"
+   ],
+   "a": [
+    0,
+    1
+   ],
+   "why": "「Judge is blind to the answer.」它回 yes/no + 一段逐字引用；runner 機械驗證引用是 output 的 substring（≥40 字）——不能引用的 judge 是幻覺的 judge，記成 judge-invalid，never yes never no。",
+   "src": "evals/judgment/README.md § The judge"
+  },
+  {
+   "id": 46,
+   "m": "M7",
+   "l": "L3",
+   "t": "single",
+   "q": "你改了一個字的 `judge-prompt.md`，然後直接跑 sweep。runner 會？",
+   "o": [
+    "拒絕啟動：judge fingerprint 變了，儲存的 red-proof 已 stale——「judge configuration changed since the last red-proof; run --redproof first」",
+    "照常跑，沿用快取的 judge verdict",
+    "照常跑，但 judge 每題重問",
+    "只警告不擋"
+   ],
+   "a": 0,
+   "why": "PR #10 review 抓到的 stale green：cache key 與 sweep guard 都必須綁在 fingerprint（prompt、model、quote policy、criteria、所有 red-proof 文件的 hash）上，否則 judge 行為改變的那一刻正是 red-proof 失效的那一刻。",
+   "src": "evals/judgment/run_judgment.py judge_fingerprint · CHANGELOG（PR #10）"
+  },
+  {
+   "id": 47,
+   "m": "M8",
+   "l": "L2",
+   "t": "order",
+   "q": "E2「open questions 只有一個家」這條規則的歷史。把事件排成正確順序。",
+   "o": [
+    "把 predicate 做成 commit 時的 hook（rule D，1.15.0），re-run 5/5",
+    "replay 量到 E2 全部 copy 不 move；prose 改成「move … delete it from the source document」（1.14.2）",
+    "改完 prose 再量，仍然 0/5——每次都複製、從不碰來源檔",
+    "第一次 replay：prose 寫「relocate it verbatim」，5/5 都當成 copy"
+   ],
+   "a": [
+    3,
+    1,
+    2,
+    0
+   ],
+   "why": "measure → find → fix → verify 的第一個完整循環。教訓：prose 寫到最明白也不是槓桿。",
+   "src": "docs/ROADMAP.md § The measurement track · CHANGELOG v1.14.2 → v1.15.0"
+  },
+  {
+   "id": 48,
+   "m": "M8",
+   "l": "L1",
+   "t": "single",
+   "q": "你剛 clone 這個 repo，stage 了一個 `Bad-Name.py`，commit 竟然成功了。為什麼？下一步？",
+   "o": [
+    "新 clone 的 `.githooks/` 還沒被 git 認得——跑一次 `tools/dev-setup.sh`（= `git config core.hooksPath .githooks`）；CI 的 naming step 是沒設的人的 backstop",
+    "naming 規則只在 CI 檢查",
+    "Bad-Name.py 其實符合規則",
+    "pre-commit 只擋 .md"
+   ],
+   "a": 0,
+   "why": "「a fresh clone's gates are silently inert」——instrument 看起來在、其實不在的那一類問題。這也是動手 lab 的第一步。",
+   "src": "README.md § Requirements（Developing the plugin itself?）· hooks/README.md"
+  },
+  {
+   "id": 49,
+   "m": "M8",
+   "l": "L3",
+   "t": "single",
+   "q": "release note 說 1.11.0 修了 CR-FIND 看不到 merged CR 的問題（C6）。lint 要怎麼確認它真的修了？",
+   "o": [
+    "anchor 在「讀這條規則的地方」：spec-answers.md 的 post-integration 路徑必須引用 all-states form——因為 B1、C6 兩個 defect 都是「fix 落在寫的地方，從來沒落在讀的地方」",
+    "確認 release note 有寫到就好——release 是 canonical",
+    "確認 forge adapter 文件了 `--state all`",
+    "跑一次 replay 看它綠"
+   ],
+   "a": 0,
+   "why": "兩個對照 release notes 檢查的 defect 都錯了：adapter 文件了 merged-CR query，consumer 從沒呼叫它。「A lint anchors on the site that reads the rule, or it proves nothing.」",
+   "src": "evals/README.md § Method（Why conformance must read the source）"
+  },
+  {
+   "id": 50,
+   "m": "M8",
+   "l": "L2",
+   "t": "order",
+   "q": "一個 replay case 回報 0/5。在向 Paul 回報「模型五次都違規」之前，autopsy 的順序是？",
+   "o": [
+    "確認是 model violation：transcript 裡真的有執行的違規動作",
+    "先看有效性：五次都是 valid 嗎？（no result event、quota banner、UNKNOWN route 都是 invalid，不是 fail）",
+    "看 instrument：checker 的 predicate 是不是把「提到」當「使用」、把「被擋的嘗試」當 breach",
+    "看 fixture 與規則：fixture 是不是退化（`test: true`）、prose 是不是真的有歧義（copy vs move）"
+   ],
+   "a": [
+    1,
+    2,
+    3,
+    0
+   ],
+   "why": "第一次 live sweep 的 45 個「0% compliance」是 agent 根本沒跑；D2 的 FAIL 是被擋下的 echo-mention；E2 的 5/5 是 prose 歧義。model violation 是排除法的最後一項，不是第一個假設。",
+   "src": "evals/replay/README.md § Method · docs/ROADMAP.md § The measurement track"
+  }
+ ]
+}
