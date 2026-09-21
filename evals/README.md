@@ -5,8 +5,8 @@ Three tiers of evidence that the workflow's rules hold.
 | Tier | Cases | Status | Cost class |
 |---|---|---|---|
 | **lint** | 13 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
-| **replay** | 18 | built — `replay/run-replay.py` | needs a running loop and pass^k over repeated runs |
-| **judgment** | 7 items / 4 fixtures | built — `judgment/run-judgment.py`, k pending calibration | a real repo per iteration plus an opus judge; the only tier that measures whether the spec stage earns its cost |
+| **replay** | 18 | built — `replay/run_replay.py` | needs a running loop and pass^k over repeated runs |
+| **judgment** | 7 items / 4 fixtures | built — `judgment/run_judgment.py`, k pending calibration | a real repo per iteration plus an opus judge; the only tier that measures whether the spec stage earns its cost |
 
 Two failure modes exist, and only one of them is what people expect:
 
@@ -98,7 +98,9 @@ D2 holds the hook's three regexes byte-identical to the replay checker's.
 
 ## The gate
 
-`.githooks/pre-push` (wired via `core.hooksPath`) runs this suite
+`.githooks/pre-commit` (wired via `core.hooksPath`) refuses a staged file
+that breaks the naming convention (`evals/lint/naming.py`, shared with lint
+N1). `.githooks/pre-push` (same wiring) runs this suite
 (`python3 evals/lint/run_lint.py`) and the hook unit tests on **every
 push** and blocks on red. "Must pass before
 every version bump" is a subset of that; unconditional is simpler and the

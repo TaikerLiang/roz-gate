@@ -362,6 +362,12 @@ One deliberate asymmetry: four personas live in `agents/` and are
 `templates/` and is *copied* — it is the only seat that must absorb the
 consumer's own coding guidelines, so it has to be a file the consumer owns.
 
+File names: Python is `snake_case` (importable), shell is `kebab-case`,
+markdown is lowercase-kebab except the ecosystem caps (`README`,
+`CHANGELOG`, `ROADMAP`, `CLAUDE.md`) and the eval fixtures, which are data
+keyed by ledger case id. Enforced by `.githooks/pre-commit` and re-checked
+by the lint tier on push and in CI (one predicate: `evals/lint/naming.py`).
+
 And the line between `references/` and `docs/`: everything in
 `references/` is agent input on every invocation, so every line there is a
 token cost on every turn (the 46–72 live-rules figure in the roadmap);

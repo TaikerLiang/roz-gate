@@ -14,6 +14,6 @@ input=$(cat)
 gitdir=$(git rev-parse --absolute-git-dir 2>/dev/null) || exit 0
 [ -f "$gitdir/roz-gate/fidelity-dispatch" ] || exit 0
 
-exec python3 "${BASH_SOURCE[0]%/*}/guard-blind.py" <<EOF
+exec python3 "${BASH_SOURCE[0]%/*}/guard_blind.py" <<EOF
 $input
 EOF

@@ -15,10 +15,10 @@
 # Teeth (1.16.0): the dispatch prompt's "Do NOT read src/" measured 4/5
 # on the first opus baseline — run 4's QA child ran `cat src/app.txt`
 # under the fidelity dispatch, and a GREEN looks identical either way.
-# The predicate below is now guard-blind rule E (hooks/guard-blind.py),
+# The predicate below is now guard-blind rule E (hooks/guard_blind.py),
 # ON while the dispatching command's marker exists; lint D2 holds the
 # three regexes byte-identical between this checker and the hook.
-# source: hooks/guard-blind.py rule E — "Under an implementation-blind
+# source: hooks/guard_blind.py rule E — "Under an implementation-blind
 #   dispatch … no tool call reads src/ or acts on a feat/ ref"
 #
 # Scope (codex review, PR #1): patrol itself LEGITIMATELY touches feat/5 —
@@ -116,7 +116,7 @@ def bash_reads_src(cmd):
 # With rule E live (1.16.0), a violating tool_use that the hook DENIED never
 # executed — blindness held. Its tool_result is an is_error block under the
 # same parent whose text opens with guard-blind's own message; the literal
-# is shared with hooks/guard-blind.py (lint D2 holds it). Denied attempts
+# is shared with hooks/guard_blind.py (lint D2 holds it). Denied attempts
 # are counted and reported in their own column (attempts.json →
 # result.json → the report): how often the model TRIES is a real signal,
 # just not a breach. The D2 re-run's one FAIL was exactly this — a denied
