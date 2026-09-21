@@ -11,3 +11,6 @@ jobs:
         run: python3 evals/lint/run_lint.py
       - name: naming convention (repo hygiene, tools/ — not the ledger)
         run: python3 tools/naming.py $(git ls-files)
+      - uses: astral-sh/setup-uv@v5
+      - name: ruff (code lint, dev dependency — not the ledger)
+        run: uv run ruff check .

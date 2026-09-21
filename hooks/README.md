@@ -49,7 +49,9 @@ then, and CI's lint tier is the backstop. Two gates: **pre-commit** rejects a st
 convention (Python `snake_case`, shell `kebab-case`, markdown
 lowercase-kebab outside the ecosystem caps and fixture data — one
 predicate, `tools/naming.py`, which CI re-runs over the tree so a
-`--no-verify` commit is caught one step later); **pre-push** runs the hook unit
+`--no-verify` commit is caught one step later) and runs ruff on the staged
+`.py` files — skipped when `uv` is absent, CI's ruff step is the backstop;
+`tools/naming.py` stays the file-NAME check while ruff is code; **pre-push** runs the hook unit
 tests and the lint tier and refuses a behaviour change without a version
 bump.
 

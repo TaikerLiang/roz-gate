@@ -9,4 +9,18 @@ python3 tools/naming.py --staged || {
   echo "pre-commit: rename the file(s) above (or commit with --no-verify; CI's naming step will still go red)." >&2
   exit 1
 }
+# ruff on the staged .py files — dev dependency only (pyproject
+# [dependency-groups]); the hook never REQUIRES uv: without it the check
+# is skipped here and CI's ruff step is the backstop.
+files=$(git diff --cached --name-only --diff-filter=AR -- '*.py')
+if [ -n "$files" ]; then
+  if command -v uv >/dev/null 2>&1; then
+    uv run ruff check $files || {
+      echo "pre-commit: ruff reported findings above — fix them (or commit with --no-verify; CI's ruff step will still go red)." >&2
+      exit 1
+    }
+  else
+    echo "pre-commit: uv not on PATH — ruff skipped (CI's ruff step is the backstop)" >&2
+  fi
+fi
 exit 0
