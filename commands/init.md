@@ -72,7 +72,7 @@ upgrades propagate without touching CLAUDE.md. The template's
 `workflow-template vN` stamp is copied verbatim — it versions the template
 itself, not the plugin, so routine plugin upgrades never demand a re-init.
 - If the project's CLAUDE.md has no `## Development Workflow (Roz Gate)`
-  section: append `${CLAUDE_PLUGIN_ROOT}/templates/CLAUDE-workflow.md`,
+  section: append `${CLAUDE_PLUGIN_ROOT}/templates/claude-workflow.md`,
   substituting the config values from step 2 into its
   `### Roz Gate config` block. Create CLAUDE.md if the project has none.
 - If the section exists — including a fat pre-0.6 copy of the whole workflow,

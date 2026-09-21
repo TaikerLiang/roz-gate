@@ -335,6 +335,39 @@ Retirement is two steps, **in this order**:
    matters — uninstalling first deletes `/roz-gate:uninit` along with the
    plugin, leaving the cleanup to you by hand.
 
+## Repository layout
+
+| directory | role | who reads it | when it takes effect |
+|---|---|---|---|
+| `commands/` | the entry points (`/roz-gate:*`) | Claude Code, then the agent | invocation |
+| `references/` | protocol docs, seat briefs, forge adapters | the agent, on every invocation | runtime |
+| `agents/` | the built-in personas (product, em, qa, reviewer) — referenced, never copied | the agent, at dispatch | dispatch |
+| `templates/` | consumer scaffolding, instantiated by `init` and removed by `uninit` | the consumer repo | install time |
+| `hooks/` | deterministic enforcement and its tests ([hooks/README.md](hooks/README.md)) | the machine, before a tool runs | tool time |
+| `evals/` | the eval ledger — lint, replay, judgment ([evals/README.md](evals/README.md)) | developers of the plugin | dev time; lint on pre-push and CI |
+| `.githooks/` | this repo's own release gate | git, on push | push |
+| `docs/` | human-facing pages (roadmap, site) | humans | never loaded by the agent |
+| `scripts/` | operator utilities | operators | on demand |
+| `.claude-plugin/` | the manifest (name, version) | Claude Code | install |
+
+Two axes organize this. **Who reads it**: the agent at runtime
+(`commands/`, `references/`, `agents/`), the machine (`hooks/`,
+`.githooks/`), humans (`docs/`, `evals/`), or the consumer repo
+(`templates/`, instantiated). **When it takes effect**: install
+(`templates/`, the manifest), runtime (everything the agent loads), or dev
+time (`evals/`, the gate).
+
+One deliberate asymmetry: four personas live in `agents/` and are
+*referenced* by the consumer's config, but the implementer lives in
+`templates/` and is *copied* — it is the only seat that must absorb the
+consumer's own coding guidelines, so it has to be a file the consumer owns.
+
+And the line between `references/` and `docs/`: everything in
+`references/` is agent input on every invocation, so every line there is a
+token cost on every turn (the 46–72 live-rules figure in the roadmap);
+`docs/` is for humans and is never loaded. Do not put human reading
+material in `references/`.
+
 ## How we know it works
 
 Three evidence tiers under `evals/` (the ledger: `evals/README.md`):

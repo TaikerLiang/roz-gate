@@ -24,7 +24,7 @@ mapped subagent, attaching the seat's R&R row from
 
 **Version check**: compare the workflow section's
 `<!-- roz-gate workflow-template vN -->` stamp against the one in
-`${CLAUDE_PLUGIN_ROOT}/templates/CLAUDE-workflow.md`. Stamp missing or
+`${CLAUDE_PLUGIN_ROOT}/templates/claude-workflow.md`. Stamp missing or
 different → the section's shape is out of date: flag it in the report
 ("re-run `/roz-gate:init` to refresh the workflow section") and ignore any
 workflow prose embedded in CLAUDE.md (a fat pre-0.6 copy) — the plugin's

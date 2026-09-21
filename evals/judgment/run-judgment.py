@@ -254,7 +254,7 @@ def overlay(work, fx, admc):
     i = src.index(SECTION_START)
     section = src[i:]
     stamp = re.search(r"<!-- roz-gate workflow-template v\d+ -->",
-                      open(os.path.join(ROOT, "templates", "CLAUDE-workflow.md"), encoding="utf-8").read()).group(0)
+                      open(os.path.join(ROOT, "templates", "claude-workflow.md"), encoding="utf-8").read()).group(0)
     section = re.sub(r"<!-- roz-gate workflow-template v\d+ -->", stamp, section)
     if fx.get("identity") == "bot":
         section = section.replace("- forge: github\n",

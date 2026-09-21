@@ -4,7 +4,7 @@
 # personas, and the instantiated implementer agent. $1 = plugin root.
 set -eu
 ROOT="$1"
-STAMP=$(grep -o '<!-- roz-gate workflow-template v[0-9]* -->' "$ROOT/templates/CLAUDE-workflow.md")
+STAMP=$(grep -o '<!-- roz-gate workflow-template v[0-9]* -->' "$ROOT/templates/claude-workflow.md")
 
 cat > CLAUDE.md <<EOF
 ## Development Workflow (Roz Gate)
