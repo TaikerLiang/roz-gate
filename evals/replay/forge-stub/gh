@@ -224,19 +224,102 @@ def pr_shape(pr, want):
     return {k: v for k, v in full.items() if not want or k in want}
 
 
-def jq_project(obj, expr):
-    """The jq subset the read routes serve: comma-separated simple paths
-    (`.title, .body`, `.user.login`) printed one per line the way gh
-    prints them (strings raw, else JSON). Anything else prints the object."""
-    parts = [p.strip() for p in (expr or "").split(",")]
-    if not parts or not all(re.match(r"^\.[\w.]+$", p) for p in parts):
-        out(obj)
+def api_method(argv):
+    """gh's own rule: an explicit -X/--method wins; otherwise field
+    parameters (-f/-F/--field/--raw-field/--input) make the request a
+    POST, and only their absence makes it a GET. A stub that read
+    `gh api repos/o/r/pulls -f state=closed` as a filtered GET list would
+    launder a create-PR POST that fails on GitHub (codex review, PR #13)."""
+    m = flag_val(argv, "-X", "--method")
+    if m:
+        return m.upper()
+    for a in argv:
+        if a in ("-f", "-F", "--field", "--raw-field", "--input") \
+                or a.startswith(("--field=", "--raw-field=", "--input=")):
+            return "POST"
+    return "GET"
+
+
+def _path(v, path):
+    for seg in path.split("."):
+        if seg == "":
+            continue
+        v = v.get(seg) if isinstance(v, dict) else None
+    return v
+
+
+def jq_eval(data, expr):
+    """The jq subset the read routes must EVALUATE (real gh does; a
+    projected value a SUT selects by must match GitHub's): stages joined
+    by `|`, each one of `.`, `.[]`, `.[N]`, `.a.b`, `.[].a.b`, `.[N].a`,
+    `length`, `{a, b: .c.d}` object construction, or a comma list of
+    paths. Returns the list of output values; raises ValueError on
+    anything else — the caller invalidates rather than printing the
+    unprojected payload (silently wrong is the failure mode)."""
+    stages, depth, cur = [], 0, ""
+    for ch in expr:
+        if ch in "{[(":
+            depth += 1
+        elif ch in "}])":
+            depth -= 1
+        if ch == "|" and depth == 0:
+            stages.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    stages.append(cur)
+    values = [data]
+    for st in (x.strip() for x in stages):
+        new = []
+        for v in values:
+            if st == ".":
+                new.append(v)
+            elif st == "length":
+                new.append(len(v) if isinstance(v, (list, dict, str)) else 0)
+            elif st == ".[]":
+                if not isinstance(v, list):
+                    raise ValueError(st)
+                new.extend(v)
+            elif re.match(r"^\.\[\]\.[\w.]+$", st):
+                if not isinstance(v, list):
+                    raise ValueError(st)
+                new.extend(_path(x, st[4:]) for x in v)
+            elif re.match(r"^\.\[\d+\](\.[\w.]+)?$", st):
+                i = int(st[2:st.index("]")])
+                rest = st[st.index("]") + 1:]
+                if not isinstance(v, list):
+                    raise ValueError(st)
+                x = v[i] if i < len(v) else None
+                new.append(_path(x, rest) if rest else x)
+            elif st.startswith("{") and st.endswith("}"):
+                obj = {}
+                for part in (q.strip() for q in st[1:-1].split(",") if q.strip()):
+                    m = re.match(r"^(\w+)(?:\s*:\s*(\.[\w.]*))?$", part)
+                    if not m:
+                        raise ValueError(st)
+                    obj[m.group(1)] = _path(v, m.group(2) or "." + m.group(1))
+                new.append(obj)
+            elif all(re.match(r"^\.[\w.]+$", q.strip()) for q in st.split(",")):
+                new.extend(_path(v, q.strip()) for q in st.split(","))
+            else:
+                raise ValueError(st)
+        values = new
+    return values
+
+
+def jq_project(data, expr):
+    """Print `data` through `--jq expr` the way gh does (strings raw, else
+    JSON, one output per line); no expression → the JSON itself. An
+    expression outside the evaluated subset invalidates the iteration."""
+    if not expr:
+        out(data)
         return
-    for p in parts:
-        v = obj
-        for seg in p[1:].split("."):
-            v = v.get(seg) if isinstance(v, dict) else None
-        print(v if isinstance(v, str) else json.dumps(v))
+    try:
+        vals = jq_eval(data, expr)
+    except (ValueError, TypeError, AttributeError):
+        unknown("jq expression not supported by the stub: %s" % expr)
+    for v in vals:
+        print(v if isinstance(v, str) else json.dumps(v, ensure_ascii=False))
 
 
 def next_id(st):
@@ -517,14 +600,15 @@ def main():
                 if "=" in kv:
                     k, v = kv.split("=", 1)
                     query[k] = v
-        if flag_val(argv, "-X", "--method") in (None, "GET"):
-            query.update(api_fields(argv))
+        method = api_method(argv)
+        if method == "GET" and flag_val(argv, "-X", "--method"):
+            query.update(api_fields(argv))   # explicit GET: fields are query params
 
         # ---- gh api user — the caller's own identity (the "who am I"
         # probe; judgment sweep F-67). The login is the fixture's
         # agent_login, so a SUT comparing it against comment authors sees
         # a consistent world.
-        if target == "user":
+        if target == "user" and method == "GET":
             journal("user-view")
             login_ = st.get("agent_login", "paul")
             jq_project({"login": login_, "id": 1, "type": "User",
@@ -535,8 +619,7 @@ def main():
         # ---- gh api repos/o/r/pulls[?state=…&head=…] — REST PR list, the
         # `gh pr list` twin (D2 re-run on 1.16.2). Same filters, REST shape
         # (`state` lower-case, `head.ref`/`base.ref`, `draft`).
-        if re.match(r"repos/[^/]+/[^/]+/pulls$", target) \
-                and flag_val(argv, "-X", "--method") in (None, "GET"):
+        if re.match(r"repos/[^/]+/[^/]+/pulls$", target) and method == "GET":
             state_q = (query.get("state") or "open").lower()
             head_q = query.get("head")
             if head_q and ":" in head_q:
@@ -557,11 +640,7 @@ def main():
                              "base": {"ref": pr.get("baseRefName", "")},
                              "user": {"login": st.get("agent_login", "paul")},
                              "html_url": "https://github.com/x/y/pull/%s" % pr.get("number")})
-            if flag_val(argv, "--jq", "-q"):
-                for r in rows:
-                    out(r)
-            else:
-                out(rows)
+            jq_project(rows, flag_val(argv, "--jq", "-q"))
             return
 
         if target == "graphql":
@@ -669,7 +748,7 @@ def main():
         # (F2 run-1 went invalid on `gh api repos/o/r/pulls/101/comments
         # --jq …`; same read-route class). `--jq` prints one row per line.
         m = re.match(r"repos/[^/]+/[^/]+/pulls/(\d+)/comments$", target)
-        if m and flag_val(argv, "-X") in (None, "GET"):
+        if m and method == "GET":
             n = m.group(1)
             if n not in st.get("prs", {}):
                 unknown("review-comments: pr %s not in fixture" % n)
@@ -686,11 +765,7 @@ def main():
                                  **({"in_reply_to_id": root} if cid != root else {}),
                                  "html_url": "https://github.com/x/y/pull/%s"
                                              "#discussion_r%s" % (n, cid)})
-            if flag_val(argv, "--jq", "-q"):
-                for r in rows:
-                    out(r)
-            else:
-                out(rows)
+            jq_project(rows, flag_val(argv, "--jq", "-q"))
             return
 
         m = re.match(r"repos/[^/]+/[^/]+/pulls/(\d+)/comments$", target)
@@ -753,7 +828,7 @@ def main():
         # `gh api repos/x/y/issues/comments/1001 --jq .body`; same read-
         # route class as PR #3/#5). `--jq .field` projects that field the
         # way gh prints it (strings raw); anything else prints the object.
-        if m and flag_val(argv, "-X") in (None, "GET"):
+        if m and method == "GET":
             cid = int(m.group(1))
             for kind, coll in (("pr", st.get("prs", {})),
                                ("issue", st.get("issues", {}))):
@@ -776,7 +851,7 @@ def main():
         # GET one issue by number through REST — `gh issue view`'s twin
         # (D2 re-run: `gh api repos/o/r/issues/5 --jq '.title, .body'`).
         m = re.match(r"repos/[^/]+/[^/]+/issues/(\d+)$", target)
-        if m and flag_val(argv, "-X") in (None, "GET"):
+        if m and method == "GET":
             n = m.group(1)
             iss = st.get("issues", {}).get(n)
             if iss is None:
@@ -796,7 +871,7 @@ def main():
         # GET one REVIEW comment by id — sibling of issue-comment-view
         # (D2 re-run: `gh api repos/o/r/pulls/103/comments/9101 [--jq .body]`).
         m = re.match(r"repos/[^/]+/[^/]+/pulls/(\d+)/comments/(\d+)$", target)
-        if m and flag_val(argv, "-X") in (None, "GET"):
+        if m and method == "GET":
             n, cid = m.group(1), int(m.group(2))
             for t in st.get("prs", {}).get(n, {}).get("threads", []):
                 root = (t.get("comments") or [{}])[0].get("databaseId")
