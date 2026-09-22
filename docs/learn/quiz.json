@@ -1,6 +1,6 @@
 {
  "_meta": {
-  "version": "draft-4 (2026-09-22, background + full-sentence options)",
+  "version": "draft-5 (2026-09-22, stage map + inline stage names + glossary)",
   "pass": {
    "overall": 0.8,
    "per_module": 0.6,
@@ -50,7 +50,119 @@
    "rule": 4,
    "order": 4,
    "contamination": 2
-  }
+  },
+  "stages": [
+   {
+    "n": "1",
+    "name": "intake",
+    "zh": "收件與釐清：一個 issue = 一個 user story，附可觀察的 acceptance criteria 與 track: label",
+    "gate": null
+   },
+   {
+    "n": "1b",
+    "name": "async inbox",
+    "zh": "手機上開的無 label issue；patrol 貼一批問題 → 人類寫 summary → 人類套 gate label 確認",
+    "gate": "人類套 ready-for-spec / ready-for-dev"
+   },
+   {
+    "n": "2",
+    "name": "spec refinement",
+    "zh": "em + product + implementer 寫 spec.md（scenarios）與 technical-spec.md（contract），開成 spec CR",
+    "gate": null
+   },
+   {
+    "n": "2a",
+    "name": "spec Q&A",
+    "zh": "每個 open question 是 spec CR 上的一個 thread；人類回答、agent 折回 spec——loop 唯一的 backward transition（change order）",
+    "gate": "全部 thread resolved 後，人類套 ready-for-dev"
+   },
+   {
+    "n": "3",
+    "name": "implementation",
+    "zh": "implementer 在 feat/{n}：code + unit tests",
+    "gate": null
+   },
+   {
+    "n": "4",
+    "name": "black-box QA",
+    "zh": "qa 在 qa/{n}：test plan + acceptance suite，只從 spec + contract 寫，看不到實作；與 (3) 平行",
+    "gate": null
+   },
+   {
+    "n": "5",
+    "name": "code review",
+    "zh": "reviewer 在 implementation CR 上留 severity-graded thread（blocking / should-fix / nit / question）",
+    "gate": null
+   },
+   {
+    "n": "5q",
+    "name": "fidelity review",
+    "zh": "reviewer 的另一次 fresh dispatch，在 qa/{n} 上審 QA suite 對 spec 的忠實度；產出證據，不是 verdict",
+    "gate": null
+   },
+   {
+    "n": "6",
+    "name": "integration verdict",
+    "zh": "main agent 本機合併兩個分支，QA suite 第一次跑在 code 上——the verdict",
+    "gate": null
+   },
+   {
+    "n": "7",
+    "name": "human review & merge",
+    "zh": "人類審 spec CR（spec + code + tests + green verdict）；main agent 回答、只改人類確認的；人類 merge 或退回",
+    "gate": "人類 merge"
+   }
+  ],
+  "glossary": [
+   {
+    "term": "seat / persona",
+    "zh": "seat 是固定的角色名（product、em、implementer、qa、reviewer）；persona 是 consumer 的 CLAUDE.md 把 seat 對應到哪個實際的 subagent"
+   },
+   {
+    "term": "CR",
+    "zh": "change request——GitHub 的 PR、GitLab 的 MR；spec CR、implementation CR、QA CR 各是一個"
+   },
+   {
+    "term": "gate label",
+    "zh": "`status: ready-for-spec` 與 `status: ready-for-dev`：只有人類能套，代表授權往下一階段"
+   },
+   {
+    "term": "gate holder",
+    "zh": "有權套 gate label 的人：issue 的 assignee，沒有 assignee 時是 issue 作者（且必須是人類，bot 不算）"
+   },
+   {
+    "term": "marker",
+    "zh": "agent 寫的 comment 一律以 `**[role] · kind**` 開頭（例如 `**[review] · answer**`）；patrol 靠這個開頭分辨 agent 與人類"
+   },
+   {
+    "term": "STOP",
+    "zh": "command 的第二個出口：丟掉本機工作、只留 `status: blocked`、把證據與建議貼成 issue comment、等人類"
+   },
+   {
+    "term": "fidelity",
+    "zh": "QA suite 對 spec 的忠實度：assertion 是否真的在測 scenario 說的事；(5q) 審這個"
+   },
+   {
+    "term": "fidelity dispatch",
+    "zh": "在 qa/{n} 上、看不到實作的那次 dispatch（(5q) 或 patrol 的 qa 重審）；rule E 在它期間擋 src/ 的讀取"
+   },
+   {
+    "term": "ledger / tier",
+    "zh": "eval ledger 有三層：lint（靜態、每次 push）、replay（真的跑 command、code 打分、pass^k）、judgment（LLM-as-judge）"
+   },
+   {
+    "term": "forge / stub",
+    "zh": "forge = GitHub 或 GitLab；replay 用一個假的 `gh`（forge stub）取代真的，state.json 是它的狀態，journal.jsonl 是它的紀錄"
+   },
+   {
+    "term": "red-proof",
+    "zh": "一個檢查要先被看到「紅」過（故意弄壞它守護的東西）才算數"
+   },
+   {
+    "term": "invalid",
+    "zh": "一次量測因為 harness／fixture 的問題不能算數（沒跑起來、quota 用完、stub 沒定義的路由）——invalid 永遠不是 red"
+   }
+  ]
  },
  "questions": [
   {
@@ -66,7 +178,7 @@
     "Done、STOP、Skip 三種：Skip 用在 command 判斷這個 issue 目前沒有它能做的事，靜默跳過不留痕跡。"
    ],
    "a": 0,
-   "why": "「No third exit」——任何終端狀態都能只從 label 讀出來。唯一例外是 stage (7)：issue 已在你的 gate 上，失敗就是一則說明的 comment，沒有 blocked 出口。",
+   "why": "「No third exit」——任何終端狀態都能只從 label 讀出來。唯一例外是 stage (7) human review & merge：issue 已在你的 gate 上，失敗就是一則說明的 comment，沒有 blocked 出口。",
    "src": "README.md § Labels & state machine",
    "bg": "Roz Gate 的 command（next-stage、spec-answers、integrate、patrol…）都會改變 issue 的 label 與 CR 狀態。設計上它們被要求「任何終端狀態都能只從 label 讀出來」——也就是說一個 command 結束之後，不需要看 log，光看 issue 上的 label 就知道它是成功了還是卡住了。這個要求限制了 command 可以有幾種結束方式。"
   },
@@ -79,7 +191,7 @@
    "o": [
     "`status: ready-for-spec`——人類看完 intake summary 後套上，next-stage 才會開始 spec 階段。",
     "`status: ready-for-dev`——人類審完 spec CR 的所有 thread 後套上，實作與 QA 才會平行啟動。",
-    "最後的 merge——(7) review 結束後由人類按下，工作才真正進入 main。",
+    "最後的 merge——(7) human review & merge review 結束後由人類按下，工作才真正進入 main。",
     "`status: in-user-review`——工作過了 integration verdict、等待人類審查的狀態，代表人類必須介入。",
     "`status: processing`——每個 command 執行中都會套上，代表這個 issue 此刻被鎖住、不能被別人動。"
    ],
@@ -90,7 +202,7 @@
    ],
    "why": "三個 gate 是 ready-for-spec、ready-for-dev、merge。in-user-review 是 main agent 套的 transient 狀態；processing 是 lock。commands 和 agents 永遠不套 gate label——機器能跑 pipeline，不能授權它。",
    "src": "README.md § The loop in one page · § Labels",
-   "bg": "README 說「the human guards every gate」：loop 可以自動跑，但不能自己授權自己。哪些 label 或動作算「gate」是被明確列舉的，而且和 transient 狀態、lock 分開——因為 hook rule B 只擋 gate label，不擋其他 label。"
+   "bg": "README 說「the human guards every gate」：loop 可以自動跑，但不能自己授權自己。哪些 label 或動作算「gate」是被明確列舉的，而且和 transient 狀態（階段）、lock（處理中）分開——看上方 stage map 上標了印章的三個位置。"
   },
   {
    "id": 3,
@@ -114,17 +226,17 @@
    "m": "M1",
    "l": "L2",
    "t": "single",
-   "q": "implementer 在 stage (3) 中途發現 contract 有歧義。正確的路是？",
+   "q": "implementer 在 stage (3) implementation 中途發現 contract 有歧義。正確的路是？",
    "o": [
-    "停下、回報 main agent，不自行決定；main agent 把問題整理成 spec CR 上的 thread，經由 (2a) 讓人類裁決——這是 loop 唯一的 backward transition，README 稱它為 change order。",
-    "依最合理的解讀寫進 code，並在 PR 描述裡註明「此處假設 X」，讓 reviewer 在 (5) 看到時可以提出異議；這樣不會阻塞進度。",
+    "停下、回報 main agent，不自行決定；main agent 把問題整理成 spec CR 上的 thread，經由 (2a) spec Q&A 讓人類裁決——這是 loop 唯一的 backward transition，README 稱它為 change order。",
+    "依最合理的解讀寫進 code，並在 PR 描述裡註明「此處假設 X」，讓 reviewer 在 (5) code review 看到時可以提出異議；這樣不會阻塞進度。",
     "直接在 implementation CR 上開一個 thread 和 reviewer 討論，兩個技術角色就能決定；spec CR 是給人類看的，不必為技術細節打擾。",
     "跳過那個 scenario，把它留給 QA：QA 是黑箱測試，如果 contract 真的有歧義，QA 的測試在 integration 時自然會紅，到時再處理。"
    ],
    "a": 0,
    "why": "「a contract ambiguity mid-build is never interpreted by the contractor: it goes back through a change order」。在 code 裡單方面決定是 E3 那條被明文禁止的路；reviewer↔implementer 私下 settle 是 E4 禁止的路。",
    "src": "README.md § The loop (change order) · commands/next-stage.md B3/B5",
-   "bg": "Stage (3) 是 implementer 在 feat/{n} 上實作；contract 是 stage (2) 寫好的 technical-spec.md。README 用「owner / contractor / inspector」的商業結構比喻整個 loop，而且說 loop 只有一個 backward transition。你是 implementer，寫到一半發現 contract 對某個行為沒說清楚。"
+   "bg": "Stage (3) implementation 是 implementer 在 feat/{n} 上實作；contract 是 stage (2) spec refinement 寫好的 technical-spec.md。README 用「owner / contractor / inspector」的商業結構比喻整個 loop，而且說 loop 只有一個 backward transition。你是 implementer，寫到一半發現 contract 對某個行為沒說清楚。"
   },
   {
    "id": 5,
@@ -133,11 +245,11 @@
    "t": "multi",
    "q": "以下哪些 `status:` label 是 transient（階段狀態），而不是 gate 或 lock？（全選）",
    "o": [
-    "`status: in-spec-review`——spec CR 已開、thread 等人類回答的階段狀態；QA 中途發現歧義重新進入 (2a) 時也用它。",
-    "`status: in-user-review`——工作過了 verdict、(7) 的對話在這裡進行的階段狀態，由 main agent 套上。",
+    "`status: in-spec-review`——spec CR 已開、thread 等人類回答的階段狀態；QA 中途發現歧義重新進入 (2a) spec Q&A 時也用它。",
+    "`status: in-user-review`——工作過了 verdict、(7) human review & merge 的對話在這裡進行的階段狀態，由 main agent 套上。",
     "`status: blocked`——某個 command STOP 之後留下的階段狀態，證據與建議在 issue comment 裡，等人類決定。",
     "`status: processing`——command 執行中的標記，可以和其他 status label 同時存在，代表「有人正在動這個 issue」。",
-    "`status: ready-for-dev`——spec 審完後進入實作前的階段狀態，next-stage 看到它就啟動 (3)+(4)。"
+    "`status: ready-for-dev`——spec 審完後進入實作前的階段狀態，next-stage 看到它就啟動 (3) implementation+(4) black-box QA。"
    ],
    "a": [
     0,
@@ -358,7 +470,7 @@
    "a": 0,
    "why": "「blindness asserted in a prompt is a request; blindness enforced by which branch is checked out is a fact」（ledger D2）。1.16.0 之後 rule E 再在 tool layer 加一道牆。",
    "src": "references/workflow.md (4) · evals/replay/cases/D2/check.py",
-   "bg": "Stage (4) 的 QA 在 `qa/{n}` 分支上工作，這個分支從 `spec/{n}` 分出來，只放 test plan 與 acceptance suite。README 說這個安排「structurally enforces the black box」；D2 這條 ledger case 的原話是「blindness asserted in a prompt is a request; blindness enforced by which branch is checked out is a fact」。"
+   "bg": "Stage (4) black-box QA 的 QA 在 `qa/{n}` 分支上工作，這個分支從 `spec/{n}` 分出來，只放 test plan 與 acceptance suite。README 說這個安排「structurally enforces the black box」；D2 這條 ledger case 的原話是「blindness asserted in a prompt is a request; blindness enforced by which branch is checked out is a fact」。"
   },
   {
    "id": 18,
@@ -367,15 +479,15 @@
    "t": "single",
    "q": "stage (5q) fidelity review 是誰、在哪、產出什麼？",
    "o": [
-    "reviewer seat 的第二次 dispatch，必須是 fresh context（不能接續 (5) 的 context），在 `qa/<n>` checkout 上，依 fidelity-brief 審 QA suite 對 spec 的忠實度；產出兩向引用的 findings 貼在 QA CR 上，是給人類的證據，never a verdict。",
+    "reviewer seat 的第二次 dispatch，必須是 fresh context（不能接續 (5) code review 的 context），在 `qa/<n>` checkout 上，依 fidelity-brief 審 QA suite 對 spec 的忠實度；產出兩向引用的 findings 貼在 QA CR 上，是給人類的證據，never a verdict。",
     "qa seat 自己在 `qa/<n>` 上做一次自我審查，產出 pass/fail 給 integrate 參考。",
     "reviewer 接續 (5) code review 的 context，在 `feat/<n>` 上順便看測試——同一個 reviewer 已經熟悉 code，效率最高。",
     "main agent 在 integrate 時用 spec 對照測試檔，產出 verdict 的一部分。"
    ],
    "a": 0,
-   "why": "(5q) 是 (5) 之外的另一次 reviewer dispatch，必須是 fresh context——看過 implementation 的 fidelity reviewer 會因為測試會過而評它 faithful，正是這次審查要移除的偏差。",
+   "why": "(5q) fidelity review 是 (5) code review 之外的另一次 reviewer dispatch，必須是 fresh context——看過 implementation 的 fidelity reviewer 會因為測試會過而評它 faithful，正是這次審查要移除的偏差。",
    "src": "commands/next-stage.md B5b · references/fidelity-brief.md",
-   "bg": "Stage (5) 是 reviewer 審 implementation code；1.9.0 加了 stage (5q)：QA suite 本身也要被審，因為 integration verdict 是從 QA suite 算出來的，沒審它就是 loop 裡唯一沒被審計的節點。fidelity-brief.md 是這次 dispatch 的契約，它對「誰、在哪個 checkout、產出什麼」有明確要求。"
+   "bg": "Stage (5) code review 是 reviewer 審 implementation code；1.9.0 加了 stage (5q) fidelity review：QA suite 本身也要被審，因為 integration verdict 是從 QA suite 算出來的，沒審它就是 loop 裡唯一沒被審計的節點。fidelity-brief.md 是這次 dispatch 的契約，它對「誰、在哪個 checkout、產出什麼」有明確要求。"
   },
   {
    "id": 19,
@@ -499,7 +611,7 @@
    "a": 0,
    "why": "E2 在 prose 寫到「move … delete it from the source document」之後仍 0/5——每次都複製不刪。所以 predicate 變成 commit 時的 hook。",
    "src": "hooks/README.md rule D · CHANGELOG v1.15.0",
-   "bg": "Stage (2) 的 A6 要求：其他 spec 文件裡的 open question 要「move」到 spec.md 的 `## Open Questions`（單一收集點），來源檔的段落要刪掉。1.14.2 把 prose 寫到「delete it from the source document」之後，replay 量到的仍是 5/5 只複製不刪。1.15.0 於是加了 rule D。現在 agent 已經把問題複製到 spec.md，但 technical-spec.md 的 §9 還在，準備 commit。"
+   "bg": "Stage (2) spec refinement 的 A6 要求：其他 spec 文件裡的 open question 要「move」到 spec.md 的 `## Open Questions`（單一收集點），來源檔的段落要刪掉。1.14.2 把 prose 寫到「delete it from the source document」之後，replay 量到的仍是 5/5 只複製不刪。1.15.0 於是加了 rule D。現在 agent 已經把問題複製到 spec.md，但 technical-spec.md 的 §9 還在，準備 commit。"
   },
   {
    "id": 26,
