@@ -312,6 +312,19 @@ src("J1: the judge prompt carries the criterion slot", "evals/judgment/judge-pro
 src("J1: the judge prompt carries the document slot", "evals/judgment/judge-prompt.md", "{document}")
 
 # ---------------------------------------------------------------------------
+# L1 · one stage map                                        (preventive)
+# The loop diagram is ONE file, images/loop-stage-map.svg, inlined by the
+# Pages site (and the learner page when it lands) between SVG markers — a
+# second copy of the loop's shape is the B3 defect class. Red-proofed by
+# editing one character of the inlined copy.
+_svg = read("images/loop-stage-map.svg").strip("\n")
+_site = read("docs/index.html")
+_m = re.search(r"<!-- SVG:images/loop-stage-map\.svg -->\n(.*?)\n<!-- /SVG -->", _site, re.S)
+c.expect("images/loop-stage-map.svg is the one loop diagram",
+         "L1: docs/index.html inlines images/loop-stage-map.svg byte-for-byte",
+         _m is not None and _m.group(1) == _svg)
+
+# ---------------------------------------------------------------------------
 # C3 · `processing` coexists with a phase label             (preventive)
 # Oracle (patrol.md's coexistence sentence, executable): `processing` is a
 # mutex; all other `status:` labels are phases, at most one at a time.
