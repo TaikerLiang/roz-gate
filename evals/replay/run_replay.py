@@ -34,6 +34,7 @@ import tempfile
 S = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(S))  # evals/ — the shared kit
 from lib.checkkit import has_citation  # noqa: E402
+
 sys.path.insert(0, S)
 from replaylib import has_result_event, session_error  # noqa: E402
 

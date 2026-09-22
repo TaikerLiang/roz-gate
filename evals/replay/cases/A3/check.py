@@ -6,9 +6,11 @@
 #   the PR page and the only one usable from a phone."
 # source: commands/patrol.md:56 — all three channels, CR-COMMENTS-LIST
 #   included
-import os, sys
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replaylib import Run, Checker
+from replaylib import Checker, Run
 
 r, c = Run(), Checker()
 c.expect("patrol.md:56", "CR-COMMENTS-LIST was actually read",

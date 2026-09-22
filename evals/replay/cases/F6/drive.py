@@ -31,6 +31,7 @@ CDIR, RDIR = sys.argv[1], sys.argv[2]
 ROOT, S = os.environ["ROOT"], os.environ["S"]
 sys.path.insert(0, S)
 from replaylib import has_result_event, session_error  # noqa: E402
+
 SUT = {"model": os.environ["SUT_MODEL"], "mode": os.environ["SUT_MODE"],
        "base_url": os.environ.get("SUT_BASE_URL", ""),
        "key_env": os.environ.get("SUT_KEY_ENV", "")}

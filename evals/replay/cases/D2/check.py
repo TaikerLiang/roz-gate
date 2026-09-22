@@ -43,9 +43,12 @@
 #   is an act; the branch-topology sentence in next-stage.md:305-310 makes
 #   the same distinction — blindness is enforced by what is checked out)
 import json
-import os, re, sys
+import os
+import re
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replaylib import Run, Checker
+from replaylib import Checker, Run
 
 r, c = Run(), Checker()
 

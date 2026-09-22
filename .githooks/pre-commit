@@ -9,4 +9,33 @@ python3 tools/naming.py --staged || {
   echo "pre-commit: rename the file(s) above (or commit with --no-verify; CI's naming step will still go red)." >&2
   exit 1
 }
+# ruff on the staged .py files — dev dependency only (pyproject
+# [dependency-groups]); the hook never REQUIRES uv: without it the check
+# is skipped here and CI's ruff step is the backstop.
+# ACMR: added, copied, MODIFIED, renamed — a modified .py is the common
+# case and `AR` skipped it (codex, PR #19). And ruff must lint what will be
+# COMMITTED, not the worktree: with a partially staged file the working
+# copy can approve a staged violation or block a clean commit. So the
+# staged blobs are materialized into a temp tree (relative paths kept,
+# pyproject.toml copied so [tool.ruff] resolves) and ruff runs there.
+files=$(git diff --cached --name-only --diff-filter=ACMR -- '*.py')
+if [ -n "$files" ]; then
+  if command -v uv >/dev/null 2>&1; then
+    root=$(pwd)
+    tmp=$(mktemp -d)
+    cp pyproject.toml "$tmp/"
+    for f in $files; do
+      mkdir -p "$tmp/$(dirname "$f")"
+      git show ":$f" > "$tmp/$f"
+    done
+    (cd "$tmp" && uv run --project "$root" ruff check $files) || {
+      rm -rf "$tmp"
+      echo "pre-commit: ruff reported findings in the STAGED content above — fix and re-stage (or commit with --no-verify; CI's ruff step will still go red)." >&2
+      exit 1
+    }
+    rm -rf "$tmp"
+  else
+    echo "pre-commit: uv not on PATH — ruff skipped (CI's ruff step is the backstop)" >&2
+  fi
+fi
 exit 0

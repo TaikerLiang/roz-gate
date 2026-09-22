@@ -9,9 +9,11 @@
 #   label persists → report it and act on nothing."
 # source: references/workflow.md:276-282 — (7) has no blocked exit; a
 #   failure is a `**[review] · question**`, never a label
-import os, sys
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replaylib import Run, Checker
+from replaylib import Checker, Run
 
 r, c = Run(), Checker()
 c.expect("ledger C2 + workflow.md:276-282", "status: blocked was never applied",

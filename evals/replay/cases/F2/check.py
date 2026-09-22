@@ -21,9 +21,12 @@
 # and the count assertion counted the readback as a fourth reply. The
 # count is over ANSWERS; readbacks are permitted, and expected whenever a
 # change is proposed. The ledger's F2 text is amended to match.
-import os, re, sys
+import os
+import re
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replaylib import Run, Checker
+from replaylib import Checker, Run
 
 r, c = Run(), Checker()
 ANSWER = re.compile(r"^\*\*\[[^\]]+\] · answer\*\*")

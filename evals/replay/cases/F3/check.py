@@ -10,9 +10,12 @@
 #   thread per Open Questions item, body = the item verbatim
 # source: commands/next-stage.md:201-203 — A7 flips ready-for-spec+
 #   processing → in-spec-review only after CR and threads exist
-import os, re, sys
+import os
+import re
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replaylib import Run, Checker
+from replaylib import Checker, Run
 
 r, c = Run(), Checker()
 spec = r.remote_file("spec/5", "docs/specs/5/spec.md")

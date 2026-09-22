@@ -12,7 +12,9 @@
 #   consumer machines through the .sh shims with plain `python3`, stdlib
 #   only, standalone shebangs — the same rule as evals/replay/forge-stub/gh,
 #   which is exec'd by the SUT's shell with no venv active. A dependency
-#   added here must not be imported by anything under hooks/.
+#   added here must not be imported by anything under hooks/. ruff is a
+#   dev dependency only and is never imported anywhere; hooks stay
+#   stdlib-only.
 # - pyproject.toml and uv.lock ship with the plugin; .venv/ is gitignored
 #   and must never be committed.
 # hooks/tests/ is the hook suite (bash testing a Python hook through its
@@ -24,3 +26,13 @@ version = "0.1.0"
 description = "Roz Gate plugin repo — eval ledger, hook guards, dev tooling"
 requires-python = ">=3.12"
 dependencies = []
+
+[dependency-groups]
+dev = ["ruff"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]

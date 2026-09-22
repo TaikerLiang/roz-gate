@@ -8,9 +8,11 @@
 #   the STOP exit
 # source: references/workflow.md:270-271 — STOP: "replace the issue's
 #   status labels with `blocked` alone"
-import os, sys
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replaylib import Run, Checker
+from replaylib import Checker, Run
 
 r, c = Run(), Checker()
 c.expect("workflow.md:270-271", "status labels are blocked ALONE",

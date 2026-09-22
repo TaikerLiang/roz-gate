@@ -8,9 +8,11 @@
 # source: commands/spec-answers.md:139-149 — post-integration re-entry:
 #   fold, hand-back re-run, LABEL-REMOVE in-spec-review+processing,
 #   LABEL-ADD in-user-review
-import os, sys
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replaylib import Run, Checker
+from replaylib import Checker, Run
 
 r, c = Run(), Checker()
 c.expect("spec-answers.md:147-148", "issue returned to in-user-review",

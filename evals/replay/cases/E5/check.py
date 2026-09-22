@@ -13,9 +13,11 @@
 #   contract text stays unchanged ships the defect
 # source: commands/spec-answers.md:93-95 — reply `✅ [<role>] resolved`
 #   then THREAD-RESOLVE
-import os, sys
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replaylib import Run, Checker
+from replaylib import Checker, Run
 
 r, c = Run(), Checker()
 c.expect("spec-answers.md:60-62 (the owning document changed)",

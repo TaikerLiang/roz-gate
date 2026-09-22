@@ -18,8 +18,9 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from lib.checkkit import Checker  # noqa: E402,F401 — shared kit; case
-# checkers keep importing it from here (`from replaylib import Run, Checker`)
+# Shared kit; case checkers keep importing it from here
+# (`from replaylib import Run, Checker`).
+from lib.checkkit import Checker  # noqa: E402,F401
 
 MARKERS = ("**[", "✅ [")
 
@@ -120,8 +121,8 @@ class Run:
                    and not e.get("body", "").startswith(MARKERS))
 
     def status_labels(self, issue):
-        return sorted(l for l in self.state()["issues"][issue]["labels"]
-                      if l.startswith("status:"))
+        return sorted(lab for lab in self.state()["issues"][issue]["labels"]
+                      if lab.startswith("status:"))
 
     def has_label(self, issue, label):
         return label in self.state()["issues"][issue]["labels"]
@@ -190,7 +191,7 @@ class Run:
 
     def remote_ref_count(self):
         rc, out = self.git("for-each-ref")
-        return len([l for l in out.splitlines() if l.strip()])
+        return len([line for line in out.splitlines() if line.strip()])
 
     def remote_file(self, ref, path):
         rc, out = self.git("show", "%s:%s" % (ref, path))
@@ -203,5 +204,5 @@ class Run:
 
     def remote_commits_touching(self, ref, path):
         rc, out = self.git("log", ref, "--oneline", "--follow", "--", path)
-        return len([l for l in out.splitlines() if l.strip()])
+        return len([line for line in out.splitlines() if line.strip()])
 
