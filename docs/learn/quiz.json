@@ -230,9 +230,9 @@
    "q": "implementer 在 stage (3) implementation 中途發現 contract 有歧義。正確的路是？",
    "o": [
     "依最合理的解讀寫進 code，在 PR 描述註明「此處假設 X」，讓 (5) code review 的 reviewer 提異議。",
-    "停下、回報 main agent，由它整理成 spec CR 的 thread 讓人類裁決——(2a) 的 change order。",
+    "停下、回報 main agent，由它整理成 spec CR 的 thread 讓人類裁決——(2a) spec Q&A 的 change order。",
     "在 implementation CR 上開 thread 和 reviewer 討論後決定——兩個技術角色就能定，不必打擾人類。",
-    "跳過那個 scenario 留給 QA——contract 真有歧義，QA 的測試在 (6) integration verdict 自然會紅，到時再說。"
+    "跳過那個 scenario 留給 QA——contract 真有歧義，QA 的測試在 (6) integration verdict 自然會紅。"
    ],
    "a": 1,
    "why": "「a contract ambiguity mid-build is never interpreted by the contractor: it goes back through a change order」。在 code 裡單方面決定是 E3 那條被明文禁止的路；reviewer↔implementer 私下 settle 是 E4 禁止的路。",
@@ -246,11 +246,11 @@
    "t": "multi",
    "q": "以下哪些 `status:` label 是 transient（階段狀態），而不是 gate 或 lock？（全選）",
    "o": [
-    "`status: processing`——command 執行中的標記，可以和其他 status label 並存，表示此刻有人正在動它。",
-    "`status: blocked`——某個 command STOP 之後留下的階段，證據與建議在 issue comment 裡等人類。",
-    "`status: in-spec-review`——spec CR 已開、thread 等人類回答；QA 中途發現歧義重回 (2a) 也用它。",
-    "`status: in-user-review`——工作過了 verdict、(7) 的審查對話在這裡進行的階段。",
-    "`status: ready-for-dev`——spec 審完、進入實作前的階段，next-stage 看到它就啟動 (3) 與 (4)。"
+    "`status: processing`——command 執行中的標記，可以和其他 status label 並存，表示有人正在動它。",
+    "`status: blocked`——某個 command STOP 之後留下的階段，證據與建議在 issue comment 裡等人類決定。",
+    "`status: in-spec-review`——spec CR 已開、thread 等人類回答；QA 中途發現歧義重回 (2a) spec Q&A 也用它。",
+    "`status: in-user-review`——工作過了 verdict、(7) human review & merge 的對話在這裡進行的階段。",
+    "`status: ready-for-dev`——spec 審完、進入實作前的階段，它啟動 (3) implementation 與 (4) black-box QA。"
    ],
    "a": [
     1,
@@ -497,10 +497,10 @@
    "t": "single",
    "q": "hook 的 PreToolUse input 裡有 `agent_type`。為什麼 rule E 不能靠它判斷「現在是 fidelity dispatch」，而要靠 marker 檔？",
    "o": [
-    "`agent_type` 是子代理自己回報的值，可能被竄改；檔案系統上的 marker 由父程序寫，比較可信。",
-    "(5) 和 (5q) 都是 `reviewer` seat：`agent_type` 兩次相同，分不出哪一次該盲、哪一次不用。",
+    "`agent_type` 是子代理自己回報的值，可能被竄改；檔案系統上的 marker 由父程序寫入，可信得多。",
+    "(5) code review 與 (5q) fidelity review 都是 reviewer seat，agent_type 兩次相同。",
     "`agent_type` 只在 SubagentStart / SubagentStop 事件裡才有，PreToolUse 拿不到。",
-    "marker 檔比讀 JSON 欄位快，而 hook 的 prefilter 必須近乎零成本，所以選了檔案系統這條路。"
+    "marker 檔比讀 JSON 欄位快，而 hook 的 prefilter 必須近乎零成本，所以選了檔案系統這條路走。"
    ],
    "a": 1,
    "why": "文件查證過：PreToolUse 在 subagent 內確實帶 agent_id/agent_type，但兩次 dispatch 同一個 seat。marker 放在 `<git-dir>/roz-gate/fidelity-dispatch`，per worktree、不進 git status。",
