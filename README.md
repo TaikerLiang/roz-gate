@@ -226,9 +226,11 @@ Details, the fidelity-dispatch marker, and how to add a rule: `hooks/README.md`.
 Every state-mutating command has exactly two exits: **Done** (deliverable
 produced, lock removed) or **STOP** (discard local work, set `blocked` alone,
 post evidence + a recommended next step). No third exit — so any terminal state
-is readable from the labels alone. The single exception is stage (7), which has
-no `blocked` exit: the issue is already at your gate, so a failure there is a
-comment saying so.
+is readable from the labels alone. At stage (7) the STOP exit takes the form of
+a prefixed `**[review] · question**` rather than `blocked`: `blocked` means "halt
+the machine", and at (7) no machine is running — you are; setting it would also
+remove `in-user-review` and hide a live conversation from patrol. Same rule, no
+label to swap.
 
 ## Forge support
 
