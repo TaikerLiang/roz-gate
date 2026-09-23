@@ -1,6 +1,6 @@
 {
  "_meta": {
-  "version": "draft-6 (2026-09-22, balanced option lengths, seeded positions, stage map)",
+  "version": "draft-7 (2026-09-24, blocked = abnormal halt; (7)'s STOP form is a principle, not an exception)",
   "pass": {
    "overall": 0.8,
    "per_module": 0.6,
@@ -136,7 +136,7 @@
    },
    {
     "term": "STOP",
-    "zh": "command 的第二個出口：丟掉本機工作、只留 `status: blocked`、把證據與建議貼成 issue comment、等人類"
+    "zh": "command 的第二個出口，異常停機：丟掉本機工作、只留 `status: blocked`、把證據與建議貼成 issue comment、停下等人決定——不是「agent 問了問題在等你」（那是 in-spec-review / in-user-review）"
    },
    {
     "term": "fidelity",
@@ -173,13 +173,13 @@
    "t": "single",
    "q": "每個會改變狀態的 command 只有兩個出口。哪一個描述正確？",
    "o": [
-    "Done 或 Retry：暫時性錯誤時自動重跑最多三次，三次都失敗才回報，減少人類被打擾。",
-    "Done、STOP、Skip：Skip 用在 command 判斷目前沒有它能做的事，靜默跳過、不留痕跡。",
-    "Done（產出交付物、拿掉 lock）或 STOP（丟掉本機工作、只留 blocked、貼證據）。",
-    "Done 或 Fix：發現 label 狀態不一致時先自行修正，再從修正後的狀態繼續，避免卡住。"
+    "**Done** 或 **Retry**：遇到暫時性錯誤時 command 自動重跑最多三次，三次都失敗才回報並留下 issue comment 說明重試紀錄——減少人類被打擾的次數，也讓 log 自己說明發生了什麼。",
+    "**Done**、**STOP**、**Skip** 三種：Skip 用在 command 判斷這個 issue 目前沒有它能做的事，靜默跳過、不留任何 comment 或標籤——patrol 每輪掃過去時就保持安靜，不製造噪音。",
+    "**Done**：交付物產出、`processing` 鎖拿掉。**STOP**（異常停機）：丟掉未 commit 的本機工作、把狀態標籤換成只剩 `blocked`、貼一則 issue comment 寫明發生什麼、證據、建議的下一步。沒有第三種結束方式。",
+    "**Done** 或 **Fix**：command 發現 label 狀態不一致（例如兩個階段標籤並存）時先自行修正成最可能的狀態，再從修正後的狀態繼續執行，事後在 issue comment 註明——避免流程因為標籤問題卡住。"
    ],
    "a": 2,
-   "why": "「No third exit」——任何終端狀態都能只從 label 讀出來。唯一例外是 stage (7) human review & merge：issue 已在你的 gate 上，失敗就是一則說明的 comment，沒有 blocked 出口。",
+   "why": "任何終端狀態都能只從 label 讀出來。在 (7) human review 這一站，STOP 的形式是一則 `**[review] · question**` 而不是 `blocked`——`blocked` 的意思是「叫機器停」，而 (7) 沒有機器在跑、是人類在行動；貼 blocked 反而會把正在進行的對話從 patrol 的視野裡拿掉（blocked 必須單獨存在，in-user-review 會被移掉）。原則沒有例外，只是沒有標籤可換。",
    "src": "README.md § Labels & state machine",
    "bg": "Roz Gate 的 command（next-stage、spec-answers、integrate、patrol…）都會改變 issue 的 label 與 CR 狀態。設計上它們被要求「任何終端狀態都能只從 label 讀出來」——也就是說一個 command 結束之後，不需要看 log，光看 issue 上的 label 就知道它是成功了還是卡住了。這個要求限制了 command 可以有幾種結束方式。"
   },
@@ -247,7 +247,7 @@
    "q": "以下哪些 `status:` label 是 transient（階段狀態），而不是 gate 或 lock？（全選）",
    "o": [
     "`status: processing`——command 執行中的標記，可以和其他 status label 並存，表示有人正在動它。",
-    "`status: blocked`——某個 command STOP 之後留下的階段，證據與建議在 issue comment 裡等人類決定。",
+    "`status: blocked`（異常停機）——某個 command STOP 之後留下的階段，證據與建議在 issue comment 裡，等你決定。",
     "`status: in-spec-review`——spec CR 已開、thread 等人類回答；QA 中途發現歧義重回 (2a) spec Q&A 也用它。",
     "`status: in-user-review`——工作過了 verdict、(7) human review & merge 的對話在這裡進行的階段。",
     "`status: ready-for-dev`——spec 審完、進入實作前的階段，它啟動 (3) implementation 與 (4) black-box QA。"
