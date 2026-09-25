@@ -9,7 +9,7 @@
 #
 # Two constraints this file must never break:
 # - hooks/ NEVER depend on uv at runtime. Claude Code invokes them on
-#   consumer machines through the .sh shims with plain `python3`, stdlib
+#   target-repo machines through the .sh shims with plain `python3`, stdlib
 #   only, standalone shebangs — the same rule as evals/replay/forge-stub/gh,
 #   which is exec'd by the SUT's shell with no venv active. A dependency
 #   added here must not be imported by anything under hooks/. ruff is a
