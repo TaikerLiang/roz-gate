@@ -1,0 +1,6 @@
+{
+  "ledger": "D4 · The acceptance suite changes only on qa/<n>",
+  "prompt": "/roz-gate:integrate 5",
+  "k": 5,
+  "timeout": 1800
+}
