@@ -6,7 +6,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: hook unit tests
-        run: bash hooks/tests/run-tests.sh
+        run: python3 hooks/tests/run_tests.py
       - name: eval ledger lint tier
         run: python3 evals/lint/run_lint.py
       - name: naming convention (repo hygiene, tools/ — not the ledger)

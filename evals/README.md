@@ -37,8 +37,8 @@ the suite's owner reads Python, not shell, and a check list its owner
 cannot read gives him no control over the rule corpus, which defeats
 the suite's purpose. Everything runs under one uv project
 (the root `pyproject.toml`, stdlib-only; plain `python3` works
-identically). The one deliberate exception is `hooks/tests/` — the
-HOOK suite, not an eval tier: bash testing a Python hook through its
+identically). The hook suite, `hooks/tests/`, is Python too but is not
+an eval tier: it drives each hook through its `.sh` shim and
 stdin/exit-code contract, exactly the interface Claude Code invokes.
 
 ## Method: linting rules that a model executes
@@ -83,7 +83,7 @@ restore. Record the mutation in the case's commit message.
 
 **The alternative with teeth.** C4 (`track: fast` + `ready-for-spec`
 refused) is in the case list but has no lint: it is enforced by
-`hooks/guard-gate` and proven in `hooks/tests/run-tests.sh`, which the
+`hooks/guard-gate` and proven in `hooks/tests/`, which the
 same release gate runs. It is the worked example of the stronger option —
 when a rule can be a hook, make it a hook. B4 was promoted in 1.14.0 (rule
 C). E2 was promoted in 1.15.0 (rule D) on the replay tier's evidence: the

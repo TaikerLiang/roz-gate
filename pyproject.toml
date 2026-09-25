@@ -17,8 +17,8 @@
 #   stdlib-only.
 # - pyproject.toml and uv.lock ship with the plugin; .venv/ is gitignored
 #   and must never be committed.
-# hooks/tests/ is the hook suite (bash testing a Python hook through its
-# stdin/exit-code contract), not part of this project.
+# hooks/tests/ is the hook suite: stdlib unittest driving each hook through
+# its .sh shim and stdin/exit-code contract, like the hooks it tests.
 
 [project]
 name = "roz-gate"

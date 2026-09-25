@@ -48,8 +48,8 @@ that parses journal/state/transcript/results), per-case `check.py`,
 the forge stub, and the lint tier's `run_lint.py`. Shared mechanics
 live thin in `evals/lib/checkkit.py` (tally, probe-error guard,
 citation guard) — the lint tier never inherits replay's Run/artifact
-machinery. Only `seed.sh` scripts stay bash (git plumbing), and
-`hooks/tests/` stays bash as the hook suite, not an eval tier.
+machinery. Only `seed.sh` scripts stay bash (git plumbing); `hooks/tests/` is the
+hook suite, not an eval tier.
 
 ## The smoke gate
 
