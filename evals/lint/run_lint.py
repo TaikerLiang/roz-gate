@@ -163,7 +163,7 @@ must_not_match("B3: no fullwidth-bracket marker variant anywhere",
 # B4 · an agent write never opens with a quote block        (defect: 1.11.0-)
 # Static layer: the write rules must be stated where writes happen. Teeth
 # since 1.14.0: guard-gate rule C denies the quote-opening marker-carrying
-# comment itself (proven in hooks/tests/run-tests.sh, run by the same
+# comment itself (proven in hooks/tests/, run by the same
 # release gate).
 src("B4: question comments must open with the marker",
     "commands/next-stage.md", "MUST start with `**[")
@@ -387,10 +387,10 @@ else:
 # ---------------------------------------------------------------------------
 # C4 · track: fast + ready-for-spec refused                 (hook-covered)
 # The control case: it needs no lint because it has teeth. Enforced by
-# hooks/guard-gate and proven in hooks/tests/run-tests.sh ("gate label add
-# blocked"), which the same release gate runs. Nothing to check here.
+# hooks/guard-gate and proven in hooks/tests/test_guard_gate.py ("gate label
+# add blocked"), which the same release gate runs. Nothing to check here.
 c.passed += 1
-c.ok("C4: covered by guard-gate (see hooks/tests/run-tests.sh, run by the same gate)")
+c.ok("C4: covered by guard-gate (see hooks/tests/test_guard_gate.py, run by the same gate)")
 
 # ---------------------------------------------------------------------------
 # C6 · CR lookup sees merged CRs where it must              (defect: 1.11.0-)
