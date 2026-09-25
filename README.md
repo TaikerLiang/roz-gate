@@ -281,7 +281,10 @@ then add three keys to the config block:
 - operator: your-forge-login     # default assignee for bot-created issues
 ```
 
-Keys absent = user mode, unchanged.
+On GitHub, the agent mints its short-lived installation token per call with
+the bundled [`scripts/gh-app-token.sh`](scripts/gh-app-token.sh); GitLab's
+project token needs no helper. Keys absent = user mode, unchanged — no App,
+no helper.
 
 ## Per-project configuration
 
@@ -360,26 +363,26 @@ Retirement is two steps, **in this order**:
 | `commands/` | the entry points (`/roz-gate:*`) | Claude Code, then the agent | invocation |
 | `references/` | protocol docs, seat briefs, forge adapters | the agent, on every invocation | runtime |
 | `agents/` | the built-in personas (product, em, qa, reviewer) — referenced, never copied | the agent, at dispatch | dispatch |
-| `templates/` | consumer scaffolding, instantiated by `init` and removed by `uninit` | the consumer repo | install time |
+| `templates/` | target-repo scaffolding, instantiated by `init` and removed by `uninit` | the target repo | install time |
 | `hooks/` | deterministic enforcement and its tests ([hooks/README.md](hooks/README.md)) | the machine, before a tool runs | tool time |
 | `evals/` | the eval ledger — lint, replay, judgment ([evals/README.md](evals/README.md)) | developers of the plugin | dev time; lint on pre-push and CI |
 | `.githooks/` | this repo's own gates (thin entry points) | git, on commit and push | commit / push |
 | `docs/` | human-facing pages (roadmap, site) | humans | never loaded by the agent |
-| `scripts/` | consumer/operator-facing runtime utilities (e.g. the GitHub App token helper) | operators, at runtime | on demand |
+| `scripts/` | target-repo/operator-facing runtime utilities (e.g. the GitHub App token helper) | operators, at runtime | on demand |
 | `tools/` | dev-only tooling for this repo (naming check, dev setup) — never used at plugin runtime | developers of the plugin | dev time; pre-commit and CI |
 | `.claude-plugin/` | the manifest (name, version) | Claude Code | install |
 
 Two axes organize this. **Who reads it**: the agent at runtime
 (`commands/`, `references/`, `agents/`), the machine (`hooks/`,
-`.githooks/`), humans (`docs/`, `evals/`), or the consumer repo
+`.githooks/`), humans (`docs/`, `evals/`), or the target repo
 (`templates/`, instantiated). **When it takes effect**: install
 (`templates/`, the manifest), runtime (everything the agent loads), or dev
 time (`evals/`, the gate).
 
 One deliberate asymmetry: four personas live in `agents/` and are
-*referenced* by the consumer's config, but the implementer lives in
+*referenced* by the target repo's config, but the implementer lives in
 `templates/` and is *copied* — it is the only seat that must absorb the
-consumer's own coding guidelines, so it has to be a file the consumer owns.
+target repo's own coding guidelines, so it has to be a file the target repo owns.
 
 File names: Python is `snake_case` (importable), shell is `kebab-case`,
 markdown is lowercase-kebab except the ecosystem caps (`README`,
