@@ -3,16 +3,17 @@
 spec branch.
 
 Invoked by guard-acceptance.sh only when HEAD is a ``spec/<n>`` branch. One
-rule, the mechanical form of existing protocol text:
+rule (the acceptance rule — no letter; rule C is guard-gate's quote-open
+rule), the mechanical form of existing protocol text:
 
-  C. Acceptance tests are written on ``qa/<n>`` and reach ``spec/<n>`` by
-     merge (references/workflow.md (4); commands/integrate.md step 3). An
-     *edit* to them on the spec branch is the one move integrate.md step 5
-     forbids in words — "an integration RED is never resolved by editing a
-     QA assertion to match observed behaviour, that rewrites the verdict
-     into an echo of the implementation" — and at stage (7) it is worse:
-     the human has already been told the work is verified, so a weakened
-     assertion re-runs green and the evidence cards regenerate clean.
+  Acceptance tests are written on ``qa/<n>`` and reach ``spec/<n>`` by
+  merge (references/workflow.md (4); commands/integrate.md step 3). An
+  *edit* to them on the spec branch is the one move integrate.md step 5
+  forbids in words — "an integration RED is never resolved by editing a
+  QA assertion to match observed behaviour, that rewrites the verdict
+  into an echo of the implementation" — and at stage (7) it is worse:
+  the human has already been told the work is verified, so a weakened
+  assertion re-runs green and the evidence cards regenerate clean.
 
 The guard is deliberately branch-and-path only: no stage detection, no
 label lookup, no dispatch-identity check, no exemption list. That is what
