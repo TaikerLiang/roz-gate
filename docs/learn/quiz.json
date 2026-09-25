@@ -311,8 +311,8 @@
    "q": "把 inbox 的「三個節拍」排成正確順序。",
    "o": [
     "assignee 套上 gate label（ready-for-spec 或 ready-for-dev）——label 本身就是確認，patrol 才改寫 body 並交給 loop。",
-    "patrol 對這個沒有 track label 的 issue 貼出一批（只有一批）編號問題，每題附推薦選項，把討論留給人。",
-    "assignee 在某則 comment 的最後一行寫 `summary`——agent 把 body 加所有 comment 濃縮成 story、AC（acceptance criteria）、track、決策紀錄。"
+    "patrol 看到這個沒有 track label 的 issue，貼出一批（只有一批）編號問題，每題都附上推薦選項，討論與最後的決定全都留給人類。",
+    "assignee 在某則 comment 的最後一行寫 `summary`——agent 把 body 加所有 comment 濃縮成 story、AC、track、決策紀錄。"
    ],
    "a": [
     1,
@@ -321,7 +321,7 @@
    ],
    "why": "ask once → summarize on demand → the label confirms。只有 assignee 說的話會寫進 issue body；旁觀者的 comment 不會被併進去。",
    "src": "README.md § The inbox",
-   "bg": "Inbox 的 intake 流程被設計成「ask once, summarize on demand, the label confirms」三個節拍：agent 只問一次、人類決定何時要 summary、最後由 label 確認。這個順序刻意把「何時往前走」的決定權留給 assignee。"
+   "bg": "Inbox 的 intake 流程被設計成「ask once, summarize on demand, the label confirms」三個節拍：agent 只問一次、人類決定何時要 summary、最後由 label 確認。這個順序刻意把「何時往前走」的決定權留給 assignee。（summary 裡的 AC 是 acceptance criteria。）"
   },
   {
    "id": 9,
@@ -1001,9 +1001,9 @@
    "t": "order",
    "q": "E2「open questions 只有一個家」這條規則的歷史。把事件排成正確順序。",
    "o": [
-    "把 predicate 做成 commit 時的 hook（rule D）：technical-spec.md 還有 open-questions 段落就擋 commit；re-run 5/5。",
+    "把 predicate 做成 commit 時的 hook（rule D）：technical-spec.md 還有 open-questions 段落就擋；re-run 5/5。",
     "replay 量到 E2 全部是 copy 不是 move；prose 改成「move it … delete it from the source document」。",
-    "改完 prose 再量，仍然 0/5：每次都複製、貼 thread、然後從此不再碰來源檔——第二個動作（刪除）被漏掉。",
+    "改完 prose 再量，仍然 0/5：agent 每次都複製、貼 thread，之後就不再碰來源檔——第二個動作（從來源檔刪除）一直被漏掉。",
     "第一次 replay：next-stage A6 的 prose 寫「relocate it verbatim」，五次都當成 copy，來源檔的 §9 原封不動。"
    ],
    "a": [
@@ -1057,7 +1057,7 @@
    "t": "order",
    "q": "一個 replay case 回報 0/5。在向 Paul 回報「模型五次都違規」之前，autopsy 的順序是？",
    "o": [
-    "最後才確認它是 model violation：transcript 裡真的有「執行了」的違規動作，不是被擋的嘗試。",
+    "最後才確認它是 model violation：transcript 裡真的有「執行了」的違規動作，而不只是被 hook 擋下的嘗試。",
     "先看有效性：五次都 valid 嗎？沒有 result event、quota banner、UNKNOWN route 都是 invalid，不是 fail。",
     "再看 instrument：checker 有沒有把「提到 src/」當「讀 src/」、把「被擋的嘗試」當 breach。",
     "再看 fixture 與規則：fixture 是不是退化（`test: true`）、prose 是不是真的有歧義（copy vs move）。"
