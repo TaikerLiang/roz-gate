@@ -33,11 +33,17 @@ judgment, and the release history is the guide:
    with one paragraph saying why minor or patch. Open the PR; the
    maintainer merges it.
 
-3. **Draft the release** against the merge commit — the full SHA; the API
-   rejects a short one:
+3. **Draft the release** against the release PR's merge commit. Take the
+   SHA from the PR itself, not from `origin/main`: a local `origin/main`
+   fetched before the merge still points at the pre-bump commit, and the
+   tag would be created there, without the bump (codex review, PR #32).
+   Check the version at that commit before drafting. The SHA must be the
+   full one; the API rejects a short one.
 
    ```sh
-   gh release create v<x.y.z> --draft --target "$(git rev-parse origin/main)" \
+   SHA=$(gh pr view <release-pr> --json mergeCommit --jq .mergeCommit.oid)
+   git fetch origin && git show "$SHA:.claude-plugin/plugin.json" | grep '"version"'   # must say <x.y.z>
+   gh release create v<x.y.z> --draft --target "$SHA" \
      --title "v<x.y.z> — <what it is, in one line>" --notes-file notes.md
    ```
 
