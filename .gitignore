@@ -2,5 +2,3 @@ __pycache__/
 *.pyc
 .venv/
 evals/judgment/.sources/
-evals/replay/report/
-evals/judgment/report/
