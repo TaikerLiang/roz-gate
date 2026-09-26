@@ -9,6 +9,8 @@ jobs:
         run: python3 hooks/tests/run_tests.py
       - name: eval ledger lint tier
         run: python3 evals/lint/run_lint.py
+      - name: replay red-proofs (checkers scored on seeded sandboxes, no model)
+        run: python3 evals/replay/run_redproofs.py
       - name: naming convention (repo hygiene, tools/ — not the ledger)
         run: python3 tools/naming.py $(git ls-files)
       - uses: astral-sh/setup-uv@v5

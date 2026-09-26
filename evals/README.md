@@ -162,14 +162,16 @@ prototype for `evals/status.py`.
 that breaks the naming convention (`tools/naming.py` — repo hygiene, run
 again by CI over the tree; deliberately not a ledger case). `.githooks/pre-push`
 (same wiring) runs this suite
-(`python3 evals/lint/run_lint.py`) and the hook unit tests on **every
-push** and blocks on red. "Must pass before
+(`python3 evals/lint/run_lint.py`), the hook unit tests and the replay
+checkers' red-proofs (`python3 evals/replay/run_redproofs.py`, seconds —
+seeded sandboxes, no model) on **every push** and blocks on red. "Must pass before
 every version bump" is a subset of that; unconditional is simpler and the
-cost is milliseconds. `git push --no-verify` is the documented human
+cost is seconds. `git push --no-verify` is the documented human
 override; `.github/workflows/checks.yml` is its backstop.
 
 Run locally:
 
 ```sh
 python3 evals/lint/run_lint.py     # or, from the repo root: uv run evals/lint/run_lint.py
+python3 evals/replay/run_redproofs.py   # every replay case's redproof.py
 ```
