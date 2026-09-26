@@ -25,7 +25,7 @@ self-grading bias possible, unmeasured (README cannot-see #9).
 
 Reuses the replay tier by import: forge stub, replaylib, invoke /
 validity / quota / resumability. Never network: the sandbox is a clone of
-the machine-local ADMC checkout named in sources.yaml.
+the local ADMC clone that sources.py sets up.
 """
 
 import glob
@@ -50,6 +50,7 @@ _spec = importlib.util.spec_from_file_location("run_replay", os.path.join(RS, "r
 rr = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(rr)
 sys.path.insert(0, S)
+import sources  # noqa: E402
 from materialize import check_frozen  # noqa: E402
 
 ROOT = rr.ROOT
@@ -64,7 +65,7 @@ MIN_QUOTE = 40
 QUESTION_RE = re.compile(r"^\*\*(?:\[[^\]]+\] · )?Q(\d+) · ", re.M)
 SUMMARY_MARKER = "**[intake] · summary**"
 SECTION_START = "## Development Workflow (Roz Gate)"
-CONFIG_SOURCE = "d2ded1269c1c"   # the last commit whose CLAUDE.md carries the section in git
+CONFIG_SOURCE = sources.CONFIG_SOURCE
 CRITERIA = json.load(open(os.path.join(S, "criteria.json"), encoding="utf-8"))
 JUDGE_PROMPT = open(os.path.join(S, "judge-prompt.md"), encoding="utf-8").read()
 # Bump when quote_ok / norm / the re-ask policy change: the policy is code,
@@ -104,11 +105,7 @@ def die(msg, code=2):
 
 
 def admc_path():
-    for line in open(os.path.join(S, "sources.yaml"), encoding="utf-8"):
-        m = re.match(r"^admc:\s*(.+?)\s*$", line)
-        if m:
-            return os.path.expanduser(m.group(1))
-    die("sources.yaml: no admc path")
+    return sources.admc_path()
 
 
 def git(cwd, *args, check=True):
@@ -510,6 +507,7 @@ def main(argv):
         die("judge configuration changed since the last red-proof (stored %s, current %s) — "
             "the judge is unmeasured; run `--redproof` first"
             % (stored.get("fingerprint"), JUDGE_FP))
+    sources.require(cases or None)   # every pin and the overlay's commit, before any spend
     report = os.path.join(report_root, sut_name)
     os.makedirs(report, exist_ok=True)
     for name in cases or sorted(os.listdir(os.path.join(S, "cases"))):

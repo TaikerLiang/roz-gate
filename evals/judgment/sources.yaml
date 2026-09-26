@@ -1,3 +1,7 @@
-# Machine-local sources the judgment tier clones from — never the network.
-# The ADMC checkout must contain every pin SHA in cases/*/fixture.json.
-admc: /Users/taiker/dev/ADMC
+# The judgment tier's source repository — private, so never copied in here.
+# `python3 evals/judgment/sources.py` clones it to admc_path (relative to
+# this directory, gitignored) or fetches it there; ROZ_GATE_ADMC overrides
+# the path, e.g. to reuse an existing checkout. Runs clone their sandbox
+# from that local clone — never the network.
+admc_remote: git@github.com:emilyorz/ADMC.git
+admc_path: .sources/ADMC
