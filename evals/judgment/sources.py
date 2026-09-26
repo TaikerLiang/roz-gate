@@ -67,10 +67,23 @@ def needed(cases=None):
     return out
 
 
+def is_checkout(path):
+    """A git checkout rooted at `path` — asked of git, not of `.git`'s shape:
+    a linked worktree's `.git` is a file (codex review, PR #33). The
+    toplevel must be `path` itself, or an empty .sources/ADMC inside this
+    repo would pass as roz-gate's own checkout."""
+    if not os.path.isdir(path):
+        return False
+    out = subprocess.run(["git", "-C", path, "rev-parse", "--show-toplevel"],
+                         capture_output=True, text=True)
+    return (out.returncode == 0
+            and os.path.realpath(out.stdout.strip()) == os.path.realpath(path))
+
+
 def missing(path, cases=None):
     """Needed commits absent from the clone at `path`, as 'sha (why)'."""
-    if not os.path.isdir(os.path.join(path, ".git")):
-        return ["no git clone at %s" % path]
+    if not is_checkout(path):
+        return ["no git checkout at %s" % path]
     return ["%s (%s)" % (sha, why) for sha, why in needed(cases).items()
             if subprocess.run(["git", "-C", path, "rev-parse", "--verify", "-q",
                                sha + "^{commit}"], capture_output=True).returncode != 0]
@@ -88,7 +101,7 @@ def require(cases=None):
 
 def main():
     path = admc_path()
-    if os.path.isdir(os.path.join(path, ".git")):
+    if is_checkout(path):
         print("fetch %s" % path)
         step = ["git", "-C", path, "fetch", "--quiet", "origin"]
     else:
