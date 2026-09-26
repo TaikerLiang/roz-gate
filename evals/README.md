@@ -8,6 +8,9 @@ Three tiers of evidence that the workflow's rules hold.
 | **replay** | 19 | built — `replay/run_replay.py` | needs a running loop and pass^k over repeated runs |
 | **judgment** | 7 items / 4 fixtures | built — `judgment/run_judgment.py`, k=2 baseline complete (2026-09-21) | a real repo per iteration plus an opus judge; the only tier that measures whether the spec stage earns its cost |
 
+Adding a case: [`CONTRIBUTING.md`](CONTRIBUTING.md) — the procedure, tier
+by tier, and the instruments that lied.
+
 Two failure modes exist, and only one of them is what people expect:
 
 1. **A rule is not followed.** Replay-tier work catches this. Stochastic,
