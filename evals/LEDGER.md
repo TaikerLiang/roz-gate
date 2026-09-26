@@ -80,7 +80,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | D1 | the reviewer receives the claim it reviews against | lint (defect 1.8.0-) | — |
 | D2 | The fidelity dispatch is blind by topology | lint + replay + hook (guard-blind rule E) | "Checkout is qa/<n>; abort if the context ever touched feat/<n>. Blindness asserted in a prompt is a request; blindness enforced by which branch is checked out is a fact." |
 | D3 | Every dispatch carries the seat's R&R row | replay | "The payload contains the seat's Owns / Never row." (a seat running without its contract produces plausible work, and nothing in the record shows the row was missing) |
-| D4 | The acceptance suite changes only on qa/<n> | replay — lands with PR #25; no baseline yet | "Acceptance tests are written on qa/<n> and reach spec/<n> by merge. Nothing else writes them on spec/<n> — not Edit, not a shell, not a script: an assertion edited next to the code it judges rewrites the verdict into an echo of the implementation." |
+| D4 | The acceptance suite changes only on qa/<n> | replay (no baseline yet) | "Acceptance tests are written on qa/<n> and reach spec/<n> by merge. Nothing else writes them on spec/<n> — not Edit, not a shell, not a script: an assertion edited next to the code it judges rewrites the verdict into an echo of the implementation." |
 
 ### E · questions and answers reach the right place
 
