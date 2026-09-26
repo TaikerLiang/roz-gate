@@ -9,7 +9,9 @@ Three tiers of evidence that the workflow's rules hold.
 | **judgment** | 7 items / 4 fixtures | built — `judgment/run_judgment.py`, k=2 baseline complete (2026-09-21) | a real repo per iteration plus an opus judge; the only tier that measures whether the spec stage earns its cost |
 
 Every case, across all three tiers, is indexed in [`LEDGER.md`](LEDGER.md)
-— IDs, families, and the ledger text each checker cites.
+— IDs, families, and the ledger text each checker cites. Adding a case:
+[`CONTRIBUTING.md`](CONTRIBUTING.md) — the procedure, tier by tier, and
+the instruments that lied.
 
 Two failure modes exist, and only one of them is what people expect:
 

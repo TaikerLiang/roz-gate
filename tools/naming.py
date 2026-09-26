@@ -9,8 +9,8 @@ Rules (README § Repository layout):
   shell    kebab-case  ^[a-z0-9-]+\\.sh$
   markdown lowercase kebab ^[a-z0-9.-]+\\.md$  — except the ecosystem caps
            (README, CHANGELOG, ROADMAP, CLAUDE, CLAUDE.local, SKILL, MEMORY,
-           LICENSE), the eval ledger's index (LEDGER), and the eval
-           fixtures, which are DATA keyed by ledger case id (`F-63.md`,
+           LICENSE, CONTRIBUTING), the eval ledger's index (LEDGER), and the
+           eval fixtures, which are DATA keyed by ledger case id (`F-63.md`,
            `b1_compound.md`): evals/**/fx/, evals/judgment/cases/,
            evals/judgment/redproof/.
 
@@ -31,7 +31,7 @@ SH = re.compile(r"^[a-z0-9-]+\.sh$")
 MD = re.compile(r"^[a-z0-9.-]+\.md$")
 MD_ALLOW = {"README.md", "CHANGELOG.md", "ROADMAP.md", "CLAUDE.md",
             "CLAUDE.local.md", "SKILL.md", "MEMORY.md", "LICENSE.md",
-            "LEDGER.md"}
+            "CONTRIBUTING.md", "LEDGER.md"}
 FIXTURE_DIRS = re.compile(r"(^|/)(fx|evals/judgment/cases|evals/judgment/redproof)(/|$)")
 
 
@@ -45,7 +45,7 @@ def offence(path):
     if base.endswith(".md") and base not in MD_ALLOW and not MD.match(base) \
             and not FIXTURE_DIRS.search(path.replace(os.sep, "/")):
         return ("markdown files are lowercase-kebab (^[a-z0-9.-]+\\.md$) except "
-                "README/CHANGELOG/ROADMAP/CLAUDE/SKILL/LEDGER and fixture data")
+                "README/CHANGELOG/ROADMAP/CLAUDE/SKILL/CONTRIBUTING/LEDGER and fixture data")
     return None
 
 

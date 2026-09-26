@@ -135,15 +135,16 @@ the payload is the assertion.
 **Red-proof, re-runnable**: a checker is red-proofed before it counts — the
 correct runs must pass and every violation shape must fail. Recorded only
 in a commit message, that proof cannot be re-run, and a later checker or
-seed edit breaks it silently. A case may ship `redproof.py` beside its
-checker: it seeds real sandboxes with the case's own `seed.sh`, stages
+seed edit breaks it silently. Every case ships `redproof.py` beside its
+checker (`CONTRIBUTING.md` § redproof.py): it seeds real sandboxes with the case's own `seed.sh`, stages
 end states and real tool output, and runs `check.py` on them — no model,
-no tokens. `run_redproofs.py` runs every one on each push (pre-push, CI).
+no tokens. `run_redproofs.py` runs every one on each push (pre-push, CI)
+and fails on a case that has none.
 D4 is the first: eight end states and eight verdict-run shapes, found
 necessary when D4's two instrument gaps (an incomplete `acceptance_test`,
 a verdict trimmed by `| tail`) were each proven only in a scratch script.
-Older cases are red-proofed in their commit messages; porting them is
-open.
+The 18 older cases are red-proofed in their commit messages and exempt by
+name (`LEGACY` in `run_redproofs.py`) — a list that only shrinks.
 
 **pass^k**: every case runs k times (A–E k=5, F1–F5 k=10) and reports the
 observed rate — never a boolean. F6 is instrument-only: a 12-turn session
