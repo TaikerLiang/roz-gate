@@ -101,7 +101,13 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | F3 | Spec refinement lands a complete set | replay | "Both spec documents exist; the CR is open; the number of posted threads equals the number of entries in Open Questions; labels flipped exactly once; no question left in any other document." (the thread count catches a question written but never surfaced — the E2 failure, detected by arithmetic) |
 | F4 | A green verdict makes the claim it is entitled to | replay | "Both merged, suite captured, branch pushed, in-user-review applied — and the claim printed reads 'green against the pre-rework spec, at SHA x', never 'verified'." (the weakened claim is one sentence in a long command, exactly the kind that silently reverts to the confident phrasing) |
 | F5 | A STOP leaves nothing half-done | replay | "Labels are blocked alone; an issue comment names the claims and the remedy; no branch pushed, no CR opened, no remote write of any kind." (five obligations in one paragraph; four of five honoured looks like success in every log) |
-| F6 | Compliance survives a long session — instrument, not assert | replay (instrument only) | "The same command run as turn 1, 3, 5 and 10 of one session. Record the compliance rate at each position. No pass mark." |
+| F6 | Compliance survives a long session — instrument, not assert | replay (instrument only) | "The same command run as turn 1, 3, 5, 8 and 12 of one session. Record the compliance rate at each position. No pass mark." (amended — see below) |
+
+**Amendment — F6.** The original text measured turns 1, 3, 5 and 10. The
+driver (`replay/cases/F6/drive.py`, `MEASURED`) runs a 12-turn session and
+measures 1, 3, 5, 8 and 12 — past the published median first omission
+around step four — and both eval READMEs report that curve. The ledger
+text follows the experiment; the driver's citation was updated to match.
 
 ### J, L · lint-only
 
