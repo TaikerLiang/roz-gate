@@ -9,6 +9,11 @@
 opus:  {mode: subscription, model: claude-opus-5}
 fable: {mode: subscription, model: claude-fable-5}
 
+# opus55 measures the newer Opus beside the baseline rather than replacing it:
+# `opus` stays claude-opus-5 so the published baseline remains comparable, and
+# the judgment tier's judge (run_judgment.py JUDGE_MODEL) is unaffected.
+opus55: {mode: subscription, model: claude-opus-5-5}
+
 # TODO — API rows via an OpenAI-compatible translation proxy (LiteLLM-shaped,
 # ANTHROPIC_BASE_URL). The runner's resolution already accommodates these;
 # the rows are unwired until the proxy exists. Never scored 0 on plumbing
