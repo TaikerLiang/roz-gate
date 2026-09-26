@@ -17,8 +17,8 @@ whose timestamps exceed T. Bodies are mutable on GitHub; the GraphQL
 userContentEdits history is recorded per issue so an edit after T is a
 visible caveat, never a silent one.
 
-Needs: gh (authenticated, read-only), the ADMC clone named in
-sources.yaml (for the historical spec docs at the refinement commits).
+Needs: gh (authenticated, read-only) and the ADMC clone that sources.py
+sets up (for the historical spec docs at the refinement commits).
 """
 
 import json
@@ -26,6 +26,9 @@ import os
 import re
 import subprocess
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import sources  # noqa: E402
 
 S = os.path.dirname(os.path.abspath(__file__))
 OWNER, REPO = "emilyorz", "ADMC"
@@ -272,13 +275,7 @@ def check_frozen(cases_dir):
 
 
 def main():
-    admc = None
-    for line in open(os.path.join(S, "sources.yaml"), encoding="utf-8"):
-        m = re.match(r"^admc:\s*(.+?)\s*$", line)
-        if m:
-            admc = os.path.expanduser(m.group(1))
-    if not admc or not os.path.isdir(admc):
-        sys.exit("sources.yaml: admc path missing or not a directory")
+    admc = sources.require()
     only = sys.argv[1:] or sorted(FIXTURES)
     for name in only:
         fx = FIXTURES[name]

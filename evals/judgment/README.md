@@ -24,6 +24,7 @@ trees already hold the questions in `specs/<n>/`. Caught at design time.
 ## Running
 
 ```sh
+python3 evals/judgment/sources.py                    # clone/fetch ADMC, verify every needed commit — once, and after ADMC moves
 python3 evals/judgment/run_judgment.py --check       # fixtures frozen? no tokens
 python3 evals/judgment/run_judgment.py --redproof    # judge red-proof, 28 judge calls (cached; --rejudge to re-ask) — first, always
 python3 evals/judgment/run_judgment.py --sut opus --k 1 F-63   # one iteration
@@ -46,8 +47,12 @@ python3 evals/judgment/run_judgment.py --sut opus --k 2        # the sweep (k=2 
 
 Every comment after T contains the answer. So:
 
-- **The repo** is the machine-local ADMC checkout (`sources.yaml`) cloned
-  with `--no-hardlinks`, `main` reset to the pin, every other ref and the
+- **The repo** is a local ADMC clone — private, so never committed here:
+  `sources.py` clones it from `sources.yaml`'s remote into the gitignored
+  `.sources/ADMC` (or `ROZ_GATE_ADMC` points at an existing checkout) and
+  checks it holds every pin, the overlay's source commit and every
+  refinement commit; a run refuses before any spend if one is missing.
+  Each run clones that local clone with `--no-hardlinks`, `main` reset to the pin, every other ref and the
   reflog dropped so nothing after T is reachable by name, then one overlay
   commit. Never network.
 - **The overlay** restores the Roz Gate config block to `CLAUDE.md`
