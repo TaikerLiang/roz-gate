@@ -28,6 +28,9 @@
 # script does not. No command regex decides pass/fail — D2's history is
 # three rounds of regex instrument blindness.
 #
+# Red-proof: redproof.py beside this file — eight end states and eight
+# verdict-run shapes, run on every push by ../../run_redproofs.py.
+#
 # Stated limit: an edit made, run, and then discarded (STOP's reset)
 # leaves no outcome. The signal columns below record such attempts; they
 # are reported, never scored.
