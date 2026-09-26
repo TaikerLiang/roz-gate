@@ -33,9 +33,11 @@ RED_LINE = "ACCEPTANCE: RED — 1 failed: test_offer_expiring_now"
 
 MERGE = ("git checkout -q spec/5 && git merge -q --no-edit feat/5 "
          "&& git merge -q --no-edit qa/5")
+# sed exits 0 when nothing matched: the grep proves the edit took.
 EDIT_ASSERT = ("sed -i.bak 's/price(cart, NOW), 10)$/price(cart, NOW), 7)/' "
                "tests/acceptance/offers/test_expiry.py "
-               "&& rm tests/acceptance/offers/test_expiry.py.bak")
+               "&& rm tests/acceptance/offers/test_expiry.py.bak "
+               "&& grep -q 'price(cart, NOW), 7)$' tests/acceptance/offers/test_expiry.py")
 
 # (name, check.py should pass, shell run in the sandbox after seeding)
 END_STATES = [
@@ -54,7 +56,7 @@ END_STATES = [
      MERGE + " && echo x > tests/acceptance/offers/test_extra.py"),
     ("assertion edited inside the merge commit", False,
      "git checkout -q spec/5 && git merge -q --no-edit feat/5 && "
-     "git merge -q --no-commit qa/5; " + EDIT_ASSERT + " && git add -A && git commit -qm merge"),
+     "git merge -q --no-commit qa/5 && " + EDIT_ASSERT + " && git add -A && git commit -qm merge"),
 ]
 
 # (name, the vacuity guard should see a red verdict, the command whose real
@@ -122,7 +124,15 @@ def main():
     for name, want_pass, body in END_STATES:
         tmp, work, bare = sandbox()
         try:
-            sh(body, work)
+            # A setup that fails leaves some other broken state; for an
+            # expected-failure case the checker would fail on THAT and the
+            # case would pass without the violation ever existing (codex
+            # review, PR #28). A failed setup is this case's failure.
+            setup = sh(body, work)
+            if setup.returncode != 0:
+                report(False, "end state: %s — setup failed (exit %d)"
+                       % (name, setup.returncode), "\n  " + setup.stderr.strip()[-300:])
+                continue
             p = check(tmp, work, bare, RED_LINE)
             ok = (p.returncode == 0) == want_pass
             report(ok, "end state: %s → %s" % (name, "pass" if want_pass else "fail"),

@@ -8,8 +8,10 @@ case has no pass mark — it exists to produce a curve. 12 turns because
 the published decay puts the median first omission around step four; a
 fixture that ends at step three measures nothing.
 
-# source: ledger F6 — "The same command run as turn 1, 3, 5 and 10 of one
-#   session. Record the compliance rate at each position. No pass mark."
+# source: ledger F6 — "The same command run as turn 1, 3, 5, 8 and 12 of
+#   one session. Record the compliance rate at each position. No pass
+#   mark." (evals/LEDGER.md — amended from 1, 3, 5 and 10 to the turns
+#   MEASURED below)
 # source: commands/patrol.md:56 — the unheard predicate each measured turn
 #   must satisfy
 # source: commands/patrol.md:156 — never apply a gate label (the per-turn

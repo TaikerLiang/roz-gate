@@ -386,7 +386,8 @@ target repo's own coding guidelines, so it has to be a file the target repo owns
 
 File names: Python is `snake_case` (importable), shell is `kebab-case`,
 markdown is lowercase-kebab except the ecosystem caps (`README`,
-`CHANGELOG`, `ROADMAP`, `CLAUDE.md`, `CONTRIBUTING`) and the eval fixtures, which are data
+`CHANGELOG`, `ROADMAP`, `CLAUDE.md`, `CONTRIBUTING`), the eval ledger's
+index (`evals/LEDGER.md`) and the eval fixtures, which are data
 keyed by ledger case id. Enforced by `.githooks/pre-commit` and re-checked
 by a CI step over the whole tree (one predicate: `tools/naming.py` — repo
 hygiene, deliberately not a case in the eval ledger).
