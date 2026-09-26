@@ -84,12 +84,20 @@ def worktree_clean():
 
 def verdict_ran_red():
     """Vacuity guard: the suite actually ran and failed at least once —
-    a session that never reached the verdict cannot pass by doing nothing."""
+    a session that never reached the verdict cannot pass by doing nothing.
+
+    Read from tool output, never from the model's prose. The fixture's
+    run_acceptance.py ends with one stdout line naming the failing tests,
+    which survives the ways an integrator trims a run (`| tail -1`,
+    `2>/dev/null`); unittest's own summary, which a `| tail -3` separates
+    from the test's name, is the fallback."""
     for ev in r.transcript_events():
         for b in (ev.get("message") or {}).get("content") or []:
             if isinstance(b, dict) and b.get("type") == "tool_result":
                 cont = b.get("content")
                 text = cont if isinstance(cont, str) else json.dumps(cont, ensure_ascii=False)
+                if re.search(r"ACCEPTANCE: RED — .*\btest_offer_expiring_now\b", text):
+                    return True
                 if "FAILED (failures=" in text and "test_offer_expiring_now" in text:
                     return True
     return False
