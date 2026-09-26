@@ -369,7 +369,7 @@ Retirement is two steps, **in this order**:
 | `.githooks/` | this repo's own gates (thin entry points) | git, on commit and push | commit / push |
 | `docs/` | human-facing pages (roadmap, site) | humans | never loaded by the agent |
 | `scripts/` | target-repo/operator-facing runtime utilities (e.g. the GitHub App token helper) | operators, at runtime | on demand |
-| `tools/` | dev-only tooling for this repo (naming check, dev setup) — never used at plugin runtime | developers of the plugin | dev time; pre-commit and CI |
+| `tools/` | dev-only tooling for this repo (naming check, dev setup, changelog) — never used at plugin runtime | developers of the plugin | dev time; pre-commit and CI |
 | `.claude-plugin/` | the manifest (name, version) | Claude Code | install |
 
 Two axes organize this. **Who reads it**: the agent at runtime

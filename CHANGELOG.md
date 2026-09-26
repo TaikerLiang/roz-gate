@@ -2,6 +2,40 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.17.0 — D4 measures the shell route around the acceptance guard; the ledger gets an index and a procedure — 2026-09-26
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.17.0>
+
+**No runtime change.** Hooks and commands differ from 1.16.3 only in file names (Python snake_case, the workflow template lowercased) and the paths that reference them.
+
+### Evals
+- **Replay case D4** (replay 18 → 19): with Edit denied on the acceptance suite, does the SUT route around guard-acceptance through the shell? Outcome-bound — no `spec/<n>` commit outside `qa/<n>` touches the suite, locally or pushed — with a vacuity guard and signal columns. No baseline yet, so whether the guard should also intercept Bash (raised by an outside review) stays open.
+- **Red-proofs in the repo**: `cases/*/redproof.py`, run by `run_redproofs.py` on pre-push and CI. Required for every new replay case; the 18 older cases are exempt by name.
+- **`evals/LEDGER.md`**: every case across the three tiers, with the ledger text the checkers cite. F6's measured turns corrected to 1/3/5/8/12.
+- **`evals/CONTRIBUTING.md`**: the procedure for adding a case.
+
+### Hooks
+- **Test suite in stdlib unittest**, moved from bash: the same 113 cases, mutation-checked against the old suite, plus fixture-shape checks.
+
+### Tooling
+- **Root uv project**; `tools/` for dev-only tooling; ruff in pre-commit and CI.
+- **`tools/dev-setup.sh`** wires the repo's own git hooks.
+- **Naming allowlist** gains `LEDGER.md` and `CONTRIBUTING.md`.
+
+### Docs
+- **Evals**: baseline results and the autopsy taxonomy.
+- **Learner material**: quiz bank draft-7; one loop stage map for the site and the quiz.
+- **Wording**: "target repo" replaces "consumer"; the README names the bot-mode token helper.
+
+### Checks
+Hook tests 113/113 · lint 71/71 · red-proofs 2/2
+
+## v1.16.3 — docs catch-up: layout, hook table, CHANGELOG, measurement track — 2026-09-21
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.16.3>
+
+Docs only in effect: README gains 'How we know it works', the A–E hook table, 'Repository layout', design principle 8; ROADMAP gains the measurement track and a current state as of 2026-09-21; new hooks/README.md and CHANGELOG.md (generated from all 30 releases); templates/claude-workflow.md lowercased; images consolidated. The bump exists because two enforcement clauses were added to references/workflow.md (rule D at the open-questions collection point, rule E at 5q) and references/ is a behavior path to the pre-push gate — no runtime change. Also merged since 1.16.2: pre-push compares feature branches against their merge-base with main; Python files renamed to snake_case with a pre-commit + lint N1 naming check.
+
 ## v1.16.2 — rule E: echo/printf only in command position — 2026-09-20
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.16.2>
