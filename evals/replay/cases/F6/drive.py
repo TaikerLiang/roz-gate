@@ -153,6 +153,10 @@ def main():
             sys.exit("seed failed")
     shutil.copy(os.path.join(CDIR, "state.json"), STATE)
     open(JOURNAL, "w").close()
+    # One session, many turns: stderr accumulates across THIS session's turns
+    # (a cut turn invalidates the rest), but a retried session starts empty
+    # (codex review, PR #34).
+    open(os.path.join(RDIR, "stderr.log"), "w").close()
 
     sid = None
     curve = {}

@@ -175,6 +175,11 @@ def run_one(sut, cdir, rdir, prompt, timeout):
                 os.path.join(rdir, "forge", "state.json"))
     journal = os.path.join(rdir, "forge", "journal.jsonl")
     open(journal, "w").close()
+    # A retry reuses this directory (no result.json → re-run); stderr is
+    # appended to, and cut_short() reads all of it — so a previous
+    # attempt's termination line would invalidate this one (codex review,
+    # PR #34). Each attempt starts with an empty stderr.log.
+    open(os.path.join(rdir, "stderr.log"), "w").close()
     transcript = os.path.join(rdir, "transcript.jsonl")
 
     invoke_claude(sut, work, os.path.join(rdir, "forge"), prompt, timeout,

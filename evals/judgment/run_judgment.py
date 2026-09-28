@@ -354,6 +354,11 @@ def run_case(sut, name, fx, rdir):
     shutil.copy(os.path.join(S, "cases", name, "state.json"),
                 os.path.join(rdir, "forge", "state.json"))
     open(os.path.join(rdir, "forge", "journal.jsonl"), "w").close()
+    # A retry reuses this directory (no result.json → re-run); stderr is
+    # appended to, and cut_short() reads all of it — so a previous
+    # attempt's termination line would invalidate this one (codex review,
+    # PR #34). Each attempt starts with an empty stderr.log.
+    open(os.path.join(rdir, "stderr.log"), "w").close()
     sbx, work, bare, overlay_sha = build_sandbox(fx)
     transcript = os.path.join(rdir, "transcript.jsonl")
     rr.invoke_claude(sut, work, os.path.join(rdir, "forge"), fx["command"], fx["timeout"],
