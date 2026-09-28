@@ -47,6 +47,37 @@ SESSION_ERR_RE = re.compile(
     r"|OAuth token has expired")
 
 
+# The SUT's environment, shared by every `claude -p` a SUT runs (runner,
+# drivers, the judgment tier). Headless Claude Code waits only 600 s for
+# background tasks and then terminates the session — a next-stage that
+# dispatches its seats in the background was cut off mid-stage and still
+# ended on a result event (judgment F-54, 2026-09-28). 0 = wait for them;
+# the fixture's own timeout is the bound.
+SUT_ENV = {"CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS": "0"}
+
+# What the runtime (or our own timeout) writes to the SUT's stderr when the
+# session was cut short. A cut-short session can still carry result events
+# — one per turn the main agent finished — so has_result_event() cannot
+# see it; stderr can.
+TIMEOUT_NOTE = "roz-gate: SUT killed at its %ds timeout"
+CUT_SHORT_RE = re.compile(
+    r"Background tasks still running after \d+s; terminating"
+    r"|roz-gate: SUT killed at its \d+s timeout")
+
+
+def cut_short(stderr_log):
+    """The session was terminated before it finished — background tasks
+    killed by the runtime, or our timeout. Returns the invalid_reason, or
+    None. Invalid, never red: an unfinished session scored as data reads as
+    a model that surfaced nothing (F-54: recall 0/1 from an empty surface)."""
+    try:
+        text = open(stderr_log, encoding="utf-8", errors="replace").read()
+    except OSError:
+        return None
+    m = CUT_SHORT_RE.search(text)
+    return "session cut short: %s" % m.group(0) if m else None
+
+
 def session_error(transcript):
     """Result event present but the SESSION failed: the result is an
     error, its text is the limit/overload/auth family, or zero tokens

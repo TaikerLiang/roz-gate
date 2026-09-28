@@ -191,3 +191,4 @@ instrument lies first.
 | D4 | `acceptance_test` ended in `-s` with no directory; its first repair ran 0 tests and said OK | an incomplete or vacuous fixture command |
 | D4 | `| tail -3` kept the summary, dropped the test's name | output trimmed by the agent |
 | F6 | the ledger text said turns 1/3/5/10; the driver measured 1/3/5/8/12 | a citation stale against the code |
+| judgment F-54 | headless `claude -p` killed background seats after 600 s; the session still ended on a result event and scored recall 0 from an empty surface | a session cut short, read as finished |
