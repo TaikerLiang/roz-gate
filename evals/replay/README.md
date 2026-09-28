@@ -78,6 +78,14 @@ with canned output — a cautious SUT pokes the CLI before trusting it
 (the opus smoke gate died on a pre-flight `gh --version` around an
 otherwise perfect run); the UNKNOWN policy is untouched for writes and
 semantic reads.
+A session cut short is invalid too, even though it ended on result
+events (one per turn the main agent finished): headless Claude Code waits
+only 600 s for background tasks and then terminates, so a next-stage that
+dispatches its seats in the background stopped mid-stage and scored recall
+0 from an empty surface (judgment F-54, 2026-09-28). Every SUT now runs
+with `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0` (`replaylib.SUT_ENV`) —
+the fixture's timeout is the bound — and `cut_short()` reads stderr for
+the runtime's termination line or our own timeout note.
 The same guard invalidates a session that never produced a result event,
 so an empty run can never pass a zero-writes case vacuously — and a
 session whose result event IS an error (quota/limit banner, `is_error`,

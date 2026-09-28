@@ -36,6 +36,7 @@ sys.path.insert(0, os.path.dirname(S))  # evals/ — the shared kit
 from lib.checkkit import has_citation  # noqa: E402
 
 sys.path.insert(0, S)
+import replaylib as rl  # noqa: E402
 from replaylib import has_result_event, session_error  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(S))
@@ -99,6 +100,7 @@ def claude_env(sut, forge_state):
     env = dict(os.environ)
     env["PATH"] = os.path.join(S, "forge-stub") + os.pathsep + env["PATH"]
     env["FORGE_STATE"] = forge_state
+    env.update(rl.SUT_ENV)
     if sut["mode"] == "api":
         env["ANTHROPIC_BASE_URL"] = sut["base_url"]
         env["ANTHROPIC_API_KEY"] = os.environ.get(sut["key_env"], "")
@@ -118,7 +120,9 @@ def invoke_claude(sut, work, forge_state, prompt, timeout, transcript,
             sh(args, cwd=work, env=claude_env(sut, forge_state),
                timeout=timeout, out=t, err=e)
         except subprocess.TimeoutExpired:
-            pass  # partial transcript -> no result event -> invalid
+            # A killed session may still hold result events (one per
+            # finished turn): say so in stderr, where cut_short() reads it.
+            e.write("\n" + rl.TIMEOUT_NOTE % timeout + "\n")
 
 
 def usage_and_cost(transcript, mode):
@@ -171,6 +175,11 @@ def run_one(sut, cdir, rdir, prompt, timeout):
                 os.path.join(rdir, "forge", "state.json"))
     journal = os.path.join(rdir, "forge", "journal.jsonl")
     open(journal, "w").close()
+    # A retry reuses this directory (no result.json → re-run); stderr is
+    # appended to, and cut_short() reads all of it — so a previous
+    # attempt's termination line would invalidate this one (codex review,
+    # PR #34). Each attempt starts with an empty stderr.log.
+    open(os.path.join(rdir, "stderr.log"), "w").close()
     transcript = os.path.join(rdir, "transcript.jsonl")
 
     invoke_claude(sut, work, os.path.join(rdir, "forge"), prompt, timeout,
@@ -187,6 +196,11 @@ def run_one(sut, cdir, rdir, prompt, timeout):
                             "invalid_reason": err})
         shutil.rmtree(sbx, ignore_errors=True)
         return 3 if err == "quota-exhausted" else 1
+    short = rl.cut_short(os.path.join(rdir, "stderr.log"))
+    if short:
+        write_result(rdir, {"valid": False, "pass": False, "invalid_reason": short})
+        shutil.rmtree(sbx, ignore_errors=True)
+        return 1
     if hit_unknown_route(journal):
         write_result(rdir, {"valid": False, "pass": False,
                             "invalid_reason": "forge stub hit an UNKNOWN route"})

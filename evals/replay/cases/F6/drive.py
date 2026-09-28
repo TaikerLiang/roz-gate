@@ -32,7 +32,13 @@ import tempfile
 CDIR, RDIR = sys.argv[1], sys.argv[2]
 ROOT, S = os.environ["ROOT"], os.environ["S"]
 sys.path.insert(0, S)
-from replaylib import has_result_event, session_error  # noqa: E402
+from replaylib import (  # noqa: E402
+    SUT_ENV,
+    TIMEOUT_NOTE,
+    cut_short,
+    has_result_event,
+    session_error,
+)
 
 SUT = {"model": os.environ["SUT_MODEL"], "mode": os.environ["SUT_MODE"],
        "base_url": os.environ.get("SUT_BASE_URL", ""),
@@ -87,6 +93,7 @@ def run_turn(work, prompt, outfile, sid):
     env = dict(os.environ)
     env["PATH"] = os.path.join(S, "forge-stub") + os.pathsep + env["PATH"]
     env["FORGE_STATE"] = os.path.join(RDIR, "forge")
+    env.update(SUT_ENV)
     if SUT["mode"] == "api":
         env["ANTHROPIC_BASE_URL"] = SUT["base_url"]
         env["ANTHROPIC_API_KEY"] = os.environ.get(SUT["key_env"], "")
@@ -97,7 +104,8 @@ def run_turn(work, prompt, outfile, sid):
              "--verbose", "--dangerously-skip-permissions",
              "--plugin-dir", ROOT]
     with open(outfile, "w") as t, open(os.path.join(RDIR, "stderr.log"), "a") as e:
-        sh(args, cwd=work, env=env, timeout=900, out=t, err=e)
+        if sh(args, cwd=work, env=env, timeout=900, out=t, err=e) == -1:
+            e.write("\n" + TIMEOUT_NOTE % 900 + "\n")
 
 
 def session_id(outfile):
@@ -125,7 +133,9 @@ def turn_failed(outfile):
     the curve with false values through turn 12 (codex review, PR #5)."""
     if not has_result_event(outfile):
         return "no result event — the turn never completed"
-    return session_error(outfile)
+    # stderr.log accumulates across turns: once any turn was cut short the
+    # session is invalid from there on, which is what aborting means here.
+    return session_error(outfile) or cut_short(os.path.join(RDIR, "stderr.log"))
 
 
 def main():
@@ -143,6 +153,10 @@ def main():
             sys.exit("seed failed")
     shutil.copy(os.path.join(CDIR, "state.json"), STATE)
     open(JOURNAL, "w").close()
+    # One session, many turns: stderr accumulates across THIS session's turns
+    # (a cut turn invalidates the rest), but a retried session starts empty
+    # (codex review, PR #34).
+    open(os.path.join(RDIR, "stderr.log"), "w").close()
 
     sid = None
     curve = {}

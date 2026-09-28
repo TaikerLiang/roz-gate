@@ -44,7 +44,7 @@ E = os.path.dirname(S)                       # evals/
 RS = os.path.join(E, "replay")
 sys.path.insert(0, RS)
 sys.path.insert(0, E)
-from replaylib import Run, has_result_event, session_error  # noqa: E402
+from replaylib import Run, cut_short, has_result_event, session_error  # noqa: E402
 
 _spec = importlib.util.spec_from_file_location("run_replay", os.path.join(RS, "run_replay.py"))
 rr = importlib.util.module_from_spec(_spec)
@@ -354,6 +354,11 @@ def run_case(sut, name, fx, rdir):
     shutil.copy(os.path.join(S, "cases", name, "state.json"),
                 os.path.join(rdir, "forge", "state.json"))
     open(os.path.join(rdir, "forge", "journal.jsonl"), "w").close()
+    # A retry reuses this directory (no result.json → re-run); stderr is
+    # appended to, and cut_short() reads all of it — so a previous
+    # attempt's termination line would invalidate this one (codex review,
+    # PR #34). Each attempt starts with an empty stderr.log.
+    open(os.path.join(rdir, "stderr.log"), "w").close()
     sbx, work, bare, overlay_sha = build_sandbox(fx)
     transcript = os.path.join(rdir, "transcript.jsonl")
     rr.invoke_claude(sut, work, os.path.join(rdir, "forge"), fx["command"], fx["timeout"],
@@ -370,6 +375,11 @@ def run_case(sut, name, fx, rdir):
         rr.write_result(rdir, {**base, "valid": False, "invalid_reason": err, "tokens": usage})
         shutil.rmtree(sbx, ignore_errors=True)
         return 3 if err == "quota-exhausted" else 1
+    short = cut_short(os.path.join(rdir, "stderr.log"))
+    if short:
+        rr.write_result(rdir, {**base, "valid": False, "invalid_reason": short, "tokens": usage})
+        shutil.rmtree(sbx, ignore_errors=True)
+        return 1
     surface = judged_surface(fx, rdir, bare)
     with open(os.path.join(rdir, "surface.md"), "w", encoding="utf-8") as f:
         f.write(surface)
