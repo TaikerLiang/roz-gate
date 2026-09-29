@@ -44,7 +44,7 @@ E = os.path.dirname(S)                       # evals/
 RS = os.path.join(E, "replay")
 sys.path.insert(0, RS)
 sys.path.insert(0, E)
-from replaylib import Run, cut_short, has_result_event, session_error  # noqa: E402
+from replaylib import Run, cut_short, has_result_event, iteration_done, session_error  # noqa: E402
 
 _spec = importlib.util.spec_from_file_location("run_replay", os.path.join(RS, "run_replay.py"))
 rr = importlib.util.module_from_spec(_spec)
@@ -524,7 +524,7 @@ def main(argv):
         fx = json.load(open(os.path.join(S, "cases", name, "fixture.json"), encoding="utf-8"))
         for it in range(1, k + 1):
             rdir = os.path.join(report, name, "run-%d" % it)
-            if os.path.isfile(os.path.join(rdir, "result.json")):
+            if iteration_done(rdir):
                 print("skip %s run-%d (done)" % (name, it))
                 continue
             print("run  %s run-%d (%s, timeout %ds) ..." % (name, it, fx["command"], fx["timeout"]))

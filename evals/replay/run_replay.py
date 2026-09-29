@@ -390,7 +390,7 @@ def main(argv):
         k = k_override or meta.get("k", 5)
         for i in range(1, k + 1):
             rdir = os.path.join(report, case, "run-%d" % i)
-            if os.path.isfile(os.path.join(rdir, "result.json")):
+            if rl.iteration_done(rdir):
                 print("skip %s run-%d (done)" % (case, i))
                 continue
             print("run  %s run-%d ..." % (case, i))
