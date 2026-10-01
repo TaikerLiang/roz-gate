@@ -627,7 +627,9 @@ def main():
         if m_id and method == "GET":
             kind, name = m_id.group(1), unquote(m_id.group(2))
             login_ = st.get("agent_login", "paul")
-            bare = name[:-5] if name.endswith("[bot]") else name
+            # `[bot]` is a login spelling, never an app slug: /apps/x[bot]
+            # is an absent id (codex review, PR #35).
+            bare = name[:-5] if kind == "users" and name.endswith("[bot]") else name
             if bare == login_:
                 if kind == "apps":
                     journal("app-view", slug=name)

@@ -89,6 +89,8 @@ def iteration_done(rdir):
             r = json.load(f)
     except (OSError, ValueError):
         return False
+    if not isinstance(r, dict):   # valid JSON that is not a result (codex review, PR #35)
+        return False
     return r.get("invalid_reason") != "quota-exhausted"
 
 

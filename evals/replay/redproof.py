@@ -44,6 +44,7 @@ ROUTES = [
     ("bare login, no slash", ["api", "users/roz-gatekeeper"], "user-view", '"type": "User"'),
     ("caller identity unchanged", ["api", "user"], "user-view", '"login": "roz-gatekeeper"'),
     ("another app slug", ["api", "/apps/other-app"], "UNKNOWN", ""),
+    ("the bot's login as an app slug", ["api", "/apps/roz-gatekeeper%5Bbot%5D"], "UNKNOWN", ""),
     ("a human login", ["api", "/users/paul"], "UNKNOWN", ""),
     ("a sub-resource", ["api", "/users/roz-gatekeeper/repos"], "UNKNOWN", ""),
     ("POST to the bot's login", ["api", "-X", "POST", "/users/roz-gatekeeper"], "UNKNOWN", ""),
@@ -59,6 +60,8 @@ RESUME = [
     ("UNKNOWN route", {"valid": False, "invalid_reason": "forge stub hit 1 UNKNOWN route(s)"},
      True),
     ("unreadable", "not json", False),
+    ("JSON but not a result", "null", False),
+    ("JSON list", "[]", False),
 ]
 
 
