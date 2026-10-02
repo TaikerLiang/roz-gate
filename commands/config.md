@@ -7,9 +7,11 @@ run. Interactive: always run by the user, in conversation — the key is chosen
 from a menu, the value is confirmed, and the change is shown before the file
 is written. Nothing else in CLAUDE.md is touched.
 
-## 0. Load the block
+## 0. Load the block & forge adapter
 Read the `### Roz Gate config` block (a legacy `### Gated Loop config` block
-counts). Missing → stop; tell the user to run `/roz-gate:init`.
+counts), then `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the
+CAPITALIZED-OPs used below (LABEL-LIST, ISSUE-LIST). Missing config → stop;
+tell the user to run `/roz-gate:init`.
 
 ## 1. Pick the key
 Present the keys as a single choice (the way this runtime offers options —
@@ -33,16 +35,19 @@ current value or `(unset)`. Required keys as written by init
 changing it mid-loop breaks every open issue.
 
 ## 2. Enter the value
-Ask for the new value, showing the current one. An **empty value removes the
-key's line** (the key falls back to its "absent means" column). Confirm the
-pair back in one line: `inbox_label: discuss` / `inbox_label: (removed)`.
+Ask for the new value, showing the current one. For an **optional** key an
+**empty value removes the key's line** (the key falls back to its "absent
+means" column). A **required** key has no fallback — other commands read it
+directly — so an empty value is refused: say so and ask again, or keep the
+current value. Confirm the pair back in one line: `inbox_label: discuss` /
+`inbox_label: (removed)`.
 
 Validate only what is cheap and local:
 - `agent_identity` must be `user` or `bot`; `bot` with no `bot_login`
   present → say so, write anyway (the identity reference tells the user what
   else to set up).
-- `inbox_label`: if the label does not exist on the forge (LABEL-LIST via the
-  adapter), say so — do **not** create it; patrol will simply see an empty
+- `inbox_label`: if the label does not exist on the forge (LABEL-LIST), say
+  so — do **not** create it; patrol will simply see an empty
   inbox until it exists.
 - Paths (`acceptance_dir`, `specs_dir`) that do not exist → `mkdir -p`, as
   init does.
@@ -61,5 +66,5 @@ the block fresh; a running patrol is unaffected. For `inbox_label` /
 (ISSUE-LIST; count only), so a filter that admits nothing is noticed now, not
 after a silent week.
 
-Hard rules: never apply a gate label; never create forge labels; never edit a
-line outside the config block.
+Hard rules: never apply a gate label; never create forge labels; never clear
+a required key; never edit a line outside the config block.

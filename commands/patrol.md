@@ -41,7 +41,9 @@ stamp means no re-init is needed, whatever the plugin version.
 - Issues **without a `track:` label** are the **inbox** — pre-loop, valid, kept
   for step 2's inbox row only — **subject to the inbox filter**: with
   `inbox_label` set, only those carrying that label; with `inbox_assignee`
-  set, only those assigned to that login; both set, both must hold. A
+  set, only those assigned to that login (the `assignees` ISSUE-LIST returns —
+compare logins with the bot-mode normalization: `app/` prefix and `[bot]`
+suffix stripped); both set, both must hold. A
   track-less issue outside the filter is **not in the inbox**: never
   commented on, never locked, never listed as waiting — only counted for the
   report. The filter applies to the inbox alone; an issue carrying a

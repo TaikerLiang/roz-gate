@@ -452,5 +452,11 @@ c.expect("pattern", "L2: the filter is inbox-only — track: issues advance rega
          "The filter applies to the inbox alone" in _pat)
 c.expect("pattern", "L2: config never creates forge labels",
          "never create forge labels" in _cfg)
+c.expect("pattern", "L2: config never clears a required key",
+         "never clear\na required key" in _cfg or "never clear a required key" in _cfg)
+src("L2: GitHub ISSUE-LIST returns assignees (the inbox filter reads them)",
+    "references/forge-github.md", "--json number,title,labels,assignees,createdAt")
+for _f in ("references/forge-github.md", "references/forge-gitlab.md"):
+    src("L2: %s defines LABEL-LIST" % _f, _f, "| LABEL-LIST |")
 
 c.finish()
