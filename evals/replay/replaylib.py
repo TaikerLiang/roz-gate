@@ -78,6 +78,22 @@ def cut_short(stderr_log):
     return "session cut short: %s" % m.group(0) if m else None
 
 
+def iteration_done(rdir):
+    """Resume skips an iteration only when its result.json measured the
+    SUT. A quota-exhausted result is the harness stopping mid-sweep — the
+    banner says "resume after reset" — so it re-runs; every other result,
+    valid or invalid, stands (the judgment k=2 resume on 1.17.0 printed
+    `skip F-63 run-2 (done)` over a quota banner)."""
+    try:
+        with open(os.path.join(rdir, "result.json"), encoding="utf-8") as f:
+            r = json.load(f)
+    except (OSError, ValueError):
+        return False
+    if not isinstance(r, dict):   # valid JSON that is not a result (codex review, PR #35)
+        return False
+    return r.get("invalid_reason") != "quota-exhausted"
+
+
 def session_error(transcript):
     """Result event present but the SESSION failed: the result is an
     error, its text is the limit/overload/auth family, or zero tokens

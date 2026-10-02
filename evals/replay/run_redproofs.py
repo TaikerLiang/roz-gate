@@ -9,6 +9,9 @@ tokens, so it can run on every push. A red-proof recorded only in a commit
 message cannot be re-run; one here can, and goes red the moment a checker
 or seed change breaks what it proved.
 
+The harness has one too — `redproof.py` beside this runner: the forge
+stub's routes and the runners' resume rule, which no case exercises.
+
 Every case must ship one. The cases below predate the rule — red-proofed in
 their commit messages — and are the only exemptions; the list only
 shrinks. A new case missing redproof.py fails here, and so does an
@@ -45,7 +48,8 @@ def presence():
 
 
 def main():
-    proofs = sorted(glob.glob(os.path.join(HERE, "cases", "*", "redproof.py")))
+    proofs = [os.path.join(HERE, "redproof.py")]
+    proofs += sorted(glob.glob(os.path.join(HERE, "cases", "*", "redproof.py")))
     passed = failed = 0
     problems = presence()
     for problem in problems:
@@ -58,6 +62,8 @@ def main():
               "(%d legacy left)" % len(LEGACY))
     for proof in proofs:
         case = os.path.basename(os.path.dirname(proof))
+        if case == "replay":
+            case = "harness"
         p = subprocess.run([sys.executable, proof], capture_output=True, text=True)
         lines = [line for line in (p.stdout + p.stderr).splitlines()
                  if line.startswith(("PASS ", "FAIL ")) or p.returncode != 0]
@@ -68,8 +74,9 @@ def main():
             failed += 1
             print("FAIL redproof %s (exit %d)" % (case, p.returncode))
     print("\n%d passed, %d failed (red-proofs: %s)"
-          % (passed, failed, ", ".join(os.path.basename(os.path.dirname(p)) for p in proofs)
-             or "none"))
+          % (passed, failed, ", ".join(
+              "harness" if p == proofs[0] else os.path.basename(os.path.dirname(p))
+              for p in proofs)))
     return 0 if failed == 0 else 1
 
 

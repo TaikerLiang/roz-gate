@@ -21,6 +21,7 @@ import os
 import re
 import subprocess
 import sys
+from urllib.parse import unquote
 
 STATE_DIR = os.environ.get("FORGE_STATE")
 if not STATE_DIR:
@@ -615,6 +616,33 @@ def main():
                         "html_url": "https://github.com/%s" % login_},
                        flag_val(argv, "--jq", "-q"))
             return
+
+        # ---- gh api /apps/<slug>, /users/<login> — the bot's identity by
+        # name (judgment k=2 on 1.17.0: a bot-mode SUT whose token mint
+        # failed went hunting for its App ID). Read-only, keyed on
+        # agent_login exactly like `user`; `[bot]` (or %5Bbot%5D) is the
+        # REST spelling of the same login. Any other slug or login is an
+        # absent id and stays UNKNOWN.
+        m_id = re.match(r"/?(apps|users)/([^/]+)$", target)
+        if m_id and method == "GET":
+            kind, name = m_id.group(1), unquote(m_id.group(2))
+            login_ = st.get("agent_login", "paul")
+            # `[bot]` is a login spelling, never an app slug: /apps/x[bot]
+            # is an absent id (codex review, PR #35).
+            bare = name[:-5] if kind == "users" and name.endswith("[bot]") else name
+            if bare == login_:
+                if kind == "apps":
+                    journal("app-view", slug=name)
+                    view = {"id": 100, "slug": name, "name": name,
+                            "owner": {"login": login_},
+                            "html_url": "https://github.com/apps/%s" % name}
+                else:
+                    journal("user-view", login=name)
+                    view = {"login": name, "id": 2 if bare != name else 1,
+                            "type": "Bot" if bare != name else "User",
+                            "html_url": "https://github.com/%s" % name}
+                jq_project(view, flag_val(argv, "--jq", "-q"))
+                return
 
         # ---- gh api repos/o/r/pulls[?state=…&head=…] — REST PR list, the
         # `gh pr list` twin (D2 re-run on 1.16.2). Same filters, REST shape
