@@ -247,15 +247,20 @@
         <label>default_branch</label><input id="f_branch" value="main">
         <label><span class="en">stack</span><span class="zh">技術棧</span></label><div class="seg" data-key="stack"><button data-v="uv" class="on">uv / pytest</button><button data-v="npm">npm</button><button data-v="go">go</button><button data-v="other"><span class="en">other</span><span class="zh">其他</span></button></div>
         <div class="hint"><span class="en">Presets fill test · acceptance_test · env_sync · lockfile · lockfile_regen; edit anything.</span><span class="zh">預設值填入 test · acceptance_test · env_sync · lockfile · lockfile_regen;都可改。</span></div>
-        <label>test</label><input id="f_test">
+        <label>test</label><input id="f_test" placeholder="uv run pytest">
         <label>acceptance_dir</label><input id="f_adir" value="tests/acceptance">
-        <label>acceptance_test</label><input id="f_atest">
-        <label>env_sync</label><input id="f_sync">
-        <label>lockfile</label><input id="f_lock">
-        <label>lockfile_regen</label><input id="f_regen">
+        <label>acceptance_test</label><input id="f_atest" placeholder="uv run pytest">
+        <div class="hint"><span class="en">The command as it runs on <b>one feature's</b> acceptance dir — the loop appends <code>&lt;acceptance_dir&gt;/&lt;feature&gt;/</code> itself, so no placeholder here. For npm, end with <code>--</code> so the path reaches the runner.</span><span class="zh">跑<b>單一 feature</b> 驗收目錄的指令——loop 會自己接上 <code>&lt;acceptance_dir&gt;/&lt;feature&gt;/</code>,所以這裡不放佔位符。npm 要以 <code>--</code> 結尾,路徑才傳得到 runner。</span></div>
+        <label>env_sync</label><input id="f_sync" placeholder="uv sync">
+        <label>lockfile</label><input id="f_lock" placeholder="uv.lock">
+        <label>lockfile_regen</label><input id="f_regen" placeholder="uv lock">
         <label>specs_dir</label><input id="f_specs" value="docs/specs">
 
         <h4><span class="en">Optional — set later with /roz-gate:config</span><span class="zh">可選——之後用 /roz-gate:config 設</span></h4>
+        <label>acceptance_layout</label><input id="f_layout" placeholder="one folder per feature">
+        <div class="hint"><span class="en">Only when the suite deviates from the default (one folder per feature) — e.g. <code>one folder per issue, shared fixtures in support/</code>.</span><span class="zh">只有在套件不照預設(一個 feature 一個資料夾)時才設——例如 <code>one folder per issue, shared fixtures in support/</code>。</span></div>
+        <label>trace_marker</label><input id="f_trace" placeholder="@Traces(issue, scenario)">
+        <div class="hint"><span class="en">The marker QA puts on acceptance tests to bind them to spec scenarios. Absent: qa picks one idiomatic to the language and declares it.</span><span class="zh">QA 在驗收測試上標記對應 spec scenario 的 marker。沒設:qa 挑一個該語言慣用的並宣告。</span></div>
         <label>agent_identity</label><div class="seg" data-key="ident"><button data-v="user" class="on">user</button><button data-v="bot">bot</button></div>
         <div class="hint"><span class="en"><b>user</b>: agents act as your <code>gh</code> session — zero setup, but your own account's comments never notify you. <b>bot</b>: a GitHub App / GitLab project token; your phone rings, and a bot never holds a gate.</span><span class="zh"><b>user</b>:agents 用你的 <code>gh</code> session——零設定,但自己帳號的留言不會通知你。<b>bot</b>:GitHub App / GitLab project token;手機會響,而且 bot 永遠不持有 gate。</span></div>
         <label>bot_login</label><input id="f_bot" placeholder="roz-gatekeeper" disabled>
@@ -298,7 +303,7 @@
         <div class="cm"><span class="au">**[intake]** · product</span><span class="en">1. Expiry granularity? (a) date ★ (b) datetime<br>2. Expired at checkout: (a) silently drop ★ (b) error …</span><span class="zh">1. 過期精度?(a) 日期 ★ (b) 日期時間<br>2. 結帳時過期:(a) 靜默移除 ★ (b) 報錯 …</span></div></div>
       <div class="beat"><span class="who you"><span class="en">YOU</span><span class="zh">你</span></span><b><span class="en">Beat 2 — <code>summary</code> on demand</span><span class="zh">節拍 2——想看就說 <code>summary</code></span></b><span class="en" style="font-size:.9rem;color:var(--muted)">Discuss freely, from any device. When it feels settled — or right away if the recommendations look right — the <b>assignee</b> (unassigned → the author) ends a comment with the line <code>summary</code>. Patrol condenses everything into one <code>[intake] · summary</code>: story, acceptance criteria, suggested track, assumptions, contested points.</span><span class="zh" style="font-size:.9rem;color:var(--muted)">自由討論,任何裝置。覺得差不多了——或建議看起來都對就馬上——由 <b>assignee</b>(沒指定就是作者)在留言末行寫 <code>summary</code>。patrol 把一切濃縮成一則 <code>[intake] · summary</code>:story、驗收條件、建議的 track、假設、爭議點。</span>
         <div class="cm"><span class="au">you</span><span class="en">1b, and keep 2a. Don't touch the API.<br><b>summary</b></span><span class="zh">1b,2 維持 a。不要動 API。<br><b>summary</b></span></div></div>
-      <div class="beat"><span class="who you"><span class="en">YOU</span><span class="zh">你</span></span><b><span class="en">Beat 3 — the label confirms</span><span class="zh">節拍 3——label 就是確認</span></b><span class="en" style="font-size:.9rem;color:var(--muted)">No approve keyword. Apply <code>status: ready-for-spec</code> (needs design ⇒ <code>track: spec</code>) or <code>status: ready-for-dev</code> (mechanical ⇒ <code>track: fast</code>). Patrol rewrites the body to the story template and the loop takes over. Confident? Skip beat 2 and label directly.</span><span class="zh" style="font-size:.9rem;color:var(--muted)">沒有 approve 關鍵字。貼 <code>status: ready-for-spec</code>(要設計 ⇒ <code>track: spec</code>)或 <code>status: ready-for-dev</code>(機械性 ⇒ <code>track: fast</code>)。patrol 把 body 改寫成 story 模板,loop 接手。有把握?跳過節拍 2 直接貼。</span></div>
+      <div class="beat"><span class="who you"><span class="en">YOU</span><span class="zh">你</span></span><b><span class="en">Beat 3 — the label confirms</span><span class="zh">節拍 3——label 就是確認</span></b><span class="en" style="font-size:.9rem;color:var(--muted)">No approve keyword. Apply <code>status: ready-for-spec</code> (needs design ⇒ <code>track: spec</code>) or <code>status: ready-for-dev</code> (mechanical ⇒ <code>track: fast</code>) — on GitLab the labels init created are the scoped <code>status::ready-for-spec</code> / <code>status::ready-for-dev</code>. Patrol rewrites the body to the story template and the loop takes over. Confident? Skip beat 2 and label directly.</span><span class="zh" style="font-size:.9rem;color:var(--muted)">沒有 approve 關鍵字。貼 <code>status: ready-for-spec</code>(要設計 ⇒ <code>track: spec</code>)或 <code>status: ready-for-dev</code>(機械性 ⇒ <code>track: fast</code>)——GitLab 上 init 建的是 scoped 的 <code>status::ready-for-spec</code> / <code>status::ready-for-dev</code>。patrol 把 body 改寫成 story 模板,loop 接手。有把握?跳過節拍 2 直接貼。</span></div>
     </div>
   </div>
   <div id="way-kb" hidden>
@@ -316,7 +321,7 @@
         <h3><span class="en">Which track?</span><span class="zh">哪條 track?</span></h3>
         <ul>
           <li><span class="en"><b>spec</b> — user-facing behaviour, domain or data modelling, real decisions to resolve. Gate: <code>ready-for-spec</code>.</span><span class="zh"><b>spec</b>——使用者看得到的行為、領域或資料模型、有真正的決定要做。gate:<code>ready-for-spec</code>。</span></li>
-          <li><span class="en"><b>fast</b> — vendor bump, config, chore, doc update, test fix. No spec, no blind QA; your review is the last guard. Gate: <code>ready-for-dev</code>.</span><span class="zh"><b>fast</b>——升版、config、chore、文件更新、測試修復。沒有 spec、沒有盲測;你的審查是最後防線。gate:<code>ready-for-dev</code>。</span></li>
+          <li><span class="en"><b>fast</b> — vendor bump, config, chore, doc update, test fix. No spec, no blind QA; your review is the last guard. Gate: <code>ready-for-dev</code>. (GitLab: <code>status::ready-for-spec</code> / <code>status::ready-for-dev</code>.)</span><span class="zh"><b>fast</b>——升版、config、chore、文件更新、測試修復。沒有 spec、沒有盲測;你的審查是最後防線。gate:<code>ready-for-dev</code>。(GitLab:<code>status::ready-for-spec</code> / <code>status::ready-for-dev</code>。)</span></li>
           <li><span class="en">A fast issue that turns out to need a decision escalates itself back to spec. Your first feature should be <b>spec</b> — you want to see the whole loop once.</span><span class="zh">fast 的 issue 做到一半發現要做決定,會自己升級回 spec。你的第一個 feature 應該走 <b>spec</b>——你會想完整看一次 loop。</span></li>
         </ul>
       </div>
@@ -499,21 +504,23 @@ function pickHost(h){
 
 /* ---------- 3 config builder ---------- */
 const PRESET = {
-  uv:   {test:'uv run pytest', atest:'uv run pytest tests/acceptance/<feature>', sync:'uv sync', lock:'uv.lock', regen:'uv lock'},
-  npm:  {test:'npm test', atest:'npm test -- tests/acceptance/<feature>', sync:'npm ci', lock:'package-lock.json', regen:'npm install --package-lock-only'},
-  go:   {test:'go test ./...', atest:'go test ./tests/acceptance/<feature>/...', sync:'go mod download', lock:'go.sum', regen:'go mod tidy'},
-  other:{test:'<full-suite command>', atest:'<one feature\'s acceptance command>', sync:'<dependency sync command>', lock:'<lockfile>', regen:'<regen command>'}
+  uv:   {test:'uv run pytest', atest:'uv run pytest', sync:'uv sync', lock:'uv.lock', regen:'uv lock'},
+  npm:  {test:'npm test', atest:'npm test --', sync:'npm ci', lock:'package-lock.json', regen:'npm install --package-lock-only'},
+  go:   {test:'go test ./...', atest:'go test', sync:'go mod download', lock:'go.sum', regen:'go mod tidy'},
+  other:{test:'', atest:'', sync:'', lock:'', regen:''}
 };
 const seg = {forge:'github', stack:'uv', ident:'user'};
 let cfgReady = false;   // renderCfg persists; never before the preset or saved state is applied
 const $ = id => document.getElementById(id);
 function applyPreset(){
   const p = PRESET[seg.stack];
-  $('f_test').value = p.test; $('f_atest').value = p.atest.replace('tests/acceptance', $('f_adir').value || 'tests/acceptance');
+  $('f_test').value = p.test; $('f_atest').value = p.atest;
   $('f_sync').value = p.sync; $('f_lock').value = p.lock; $('f_regen').value = p.regen;
 }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;') }
 const OPT = [
+  ['acceptance_layout', () => $('f_layout').value.trim()],
+  ['trace_marker',   () => $('f_trace').value.trim()],
   ['agent_identity', () => seg.ident==='bot' ? 'bot' : ''],
   ['bot_login',      () => seg.ident==='bot' ? $('f_bot').value.trim() : ''],
   ['operator',       () => seg.ident==='bot' ? $('f_op').value.trim() : ''],
@@ -538,7 +545,7 @@ function renderCfg(){
     : `<p style="font-size:.9rem;color:var(--muted)">${B('No optional keys chosen — init\'s block is all you need. Come back to <code>/roz-gate:config</code> the day your tracker fills with issues that aren\'t ideas (set <code>inbox_label</code>), or when you want the agent to have its own face (<code>agent_identity: bot</code>).',
         '沒選可選 key——init 寫的 block 就夠了。哪天 tracker 塞滿不是 idea 的 issue(設 <code>inbox_label</code>),或想讓 agent 有自己的面孔(<code>agent_identity: bot</code>),再回來用 <code>/roz-gate:config</code>。')}</p>`;
   $('cfgsteps').innerHTML = steps;
-  store.set('cfg', {seg, f: Object.fromEntries(['f_branch','f_test','f_adir','f_atest','f_sync','f_lock','f_regen','f_specs','f_bot','f_op','f_ilabel','f_iassg','f_model'].map(id => [id, $(id).value]))});
+  store.set('cfg', {seg, f: Object.fromEntries(['f_branch','f_test','f_adir','f_atest','f_sync','f_lock','f_regen','f_specs','f_layout','f_trace','f_bot','f_op','f_ilabel','f_iassg','f_model'].map(id => [id, $(id).value]))});
 }
 function wireCfg(){
   document.querySelectorAll('#cfgform .seg').forEach(g => g.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
