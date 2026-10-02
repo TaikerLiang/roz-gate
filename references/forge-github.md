@@ -45,7 +45,7 @@ Two modes, set by `agent_identity` in the Roz Gate config (key absent →
 | ISSUE-COMMENT | `gh issue comment <n> --body "..."` |
 | COMMENT-EDIT | `gh api -X PATCH repos/<owner>/<repo>/issues/comments/<comment-id> -f body="..."` (top-level issue/CR comments; id from the comment's URL or listing) |
 | ISSUE-CREATE | `gh issue create --title "..." --body "..." [--label "<label>"]` |
-| ISSUE-EDIT-BODY | `gh issue edit <n> --body "..."` (async intake only, after the user's `approve`) |
+| ISSUE-EDIT-BODY | `gh issue edit <n> --body "..."` (async intake only, at finalize — after the gate holder's gate label) |
 
 Label names use the **space form**: `track: spec`, `track: fast`,
 `status: ready-for-spec`, `status: ready-for-dev`, `status: in-spec-review`,

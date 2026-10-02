@@ -64,7 +64,7 @@ Wherever a command names a label like `status: ready-for-spec`, read it as
 | ISSUE-COMMENT | `glab issue note <n> --message "..."` |
 | COMMENT-EDIT | `glab api -X PUT "projects/:id/merge_requests/<iid>/notes/<note-id>" -f body="..."` (issues: same shape under `issues/<n>/notes/<note-id>`) |
 | ISSUE-CREATE | `glab issue create --title "..." --description "..." [--label "<label>"]` |
-| ISSUE-EDIT-BODY | `glab issue update <n> --description "..."` (async intake only, after the user's `approve`) |
+| ISSUE-EDIT-BODY | `glab issue update <n> --description "..."` (async intake only, at finalize — after the gate holder's gate label) |
 
 ## Change requests
 
