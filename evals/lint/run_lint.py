@@ -332,11 +332,12 @@ src("J1: the judge prompt carries the document slot",
 # second copy of the loop's shape is the B3 defect class. Red-proofed by
 # editing one character of the inlined copy.
 _svg = read("images/loop-stage-map.svg").strip("\n")
-_site = read("docs/index.html")
-_m = re.search(r"<!-- SVG:images/loop-stage-map\.svg -->\n(.*?)\n<!-- /SVG -->", _site, re.S)
-c.expect("images/loop-stage-map.svg is the one loop diagram",
-         "L1: docs/index.html inlines images/loop-stage-map.svg byte-for-byte",
-         _m is not None and _m.group(1) == _svg)
+for _page in ("docs/index.html", "docs/onboarding.html"):
+    _m = re.search(r"<!-- SVG:images/loop-stage-map\.svg -->\n(.*?)\n<!-- /SVG -->",
+                   read(_page), re.S)
+    c.expect("images/loop-stage-map.svg is the one loop diagram",
+             "L1: %s inlines images/loop-stage-map.svg byte-for-byte" % _page,
+             _m is not None and _m.group(1) == _svg)
 
 # ---------------------------------------------------------------------------
 # C3 · `processing` coexists with a phase label             (preventive)
