@@ -118,6 +118,8 @@ map:
 2. You apply the gate label (`status: ready-for-spec` / `ready-for-dev`).
 3. Run `/roz-gate:patrol` (manually, on a loop, or scheduled) — it advances
    whatever the labels authorize and reports what waits on you.
+4. Change any config key later with `/roz-gate:config` (inbox filter, patrol
+   model, paths) — no re-init needed.
 
 Nothing in this command applies a gate label, and it never edits an existing
 CLAUDE.md section without showing the change first.

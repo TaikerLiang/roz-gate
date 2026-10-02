@@ -155,6 +155,7 @@ cannot authorize it.
 | `/roz-gate:integrate [n]` | run the stage-(6) verdict: merge locally, run the acceptance suite, classify red, finalize green |
 | `/roz-gate:review-answers [n]` | host one turn of your stage-(7) review: answer your CR comments from the artifacts, dispatch a seat when judgment is needed, change only what you confirm |
 | `/roz-gate:patrol` | one supervisory pass: scan every open issue's state, invoke whichever command is already authorized, triage the inbox, report what waits on you |
+| `/roz-gate:config` | change one config key any time after init — pick it from a menu, enter the value, empty clears it; the inbox filter and the patrol model live here |
 | `/roz-gate:uninit` | retire the loop from this repo: verify nothing is in flight, remove the scaffolding `init` installed, keep every work product — run before `/plugin uninstall` |
 
 Run `/roz-gate:patrol` manually as a "what's next" button, or schedule it
@@ -167,7 +168,10 @@ as a lock, and never applies a gate label.
 Open an issue from the forge's mobile app with **no labels** — two rough
 sentences are enough (the "Idea" template `init` installs reminds you). An
 issue with no `track:` label is the **inbox**: invisible to the rest of the
-loop. Three beats — **ask once, summarize on demand, the label confirms**:
+loop. A busy tracker can narrow it: `inbox_label` / `inbox_assignee` in the
+config (`/roz-gate:config`) admit only track-less issues carrying that label
+/ assigned to that login (both set = both); everything else is a plain issue
+patrol counts in its report and never comments on. Three beats — **ask once, summarize on demand, the label confirms**:
 
 1. Patrol posts **one** batch of clarifying questions (numbered, each option
    with a marked recommendation), then leaves the thread to the humans —
@@ -306,7 +310,13 @@ command reads it before acting:
 - agent_identity: bot            # optional — see "Agent identity"; absent = user
 - bot_login: <bot username>      # optional
 - operator: <your forge login>   # optional
+- inbox_label: <label>           # optional — inbox filter; absent = every track-less open issue
+- inbox_assignee: <forge login>  # optional — inbox filter; both set = both must hold
+- patrol_model: <model id>       # optional — model for the seats patrol dispatches; absent = runtime default
 ```
+
+`/roz-gate:config` changes any of these later — one key per run, from a menu,
+an empty value clears the key.
 
 `init` also writes a `### Roz Gate personas` block — **fixed seats, swappable
 occupants**. The five role names (product, em, implementer, qa, reviewer) are

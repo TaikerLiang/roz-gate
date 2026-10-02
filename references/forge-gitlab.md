@@ -57,7 +57,7 @@ Wherever a command names a label like `status: ready-for-spec`, read it as
 
 | Op | Command |
 |---|---|
-| ISSUE-LIST | `glab issue list --output json` (add `--label "<label>"` to filter) |
+| ISSUE-LIST | `glab issue list --output json` (add `--label "<label>"` to filter; the JSON carries `assignees`, which the inbox filter reads) |
 | ISSUE-VIEW | `glab issue view <n> --output json` (comments: `glab api "projects/:id/issues/<n>/notes"`) |
 | LABEL-ADD | `glab issue update <n> --label "<label>"` |
 | LABEL-REMOVE | `glab issue update <n> --unlabel "<label>"` |
@@ -143,6 +143,7 @@ separates top-level comments from inline ones.
 
 | Op | Command |
 |---|---|
+| LABEL-LIST | `glab label list --output json` (names under `.[].name`) |
 | LABEL-CREATE | `glab label create --name "<label>" --color "<hex>" --description "..."` |
 | LABEL-DELETE | `glab label delete "<label>"` (erases it from closed issues too — `/roz-gate:uninit` only, on explicit request) |
 | ISSUE-TEMPLATE-PATH | `.gitlab/issue_templates/idea.md` |

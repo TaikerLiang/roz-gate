@@ -38,7 +38,7 @@ Two modes, set by `agent_identity` in the Roz Gate config (key absent →
 
 | Op | Command |
 |---|---|
-| ISSUE-LIST | `gh issue list --state open --json number,title,labels,createdAt` (add `--label "<label>"` to filter) |
+| ISSUE-LIST | `gh issue list --state open --json number,title,labels,assignees,createdAt` (add `--label "<label>"` to filter; `assignees` is what the inbox filter reads) |
 | ISSUE-VIEW | `gh issue view <n> --json title,body,labels,comments` |
 | LABEL-ADD | `gh issue edit <n> --add-label "<label>"` |
 | LABEL-REMOVE | `gh issue edit <n> --remove-label "<label>"` |
@@ -137,6 +137,7 @@ gh api repos/<owner>/<repo>/issues/<pr>/comments \
 
 | Op | Command |
 |---|---|
+| LABEL-LIST | `gh label list --json name --jq '.[].name'` |
 | LABEL-CREATE | `gh label create "<label>" --color <hex> --description "..."` (idempotent-ish: add `--force` to update) |
 | LABEL-DELETE | `gh label delete "<label>" --yes` (erases it from closed issues too — `/roz-gate:uninit` only, on explicit request) |
 | ISSUE-TEMPLATE-PATH | `.github/ISSUE_TEMPLATE/idea.md` |
