@@ -434,4 +434,23 @@ c.expect("pattern", "E4: a contract-ambiguity finding routes to the spec CR",
 c.expect("pattern", "E4: reviewer-to-implementer settlement is forbidden explicitly",
          "never settled" in b5)
 
+# ---------------------------------------------------------------------------
+# L2 · the config keys patrol reads are the ones /roz-gate:config offers and
+#      README documents — a key documented in one place and read nowhere is a
+#      silent no-op                                           (defect: 1.18.0)
+_cfg = read("commands/config.md")
+_pat = read("commands/patrol.md")
+_rd = read("README.md")
+for _k in ("inbox_label", "inbox_assignee", "patrol_model"):
+    src("L2: /roz-gate:config offers %s" % _k, "commands/config.md", "`%s`" % _k)
+    src("L2: patrol reads %s" % _k, "commands/patrol.md", "`%s`" % _k)
+    src("L2: README config block documents %s" % _k, "README.md", "- %s:" % _k)
+c.expect("pattern", "L2: a filtered-out issue is counted, never acted on",
+         "not in the inbox filter" in _pat
+         and re.search(r"never\s+commented on, never locked, never listed", _pat) is not None)
+c.expect("pattern", "L2: the filter is inbox-only — track: issues advance regardless",
+         "The filter applies to the inbox alone" in _pat)
+c.expect("pattern", "L2: config never creates forge labels",
+         "never create forge labels" in _cfg)
+
 c.finish()

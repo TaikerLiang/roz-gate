@@ -63,7 +63,9 @@ proposed at intake and confirmed (or overridden) by you:
 **(1b) The inbox — async intake.** An open issue with **no `track:` label** is
 the **inbox**: a raw idea captured away from the keyboard (e.g. the forge's
 mobile app), not yet in the loop — every command except intake triage ignores
-it. Three beats — ask once, summarize on demand, the label confirms:
+it. The project may narrow the inbox (`inbox_label`, `inbox_assignee` in the
+config block — set with `/roz-gate:config`): a track-less issue outside the
+filter is a plain issue patrol only counts. Three beats — ask once, summarize on demand, the label confirms:
 1. Patrol posts **one** batched questions comment (prefixed `**[intake]**`,
    numbered, each option with a marked recommendation) — then leaves the
    thread to the humans: free-form discussion, anyone may weigh in, from any
@@ -202,7 +204,8 @@ Skips (2), (2a), (4) and (6). Picked up from `status: ready-for-dev`:
 ## Label state machine
 
 - An open issue with **no `track:` label** is the **inbox** ((1b)) — pre-loop,
-  not a violation: invisible to every command except patrol's async intake.
+  not a violation: invisible to every command except patrol's async intake
+  (and, with an inbox filter configured, to patrol too unless it matches).
   A **gate label on a track-less issue** is the one legal transient of intake:
   the gate holder's confirmation, which the next patrol pass finalizes into a
   body rewrite + the confirmed `track:` (`ready-for-spec` ⇒ `spec`,
