@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roz Gate — get started</title>
+<style>
+  :root{
+    --bg:#0e2a33; --bg2:#0a2129; --panel:#123742; --panel2:#16414e;
+    --ink:#f2e8d5; --muted:#9db4ba; --line:#1e4a57;
+    --gold:#d9a441; --red:#c94f43; --teal:#4fa3b8; --green:#7fb069;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Noto Sans Mono",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC",sans-serif}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+  a{color:var(--teal)}
+  h1,h2,h3{line-height:1.25;text-wrap:balance}
+  h2{font-size:1.6rem;margin-bottom:.4rem}
+  h2 .no{display:inline-block;min-width:1.9em;color:#0a2129;background:var(--gold);border-radius:6px;text-align:center;font-size:1rem;font-weight:800;margin-right:.5rem;vertical-align:middle;padding:2px 0}
+  section{padding:52px 0;border-bottom:1px solid var(--line)}
+  .sub{color:var(--muted);max-width:70ch}
+  code{background:var(--bg2);border:1px solid var(--line);border-radius:5px;padding:.08em .4em;font-size:.9em;font-family:var(--mono)}
+  pre{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;font:.86rem/1.55 var(--mono);color:var(--ink);margin-top:12px}
+  pre .c{color:var(--muted)} pre .k{color:var(--gold)} pre .y{color:var(--teal)}
+  html[lang="en"] .zh{display:none!important}
+  html[lang="zh"] .en{display:none!important}
+
+  .topbar{position:sticky;top:0;z-index:50;background:rgba(10,33,41,.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+  .topbar .wrap{display:flex;align-items:center;gap:14px;padding:10px 20px}
+  .topbar .brand{font-weight:800;letter-spacing:.02em;white-space:nowrap}
+  .topbar .brand .dot{color:var(--red)}
+  .topbar .brand a{color:var(--ink);text-decoration:none}
+  .topbar nav{display:flex;gap:14px;font-size:.88rem;overflow-x:auto}
+  .topbar nav a{color:var(--muted);text-decoration:none;white-space:nowrap}
+  .topbar nav a:hover{color:var(--ink)}
+  .prog{margin-left:auto;flex:none;font-size:.8rem;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 10px;white-space:nowrap}
+  .prog b{color:var(--gold)}
+  .lang{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:none}
+  .lang button{background:none;border:0;color:var(--muted);padding:5px 12px;cursor:pointer;font-size:.85rem}
+  .lang button.on{background:var(--gold);color:#0a2129;font-weight:700}
+
+  .hero{padding:56px 0 40px;border-bottom:1px solid var(--line);background:radial-gradient(ellipse 60% 80% at 30% 20%, #16414e 0%, transparent 60%)}
+  .hero h1{font-size:2rem;margin:0 0 10px}
+  .hero p{max-width:72ch;color:var(--muted)}
+  .journey{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:26px}
+  .journey a{display:block;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;text-decoration:none;color:var(--ink)}
+  .journey a:hover{border-color:var(--gold)}
+  .journey a b{display:block;color:var(--gold);font-size:.8rem;letter-spacing:.04em;text-transform:uppercase}
+  .journey a span{font-size:.9rem}
+  .journey a .who{display:block;font-size:.75rem;color:var(--muted);margin-top:4px}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px;font-size:.88rem;color:var(--muted)}
+  .legend .you{color:var(--gold);font-weight:700} .legend .mach{color:var(--teal);font-weight:700}
+
+  .two{display:grid;grid-template-columns:1.1fr .9fr;gap:22px;margin-top:20px;align-items:start}
+  @media(max-width:760px){.two{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 22px}
+  .panel h3{color:var(--gold);font-size:1rem;margin-bottom:10px}
+  .panel.do{border-left:4px solid var(--gold)}
+  .panel.watch{border-left:4px solid var(--teal)}
+  .panel ol,.panel ul{padding-left:1.2em;font-size:.93rem}
+  .panel li{margin:6px 0}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .tabs button{background:var(--bg2);border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:7px 16px;cursor:pointer;font-weight:700;font-size:.88rem}
+  .tabs button.on{color:#0a2129;background:var(--gold);border-color:var(--gold)}
+  .copy{float:right;background:var(--panel2);border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:2px 10px;cursor:pointer;font-size:.75rem;margin:-4px -6px 0 0}
+  .copy:hover{color:var(--ink);border-color:var(--gold)}
+
+  .check{list-style:none;padding:0;margin-top:14px}
+  .check li{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line);font-size:.95rem}
+  .check li:last-child{border-bottom:0}
+  .check input{margin-top:5px;accent-color:var(--gold);width:16px;height:16px;flex:none}
+  .check li.done span{color:var(--muted);text-decoration:line-through}
+  .check small{display:block;color:var(--muted);font-size:.8rem}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:18px}
+  .cards .cell{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .cards .cell b{display:block;color:var(--gold);font-size:.92rem;margin-bottom:4px}
+  .cards .cell span{font-size:.85rem;color:var(--muted)}
+
+  .form{display:grid;grid-template-columns:150px 1fr;gap:8px 12px;align-items:center;font-size:.9rem;margin-top:12px}
+  .form label{color:var(--muted)}
+  .form input,.form select{background:var(--bg2);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:6px 10px;font:inherit;font-size:.9rem;width:100%}
+  .form input:focus,.form select:focus{outline:2px solid var(--gold);outline-offset:1px}
+  .form .seg{display:flex;gap:6px;flex-wrap:wrap}
+  .form .seg button{background:var(--bg2);border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:5px 12px;cursor:pointer;font-size:.85rem}
+  .form .seg button.on{color:#0a2129;background:var(--gold);border-color:var(--gold);font-weight:700}
+  .form .hint{grid-column:2;font-size:.78rem;color:var(--muted);margin-top:-4px}
+  .form h4{grid-column:1/-1;color:var(--teal);font-size:.8rem;letter-spacing:.05em;text-transform:uppercase;margin-top:10px}
+  @media(max-width:560px){.form{grid-template-columns:1fr}.form .hint{grid-column:1}}
+
+  .beats{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:18px}
+  .beat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .beat .who{display:inline-block;font-size:.72rem;font-weight:800;border-radius:4px;padding:1px 8px;margin-bottom:8px}
+  .beat .who.you{background:var(--gold);color:#0a2129} .beat .who.mach{background:var(--teal);color:#0a2129}
+  .beat b{display:block;margin-bottom:6px}
+  .beat .cm{background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.84rem;margin-top:8px}
+  .beat .cm .au{color:var(--muted);font-size:.75rem;display:block;margin-bottom:4px}
+
+  .stagemap{overflow-x:auto;margin-top:14px;border:1px solid var(--line);border-radius:12px}
+  .stagemap svg{display:block;width:100%;min-width:760px;height:auto}
+  .stagemap [data-k].dim{opacity:.22}
+  .stagemap .node.lit rect:first-child,.stagemap .gate.lit rect{stroke:var(--gold);stroke-width:2.5}
+  .stagemap .node:focus-visible,.stagemap .gate:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+  .tblwrap{overflow-x:auto;margin-top:14px}
+  table.rules{border-collapse:collapse;width:100%;font-size:.88rem}
+  table.rules th,table.rules td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+  table.rules th{color:var(--muted);font-size:.78rem;letter-spacing:.04em;text-transform:uppercase}
+  table.rules td:first-child{color:var(--gold);white-space:nowrap;font-family:var(--mono);font-size:.84rem}
+  .report{font:.84rem/1.5 var(--mono);background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-top:12px;overflow-x:auto;white-space:pre}
+  .report .y{color:var(--gold)} .report .m{color:var(--teal)} .report .d{color:var(--muted)}
+
+  .stops{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:18px}
+  .stop{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--red);border-radius:10px;padding:14px}
+  .stop b{display:block;color:var(--ink);margin-bottom:4px;font-family:var(--mono);font-size:.88rem}
+  .stop span{font-size:.86rem;color:var(--muted)}
+  footer{padding:36px 0;color:var(--muted);font-size:.85rem}
+  @media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="wrap">
+  <div class="brand"><a href="index.html">roz-gate<span class="dot">.</span></a> <span style="color:var(--muted);font-weight:400">/ <span class="en">get started</span><span class="zh">上手</span></span></div>
+  <nav>
+    <a href="#ready"><span class="en">0 Ready?</span><span class="zh">0 準備</span></a>
+    <a href="#install"><span class="en">1 Install</span><span class="zh">1 安裝</span></a>
+    <a href="#init"><span class="en">2 init</span><span class="zh">2 init</span></a>
+    <a href="#config"><span class="en">3 Configure</span><span class="zh">3 設定</span></a>
+    <a href="#first"><span class="en">4 First issue</span><span class="zh">4 第一張 issue</span></a>
+    <a href="#patrol"><span class="en">5 Patrol</span><span class="zh">5 Patrol</span></a>
+    <a href="#map"><span class="en">Your moves</span><span class="zh">你的動作</span></a>
+    <a href="#week"><span class="en">Checklist</span><span class="zh">清單</span></a>
+    <a href="#stops"><span class="en">When it stops</span><span class="zh">停下時</span></a>
+  </nav>
+  <div class="prog" id="prog"></div>
+  <div class="lang"><button id="btn-en" class="on" onclick="setLang('en')">EN</button><button id="btn-zh" onclick="setLang('zh')">中</button></div>
+</div></div>
+
+<div class="hero"><div class="wrap">
+  <h1><span class="en">From an empty repo to your first gated merge</span><span class="zh">從空 repo 到第一次有 gate 的 merge</span></h1>
+  <p class="en">This page is the <b>adopter's path</b>: install the plugin, run <code>init</code> once, set the few knobs that matter, file one idea, and let patrol carry it to a merge you sign. Everything below is what the <a href="index.html">interactive guide</a> explains, in the order you will actually meet it. Expect about an hour for steps 0–3 and one real feature for 4–5.</p>
+  <p class="zh">這一頁是<b>採用者的路</b>:裝 plugin、跑一次 <code>init</code>、設定少數幾個真正要緊的開關、開一張 idea,然後讓 patrol 把它一路送到由你簽收的 merge。下面的內容就是<a href="index.html">互動指南</a>講的那些東西,但照你實際會碰到的順序排。步驟 0–3 大約一小時;4–5 用一個真實的 feature 走一遍。</p>
+  <div class="journey">
+    <a href="#ready"><b>0</b><span class="en">Ready?</span><span class="zh">準備好了嗎</span><span class="who en">requirements · maturity</span><span class="who zh">需求 · 專案成熟度</span></a>
+    <a href="#install"><b>1</b><span class="en">Install</span><span class="zh">安裝</span><span class="who en">two commands</span><span class="who zh">兩條指令</span></a>
+    <a href="#init"><b>2</b><span class="en">init</span><span class="zh">init</span><span class="who en">once per repo</span><span class="who zh">每個 repo 一次</span></a>
+    <a href="#config"><b>3</b><span class="en">Configure</span><span class="zh">設定</span><span class="who en">build your config block</span><span class="who zh">組出你的 config block</span></a>
+    <a href="#first"><b>4</b><span class="en">First issue</span><span class="zh">第一張 issue</span><span class="who en">three beats, one label</span><span class="who zh">三個節拍、一個 label</span></a>
+    <a href="#patrol"><b>5</b><span class="en">Patrol</span><span class="zh">Patrol</span><span class="who en">the "what's next" button</span><span class="who zh">「接下來呢」按鈕</span></a>
+  </div>
+  <div class="legend">
+    <span><span class="you">■ Gold</span> <span class="en">= your move</span><span class="zh">= 你的動作</span></span>
+    <span><span class="mach">■ Teal</span> <span class="en">= the machine's move</span><span class="zh">= 機器的動作</span></span>
+  </div>
+</div></div>
+
+<!-- ───────────────────────── 0 ready ───────────────────────── -->
+<section id="ready"><div class="wrap">
+  <h2><span class="no">0</span><span class="en">Ready? Four requirements and one honest question</span><span class="zh">準備好了嗎?四個需求、一個誠實的問題</span></h2>
+  <p class="sub en">The plugin needs almost nothing — but the loop's value depends on one thing you already have or don't: tests the acceptance verdict can run.</p>
+  <p class="sub zh">plugin 本身幾乎什麼都不需要——但這套 loop 的價值取決於一件你有或沒有的東西:驗收 verdict 能跑的測試。</p>
+  <div class="two">
+    <div class="panel do">
+      <h3><span class="en">Requirements</span><span class="zh">需求</span></h3>
+      <ul class="check" data-group="req">
+        <li><input type="checkbox" id="rq1"><span><span class="en">Claude Code, with plugins enabled</span><span class="zh">Claude Code,可裝 plugin</span></span></li>
+        <li><input type="checkbox" id="rq2"><span><span class="en"><code>gh</code> (GitHub) <b>or</b> <code>glab</code> (GitLab) authenticated for the repo's host</span><span class="zh"><code>gh</code>(GitHub)<b>或</b> <code>glab</code>(GitLab)已對這個 repo 的 host 登入</span><small><span class="en">gh auth status / glab auth status</span><span class="zh">gh auth status / glab auth status</span></small></span></li>
+        <li><input type="checkbox" id="rq3"><span><span class="en">A git repo on that forge with issues and PRs/MRs enabled</span><span class="zh">放在該 forge 上、開著 issues 與 PR/MR 的 git repo</span></span></li>
+        <li><input type="checkbox" id="rq4"><span><span class="en">A test runner you can invoke from the CLI</span><span class="zh">能從 CLI 呼叫的 test runner</span><small><span class="en">Python ≥ 3.12 + uv are only for the plugin's own eval suite — not for using it.</span><span class="zh">Python ≥ 3.12 與 uv 只有跑 plugin 自己的 eval suite 才需要——使用它不需要。</span></small></span></li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3><span class="en">How mature is the project?</span><span class="zh">專案有多成熟?</span></h3>
+      <p class="sub" style="font-size:.9rem"><span class="en">Don't turn everything on at once. Pick what's true today:</span><span class="zh">不要一次全開。選今天的實情:</span></p>
+      <div class="tabs" id="mat">
+        <button data-m="none" onclick="pickMat('none')"><span class="en">No tests</span><span class="zh">沒有測試</span></button>
+        <button data-m="some" onclick="pickMat('some')"><span class="en">Some tests</span><span class="zh">有一些</span></button>
+        <button data-m="good" onclick="pickMat('good')"><span class="en">Solid suite</span><span class="zh">測試完整</span></button>
+      </div>
+      <div id="matout" style="margin-top:12px;font-size:.92rem"></div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ───────────────────────── 1 install ───────────────────────── -->
+<section id="install"><div class="wrap">
+  <h2><span class="no">1</span><span class="en">Install — two commands in Claude Code</span><span class="zh">安裝——在 Claude Code 裡兩條指令</span></h2>
+  <p class="sub en">The marketplace entry is the repository itself. Pick where it's hosted; the second command is the same everywhere.</p>
+  <p class="sub zh">marketplace 的來源就是這個 repository 本身。選它放在哪;第二條指令到處都一樣。</p>
+  <div class="tabs" id="host">
+    <button data-h="gh" class="on" onclick="pickHost('gh')">GitHub</button>
+    <button data-h="git" onclick="pickHost('git')"><span class="en">Any git host</span><span class="zh">任何 git host</span></button>
+  </div>
+  <pre id="installpre"></pre>
+  <p class="sub" style="margin-top:12px;font-size:.9rem"><span class="en">After this, every project you open in Claude Code has the <code>/roz-gate:*</code> commands — but nothing happens in a repo until you run <code>init</code> inside it.</span><span class="zh">之後你在 Claude Code 打開的每個專案都有 <code>/roz-gate:*</code> 指令——但在你於 repo 內跑 <code>init</code> 之前,什麼都不會發生。</span></p>
+</div></section>
+
+<!-- ───────────────────────── 2 init ───────────────────────── -->
+<section id="init"><div class="wrap">
+  <h2><span class="no">2</span><span class="en">init — once per repo, in conversation</span><span class="zh">init——每個 repo 一次,在對話中進行</span></h2>
+  <p class="sub en">Open the project in Claude Code and run <code>/roz-gate:init</code>. It is interactive and idempotent: it infers, shows you, and writes only what you confirm. Re-running it completes what's missing and touches nothing else.</p>
+  <p class="sub zh">在 Claude Code 打開專案,跑 <code>/roz-gate:init</code>。它是互動式且可重跑的:先推斷、給你看、只寫你確認的。再跑一次只補缺的部分,其他不碰。</p>
+  <div class="cards">
+    <div class="cell"><b><span class="en">Detects the forge</span><span class="zh">偵測 forge</span></b><span class="en">From <code>git remote</code>: github or gitlab (self-hosted too). Confirms with you.</span><span class="zh">從 <code>git remote</code> 判斷 github 或 gitlab(含自架)。會跟你確認。</span></div>
+    <div class="cell"><b><span class="en">Creates the labels</span><span class="zh">建立標籤</span></b><span class="en">Two <code>track:</code>, six <code>status:</code>. Skips ones that exist. On GitLab they are scoped (<code>track::spec</code>).</span><span class="zh">兩個 <code>track:</code>、六個 <code>status:</code>。已存在的跳過。GitLab 用 scoped label(<code>track::spec</code>)。</span></div>
+    <div class="cell"><b><span class="en">Writes CLAUDE.md</span><span class="zh">寫 CLAUDE.md</span></b><span class="en">A pointer + a small <code>### Roz Gate config</code> block — the workflow doc stays in the plugin, so upgrades apply everywhere.</span><span class="zh">一個指標加一小塊 <code>### Roz Gate config</code>——workflow 文件留在 plugin 裡,升級處處生效。</span></div>
+    <div class="cell"><b><span class="en">Seats the team</span><span class="zh">安排席位</span></b><span class="en">Five fixed seats. Already have a <code>backend.md</code> you tuned? It gets linked, not replaced — and checked against the seat's Never column.</span><span class="zh">五個固定席位。已有調過的 <code>backend.md</code>?會被連結而不是取代——並對照該席位的 Never 欄檢查。</span></div>
+    <div class="cell"><b><span class="en">Adds the Idea template</span><span class="zh">加 Idea 模板</span></b><span class="en">An issue template for capture from your phone: two rough sentences, no labels.</span><span class="zh">給手機隨手記的 issue 模板:兩句粗話、不貼標籤。</span></div>
+  </div>
+  <div class="two">
+    <div class="panel watch">
+      <h3><span class="en">What it will ask you</span><span class="zh">它會問你什麼</span></h3>
+      <ol>
+        <li><span class="en">The forge and default branch (confirm).</span><span class="zh">forge 與預設分支(確認)。</span></li>
+        <li><span class="en">One compact block of stack facts — test command, acceptance dir and command, dependency sync, lockfile — inferred from your lockfiles and CI; you correct, not dictate.</span><span class="zh">一小塊關於技術棧的事實——test 指令、驗收目錄與指令、相依同步、lockfile——從你的 lockfile 與 CI 推斷;你改正,不用口述。</span></li>
+        <li><span class="en">Does the project expose an HTTP API? (Decides what the technical contract looks like.)</span><span class="zh">專案有 HTTP API 嗎?(決定技術契約長什麼樣。)</span></li>
+        <li><span class="en">Does the agent act as you, or as its own bot identity? Default <code>user</code>, zero setup.</span><span class="zh">agent 以你的身分行動,還是用自己的 bot 身分?預設 <code>user</code>,零設定。</span></li>
+        <li><span class="en">Which of your existing agents, if any, should sit in a seat.</span><span class="zh">你既有的 agents 裡,哪些要坐進席位。</span></li>
+      </ol>
+    </div>
+    <div class="panel do">
+      <h3><span class="en">What you do</span><span class="zh">你要做的</span></h3>
+      <pre style="margin-top:0">/roz-gate:init</pre>
+      <ul>
+        <li><span class="en">Answer the compact confirmation; fix anything inferred wrong.</span><span class="zh">回答那一小塊確認;把推錯的改掉。</span></li>
+        <li><span class="en">Read the CLAUDE.md diff it shows before it writes.</span><span class="zh">看它寫入前秀出的 CLAUDE.md diff。</span></li>
+        <li><span class="en">Commit the result: <code>CLAUDE.md</code>, <code>.claude/agents/implementer.md</code>, the issue template.</span><span class="zh">把結果 commit:<code>CLAUDE.md</code>、<code>.claude/agents/implementer.md</code>、issue 模板。</span></li>
+        <li><span class="en">Nothing in <code>init</code> applies a gate label. Nothing starts yet.</span><span class="zh"><code>init</code> 不會貼任何 gate label。還沒有東西開始。</span></li>
+      </ul>
+    </div>
+  </div>
+</div></section>
+
+<!-- ───────────────────────── 3 configure ───────────────────────── -->
+<section id="config"><div class="wrap">
+  <h2><span class="no">3</span><span class="en">Configure — build your config block, now or later</span><span class="zh">設定——組出你的 config block,現在或之後</span></h2>
+  <p class="sub en">Everything the loop knows about your project is one block in CLAUDE.md. <code>init</code> writes the required keys; the optional ones you can set at any time with <code>/roz-gate:config</code> — pick a key from a menu, enter the value, an empty value clears it. Play with the knobs: the block on the right is what ends up in your file, and the steps under it are how you'd set the optional keys later.</p>
+  <p class="sub zh">loop 對你專案知道的一切,就是 CLAUDE.md 裡的一個 block。<code>init</code> 寫必要的 key;可選的 key 隨時可以用 <code>/roz-gate:config</code> 設——從選單選 key、輸入值,空值就是清掉。試試這些開關:右邊的 block 就是最後會寫進你檔案的內容,下面的步驟則是之後怎麼用 config 指令設可選 key。</p>
+  <div class="two">
+    <div class="panel">
+      <div class="form" id="cfgform">
+        <h4><span class="en">Required — init writes these</span><span class="zh">必要——init 寫入</span></h4>
+        <label>forge</label><div class="seg" data-key="forge"><button data-v="github" class="on">github</button><button data-v="gitlab">gitlab</button></div>
+        <label>default_branch</label><input id="f_branch" value="main">
+        <label><span class="en">stack</span><span class="zh">技術棧</span></label><div class="seg" data-key="stack"><button data-v="uv" class="on">uv / pytest</button><button data-v="npm">npm</button><button data-v="go">go</button><button data-v="other"><span class="en">other</span><span class="zh">其他</span></button></div>
+        <div class="hint"><span class="en">Presets fill test · acceptance_test · env_sync · lockfile · lockfile_regen; edit anything.</span><span class="zh">預設值填入 test · acceptance_test · env_sync · lockfile · lockfile_regen;都可改。</span></div>
+        <label>test</label><input id="f_test">
+        <label>acceptance_dir</label><input id="f_adir" value="tests/acceptance">
+        <label>acceptance_test</label><input id="f_atest">
+        <label>env_sync</label><input id="f_sync">
+        <label>lockfile</label><input id="f_lock">
+        <label>lockfile_regen</label><input id="f_regen">
+        <label>specs_dir</label><input id="f_specs" value="docs/specs">
+
+        <h4><span class="en">Optional — set later with /roz-gate:config</span><span class="zh">可選——之後用 /roz-gate:config 設</span></h4>
+        <label>agent_identity</label><div class="seg" data-key="ident"><button data-v="user" class="on">user</button><button data-v="bot">bot</button></div>
+        <div class="hint"><span class="en"><b>user</b>: agents act as your <code>gh</code> session — zero setup, but your own account's comments never notify you. <b>bot</b>: a GitHub App / GitLab project token; your phone rings, and a bot never holds a gate.</span><span class="zh"><b>user</b>:agents 用你的 <code>gh</code> session——零設定,但自己帳號的留言不會通知你。<b>bot</b>:GitHub App / GitLab project token;手機會響,而且 bot 永遠不持有 gate。</span></div>
+        <label>bot_login</label><input id="f_bot" placeholder="roz-gatekeeper" disabled>
+        <label>operator</label><input id="f_op" placeholder="your-login" disabled>
+        <label>inbox_label</label><input id="f_ilabel" placeholder="discuss">
+        <div class="hint"><span class="en">Inbox filter: with a value, only track-less issues carrying this label are triaged — the rest of your tracker is just a backlog patrol counts.</span><span class="zh">inbox 篩選:設了之後,只有帶這個 label 的 track-less issue 會被 triage——tracker 其他的只是 backlog,patrol 只計數。</span></div>
+        <label>inbox_assignee</label><input id="f_iassg" placeholder="your-login">
+        <div class="hint"><span class="en">Both set = both must hold. Neither = every track-less open issue is the inbox.</span><span class="zh">兩個都設 = 兩個都要符合。都沒設 = 所有 track-less open issue 都是 inbox。</span></div>
+        <label>patrol_model</label><input id="f_model" placeholder="claude-sonnet-5">
+        <div class="hint"><span class="en">The model patrol dispatches its seats with — not the model patrol itself runs on.</span><span class="zh">patrol 派工時 seats 用的 model——不是 patrol 自己跑的 model。</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="panel do">
+        <h3><span class="en">Your CLAUDE.md block</span><span class="zh">你的 CLAUDE.md block</span> <button class="copy" onclick="copyText('cfgpre', this)">copy</button></h3>
+        <pre id="cfgpre" style="margin-top:0"></pre>
+      </div>
+      <div class="panel watch" style="margin-top:14px">
+        <h3><span class="en">Later, one key per run</span><span class="zh">之後,一次一個 key</span></h3>
+        <div id="cfgsteps" style="font-size:.9rem"></div>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ───────────────────────── 4 first issue ───────────────────────── -->
+<section id="first"><div class="wrap">
+  <h2><span class="no">4</span><span class="en">Your first issue — three beats, then one label</span><span class="zh">第一張 issue——三個節拍,然後一個 label</span></h2>
+  <p class="sub en">Pick something real but small: a feature with a user-visible behaviour and one or two decisions in it. Two ways in; both end at the same place — an issue with a story, acceptance criteria and a <code>track:</code>, gated by a label only you apply.</p>
+  <p class="sub zh">選一件真實但小的事:有使用者看得到的行為、裡面有一兩個決定要做的 feature。兩種進法,終點相同——一張有 story、驗收條件與 <code>track:</code> 的 issue,由只有你能貼的 label 把關。</p>
+  <div class="tabs" id="way">
+    <button data-w="phone" class="on" onclick="pickWay('phone')"><span class="en">From your phone (the inbox)</span><span class="zh">從手機(inbox)</span></button>
+    <button data-w="kb" onclick="pickWay('kb')"><span class="en">At the keyboard (/roz-gate:to-issues)</span><span class="zh">在鍵盤前(/roz-gate:to-issues)</span></button>
+  </div>
+  <div id="way-phone">
+    <div class="beats">
+      <div class="beat"><span class="who you"><span class="en">YOU</span><span class="zh">你</span></span><b><span class="en">File it raw</span><span class="zh">原樣丟進去</span></b><span class="en" style="font-size:.9rem;color:var(--muted)">Open an issue with the Idea template. No labels — no <code>track:</code> label is what makes it the inbox. (If you set <code>inbox_label</code>, add that one.)</span><span class="zh" style="font-size:.9rem;color:var(--muted)">用 Idea 模板開一張 issue。不貼標籤——沒有 <code>track:</code> label 就是 inbox。(設了 <code>inbox_label</code> 的話,貼那一個。)</span>
+        <div class="cm"><span class="au">#12 · you</span><span class="en">Offers should expire. Expired ones shouldn't apply at checkout.</span><span class="zh">優惠要能過期。過期的在結帳時不該套用。</span></div></div>
+      <div class="beat"><span class="who mach"><span class="en">PATROL</span><span class="zh">PATROL</span></span><b><span class="en">Beat 1 — ask once</span><span class="zh">節拍 1——只問一次</span></b><span class="en" style="font-size:.9rem;color:var(--muted)">One batched comment, numbered, every option with a marked recommendation. Then it leaves the thread to humans; it never re-asks.</span><span class="zh" style="font-size:.9rem;color:var(--muted)">一則打包的留言,編號,每個選項附標記的建議。然後把討論串留給人;不會再問第二次。</span>
+        <div class="cm"><span class="au">**[intake]** · product</span><span class="en">1. Expiry granularity? (a) date ★ (b) datetime<br>2. Expired at checkout: (a) silently drop ★ (b) error …</span><span class="zh">1. 過期精度?(a) 日期 ★ (b) 日期時間<br>2. 結帳時過期:(a) 靜默移除 ★ (b) 報錯 …</span></div></div>
+      <div class="beat"><span class="who you"><span class="en">YOU</span><span class="zh">你</span></span><b><span class="en">Beat 2 — <code>summary</code> on demand</span><span class="zh">節拍 2——想看就說 <code>summary</code></span></b><span class="en" style="font-size:.9rem;color:var(--muted)">Discuss freely, from any device. When it feels settled — or right away if the recommendations look right — the <b>assignee</b> (unassigned → the author) ends a comment with the line <code>summary</code>. Patrol condenses everything into one <code>[intake] · summary</code>: story, acceptance criteria, suggested track, assumptions, contested points.</span><span class="zh" style="font-size:.9rem;color:var(--muted)">自由討論,任何裝置。覺得差不多了——或建議看起來都對就馬上——由 <b>assignee</b>(沒指定就是作者)在留言末行寫 <code>summary</code>。patrol 把一切濃縮成一則 <code>[intake] · summary</code>:story、驗收條件、建議的 track、假設、爭議點。</span>
+        <div class="cm"><span class="au">you</span><span class="en">1b, and keep 2a. Don't touch the API.<br><b>summary</b></span><span class="zh">1b,2 維持 a。不要動 API。<br><b>summary</b></span></div></div>
+      <div class="beat"><span class="who you"><span class="en">YOU</span><span class="zh">你</span></span><b><span class="en">Beat 3 — the label confirms</span><span class="zh">節拍 3——label 就是確認</span></b><span class="en" style="font-size:.9rem;color:var(--muted)">No approve keyword. Apply <code>status: ready-for-spec</code> (needs design ⇒ <code>track: spec</code>) or <code>status: ready-for-dev</code> (mechanical ⇒ <code>track: fast</code>). Patrol rewrites the body to the story template and the loop takes over. Confident? Skip beat 2 and label directly.</span><span class="zh" style="font-size:.9rem;color:var(--muted)">沒有 approve 關鍵字。貼 <code>status: ready-for-spec</code>(要設計 ⇒ <code>track: spec</code>)或 <code>status: ready-for-dev</code>(機械性 ⇒ <code>track: fast</code>)。patrol 把 body 改寫成 story 模板,loop 接手。有把握?跳過節拍 2 直接貼。</span></div>
+    </div>
+  </div>
+  <div id="way-kb" hidden>
+    <div class="two">
+      <div class="panel do">
+        <h3><span class="en">Live intake</span><span class="zh">即時 intake</span></h3>
+        <pre style="margin-top:0">/roz-gate:to-issues offers should expire; expired ones must not apply at checkout</pre>
+        <ul>
+          <li><span class="en">The <code>product</code> agent asks you one question at a time, each with a recommendation; the main agent only relays.</span><span class="zh"><code>product</code> agent 一次問你一個問題,各附建議;主 agent 只轉達。</span></li>
+          <li><span class="en">It publishes one issue per user story, already carrying the <code>track:</code> you confirmed.</span><span class="zh">它每個 user story 開一張 issue,已帶上你確認的 <code>track:</code>。</span></li>
+          <li><span class="en">Then your move is the same as beat 3: apply the gate label when you want work to start.</span><span class="zh">接著你的動作和節拍 3 一樣:想開工時貼 gate label。</span></li>
+        </ul>
+      </div>
+      <div class="panel watch">
+        <h3><span class="en">Which track?</span><span class="zh">哪條 track?</span></h3>
+        <ul>
+          <li><span class="en"><b>spec</b> — user-facing behaviour, domain or data modelling, real decisions to resolve. Gate: <code>ready-for-spec</code>.</span><span class="zh"><b>spec</b>——使用者看得到的行為、領域或資料模型、有真正的決定要做。gate:<code>ready-for-spec</code>。</span></li>
+          <li><span class="en"><b>fast</b> — vendor bump, config, chore, doc update, test fix. No spec, no blind QA; your review is the last guard. Gate: <code>ready-for-dev</code>.</span><span class="zh"><b>fast</b>——升版、config、chore、文件更新、測試修復。沒有 spec、沒有盲測;你的審查是最後防線。gate:<code>ready-for-dev</code>。</span></li>
+          <li><span class="en">A fast issue that turns out to need a decision escalates itself back to spec. Your first feature should be <b>spec</b> — you want to see the whole loop once.</span><span class="zh">fast 的 issue 做到一半發現要做決定,會自己升級回 spec。你的第一個 feature 應該走 <b>spec</b>——你會想完整看一次 loop。</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ───────────────────────── 5 patrol ───────────────────────── -->
+<section id="patrol"><div class="wrap">
+  <h2><span class="no">5</span><span class="en">Patrol — the "what's next" button</span><span class="zh">Patrol——「接下來呢」按鈕</span></h2>
+  <p class="sub en">One pass: scan every open issue's labels, act on <b>one</b> in-loop issue whose labels already authorize a step, triage the whole inbox, and report what waits on you. Run it by hand whenever you wonder what's next, or schedule it (every 30 minutes is typical) once enough is in flight. It never applies a gate label.</p>
+  <p class="sub zh">一趟:掃過每張 open issue 的標籤,對<b>一張</b>標籤已授權的 loop 內 issue 動作,把整個 inbox triage 一遍,然後回報有什麼在等你。想知道接下來做什麼就手動跑;飛行中的事夠多了就排程(常見是每 30 分鐘)。它永遠不貼 gate label。</p>
+  <div class="two">
+    <div class="panel do">
+      <h3><span class="en">Run it</span><span class="zh">跑它</span></h3>
+      <pre style="margin-top:0">/roz-gate:patrol</pre>
+      <ul>
+        <li><span class="en">First pass after beat 3: it rewrites #12's body and applies <code>track: spec</code>; the next pass starts the spec stage.</span><span class="zh">節拍 3 之後的第一趟:改寫 #12 的 body、貼上 <code>track: spec</code>;下一趟開始 spec 階段。</span></li>
+        <li><span class="en">Your next appearances: answer the spec CR's threads (<code>in-spec-review</code>) → apply <code>ready-for-dev</code> → review and merge (<code>in-user-review</code>).</span><span class="zh">你接下來出場的時機:回答 spec CR 的 threads(<code>in-spec-review</code>)→ 貼 <code>ready-for-dev</code> → 審查並 merge(<code>in-user-review</code>)。</span></li>
+        <li><span class="en">Everything else — build, blind QA, review, the verdict — runs between your appearances.</span><span class="zh">其他一切——施工、盲測、審查、verdict——都在你出場的間隔裡自己跑。</span></li>
+      </ul>
+    </div>
+    <div class="panel watch">
+      <h3><span class="en">What a pass reports</span><span class="zh">一趟回報什麼</span></h3>
+      <div class="report" style="margin-top:0"><span class="d">issue   state                 this pass</span>
+#12     <span class="m">track: spec · in flight</span>  <span class="m">spec CR opened (spec/12)</span>
+#9      <span class="y">in-spec-review</span>        <span class="y">waits on you: 3 threads</span>
+#7      <span class="y">in-user-review</span>        <span class="y">waits on you: review &amp; merge</span>
+<span class="d">inbox filter: label discuss · 6 track-less issues not in the inbox filter</span>
+
+<span class="y">Your queue:</span> answer #9's threads · review #7</div>
+      <p style="font-size:.86rem;color:var(--muted);margin-top:10px"><span class="en">In <code>bot</code> identity mode the questions and summaries are posted by the bot, so they notify you — async intake from your phone only works when the agent isn't you.</span><span class="zh">在 <code>bot</code> 身分模式下,問題與 summary 由 bot 貼出,所以會通知你——從手機做 async intake,只有 agent 不是你本人時才真的管用。</span></p>
+    </div>
+  </div>
+</div></section>
+
+<!-- ───────────────────────── map ───────────────────────── -->
+<section id="map"><div class="wrap">
+  <h2><span class="en">Where you appear in the loop</span><span class="zh">你在 loop 裡出現的位置</span></h2>
+  <p class="sub en">The same map as the guide. Toggle to see only the stages and gates that are your move — everything dimmed runs without you.</p>
+  <p class="sub zh">和指南同一張圖。切換後只看屬於你的階段與 gate——變暗的部分不需要你就會跑。</p>
+  <div class="tabs">
+    <button id="mapall" class="on" onclick="mapMode('all')"><span class="en">Whole loop</span><span class="zh">整個 loop</span></button>
+    <button id="mapyou" onclick="mapMode('you')"><span class="en">Only my moves</span><span class="zh">只看我的動作</span></button>
+  </div>
+  <div class="stagemap" id="stagemap"><!-- SVG:images/loop-stage-map.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 560" width="1160" height="560" role="img" aria-label="Roz Gate — the loop: stages, gates, both tracks" font-family="system-ui, -apple-system, 'Segoe UI', 'Noto Sans TC', sans-serif">
+<!-- Rendered from README.md § The loop in one page. ONE file, inlined by docs/index.html and the learner page; lint L1 holds the inlined copies byte-identical to this file. -->
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9db4ba"/></marker></defs>
+<rect x="0" y="0" width="1160" height="560" rx="12" fill="#0e2a33"/>
+<text x="1144" y="24" fill="#9db4ba" font-size="11" text-anchor="end"><tspan fill="#d9a441" font-weight="700">▮▮ gate</tspan> = 只有你能開 · <tspan fill="#4fa3b8" font-weight="700">teal</tspan> = agent 的動作 · <tspan fill="#c94f43">- - -</tspan> change order</text>
+<text x="16" y="24" fill="#d9a441" font-weight="800" font-size="12">track: spec</text>
+<g class="node" data-k="s1" tabindex="0"><rect x="16" y="40" width="150" height="66" rx="10" fill="#123742" stroke="#1e4a57" stroke-width="1.5"/><text x="28" y="62" fill="#d9a441" font-weight="800" font-size="13">(1)</text><text x="28" y="80" fill="#f2e8d5" font-weight="600" font-size="13">Intake</text><text x="28" y="96" fill="#9db4ba" font-size="11">收案 · <tspan fill="#4fa3b8" font-weight="700">product + 你</tspan></text></g>
+<line x1="166" y1="73" x2="186" y2="73" stroke="#9db4ba" stroke-width="1.6"  marker-end="url(#ah)"/>
+<g class="node" data-k="s1b" tabindex="0"><rect x="186" y="40" width="150" height="66" rx="10" fill="#123742" stroke="#1e4a57" stroke-width="1.5"/><text x="198" y="62" fill="#d9a441" font-weight="800" font-size="13">(1b)</text><text x="198" y="80" fill="#f2e8d5" font-weight="600" font-size="13">Async inbox</text><text x="198" y="96" fill="#9db4ba" font-size="11">手機收件匣 · <tspan fill="#4fa3b8" font-weight="700">patrol + 你</tspan></text></g>
+<line x1="336" y1="73" x2="356" y2="73" stroke="#9db4ba" stroke-width="1.6"  marker-end="url(#ah)"/>
+<g class="gate" data-k="g1" tabindex="0"><rect x="354" y="43" width="40" height="60" fill="none"/><rect x="360" y="51" width="4" height="44" rx="1.5" fill="#d9a441" opacity=".85"/><rect x="367" y="51" width="4" height="44" rx="1.5" fill="#d9a441" opacity=".85"/><rect x="374" y="51" width="4" height="44" rx="1.5" fill="#d9a441" opacity=".85"/><rect x="381" y="51" width="4" height="44" rx="1.5" fill="#d9a441" opacity=".85"/><text x="373" y="115" fill="#d9a441" font-weight="700" font-size="10" text-anchor="middle">you apply</text><text x="373" y="127" fill="#d9a441" font-weight="700" font-size="10" text-anchor="middle">ready-for-spec</text></g>
+<line x1="400" y1="73" x2="420" y2="73" stroke="#9db4ba" stroke-width="1.6"  marker-end="url(#ah)"/>
+<g class="node" data-k="s2" tabindex="0"><rect x="420" y="40" width="150" height="66" rx="10" fill="#123742" stroke="#1e4a57" stroke-width="1.5"/><text x="432" y="62" fill="#d9a441" font-weight="800" font-size="13">(2)</text><text x="432" y="80" fill="#f2e8d5" font-weight="600" font-size="13">Spec refinement</text><text x="432" y="96" fill="#9db4ba" font-size="11">規格擬定 · <tspan fill="#4fa3b8" font-weight="700">em·product·impl</tspan></text></g>
+<line x1="570" y1="73" x2="590" y2="73" stroke="#9db4ba" stroke-width="1.6"  marker-end="url(#ah)"/>
+<g class="node" data-k="s2a" tabindex="0"><rect x="590" y="40" width="150" height="66" rx="10" fill="#123742" stroke="#1e4a57" stroke-width="1.5"/><text x="602" y="62" fill="#d9a441" font-weight="800" font-size="13">(2a)</text><text x="602" y="80" fill="#f2e8d5" font-weight="600" font-size="13">Spec Q&amp;A</text><text x="602" y="96" fill="#9db4ba" font-size="11">規格議約 · <tspan fill="#4fa3b8" font-weight="700">你 + seats</tspan></text></g>
+<line x1="740" y1="73" x2="760" y2="73" stroke="#9db4ba" stroke-width="1.6"  marker-end="url(#ah)"/>
+<g class="gate" data-k="g2" tabindex="0"><rect x="758" y="43" width="40" height="60" fill="none"/><rect x="764" y="51" width="4" height="44" rx="1.5" fill="#d9a441" opacity=".85"/><rect x="771" y="51" width="4" height="44" rx="1.5" fill="#d9a441" opacity=".85"/><rect x="778" y="51" width="4" height="44" rx="1.5" fill="#d9a441" opacity=".85"/><rect x="785" y="51" width="4" height="44" rx="1.5" fill="#d9a441" opacity=".85"/><text x="777" y="115" fill="#d9a441" font-weight="700" font-size="10" text-anchor="middle">you apply</text><text x="777" y="127" fill="#d9a441" font-weight="700" font-size="10" text-anchor="middle">ready-for-dev</text></g>
+<path d="M 804 73 L 830 73 L 830 190 L 16 190 L 16 226" fill="none" stroke="#9db4ba" stroke-width="1.6"  marker-end="url(#ah)"/>
+<g class="node" data-k="s3" tabindex="0"><rect x="16" y="226" width="150" height="58" rx="10" fill="#123742" stroke="#1e4a57" stroke-width="1.5"/><text x="28" y="248" fill="#d9a441" font-weight="800" font-size="13">(3)</text><text x="28" y="266" fill="#f2e8d5" font-weight="600" font-size="13">Implementation</text><text x="28" y="282" fill="#9db4ba" font-size="11">施工 feat/{n} · <tspan fill="#4fa3b8" font-weight="700">implementer</tspan></text></g>
+<g class="node" data-k="s4" tabindex="0"><rect x="16" y="292" width="150" height="58" rx="10" fill="#123742" stroke="#1e4a57" stroke-width="1.5"/><text x="28" y="314" fill="#d9a441" font-weight="800" font-size="13">(4)</text><text x="28" y="332" fill="#f2e8d5" font-weight="600" font-size="13">Black-box QA</text><text x="28" y="348" fill="#9db4ba" font-size="11">盲測 qa/{n} · <tspan fill="#4fa3b8" font-weight="700">qa</tspan></text></g>
+<text x="91" y="364" fill="#9db4ba" font-size="11" text-anchor="middle">∥ 平行、互相看不見</text>
+<line x1="166" y1="255" x2="200" y2="255" stroke="#9db4ba" stroke-width="1.6"  marker-end="url(#ah)"/>
+<line x1="166" y1="321" x2="200" y2="321" stroke="#9db4ba" stroke-width="1.6"  marker-end="url(#ah)"/>
+<g class="node" data-k="s5" tabindex="0"><rect x="200" y="226" width="150" height="58" rx="10" fill="#123742" stroke="#1e4a57" stroke-width="1.5"/><text x="212" y="248" fill="#d9a441" font-weight="800" font-size="13">(5)</text><text x="212" y="266" fill="#f2e8d5" font-weight="600" font-size="13">Code review</text><text x="212" y="282" fill="#9db4ba" font-size="11">程式碼審查 · <tspan fill="#4fa3b8" font-weight="700">reviewer</tspan></text></g>
+<g class="node" data-k="s5q" tabindex="0"><rect x="200" y="292" width="150" height="58" rx="10" fill="#123742" stroke="#1e4a57" stroke-width="1.5"/><text x="212" y="314" fill="#d9a441" font-weight="800" font-size="13">(5q)</text><text x="212" y="332" fill="#f2e8d5" font-weight="600" font-size="13">Fidelity review</text><text x="212" y="348" fill="#9db4ba" font-size="11">忠實度審查 qa/{n} · <tspan fill="#4fa3b8" font-weight="700">reviewer, blind</tspan></text></g>
+<line x1="350" y1="255" x2="384" y2="271" stroke="#9db4ba" stroke-width="1.6"  marker-end="url(#ah)"/>
+<line x1="350" y1="321" x2="384" y2="305" stroke="#9db4ba" stroke-width="1.6"  marker-end="url(#ah)"/>
+<g class="node" data-k="s6" tabindex="0"><rect x="384" y="256" width="150" height="66" rx="10" fill="#123742" stroke="#1e4a57" stroke-width="1.5"/><text x="396" y="278" fill="#d9a441" font-weight="800" font-size="13">(6)</text><text x="396" y="296" fill="#f2e8d5" font-weight="600" font-size="13">Integration verdict</text><text x="396" y="312" fill="#9db4ba" font-size="11">驗收裁決 · <tspan fill="#4fa3b8" font-weight="700">main agent</tspan></text></g>
+<line x1="534" y1="289" x2="556" y2="289" stroke="#9db4ba" stroke-width="1.6"  marker-end="url(#ah)"/>
+<g class="node" data-k="s7" tabindex="0"><rect x="556" y="256" width="200" height="66" rx="10" fill="#123742" stroke="#1e4a57" stroke-width="1.5"/><text x="568" y="278" fill="#d9a441" font-weight="800" font-size="13">(7)</text><text x="568" y="296" fill="#f2e8d5" font-weight="600" font-size="13">Review conversation</text><text x="568" y="312" fill="#9db4ba" font-size="11">審查對話 · <tspan fill="#4fa3b8" font-weight="700">你 + main agent</tspan></text></g>
+<line x1="756" y1="289" x2="780" y2="289" stroke="#9db4ba" stroke-width="1.6"  marker-end="url(#ah)"/>
+<g class="gate" data-k="g3" tabindex="0"><rect x="778" y="259" width="40" height="60" fill="none"/><rect x="784" y="267" width="4" height="44" rx="1.5" fill="#d9a441" opacity=".85"/><rect x="791" y="267" width="4" height="44" rx="1.5" fill="#d9a441" opacity=".85"/><rect x="798" y="267" width="4" height="44" rx="1.5" fill="#d9a441" opacity=".85"/><rect x="805" y="267" width="4" height="44" rx="1.5" fill="#d9a441" opacity=".85"/><text x="797" y="331" fill="#d9a441" font-weight="700" font-size="10" text-anchor="middle">you merge</text><text x="797" y="343" fill="#d9a441" font-weight="700" font-size="10" text-anchor="middle">你 merge</text></g>
+<text x="836" y="284" fill="#f2e8d5" font-weight="700" font-size="12">shipped</text>
+<text x="836" y="300" fill="#9db4ba" font-size="11">issue 關閉、標籤退役</text>
+<path d="M 350 238 C 420 140, 600 150, 665 106" fill="none" stroke="#c94f43" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<text x="880" y="158" fill="#c94f43" font-size="11">contract 歧義 → change order → 回到 (2a)</text>
+<text x="880" y="174" fill="#c94f43" font-size="11">loop 唯一的 backward transition</text>
+<line x1="16" y1="408" x2="1144" y2="408" stroke="#1e4a57"/>
+<text x="16" y="424" fill="#d9a441" font-weight="800" font-size="12">track: fast</text><text x="110" y="424" fill="#9db4ba" font-size="11">機械性變更：chore、config、docs——共用 (1)，沒有 spec、沒有盲測、沒有 verdict；升級閥：出現真正的決定就改掛 track: spec 回到 (2)</text>
+<path d="M 91 106 L 91 160 L 8 160 L 8 470 L 16 470" fill="none" stroke="#9db4ba" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+<g class="node" data-k="s1" tabindex="0"><rect x="16" y="438" width="150" height="58" rx="10" fill="#123742" stroke="#1e4a57" stroke-width="1.5"/><text x="28" y="460" fill="#d9a441" font-weight="800" font-size="13">(1)</text><text x="28" y="478" fill="#f2e8d5" font-weight="600" font-size="13">Intake</text><text x="28" y="494" fill="#9db4ba" font-size="11">收案（同上） · <tspan fill="#4fa3b8" font-weight="700">product + 你</tspan></text></g>
+<line x1="166" y1="467" x2="186" y2="467" stroke="#9db4ba" stroke-width="1.6"  marker-end="url(#ah)"/>
+<g class="gate" data-k="fg1" tabindex="0"><rect x="184" y="437" width="40" height="60" fill="none"/><rect x="190" y="445" width="4" height="44" rx="1.5" fill="#d9a441" opacity=".85"/><rect x="197" y="445" width="4" height="44" rx="1.5" fill="#d9a441" opacity=".85"/><rect x="204" y="445" width="4" height="44" rx="1.5" fill="#d9a441" opacity=".85"/><rect x="211" y="445" width="4" height="44" rx="1.5" fill="#d9a441" opacity=".85"/><text x="203" y="509" fill="#d9a441" font-weight="700" font-size="10" text-anchor="middle">you apply</text><text x="203" y="521" fill="#d9a441" font-weight="700" font-size="10" text-anchor="middle">ready-for-dev</text></g>
+<line x1="230" y1="467" x2="250" y2="467" stroke="#9db4ba" stroke-width="1.6"  marker-end="url(#ah)"/>
+<g class="node" data-k="f3" tabindex="0"><rect x="250" y="438" width="170" height="58" rx="10" fill="#123742" stroke="#1e4a57" stroke-width="1.5"/><text x="262" y="460" fill="#d9a441" font-weight="800" font-size="13">(3′)</text><text x="262" y="478" fill="#f2e8d5" font-weight="600" font-size="13">Implement directly</text><text x="262" y="494" fill="#9db4ba" font-size="11">直接實作 fast/{n} · <tspan fill="#4fa3b8" font-weight="700">main agent</tspan></text></g>
+<line x1="420" y1="467" x2="440" y2="467" stroke="#9db4ba" stroke-width="1.6"  marker-end="url(#ah)"/>
+<g class="node" data-k="f5" tabindex="0"><rect x="440" y="438" width="150" height="58" rx="10" fill="#123742" stroke="#1e4a57" stroke-width="1.5"/><text x="452" y="460" fill="#d9a441" font-weight="800" font-size="13">(5)</text><text x="452" y="478" fill="#f2e8d5" font-weight="600" font-size="13">Code review</text><text x="452" y="494" fill="#9db4ba" font-size="11">程式碼審查 · <tspan fill="#4fa3b8" font-weight="700">reviewer</tspan></text></g>
+<line x1="590" y1="467" x2="610" y2="467" stroke="#9db4ba" stroke-width="1.6"  marker-end="url(#ah)"/>
+<g class="node" data-k="f7" tabindex="0"><rect x="610" y="438" width="150" height="58" rx="10" fill="#123742" stroke="#1e4a57" stroke-width="1.5"/><text x="622" y="460" fill="#d9a441" font-weight="800" font-size="13">(7)</text><text x="622" y="478" fill="#f2e8d5" font-weight="600" font-size="13">Review &amp; merge</text><text x="622" y="494" fill="#9db4ba" font-size="11">你審查、你 merge · <tspan fill="#4fa3b8" font-weight="700">你</tspan></text></g>
+<path d="M 780 467 L 814 467 L 814 344" fill="none" stroke="#9db4ba" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+</svg>
+<!-- /SVG --></div>
+  <p class="sub" style="margin-top:12px;font-size:.9rem"><span class="en">Click any stage on the <a href="index.html#map">guide's map</a> for what happens there, which labels move, and what your move is.</span><span class="zh">到<a href="index.html#map">指南的地圖</a>點任一階段,看那裡發生什麼、哪些標籤會動、你要做什麼。</span></p>
+</div></section>
+
+<!-- ───────────────────────── checklist ───────────────────────── -->
+<section id="week"><div class="wrap">
+  <h2><span class="en">First-week checklist</span><span class="zh">第一週清單</span></h2>
+  <p class="sub en">Ticks are saved in this browser only. When the last one is ticked you have seen every gate once — that's the point at which scheduling patrol starts paying for itself.</p>
+  <p class="sub zh">勾選只存在這個瀏覽器。最後一項打勾時,你已經親手開過每一道 gate——從這一刻起排程 patrol 才開始划算。</p>
+  <ul class="check" data-group="week" id="week-list">
+    <li><input type="checkbox" id="w1"><span><span class="en">Plugin installed; <code>/roz-gate:init</code> ran and its files are committed</span><span class="zh">plugin 裝好;<code>/roz-gate:init</code> 跑過,檔案已 commit</span></span></li>
+    <li><input type="checkbox" id="w2"><span><span class="en">The eight labels exist on the forge</span><span class="zh">forge 上有那八個標籤</span></span></li>
+    <li><input type="checkbox" id="w3"><span><span class="en">Config block reviewed; optional keys set with <code>/roz-gate:config</code> if you need them</span><span class="zh">看過 config block;需要的可選 key 用 <code>/roz-gate:config</code> 設好</span></span></li>
+    <li><input type="checkbox" id="w4"><span><span class="en">One idea filed and triaged in comments (beats 1–2)</span><span class="zh">一張 idea 開了、在留言裡 triage 過(節拍 1–2)</span></span></li>
+    <li><input type="checkbox" id="w5"><span><span class="en">Your first gate label applied — and the body rewritten on the next patrol pass</span><span class="zh">貼了第一個 gate label——下一趟 patrol 把 body 改寫了</span></span></li>
+    <li><input type="checkbox" id="w6"><span><span class="en">Spec threads answered inline; <code>ready-for-dev</code> applied</span><span class="zh">在 spec CR 上 inline 回答 threads;貼了 <code>ready-for-dev</code></span></span></li>
+    <li><input type="checkbox" id="w7"><span><span class="en">A green verdict, a gate-kit comment, and your merge</span><span class="zh">綠色 verdict、gate kit 留言、你的 merge</span></span></li>
+    <li><input type="checkbox" id="w8"><span><span class="en">Patrol scheduled</span><span class="zh">patrol 排程了</span></span></li>
+  </ul>
+</div></section>
+
+<!-- ───────────────────────── stops ───────────────────────── -->
+<section id="stops"><div class="wrap">
+  <h2><span class="en">When it stops — four shapes you will meet</span><span class="zh">停下來的時候——你會遇到的四種樣子</span></h2>
+  <p class="sub en">Stopping is the system working: agents are forbidden to guess. Each shape tells you where to look.</p>
+  <p class="sub zh">停下來就是系統在正常運作:agents 被禁止用猜的。每種樣子都告訴你該看哪裡。</p>
+  <div class="stops">
+    <div class="stop"><b>status: blocked</b><span class="en">An abnormal halt: a command hit something it cannot or must not decide and left an issue comment with evidence and a recommendation. Decide, clear the label; the step re-runs clean. It is <i>not</i> an agent waiting for an answer — that looks like open threads.</span><span class="zh">異常停機:指令碰到它不能或不該決定的事,留下一則含證據與建議的 issue 留言。你決定、清掉標籤;步驟從乾淨狀態重跑。它<i>不是</i> agent 在等你回答——那會長成開著的 threads。</span></div>
+    <div class="stop"><b>processing + a phase label</b><span class="en">A run was killed mid-flight. The phase label says where; clear the lock and re-run — commands are idempotent on re-entry.</span><span class="zh">一次執行被中途砍掉。階段標籤說明死在哪;清掉鎖、重跑——指令重入是冪等的。</span></div>
+    <div class="stop"><b><span class="en">illegal label state</span><span class="zh">非法標籤組合</span></b><span class="en">Two <code>track:</code> labels, <code>fast</code> with a spec-stage status… A command found it and stopped on purpose. Fix the labels by hand; commands never repair them.</span><span class="zh">兩個 <code>track:</code>、<code>fast</code> 配 spec 階段的 status…指令發現後故意停下。手動把標籤修好;指令從不自行修標籤。</span></div>
+    <div class="stop"><b><span class="en">QA CR stays a draft</span><span class="zh">QA CR 一直是草稿</span></b><span class="en">QA paused on an open question. Look for an unresolved thread on the spec CR, or <code>in-spec-review</code> on the issue.</span><span class="zh">QA 停在一個未解的問題上。去 spec CR 找未 resolve 的 thread,或 issue 上的 <code>in-spec-review</code>。</span></div>
+  </div>
+  <div class="panel" style="margin-top:22px">
+    <h3><span class="en">Leaving, if you ever do</span><span class="zh">哪天要離開的話</span></h3>
+    <p style="font-size:.92rem"><span class="en">Two steps, <b>in this order</b>: <code>/roz-gate:uninit</code> in each adopted project (it refuses to run mid-flight, then removes what init installed; labels are kept, specs and the acceptance suite are yours), and only then <code>/plugin uninstall roz-gate</code> — uninstalling first deletes the cleanup command with it.</span><span class="zh">兩步,<b>照這個順序</b>:先在每個採用的專案跑 <code>/roz-gate:uninit</code>(飛行中會拒絕;然後移除 init 裝的東西;標籤保留,spec 與驗收套件是你的),之後才 <code>/plugin uninstall roz-gate</code>——先解除安裝會連清理指令一起刪掉。</span></p>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <span class="en">Roz Gate — a Claude Code plugin · <a href="index.html">Interactive guide</a> · <a href="https://github.com/TaikerLiang/roz-gate">GitHub</a> · Works with GitHub (gh) and GitLab (glab).</span>
+  <span class="zh">Roz Gate — Claude Code plugin · <a href="index.html">互動指南</a> · <a href="https://github.com/TaikerLiang/roz-gate">GitHub</a> · 支援 GitHub (gh) 與 GitLab (glab)。</span>
+</div></footer>
+
+<script>
+/* ---------- i18n (shared with index.html: same key) ---------- */
+function setLang(l){
+  document.documentElement.lang = l;
+  document.getElementById('btn-en').classList.toggle('on', l==='en');
+  document.getElementById('btn-zh').classList.toggle('on', l==='zh');
+  try{localStorage.setItem('rozlang', l)}catch(e){}
+  renderAll();
+}
+const B = (en, zh) => `<span class="en">${en}</span><span class="zh">${zh}</span>`;
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem('rozob.'+k); return v===null ? d : JSON.parse(v) }catch(e){ return d } },
+  set(k, v){ try{ localStorage.setItem('rozob.'+k, JSON.stringify(v)) }catch(e){} }
+};
+
+/* ---------- 0 maturity ---------- */
+const MAT = {
+  none: B('<b>Start at stage (1) only:</b> route every AI diff through the independent reviewer — <code>track: fast</code> issues, your review as the last guard. Build test culture before blind QA can mean anything. Nothing else in this page changes; you just won\'t apply <code>ready-for-spec</code> yet.',
+          '<b>只從階段 (1) 開始:</b>每個 AI diff 都走獨立 reviewer——用 <code>track: fast</code> 的 issue,你的審查是最後防線。先建立測試文化,盲測才有意義。這一頁其他內容不變;只是你暫時不會貼 <code>ready-for-spec</code>。'),
+  some: B('<b>Add the spec stage for one real feature:</b> file it on <code>track: spec</code>, answer the Q&amp;A threads, and let blind QA write acceptance tests from the contract — that\'s where your suite starts growing in the right shape. Keep chores on <code>fast</code>.',
+          '<b>用一個真實 feature 加上 spec 階段:</b>用 <code>track: spec</code> 開它、回答 Q&amp;A threads,讓盲測從契約寫驗收測試——你的測試套件會從這裡開始長成對的形狀。雜務留在 <code>fast</code>。'),
+  good: B('<b>Run the whole loop from day one</b>, and schedule patrol once two or three issues are in flight — manual advancement becomes the bottleneck fast.',
+          '<b>第一天就跑完整 loop</b>,兩三張 issue 在飛行中時就排程 patrol——手動推進很快就會成為瓶頸。')
+};
+function pickMat(m){
+  store.set('mat', m);
+  document.querySelectorAll('#mat button').forEach(b=>b.classList.toggle('on', b.dataset.m===m));
+  document.getElementById('matout').innerHTML = MAT[m];
+}
+
+/* ---------- 1 install ---------- */
+const INSTALL = {
+  gh: `<span class="c"># in Claude Code</span>\n/plugin marketplace add TaikerLiang/roz-gate\n/plugin install roz-gate@roz-gate-marketplace`,
+  git:`<span class="c"># in Claude Code — any git host (GitLab, self-hosted)</span>\n/plugin marketplace add https://&lt;host&gt;/&lt;path&gt;/roz-gate.git\n/plugin install roz-gate@roz-gate-marketplace`
+};
+function pickHost(h){
+  document.querySelectorAll('#host button').forEach(b=>b.classList.toggle('on', b.dataset.h===h));
+  document.getElementById('installpre').innerHTML = INSTALL[h];
+}
+
+/* ---------- 3 config builder ---------- */
+const PRESET = {
+  uv:   {test:'uv run pytest', atest:'uv run pytest tests/acceptance/<feature>', sync:'uv sync', lock:'uv.lock', regen:'uv lock'},
+  npm:  {test:'npm test', atest:'npm test -- tests/acceptance/<feature>', sync:'npm ci', lock:'package-lock.json', regen:'npm install --package-lock-only'},
+  go:   {test:'go test ./...', atest:'go test ./tests/acceptance/<feature>/...', sync:'go mod download', lock:'go.sum', regen:'go mod tidy'},
+  other:{test:'<full-suite command>', atest:'<one feature\'s acceptance command>', sync:'<dependency sync command>', lock:'<lockfile>', regen:'<regen command>'}
+};
+const seg = {forge:'github', stack:'uv', ident:'user'};
+let cfgReady = false;   // renderCfg persists; never before the preset or saved state is applied
+const $ = id => document.getElementById(id);
+function applyPreset(){
+  const p = PRESET[seg.stack];
+  $('f_test').value = p.test; $('f_atest').value = p.atest.replace('tests/acceptance', $('f_adir').value || 'tests/acceptance');
+  $('f_sync').value = p.sync; $('f_lock').value = p.lock; $('f_regen').value = p.regen;
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;') }
+const OPT = [
+  ['agent_identity', () => seg.ident==='bot' ? 'bot' : ''],
+  ['bot_login',      () => seg.ident==='bot' ? $('f_bot').value.trim() : ''],
+  ['operator',       () => seg.ident==='bot' ? $('f_op').value.trim() : ''],
+  ['inbox_label',    () => $('f_ilabel').value.trim()],
+  ['inbox_assignee', () => $('f_iassg').value.trim()],
+  ['patrol_model',   () => $('f_model').value.trim()],
+];
+function renderCfg(){
+  if(!cfgReady) return;
+  const req = [['forge', seg.forge], ['default_branch', $('f_branch').value], ['test', $('f_test').value],
+    ['acceptance_dir', $('f_adir').value], ['acceptance_test', $('f_atest').value], ['env_sync', $('f_sync').value],
+    ['lockfile', $('f_lock').value], ['lockfile_regen', $('f_regen').value], ['specs_dir', $('f_specs').value]];
+  const opt = OPT.map(([k,f]) => [k, f()]).filter(([,v]) => v);
+  let s = `<span class="c">### Roz Gate config</span>\n\n` + req.map(([k,v]) => `- <span class="k">${k}</span>: ${esc(v)}`).join('\n');
+  if(opt.length) s += '\n' + opt.map(([k,v]) => `- <span class="k">${k}</span>: ${esc(v)}   <span class="c"># optional</span>`).join('\n');
+  $('cfgpre').innerHTML = s;
+  const steps = opt.length
+    ? `<pre style="margin-top:0">/roz-gate:config</pre><ol>` + opt.map(([k,v]) =>
+        `<li>${B(`pick <code>${k}</code> → enter <code>${esc(v)}</code>`, `選 <code>${k}</code> → 輸入 <code>${esc(v)}</code>`)}</li>`).join('') +
+      `</ol><p style="font-size:.84rem;color:var(--muted);margin-top:8px">${B('Each run changes one key, shows the diff, writes only that line. An empty value removes an optional key; required keys can\'t be cleared. Setting <code>inbox_label</code> to a label that doesn\'t exist is reported, never created for you.',
+        '每次只改一個 key、秀 diff、只寫那一行。空值會移除可選 key;必要 key 不能清。<code>inbox_label</code> 設成 forge 上不存在的 label 會被提醒,但不會替你建。')}</p>`
+    : `<p style="font-size:.9rem;color:var(--muted)">${B('No optional keys chosen — init\'s block is all you need. Come back to <code>/roz-gate:config</code> the day your tracker fills with issues that aren\'t ideas (set <code>inbox_label</code>), or when you want the agent to have its own face (<code>agent_identity: bot</code>).',
+        '沒選可選 key——init 寫的 block 就夠了。哪天 tracker 塞滿不是 idea 的 issue(設 <code>inbox_label</code>),或想讓 agent 有自己的面孔(<code>agent_identity: bot</code>),再回來用 <code>/roz-gate:config</code>。')}</p>`;
+  $('cfgsteps').innerHTML = steps;
+  store.set('cfg', {seg, f: Object.fromEntries(['f_branch','f_test','f_adir','f_atest','f_sync','f_lock','f_regen','f_specs','f_bot','f_op','f_ilabel','f_iassg','f_model'].map(id => [id, $(id).value]))});
+}
+function wireCfg(){
+  document.querySelectorAll('#cfgform .seg').forEach(g => g.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    seg[g.dataset.key] = b.dataset.v;
+    g.querySelectorAll('button').forEach(x => x.classList.toggle('on', x===b));
+    if(g.dataset.key==='stack') applyPreset();
+    if(g.dataset.key==='ident'){ const bot = seg.ident==='bot'; $('f_bot').disabled = !bot; $('f_op').disabled = !bot; }
+    renderCfg();
+  })));
+  document.querySelectorAll('#cfgform input').forEach(i => i.addEventListener('input', renderCfg));
+  const saved = store.get('cfg', null);
+  if(saved && saved.seg){
+    Object.assign(seg, saved.seg);
+    document.querySelectorAll('#cfgform .seg').forEach(g => g.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v===seg[g.dataset.key])));
+    Object.entries(saved.f || {}).forEach(([id, v]) => { if($(id)) $(id).value = v });
+    const bot = seg.ident==='bot'; $('f_bot').disabled = !bot; $('f_op').disabled = !bot;
+  } else applyPreset();
+  cfgReady = true;
+  renderCfg();
+}
+function copyText(id, btn){
+  const t = $(id).innerText;
+  const done = () => { btn.textContent = 'copied'; setTimeout(() => btn.textContent = 'copy', 1200) };
+  if(navigator.clipboard) navigator.clipboard.writeText(t).then(done, done); else done();
+}
+
+/* ---------- 4 way in ---------- */
+function pickWay(w){
+  document.querySelectorAll('#way button').forEach(b=>b.classList.toggle('on', b.dataset.w===w));
+  $('way-phone').hidden = w!=='phone'; $('way-kb').hidden = w!=='kb';
+}
+
+/* ---------- map: only my moves ---------- */
+const YOURS = new Set(['s1','s1b','g1','s2a','g2','s7','g3','fg1','f7']);
+function mapMode(m){
+  $('mapall').classList.toggle('on', m==='all'); $('mapyou').classList.toggle('on', m==='you');
+  document.querySelectorAll('.stagemap [data-k]').forEach(n => {
+    n.classList.toggle('dim', m==='you' && !YOURS.has(n.dataset.k));
+    n.classList.toggle('lit', m==='you' && YOURS.has(n.dataset.k));
+  });
+}
+
+/* ---------- checklists + progress ---------- */
+function wireChecks(){
+  document.querySelectorAll('.check input').forEach(cb => {
+    cb.checked = !!store.get('cb.'+cb.id, false);
+    cb.closest('li').classList.toggle('done', cb.checked);
+    cb.addEventListener('change', () => { store.set('cb.'+cb.id, cb.checked); cb.closest('li').classList.toggle('done', cb.checked); renderProg(); });
+  });
+  renderProg();
+}
+function renderProg(){
+  const all = [...document.querySelectorAll('#week-list input')];
+  const n = all.filter(c => c.checked).length;
+  $('prog').innerHTML = B(`first week <b>${n}/${all.length}</b>`, `第一週 <b>${n}/${all.length}</b>`);
+}
+function renderAll(){ renderProg(); if(store.get('mat', null)) pickMat(store.get('mat')); if($('cfgpre')) renderCfg(); }
+
+pickHost('gh'); pickWay('phone'); wireCfg(); wireChecks(); mapMode('all');
+try{ setLang(localStorage.getItem('rozlang') || 'en') }catch(e){ setLang('en') }
+const m0 = store.get('mat', null); if(m0) pickMat(m0);
+</script>
+</body>
+</html>
