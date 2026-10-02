@@ -15,6 +15,11 @@ every CAPITALIZED-OP. Missing config → stop; tell the user to run
 pre-1.0 name) counts as present — use its values and flag the re-init in the
 report.
 
+**Model**: `patrol_model` in the config block, when present, is the model
+every seat dispatched from this command runs on (`product` for async intake,
+`implementer` for address-review); absent → the runtime's default. It never
+changes the model this command itself runs on — that is the session's.
+
 **Personas**: every role dispatch below (`product`, `implementer`,
 `reviewer`) resolves through the `### Roz Gate personas` block — dispatch the
 mapped subagent, attaching the seat's R&R row from
@@ -34,7 +39,15 @@ stamp means no re-init is needed, whatever the plugin version.
 ## 1. Scan
 - ISSUE-LIST (all open issues).
 - Issues **without a `track:` label** are the **inbox** — pre-loop, valid, kept
-  for step 2's inbox row only.
+  for step 2's inbox row only — **subject to the inbox filter**: with
+  `inbox_label` set, only those carrying that label; with `inbox_assignee`
+  set, only those assigned to that login (the `assignees` ISSUE-LIST returns —
+compare logins with the bot-mode normalization: `app/` prefix and `[bot]`
+suffix stripped); both set, both must hold. A
+  track-less issue outside the filter is **not in the inbox**: never
+  commented on, never locked, never listed as waiting — only counted for the
+  report. The filter applies to the inbox alone; an issue carrying a
+  `track:` label advances by its labels whoever holds it.
 - For issues with a `track:` label, validate the invariants (exactly one
   `track:`; at most one `status:` besides the processing lock; `track: fast`
   never with a spec-stage status). An issue in an illegal state: **skip it and
@@ -55,7 +68,7 @@ stamp means no re-init is needed, whatever the plugin version.
 | no `status:`, `track: fast` | in flight: its CR has **open review threads** → actionable → **address-review**; review-clean → LABEL-ADD `status: in-user-review` and treat as waiting on the user |
 | `status: in-user-review` | the user is reviewing — and reviewing produces comments. Its CR (`spec/<n>` for `track: spec`, `fast/<n>` for `track: fast`; missing or closed → report, act on nothing) is read on **all three channels**: THREADS-LIST, REVIEWS-LIST, CR-COMMENTS-LIST. Any item whose latest entry does **not** start with `**[` or `✅ [` is **unheard** → actionable → `/roz-gate:review-answers <n>`. Otherwise → waiting on the user: say which wait, from the last agent marker — `· question` (your answer) / `· addressed` (your re-review) / none since the verdict (idle, N days) |
 | `status: blocked` | waiting on the user — never re-invoke anything on it |
-| no `track:` label (inbox) | actionable → **async intake** (below) when a gate label is present (finalize), the gate holder's latest comment requests a summary, or no questions batch exists yet; otherwise the discussion is the humans' — waiting on the user |
+| no `track:` label, in the inbox filter (inbox) | actionable → **async intake** (below) when a gate label is present (finalize), the gate holder's latest comment requests a summary, or no questions batch exists yet; otherwise the discussion is the humans' — waiting on the user |
 
 ## 3. Act — one loop issue per pass, plus the whole inbox
 In-loop work: pick the actionable issue **closest to done** — priority:
@@ -141,7 +154,10 @@ issue body, and all comments), never patrol's own.
 
 ## 4. Report
 A short table: issue · state · action taken this pass, or what it waits on and
-who. End with the user's queue: what (if anything) needs them — answer threads,
+who. When an inbox filter is configured, one line under the table states the
+filter and the count it excluded — `inbox filter: label discuss · N
+track-less issues not in the inbox filter` — so a quiet inbox is never a
+mystery. End with the user's queue: what (if anything) needs them — answer threads,
 answer intake questions, say `summary`, confirm a summary with the gate
 label, apply a gate label, or review &
 merge — with links.
