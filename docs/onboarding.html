@@ -505,6 +505,7 @@ const PRESET = {
   other:{test:'<full-suite command>', atest:'<one feature\'s acceptance command>', sync:'<dependency sync command>', lock:'<lockfile>', regen:'<regen command>'}
 };
 const seg = {forge:'github', stack:'uv', ident:'user'};
+let cfgReady = false;   // renderCfg persists; never before the preset or saved state is applied
 const $ = id => document.getElementById(id);
 function applyPreset(){
   const p = PRESET[seg.stack];
@@ -521,6 +522,7 @@ const OPT = [
   ['patrol_model',   () => $('f_model').value.trim()],
 ];
 function renderCfg(){
+  if(!cfgReady) return;
   const req = [['forge', seg.forge], ['default_branch', $('f_branch').value], ['test', $('f_test').value],
     ['acceptance_dir', $('f_adir').value], ['acceptance_test', $('f_atest').value], ['env_sync', $('f_sync').value],
     ['lockfile', $('f_lock').value], ['lockfile_regen', $('f_regen').value], ['specs_dir', $('f_specs').value]];
@@ -554,6 +556,7 @@ function wireCfg(){
     Object.entries(saved.f || {}).forEach(([id, v]) => { if($(id)) $(id).value = v });
     const bot = seg.ident==='bot'; $('f_bot').disabled = !bot; $('f_op').disabled = !bot;
   } else applyPreset();
+  cfgReady = true;
   renderCfg();
 }
 function copyText(id, btn){
@@ -594,8 +597,8 @@ function renderProg(){
 }
 function renderAll(){ renderProg(); if(store.get('mat', null)) pickMat(store.get('mat')); if($('cfgpre')) renderCfg(); }
 
-try{ setLang(localStorage.getItem('rozlang') || 'en') }catch(e){ setLang('en') }
 pickHost('gh'); pickWay('phone'); wireCfg(); wireChecks(); mapMode('all');
+try{ setLang(localStorage.getItem('rozlang') || 'en') }catch(e){ setLang('en') }
 const m0 = store.get('mat', null); if(m0) pickMat(m0);
 </script>
 </body>
