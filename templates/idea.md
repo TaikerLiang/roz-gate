@@ -9,4 +9,5 @@ about: Raw idea capture — no structure needed; patrol will triage it with you 
      any device. Want to read it back first? End a comment with the line
      `summary`. Nothing enters the loop until you (the assignee, else the
      author) apply the gate label: `status: ready-for-spec` or
-     `status: ready-for-dev`. -->
+     `status: ready-for-dev` (GitLab: `status::ready-for-spec` /
+     `status::ready-for-dev`). -->
