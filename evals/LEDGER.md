@@ -72,7 +72,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | C4 | track: fast + ready-for-spec refused | hook (guard-gate) | — |
 | C5 | Post-integration re-entry has a branch of its own | replay | "Folds, re-runs if behaviour changed, returns the issue to in-user-review." (without it the first-pass branch fires and tells a shipped feature it is ready to move to implementation) |
 | C6 | CR lookup sees merged CRs where it must | lint (defect 1.11.0-) | — |
-| C8 | A command's git work lives in a worktree it removes on every exit | lint (defect 1.19.0-) + hook (rule E worktree forms) | — |
+| C9 | A command's git work lives in a worktree it removes on every exit | lint (defect 1.19.0-) + hook (rule E worktree forms) | — |
 | C7 | A branch is cut only from a base the remote has | lint + replay | "Labels are blocked alone; the STOP comment names the missing base; no branch pushed, no CR opened." (a mistyped or retired `default_branch` used to cut an empty branch from nothing and open a CR against it — issue #38) |
 
 ### D · what a seat receives, and what it must not see
