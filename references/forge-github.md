@@ -46,6 +46,7 @@ Two modes, set by `agent_identity` in the Roz Gate config (key absent →
 | COMMENT-EDIT | `gh api -X PATCH repos/<owner>/<repo>/issues/comments/<comment-id> -f body="..."` (top-level issue/CR comments; id from the comment's URL or listing) |
 | ISSUE-CREATE | `gh issue create --title "..." --body "..." [--label "<label>"]` |
 | ISSUE-EDIT-BODY | `gh issue edit <n> --body "..."` (async intake only, at finalize — after the gate holder's gate label) |
+| ISSUE-LIST-CLOSED | `gh issue list --state closed --label "<track label>" --json number,title,labels` (patrol's close-out scan only: an issue the forge closed on merge still wears its loop labels) |
 | ISSUE-CLOSE | `gh issue close <n>` (patrol's close-out only — after the CR is merged; GitHub closes on `Closes #<n>` itself only when the CR targets the repository's default branch) |
 
 Label names use the **space form**: `track: spec`, `track: fast`,
@@ -59,7 +60,7 @@ Label names use the **space form**: `track: spec`, `track: fast`,
 | CR-OPEN | `gh pr create --base <target> --head <branch> --title "..." --body "..."` |
 | CR-OPEN-DRAFT | same + `--draft` |
 | CR-READY | `gh pr ready <pr>` |
-| CR-FIND | `gh pr list --head <branch> --state open --json number,title,isDraft,baseRefName` (`--state all` when a command must also see merged CRs) |
+| CR-FIND | `gh pr list --head <branch> --state open --json number,title,isDraft,baseRefName,state,url` (`--state all` when a command must also see merged CRs — `state` is `MERGED` for them, `url` is what the close-out comment cites) |
 | CR-VIEW | `gh pr view <pr> --json number,title,isDraft,state,headRefName` |
 | CR-MERGE | `gh pr merge <pr>` (the human's act at (7) — commands never run this) |
 

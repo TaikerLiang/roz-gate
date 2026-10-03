@@ -52,6 +52,15 @@ suffix stripped); both set, both must hold. A
   `track:`; at most one `status:` besides the processing lock; `track: fast`
   never with a spec-stage status). An issue in an illegal state: **skip it and
   report it** — never repair labels.
+- **Close-out scan.** For every issue wearing a `track:` label — the open
+  ones above, plus ISSUE-LIST-CLOSED per track label (the forge closes an
+  issue on merge where its own rule fires, and leaves the loop labels on) —
+  CR-FIND its CR (`spec/<n>` / `fast/<n>`) with the all-states form. CR
+  **merged** → a close-out candidate: **legal** when the issue is at
+  `status: in-user-review` or already carries a `**[patrol] · shipped**`
+  comment (a close-out interrupted part-way — finish it); any other status
+  without that marker is an illegal state — report, never repair. Candidates
+  leave the classification below; they are handled by the close-out action.
 - Skip any issue with `status: processing` (locked by a running command — list
   it in the report with the phase label beside it and how long it has worn the
   lock: a stale pair is a killed run, and a silently skipped one dies one click
@@ -66,7 +75,7 @@ suffix stripped); both set, both must hold. A
 | `status: in-spec-review` | THREADS-LIST on its spec CR. Any unresolved thread whose last comment is a human answer (does not start with `**[` / `✅ [`) → actionable → `/roz-gate:spec-answers <n>`. Otherwise → waiting on the user |
 | no `status:`, `track: spec` | in flight: CR-FIND for `feat/<n>` and `qa/<n>`. Implementation CR exists with **zero open review threads** AND QA CR exists, **is not a draft, and has zero open fidelity threads** → actionable → `/roz-gate:integrate <n>`. Either CR has **open review threads** → actionable → **address-review** (below). Otherwise → in progress, not actionable |
 | no `status:`, `track: fast` | in flight: its CR has **open review threads** → actionable → **address-review**; review-clean → LABEL-ADD `status: in-user-review` and treat as waiting on the user |
-| `status: in-user-review` | first, CR-FIND its CR (`spec/<n>` for `track: spec`, `fast/<n>` for `track: fast`) with the all-states form — **merged** → actionable → **close-out** (below): the human signed, the loop finishes the paperwork. Otherwise the user is reviewing — and reviewing produces comments. Its open CR (missing or closed-unmerged → report, act on nothing) is read on **all three channels**: THREADS-LIST, REVIEWS-LIST, CR-COMMENTS-LIST. Any item whose latest entry does **not** start with `**[` or `✅ [` is **unheard** → actionable → `/roz-gate:review-answers <n>`. Otherwise → waiting on the user: say which wait, from the last agent marker — `· question` (your answer) / `· addressed` (your re-review) / none since the verdict (idle, N days) |
+| `status: in-user-review` | its CR (`spec/<n>` for `track: spec`, `fast/<n>` for `track: fast`) was found **merged** by the close-out scan → actionable → **close-out** (below): the human signed, the loop finishes the paperwork. Otherwise the user is reviewing — and reviewing produces comments. Its open CR (missing or closed-unmerged → report, act on nothing) is read on **all three channels**: THREADS-LIST, REVIEWS-LIST, CR-COMMENTS-LIST. Any item whose latest entry does **not** start with `**[` or `✅ [` is **unheard** → actionable → `/roz-gate:review-answers <n>`. Otherwise → waiting on the user: say which wait, from the last agent marker — `· question` (your answer) / `· addressed` (your re-review) / none since the verdict (idle, N days) |
 | `status: blocked` | waiting on the user — never re-invoke anything on it |
 | no `track:` label, in the inbox filter (inbox) | actionable → **async intake** (below) when a gate label is present (finalize), the gate holder's latest comment requests a summary, or no questions batch exists yet; otherwise the discussion is the humans' — waiting on the user |
 
@@ -99,14 +108,18 @@ closes the issue itself only when its own rule fires (GitHub: `Closes #<n>`
 in the body **and** a CR targeting the repository's default branch; GitLab:
 the same keyword, and only against the default branch) — a release-branch
 base or a GitLab MR leaves the issue open wearing `in-user-review`. Patrol
-finishes it, idempotently:
-1. LABEL-REMOVE every `track:` and `status:` label the issue still wears
-   (skip what is already gone).
-2. ISSUE-COMMENT one line: `**[patrol] · shipped** — <CR url> merged; labels
+finishes it, in this order — the comment is the durable marker, so a pass
+interrupted anywhere after it is recognized and resumed by the next scan,
+and a pass interrupted before it has written nothing:
+1. ISSUE-COMMENT one line: `**[patrol] · shipped** — <CR url> merged; labels
    retired.` Skip if a `**[patrol] · shipped**` comment is already there.
-3. ISSUE-CLOSE, if still open.
+2. ISSUE-CLOSE, if still open.
+3. LABEL-REMOVE every `track:` and `status:` label the issue still wears
+   (skip what is already gone) — last, because without a label the issue
+   drops out of the scan.
 No lock: every step is idempotent and nothing dispatches. A merged CR on an
-issue in **any other** status is an illegal state — report it, never repair.
+issue in **any other** status, with no shipped marker, is an illegal state —
+report it, never repair.
 
 ### The address-review action — the (5) loop's engine
 For an in-flight CR with open review threads:

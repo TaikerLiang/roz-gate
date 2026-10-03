@@ -10,3 +10,11 @@ git add -A
 git -c user.email=paul@example.com -c user.name=paul commit -qm "fast: fix banner typo (#5)"
 git checkout -q main
 git merge -q --no-ff --no-edit fast/5
+# #6: spec/6 merged too; GitHub closed the issue on `Closes #6` but its
+# loop labels stayed on — the other shape the close-out must finish.
+git checkout -qb spec/6
+mkdir -p docs/specs/6 && echo "# Spec #6" > docs/specs/6/spec.md
+git add -A
+git -c user.email=paul@example.com -c user.name=paul commit -qm "spec docs #6"
+git checkout -q main
+git merge -q --no-ff --no-edit spec/6

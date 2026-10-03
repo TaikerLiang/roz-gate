@@ -32,7 +32,10 @@ sys.path.insert(0, HERE)
 import replaylib as rl  # noqa: E402
 
 GH = os.path.join(HERE, "forge-stub", "gh")
-STATE = {"agent_login": "roz-gatekeeper", "issues": {"5": {"title": "x", "labels": []}}, "prs": {}}
+STATE = {"agent_login": "roz-gatekeeper",
+         "issues": {"5": {"title": "x", "labels": []},
+                    "6": {"title": "y", "labels": ["track: spec"], "state": "closed"}},
+         "prs": {}}
 
 # (name, argv after `gh`, expected journal route, a string stdout must carry)
 ROUTES = [
@@ -52,6 +55,9 @@ ROUTES = [
     ("POST to the bot's login", ["api", "-X", "POST", "/users/roz-gatekeeper"], "UNKNOWN", ""),
     ("issue close, in fixture", ["issue", "close", "5"], "issue-close", "Closed issue #5"),
     ("issue close, absent id", ["issue", "close", "9"], "UNKNOWN", ""),
+    ("closed issues wearing a track label (the close-out scan)",
+     ["issue", "list", "--state", "closed", "--label", "track: spec", "--json", "number,labels"],
+     "issue-list", '"number": 6'),
 ]
 
 # (name, result.json content or None for absent, iteration_done)
