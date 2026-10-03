@@ -135,7 +135,13 @@ by change class:
   `spec.md` states the old one poisons every later kit, every fidelity review
   and the next feature's spec round — and no redo of this issue reaches it.
 
-One commit per turn, its message citing the comment(s) it answers. Then
+One commit per turn, its message citing the comment(s) it answers — made in
+a **worktree of the CR's branch**
+(`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<branch> <branch>`
+after a `git fetch`, `${CLAUDE_PLUGIN_ROOT}/references/workflow.md` → The main
+agent → The workspace), where the hand-back rule's test runs also happen;
+`git worktree remove --force` it (then `git worktree prune`) when the turn
+ends, pushed or not. Then
 COMMENT-EDIT the gate-kit comment
 (`${CLAUDE_PLUGIN_ROOT}/references/gate-kit.md`): append the exchange to the
 decision ledger (§3's shape, unmodified), and if the suite re-ran, regenerate

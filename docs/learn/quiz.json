@@ -183,7 +183,7 @@
    "o": [
     "**Done** 或 **Retry**：遇到暫時性錯誤時 command 自動重跑最多三次，三次都失敗才回報並留下 issue comment 說明重試紀錄——減少人類被打擾的次數，也讓 log 自己說明發生了什麼。",
     "**Done**、**STOP**、**Skip** 三種：Skip 用在 command 判斷這個 issue 目前沒有它能做的事，靜默跳過、不留任何 comment 或標籤——patrol 每輪掃過去時就保持安靜，不製造噪音。",
-    "**Done**：交付物產出、`processing` 鎖拿掉。**STOP**（異常停機）：丟掉未 commit 的本機工作、把狀態標籤換成只剩 `blocked`、貼一則 issue comment 寫明發生什麼、證據、建議的下一步。沒有第三種結束方式。",
+    "**Done**：交付物產出、`processing` 鎖拿掉。**STOP**（異常停機）：移除自己的 worktree、把狀態標籤換成只剩 `blocked`、貼一則 issue comment 寫明發生什麼、證據、建議的下一步。沒有第三種結束方式。",
     "**Done** 或 **Fix**：command 發現 label 狀態不一致（例如兩個階段標籤並存）時先自行修正成最可能的狀態，再從修正後的狀態繼續執行，事後在 issue comment 註明——避免流程因為標籤問題卡住。"
    ],
    "a": 2,

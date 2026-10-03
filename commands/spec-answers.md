@@ -99,8 +99,14 @@ half-done:
    edit the issue body/AC — the user decides whether to amend.
 
 ## 6. Commit the spec edits
-After processing, commit the spec changes on `spec/<n>` and push (so the CR
-reflects the resolutions). Use `--no-verify` only for unrelated hook failures,
+Every fold above edits the spec **in a worktree of `spec/<n>`** —
+`git fetch`, then
+`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n> spec/<n>`
+before the first fold (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` → The
+main agent → The workspace); a refusal means another command holds the
+branch → the STOP exit. After processing, commit the spec changes there, push
+(so the CR reflects the resolutions), then
+`git worktree remove --force` it and `git worktree prune`. Use `--no-verify` only for unrelated hook failures,
 and say so.
 
 ## 6b. Update the spec-gate kit
@@ -160,7 +166,9 @@ questions are still waiting.
 ## 8. The STOP exit
 On anything this command cannot or should not decide — a fold that keeps
 failing, a rejected push, an impossible state: follow the STOP protocol.
-Discard uncommitted spec edits (`git checkout`), replace the issue's status
+`git worktree remove --force` the `spec/<n>` worktree (the uncommitted spec
+edits live nowhere else; the user's checkout was never touched), replace the
+issue's status
 labels with `status: blocked` alone, and ISSUE-COMMENT: what happened, the
 evidence, and your recommended next step. Name the half-done thread if there is
 one — a folded-but-unresolved thread will be re-folded on re-run, and the human

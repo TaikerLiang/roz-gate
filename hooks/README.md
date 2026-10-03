@@ -72,7 +72,16 @@ rm -f "$(git rev-parse --git-dir)/roz-gate/fidelity-dispatch"
 
 Written immediately before the dispatch, removed immediately after it
 returns (next-stage B5b, patrol's address-review steps 2 and 3). It lives
-under the git dir — per worktree, never tracked, never in `git status`.
+under the **session checkout's** git dir — `guard_blind.py` resolves it with
+`git rev-parse --absolute-git-dir` from the hook's cwd, which is the
+session's, so write it from there (never with `git -C <worktree>`, whose
+`--git-dir` is that worktree's private `worktrees/<name>` dir and the hook
+would not see it). Commands do their git work in linked worktrees under
+`<common-dir>/roz-gate/wt/`; the marker is the one piece of command state
+outside them, and it is shared by every worktree of that session checkout —
+so a dispatch in one session also blinds another session running on the
+same checkout: over-blocking, the fail direction this rule chooses. Never
+tracked, never in `git status`.
 The prefilter is one git call plus one stat. **Stale marker = rule still
 ON**: if a dispatch crashed and a later, non-blind read is denied, the deny
 message names the file to remove. `agent_type` from the hook input is

@@ -14,6 +14,12 @@ BASH_DENIED = [
     ("rule E: message names the agent when the payload carries one", RUN4, "agent: roz-gate:qa"),
     ("rule E: git checkout feat/5 under the marker denied", "git checkout feat/5", "feat/ ref"),
     ("rule E: git diff qa/5...feat/5 denied", "git diff qa/5...feat/5 -- tests/", "feat/ ref"),
+    # Commands work in linked worktrees (issue #37); a worktree on a feat/ ref is a touch.
+    ("rule E: git worktree remove of the feat/ worktree under the marker denied",
+     "git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/feat/5",
+     "feat/ ref"),
+    ("rule E: cd into a worktree then checkout feat/5 denied",
+     "cd $(git rev-parse --git-common-dir)/roz-gate/wt/qa/5 && git checkout feat/5", "feat/ ref"),
     ("rule E: a read after an echo mention still denied",
      'echo "excluding src/" && cat src/app.txt', "read of src/"),
     # echo/printf are commands, never arguments (codex, PR #11: `grep echo src/app.txt` passed).
@@ -40,6 +46,10 @@ BASH_ALLOWED = [
     ("rule E: exclusion pathspec ':!src/**' allowed", "git grep -n price -- ':!src/**'"),
     ("rule E: qa/<n> work — tests and spec docs — allowed",
      "cat tests/acceptance/test_expiry.py && git status"),
+    ("rule E: the command's own qa/<n> worktree allowed",
+     "git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/qa/5 -b qa/5 origin/spec/5"),
+    ("rule E: git -C the qa/<n> worktree status allowed",
+     "git -C $(git rev-parse --git-common-dir)/roz-gate/wt/qa/5 status --short"),
 ]
 
 
