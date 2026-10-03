@@ -160,7 +160,12 @@ track-less issues not in the inbox filter` — so a quiet inbox is never a
 mystery. End with the user's queue: what (if anything) needs them — answer threads,
 answer intake questions, say `summary`, confirm a summary with the gate
 label, apply a gate label, or review &
-merge — with links.
+merge — with links. The table, the filter line and the queue are the
+**must-read**; anything else — per-issue notes, why an issue was skipped,
+what a lock looked like — goes under a trailing `## Details` heading after
+the queue (this report is printed to a terminal, not a forge, so it uses a
+heading rather than a `<details>` tag). Nothing that needs the human is ever
+only in Details.
 
 ## 5. Notification (optional)
 If a messaging channel (e.g. Telegram) is connected and an issue **newly**

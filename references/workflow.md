@@ -76,8 +76,8 @@ filter is a plain issue patrol only counts. Three beats — ask once, summarize 
    can share one comment; a first-line `summary` works too), the `product`
    agent (same intake brief, async mode) condenses the body + **all**
    comments into one
-   `**[intake] · summary**`: story + AC + proposed `track:` + an attributed
-   decision trail; unanswered questions resolve to their recommendations,
+   `**[intake] · summary**`: story + AC + proposed `track:` on top, an
+   attributed decision trail folded below; unanswered questions resolve to their recommendations,
    listed as explicit **assumptions**; disagreements are shown as
    **contested points** with both sides — one reply flips them. Corrections?
    Reply them — end with `summary` to re-read a revised summary first, or
@@ -286,7 +286,11 @@ the `processing` lock on entry and leaves through exactly one of two exits.
 **Done:** work complete, lock removed. **STOP:** it hit something it cannot or
 should not decide: (1) discard uncommitted local work; (2) replace the issue's
 status labels with `blocked` alone; (3) post an issue comment — what happened,
-the evidence, what already exists remotely, a recommended next step. No third
+where it died, what already exists remotely, a recommended next step — as the
+**must-read, at most 12 lines before the first `<details>`**, with the
+evidence (logs, command output, diffs) folded below it in one
+`<details><summary>Evidence</summary>` block; the human on a phone reads the
+decision first and opens the evidence only to check it. No third
 exit. A stale `processing` therefore means exactly one thing — a killed run —
 and the phase label next to it says where.
 

@@ -180,9 +180,11 @@ patrol counts in its report and never comments on. Three beats — **ask once, s
    line **`summary`** whenever the discussion feels settled — or
    immediately, if the recommendations look right; corrections and the
    request can share one comment. The agent condenses the body + all
-   comments into one summary: story + acceptance criteria + suggested track
-   + an attributed decision trail; unanswered questions become explicit
-   assumptions, disagreements become contested points shown with both sides.
+   comments into one summary — must-read on top (story, acceptance
+   criteria, suggested track, assumptions, contested points), context and
+   the attributed decision trail folded below it; unanswered questions become
+   explicit assumptions, disagreements become contested points shown with
+   both sides.
 3. Looks right? The assignee applies the gate label — `ready-for-spec` (spec
    track) or `ready-for-dev` (fast track). **The label is the confirmation**,
    and it reads: *build the story from everything I said* — only the

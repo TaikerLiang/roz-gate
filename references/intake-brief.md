@@ -39,17 +39,18 @@ of:
        needing detail says so inline ("(b) a subset → say which").
      - Long background (enumerations, current-state surveys) goes in a
        `<details><summary>Background</summary>` block per question — visible
-       text stays question + options + one-line why.
+       text stays question + options + one-line why. **Must-read budget:
+       at most 6 visible lines per question** (title, options, why); anything
+       more is Background.
 2. **The summary** (async; the live medium's equivalent is the proposal in
    step 3 of `/roz-gate:to-issues`) — produced when the assignee asks for it,
-   from the issue body + **all** comments:
+   from the issue body + **all** comments. Two parts, **must-read on top,
+   supplement folded below** — the must-read stands alone on a phone and
+   is **at most 25 lines before the first `<details>`**:
    - the user story: `As a {role}, I want {capability}, so that {benefit}.`
    - acceptance criteria: observable, testable checkboxes — things an outside
      observer could verify, never implementation tasks
-   - context: background for whoever picks this up; **no file paths, no
-     implementation detail**
    - proposed track, with one line of reasoning
-   - **decision trail**: who said what, attributed — the MOU's signature page
    - **assumptions**: every question nobody answered, resolved to your
      recommendation and listed plainly
    - **contested points**: where the discussion disagreed, present both sides
@@ -59,7 +60,12 @@ of:
      the fast track) — the label is the confirmation. Off? Reply corrections
      — end the comment with a line `summary` to see a revised summary first,
      or apply the label directly: finalize folds your corrections either
-     way."*
+     way. Context and the decision trail are folded below."*
+   - then the supplement, one block:
+     `<details><summary>Supplement — context and decision trail</summary>`
+     holding **context** (background for whoever picks this up; **no file
+     paths, no implementation detail**) and the **decision trail** (who said
+     what, attributed — the MOU's signature page), closed with `</details>`.
 
 Multiple distinct stories in one idea → say so in the summary and give one
 story block per issue (siblings — never parent/child, never task-splitting).
