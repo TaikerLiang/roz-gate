@@ -6,7 +6,9 @@ throwaway state, the resume rule against staged result.json files.
     python3 evals/replay/redproof.py
 
 - ROUTES — each argv the stub must route, or refuse, with the journal
-  route it must write. Identity by name (`/apps/<slug>`, `/users/<login>`,
+  route it must write. `issue close` (patrol's close-out, #41) is a write
+  that journals `issue-close`; an absent id stays UNKNOWN. Identity by name
+  (`/apps/<slug>`, `/users/<login>`,
   judgment k=2 on 1.17.0) is keyed on the fixture's agent_login: the bot's
   own slug/login is a canned view, any other name is an absent id and
   stays UNKNOWN, a POST to the same target stays UNKNOWN.
@@ -30,7 +32,10 @@ sys.path.insert(0, HERE)
 import replaylib as rl  # noqa: E402
 
 GH = os.path.join(HERE, "forge-stub", "gh")
-STATE = {"agent_login": "roz-gatekeeper", "issues": {}, "prs": {}}
+STATE = {"agent_login": "roz-gatekeeper",
+         "issues": {"5": {"title": "x", "labels": []},
+                    "6": {"title": "y", "labels": ["track: spec"], "state": "closed"}},
+         "prs": {}}
 
 # (name, argv after `gh`, expected journal route, a string stdout must carry)
 ROUTES = [
@@ -48,6 +53,11 @@ ROUTES = [
     ("a human login", ["api", "/users/paul"], "UNKNOWN", ""),
     ("a sub-resource", ["api", "/users/roz-gatekeeper/repos"], "UNKNOWN", ""),
     ("POST to the bot's login", ["api", "-X", "POST", "/users/roz-gatekeeper"], "UNKNOWN", ""),
+    ("issue close, in fixture", ["issue", "close", "5"], "issue-close", "Closed issue #5"),
+    ("issue close, absent id", ["issue", "close", "9"], "UNKNOWN", ""),
+    ("closed issues wearing a track label (the close-out scan)",
+     ["issue", "list", "--state", "closed", "--label", "track: spec", "--json", "number,labels"],
+     "issue-list", '"number": 6'),
 ]
 
 # (name, result.json content or None for absent, iteration_done)
@@ -86,9 +96,10 @@ def main():
         ok = routes == [route] and (rc == 64) == (route == "UNKNOWN")
         if route != "UNKNOWN":
             try:
-                ok = ok and rc == 0 and needle in json.dumps(json.loads(out), indent=1)
+                shown = json.dumps(json.loads(out), indent=1)
             except ValueError:
-                ok = False
+                shown = out   # a write route answers in gh's prose, not JSON
+            ok = ok and rc == 0 and needle in shown
         print("%s route: %s -> %s" % ("PASS" if ok else "FAIL", name, route),
               "" if ok else "(got rc=%d routes=%s out=%r)" % (rc, routes, out[:120]))
         passed, failed = passed + ok, failed + (not ok)

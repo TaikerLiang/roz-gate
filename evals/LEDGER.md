@@ -51,6 +51,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | A3 | Top-level comments are read as a channel | replay | "Actionable. Top-level is the default affordance on the PR page and the only one usable from a phone." |
 | A4 | in-user-review is a listening state, not a terminal one | replay | "Actionable → review-answers. Not 'waiting on the user'." (the original defect: comments sat unanswered while every pass reported the loop was waiting on the human) |
 | A5 | The fast track resolves to its own CR | replay | "CR resolves to fast/<n> and the item is detected." (the row said "spec CR", so the A4 fix would have covered only half the tracks) |
+| A7 | A merged CR closes the issue out | replay | "Issue closed; every `track:`/`status:` label gone; exactly one shipped comment naming the CR; exactly one close; nothing written to the CR — and an issue the forge already closed on merge loses its labels and gets its comment, with no second close." (an OPEN CR at in-user-review is F1/A4/A5's fixture — zero label writes there) (GitLab and any CR against a release branch leave the issue open wearing `in-user-review` after the merge — the loop's last step never happened — issue #41) |
 | A6 | notification | deferred | no channel stub in the headless sandbox — see `replay/README.md`, cannot-see #1 |
 
 ### B · agent-written text conventions
@@ -72,6 +73,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | C4 | track: fast + ready-for-spec refused | hook (guard-gate) | — |
 | C5 | Post-integration re-entry has a branch of its own | replay | "Folds, re-runs if behaviour changed, returns the issue to in-user-review." (without it the first-pass branch fires and tells a shipped feature it is ready to move to implementation) |
 | C6 | CR lookup sees merged CRs where it must | lint (defect 1.11.0-) | — |
+| C8 | A merged CR closes the issue out — the prose side | lint (defect 1.19.0-) | — |
 | C7 | A branch is cut only from a base the remote has | lint + replay | "Labels are blocked alone; the STOP comment names the missing base; no branch pushed, no CR opened." (a mistyped or retired `default_branch` used to cut an empty branch from nothing and open a CR against it — issue #38) |
 
 ### D · what a seat receives, and what it must not see
