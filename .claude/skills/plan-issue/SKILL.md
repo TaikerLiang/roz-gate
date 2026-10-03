@@ -26,7 +26,11 @@ A question the codebase answers is never asked.
 
 ## 1. Grill — the `grill-me` skill, one question at a time
 
-Invoke `grill-me`. Every question carries a recommended answer. Walk the
+Invoke the `grill-me` skill via the Skill tool if available; otherwise
+apply its pattern — one sharp either/or question at a time, each with a
+recommendation (the fallback `agents/em.md` uses; the skill is the
+maintainer's, not this repository's). Every question carries a
+recommended answer. Walk the
 decision tree until every branch is settled: scope, the behaviour that
 changes for a target repo, what is explicitly out of scope, who holds
 each decision (human vs agent), and which tier proves it (step 3).
@@ -66,9 +70,18 @@ omitted.
 - Every new replay case ships `redproof.py`; every hook change ships
   `hooks/tests/` cases; every lint case is red-proofed by mutation (old →
   new, both directions) and the mutation recorded in the commit message.
-- Whether a **baseline SUT run** is needed (`run_replay.py --sut opus`,
-  k=5). That spends quota: name it as a decision for the maintainer, never
-  start it in the plan.
+- Whether a **baseline SUT run** is needed, by tier: a replay case —
+  `python3 evals/replay/run_replay.py --sut opus --k 5 <ID>`; a judgment
+  fixture — `python3 evals/judgment/run_judgment.py --redproof` first
+  (green under the current judge fingerprint), then `--sut opus --k 2
+  <F-id>` (`evals/judgment/README.md` § Running). That spends quota: name
+  it as a decision for the maintainer, never start it in the plan.
+- **Order**: the checker (and its red-proof) is committed in a **distinct
+  commit before any recorded run** — the blindness commit
+  (`evals/CONTRIBUTING.md` § Before the first recorded run). A baseline
+  run from an uncommitted working tree loses the history-based proof that
+  the checker was not written from observed output; the plan states the
+  commit as the baseline's prerequisite.
 - Forge-stub routes the case needs that the stub lacks (an UNKNOWN
   invalidates the iteration).
 
