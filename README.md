@@ -427,7 +427,8 @@ Three evidence tiers under `evals/` (the ledger: `evals/README.md`):
   mind", quote-verified, recall and precision reported separately.
 
 The release gate runs lint and the hook unit tests on every push. The opus
-baseline as of 2026-09-21: replay 17/18 cases at 100% (k=5), F6 no
+baseline as of 2026-09-21: replay 17/18 cases at 100% (k=5; the two
+base-branch cases added in 1.19.0 measured 5/5 each on 2026-10-03), F6 no
 in-session decay across three 12-turn sessions; judgment at k=2, F-63 recall
 1/2 · precision 1/2 against the historical run's 2/2 · 0/2. Every case
 derives from one repository and one operator — green proves no regression on

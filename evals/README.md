@@ -112,6 +112,14 @@ session — **no in-session decay observed**, against the literature's
 prediction of ~5.6% odds loss per step. Cost ≈ $150 API-equivalent
 including re-runs; cache reads dominate.
 
+**Replay, k=5, plugin v1.19.0 (2026-10-03) — the base-branch cases:** C7
+(config names a base the remote lacks → STOP) 5/5 and F7 (`default_branch`
+= `release/20261006` with `main` and an older release branch also on the
+remote → `spec/5` descends from the configured base, CR targets it) 5/5,
+Wilson 90% [65%, 100%] each; checker commit `f5e106d`, before any run.
+Until these, every `next-stage` seed carried `default_branch: main` with
+only `main` on the remote, so the base had never been varied.
+
 **Judgment, k=2 (opus judge, quote-verified, zero judge-invalid):**
 
 | fixture | recall | precision | questions | historical |
