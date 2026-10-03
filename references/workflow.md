@@ -159,8 +159,9 @@ Pass/fail is the verdict on whether the implementation matches the spec — this
 is where genuine bugs surface.
 
 **The base branch.** Config `default_branch` is the loop's base: `spec/{n}`
-and `fast/{n}` are cut from it, every CR targets it, the reviewer diffs
-against it, and (6) merges it in before (7). It is whatever the team ships
+and `fast/{n}` are cut from it, their CRs target it, the fast reviewer diffs
+against it, and (6) merges it in before (7) — `feat/{n}` and `qa/{n}` are
+siblings off `spec/{n}` and target it, as (3)/(4) say. It is whatever the team ships
 from — the trunk, or on a sprint cadence the current release branch
 (`release/20261006`), changed at handover with `/roz-gate:config`. The
 commands always read the current value: an issue cut from the previous base

@@ -10,8 +10,8 @@ follow the matched path's steps exactly and do nothing beyond them.
 ## 0. Load config & forge adapter
 
 Read the `### Roz Gate config` block in the project's CLAUDE.md (`forge`,
-`default_branch` — the loop's **base**: every branch is cut from it and every CR
-targets it — `test`, `env_sync`, `lockfile`, `specs_dir`,
+`default_branch` — the loop's **base**: `spec/<n>` and `fast/<n>` are cut from it
+and their CRs target it; `feat/<n>` and `qa/<n>` stay siblings off `spec/<n>` — `test`, `env_sync`, `lockfile`, `specs_dir`,
 `acceptance_dir`). Then read `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md`
 and use its concrete CLI for every CAPITALIZED-OP below. Label names follow the
 adapter's scheme (GitLab uses scoped forms). If the config block is missing,
@@ -68,7 +68,7 @@ will do, THEN act:
 LABEL-ADD `status: processing`.
 
 ### A2. Branch
-Create `spec/<n>` from `<default_branch>` (`git fetch` first; then verify `origin/<default_branch>` exists — `git rev-parse --verify -q origin/<default_branch>` — and if it does not, **STOP**: the base the config names is not on the remote; never cut from anything else).
+Create `spec/<n>` from `<default_branch>` (`git fetch --prune` first — a stale tracking ref would pass the check for a base the forge deleted; then verify `origin/<default_branch>` exists — `git rev-parse --verify -q origin/<default_branch>` — and if it does not, **STOP**: the base the config names is not on the remote; never cut from anything else).
 
 ### A3. Spec refinement (NO implementation code)
 Base everything strictly on the issue body. Per the workflow's stage (2):
@@ -357,7 +357,7 @@ reviewer, and the user's CR review.
 LABEL-ADD `status: processing`.
 
 ### C2. Branch
-Create `fast/<n>` from `<default_branch>` (`git fetch` first; then verify `origin/<default_branch>` exists — `git rev-parse --verify -q origin/<default_branch>` — and if it does not, **STOP**: the base the config names is not on the remote; never cut from anything else).
+Create `fast/<n>` from `<default_branch>` (`git fetch --prune` first — a stale tracking ref would pass the check for a base the forge deleted; then verify `origin/<default_branch>` exists — `git rev-parse --verify -q origin/<default_branch>` — and if it does not, **STOP**: the base the config names is not on the remote; never cut from anything else).
 
 ### C3. Implement — with the escalation valve armed
 - Make the minimum change that satisfies the issue's acceptance criteria. A bug

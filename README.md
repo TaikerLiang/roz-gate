@@ -297,7 +297,7 @@ command reads it before acting:
 
 ```
 - forge: github | gitlab
-- default_branch: main                  # the loop's base: branches are cut from it, CRs target it — on a sprint cadence, the current release branch
+- default_branch: main                  # the loop's base: spec/<n> and fast/<n> are cut from it and target it — on a sprint cadence, the current release branch
 - test: <full-suite command>            e.g. uv run pytest / npm test
 - acceptance_dir: tests/acceptance
 - acceptance_test: <one feature's acceptance command>

@@ -312,6 +312,8 @@ _c2 = section(_ns, r"^### C2\. Branch", r"^### C3\. ")
 for _nm, _blk in (("A2", _a2), ("C2", _c2)):
     c.expect("pattern", "C7: %s cuts from `<default_branch>`" % _nm,
              "from `<default_branch>`" in _blk)
+    c.expect("pattern", "C7: %s prunes stale tracking refs before the check" % _nm,
+             "git fetch --prune" in _blk)
     c.expect("pattern", "C7: %s verifies the base exists on the remote before cutting" % _nm,
              "git rev-parse --verify -q origin/<default_branch>" in _blk)
     c.expect("pattern", "C7: %s stops when the base is missing" % _nm,
