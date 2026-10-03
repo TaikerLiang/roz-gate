@@ -46,7 +46,9 @@ of:
    step 3 of `/roz-gate:to-issues`) — produced when the assignee asks for it,
    from the issue body + **all** comments. Two parts, **must-read on top,
    supplement folded below** — the must-read stands alone on a phone and
-   is **at most 25 lines before the first `<details>`**:
+   is **at most 25 rendered lines before the first `<details>`** — rendered
+   at a phone's ~60 characters per line, so one long bullet counts for
+   several:
    - the user story: `As a {role}, I want {capability}, so that {benefit}.`
    - acceptance criteria: observable, testable checkboxes — things an outside
      observer could verify, never implementation tasks

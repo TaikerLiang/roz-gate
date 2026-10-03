@@ -106,7 +106,8 @@ For an in-flight CR with open review threads:
    Re-checks of QA-CR fidelity threads use a fresh implementation-blind
    dispatch under the fidelity brief, on `qa/<n>` only — the same
    fidelity-dispatch procedure (marker on, dispatch, marker off).
-4. Clear the lock. Failures follow the STOP protocol.
+4. Clear the lock. Failures follow the STOP protocol — the `blocked`
+   comment's evidence folds under `<details><summary>Evidence</summary>`.
 
 ### The async-intake action — the inbox's engine ((1b))
 For an open issue with no `track:` label. **Gate holder** = the issue's
@@ -150,7 +151,9 @@ issue body, and all comments), never patrol's own.
      questions surface later as assumptions in the summary.
    - **Otherwise** → not actionable: the thread belongs to the humans until
      the gate holder requests a summary or applies a gate label.
-3. Clear the lock. Never apply a gate label. Failures follow the STOP protocol.
+3. Clear the lock. Never apply a gate label. Failures follow the STOP
+   protocol — the `blocked` comment's evidence folds under
+   `<details><summary>Evidence</summary>`.
 
 ## 4. Report
 A short table: issue · state · action taken this pass, or what it waits on and

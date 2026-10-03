@@ -287,7 +287,8 @@ the `processing` lock on entry and leaves through exactly one of two exits.
 should not decide: (1) discard uncommitted local work; (2) replace the issue's
 status labels with `blocked` alone; (3) post an issue comment — what happened,
 where it died, what already exists remotely, a recommended next step — as the
-**must-read, at most 12 lines before the first `<details>`**, with the
+**must-read, at most 12 rendered lines before the first `<details>`** (a
+phone's ~60 characters per line; a long line counts for several), with the
 evidence (logs, command output, diffs) folded below it in one
 `<details><summary>Evidence</summary>` block; the human on a phone reads the
 decision first and opens the evidence only to check it. No third
