@@ -1,0 +1,6 @@
+{
+  "ledger": "F7 · A branch is cut from the configured base, not the trunk",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 2400
+}

@@ -303,6 +303,33 @@ src("D2 conformance: hooks.json wires guard-blind on Bash|Read|Glob|Grep",
     "hooks/hooks.json", '"matcher": "Bash|Read|Glob|Grep"')
 
 # ---------------------------------------------------------------------------
+# C7 · a branch is cut only from a base the remote has         (defect: 1.18.0-)
+#      Issue #38: the base is config default_branch at every site, and a
+#      base the remote lacks stops the cut instead of cutting from nothing.
+_ns = read("commands/next-stage.md")
+_a2 = section(_ns, r"^### A2\. Branch", r"^### A3\. ")
+_c2 = section(_ns, r"^### C2\. Branch", r"^### C3\. ")
+for _nm, _blk in (("A2", _a2), ("C2", _c2)):
+    c.expect("pattern", "C7: %s cuts from `<default_branch>`" % _nm,
+             "from `<default_branch>`" in _blk)
+    c.expect("pattern", "C7: %s verifies the base exists on the remote before cutting" % _nm,
+             "git rev-parse --verify -q origin/<default_branch>" in _blk)
+    c.expect("pattern", "C7: %s stops when the base is missing" % _nm,
+             "**STOP**" in _blk)
+src("C7: A5 targets `<default_branch>`", "commands/next-stage.md",
+    "CR-OPEN from `spec/<n>` targeting `<default_branch>`")
+src("C7: C5 targets `<default_branch>`", "commands/next-stage.md",
+    "CR-OPEN from `fast/<n>` targeting `<default_branch>`")
+src("C7: C6 diffs against `<default_branch>`", "commands/next-stage.md",
+    "git diff <default_branch>...fast/<n>")
+src("C7: integrate merges `<default_branch>` in", "commands/integrate.md",
+    "git merge --no-edit <default_branch>")
+for _f in ("commands/next-stage.md", "commands/integrate.md"):
+    c.expect("pattern", "C7: %s names no literal trunk as a base" % _f,
+             re.search(r"from `(main|master)`|--base (main|master)\b|targeting `(main|master)`",
+                       read(_f)) is None)
+
+# ---------------------------------------------------------------------------
 # J1 · the judgment fixtures are frozen at T                (preventive)
 # Contamination is that tier's whole game: every forge comment after the
 # question's timestamp contains the answer. materialize.py's check runs

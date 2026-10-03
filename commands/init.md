@@ -17,7 +17,10 @@ before writing it.
 ## 2. Detect the stack, confirm the config
 Infer from the repo (lockfiles, manifests, CI config) and confirm with the
 user, one compact block, not twenty questions:
-- `default_branch` (from the remote HEAD)
+- `default_branch` (from the remote HEAD) — the loop's base: branches are
+  cut from it and CRs target it. A team shipping from sprint release branches
+  sets it to the current one and changes it at handover with
+  `/roz-gate:config`.
 - `test` — command that runs the full suite (e.g. `uv run pytest`, `npm test`)
 - `acceptance_dir` (default `tests/acceptance`) and `acceptance_test` — command
   for one feature's acceptance dir
