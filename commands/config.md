@@ -17,7 +17,9 @@ tell the user to run `/roz-gate:init`.
 Present the keys as a single choice (the way this runtime offers options —
 AskUserQuestion when available, a numbered list otherwise), each with its
 current value or `(unset)`. Required keys as written by init
-(`default_branch`, `test`, `acceptance_dir`, `acceptance_test`, `env_sync`,
+(`default_branch` — the loop's base: `spec/<n>` and `fast/<n>` are cut from it and target it;
+on a sprint cadence the current release branch, changed here at handover —
+`test`, `acceptance_dir`, `acceptance_test`, `env_sync`,
 `lockfile`, `lockfile_regen`, `specs_dir`) and the optional ones:
 
 | key | meaning | absent means |

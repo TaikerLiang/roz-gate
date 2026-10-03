@@ -297,7 +297,7 @@ command reads it before acting:
 
 ```
 - forge: github | gitlab
-- default_branch: main
+- default_branch: main                  # the loop's base: spec/<n> and fast/<n> are cut from it and target it — on a sprint cadence, the current release branch
 - test: <full-suite command>            e.g. uv run pytest / npm test
 - acceptance_dir: tests/acceptance
 - acceptance_test: <one feature's acceptance command>
@@ -316,7 +316,10 @@ command reads it before acting:
 ```
 
 `/roz-gate:config` changes any of these later — one key per run, from a menu,
-an empty value clears the key.
+an empty value clears the key. Teams on sprint release branches set
+`default_branch` to the current one (`release/20261006`) and change it at
+handover; an issue already cut from the previous base is yours to move —
+retarget its CR and rebase — the loop never pins a base per issue.
 
 `init` also writes a `### Roz Gate personas` block — **fixed seats, swappable
 occupants**. The five role names (product, em, implementer, qa, reviewer) are
