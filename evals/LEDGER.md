@@ -62,6 +62,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | B2 | a line-wrapped tag survives the check | lint (defect 1.12.0-) | — |
 | B3 | the marker convention is identical everywhere | lint (preventive) | — |
 | B4 | an agent write never opens with a quote block | lint (defect 1.11.0-) + hook (guard-gate rule C) | — |
+| B5 | the must-read stays on top and within budget | lint (defect 1.19.0-) | — |
 
 ### C · labels and exits
 

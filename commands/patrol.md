@@ -138,7 +138,8 @@ For an in-flight CR with open review threads:
    Re-checks of QA-CR fidelity threads use a fresh implementation-blind
    dispatch under the fidelity brief, on `qa/<n>` only — the same
    fidelity-dispatch procedure (marker on, dispatch, marker off).
-4. Clear the lock. Failures follow the STOP protocol.
+4. Clear the lock. Failures follow the STOP protocol — the `blocked`
+   comment's evidence folds under `<details><summary>Evidence</summary>`.
 
 ### The async-intake action — the inbox's engine ((1b))
 For an open issue with no `track:` label. **Gate holder** = the issue's
@@ -182,7 +183,9 @@ issue body, and all comments), never patrol's own.
      questions surface later as assumptions in the summary.
    - **Otherwise** → not actionable: the thread belongs to the humans until
      the gate holder requests a summary or applies a gate label.
-3. Clear the lock. Never apply a gate label. Failures follow the STOP protocol.
+3. Clear the lock. Never apply a gate label. Failures follow the STOP
+   protocol — the `blocked` comment's evidence folds under
+   `<details><summary>Evidence</summary>`.
 
 ## 4. Report
 A short table: issue · state · action taken this pass, or what it waits on and
@@ -192,7 +195,12 @@ track-less issues not in the inbox filter` — so a quiet inbox is never a
 mystery. End with the user's queue: what (if anything) needs them — answer threads,
 answer intake questions, say `summary`, confirm a summary with the gate
 label, apply a gate label, or review &
-merge — with links. Close-outs appear in the table as `shipped`.
+merge — with links. Close-outs appear in the table as `shipped`. The table, the filter line and the queue are the
+**must-read**; anything else — per-issue notes, why an issue was skipped,
+what a lock looked like — goes under a trailing `## Details` heading after
+the queue (this report is printed to a terminal, not a forge, so it uses a
+heading rather than a `<details>` tag). Nothing that needs the human is ever
+only in Details.
 
 ## 5. Notification (optional)
 If a messaging channel (e.g. Telegram) is connected and an issue **newly**
