@@ -200,7 +200,8 @@ Skips (2), (2a), (4) and (6). Picked up from `status: ready-for-dev`:
 - The guards replacing QA: a bug fix must carry a unit test reproducing it, the
   existing suite must stay green, **(5) still applies** (skippable for doc-only
   diffs), and you review and merge the CR yourself. Once review-clean the main
-  agent sets `status: in-user-review`; merging closes the issue.
+  agent sets `status: in-user-review`; merging closes the issue — the forge
+  on its own rule, or patrol's close-out on the next pass.
 - **(7) works the same here, on `fast/{n}`** — with the boundary inverted, as
   it is throughout this track: the main agent wrote the code, so it answers you
   directly, dispatches no seat, and skips the readback ceremony. A (7) change
@@ -269,7 +270,7 @@ a status report. Neither ever moves the other's.**
 | escalation valve: `track: fast` → `track: spec` + gate reset | main agent, atomically |
 | abnormal stop → `blocked` (+ issue comment) | the stopping command |
 | `blocked` cleared after you decide | main agent, at your direction |
-| labels retire at close | the closing merge — (7), or your fast-CR merge |
+| labels retire at close | the closing merge — (7), or your fast-CR merge; patrol's **close-out** finishes it (labels off, issue closed) where the forge does not do it on merge |
 
 **Invocation policy.** Workflow commands are executed by the main agent and —
 except `/roz-gate:to-issues`, which you always initiate (the inbox's async

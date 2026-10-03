@@ -210,7 +210,9 @@ thinking in its own context — it relays, posts, and publishes.
 | `status: blocked` | transient | a stopped command — evidence + recommendation posted as an issue comment; you decide |
 
 No `track:` label = inbox (pre-loop). No `status:` label = in flight (the open
-CRs are the state). Commands validate invariants and **stop on violations —
+CRs are the state). Your merge is the close: where the forge does not close
+the issue on it (GitLab; any CR targeting a release branch), patrol's next
+pass **closes out** — labels off, one `shipped` comment, issue closed. Commands validate invariants and **stop on violations —
 they never repair labels**.
 
 The rules that protect you from the agents are not just prose: bundled

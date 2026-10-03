@@ -185,7 +185,8 @@ something unrelated to the spec docs (e.g. lockfile drift), commit with
 ### A5. Open the CR
 CR-OPEN from `spec/<n>` targeting `<default_branch>`, title
 `Spec: #<n> <title>`, body: "Stage (2) spec refinement for #<n>. For review.
-Refs #<n>".
+Closes #<n>" — the (7) merge of this CR is the signature that closes the
+issue; where the forge does not close on it, patrol's close-out does.
 
 ### A6. Post open questions as inline review threads
 **Sweep first:** check the other spec docs for question-shaped content (an
@@ -406,7 +407,8 @@ CR-OPEN from `fast/<n>` targeting `<default_branch>`, title
 - LABEL-REMOVE `status: ready-for-dev` and `status: processing`.
 - Report the CR and any review threads. **Next:** address review threads; once
   all are resolved (review-clean), LABEL-ADD `status: in-user-review` — then
-  the user reviews and merges the CR; merging closes the issue.
+  the user reviews and merges the CR; merging closes the issue (patrol's
+  close-out finishes it where the forge does not).
   `/roz-gate:integrate` does not apply.
 
 ---
