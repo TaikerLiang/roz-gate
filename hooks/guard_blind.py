@@ -30,10 +30,13 @@ between hook and checker by the lint tier (lint D2).
 Scoping — the marker: PreToolUse carries ``agent_id``/``agent_type`` inside
 a subagent, but the fidelity review and the stage-(5) code review are the
 same ``reviewer`` seat, so agent identity cannot say WHICH dispatch this
-is. The dispatching command writes ``<git-dir>/roz-gate/fidelity-dispatch``
-immediately before the Task call and removes it after the dispatch
-returns; the rule is ON exactly while the file exists. Under the git dir
-(per worktree), so it is never tracked and never shows in git status.
+is. The dispatching command writes
+``$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch`` immediately
+before the Task call and removes it after the dispatch returns; the rule is
+ON exactly while the file exists. The COMMON git dir is shared by the
+checkout and every linked worktree (commands work in worktrees, issue
+#37), so the marker governs a dispatch whatever its cwd; never tracked,
+never in git status.
 Fail-safe direction: a stale marker (the dispatch crashed) keeps the rule
 ON — over-blocking a later non-blind read is a visible nuisance, and the
 deny message names the file to remove; under-blocking a fidelity read is
@@ -45,6 +48,7 @@ model.
 """
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -103,14 +107,18 @@ def deny(message):
 
 
 def marker_path():
+    # The COMMON dir, not --git-dir: a dispatch runs in a linked worktree
+    # (commands/next-stage.md B5b), whose own git dir is
+    # <common>/worktrees/<name>; the marker written from the checkout would
+    # be invisible there and the rule silently OFF (codex review, PR #53).
     try:
-        out = subprocess.run(["git", "rev-parse", "--absolute-git-dir"],
+        out = subprocess.run(["git", "rev-parse", "--git-common-dir"],
                              capture_output=True, text=True, timeout=5)
     except (OSError, subprocess.TimeoutExpired):
         return None
     if out.returncode != 0:
         return None
-    return out.stdout.strip() + "/" + MARKER_REL
+    return os.path.abspath(out.stdout.strip()) + "/" + MARKER_REL
 
 
 def violation(tool, inp):

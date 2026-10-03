@@ -67,6 +67,10 @@ class RuleE_FidelityDispatchIsBlind(HookTest):
         self.git(self.repo, "branch", "-q", "feat/5")
         self.git(self.repo, "checkout", "-q", "-b", "qa/5")
         self.marker = self.repo / ".git/roz-gate/fidelity-dispatch"
+        # The reviewer is dispatched into the qa worktree (issue #37): a
+        # linked worktree whose own --git-dir is .git/worktrees/<name>.
+        self.wt = self.repo / ".git/roz-gate/wt/spec/5"
+        self.git(self.repo, "worktree", "add", "-q", str(self.wt), "-b", "spec/5")
 
     def tool(self, tool, cwd=None, **tool_input):
         return self.call(tool, tool_input, cwd or self.repo, agent_type="roz-gate:qa")
@@ -83,6 +87,9 @@ class RuleE_FidelityDispatchIsBlind(HookTest):
         for name, cmd, says in BASH_DENIED:
             with self.case(name):
                 self.assertDenied(self.run_bash(cmd), says)
+        with self.case("rule E: the marker governs a call whose cwd is a linked worktree "
+                       "(codex, PR #53: --git-dir there is worktrees/<name>)"):
+            self.assertDenied(self.run_bash("cat src/app.txt", cwd=self.wt), "read of src/")
         with self.case("rule E: Read of an absolute src/ path denied"):
             self.assertDenied(self.tool("Read", file_path=str(repo / "src/app.txt")),
                               "Read under src/")

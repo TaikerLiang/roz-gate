@@ -126,10 +126,12 @@ label.
   surprising → STOP exit.
 
 ## 6. The STOP exit — when in doubt, hand it to the human
-1. `git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n>`
+1. **If this run created it**,
+   `git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n>`
    then `git worktree prune` — the half-merged state lives nowhere else, and
-   the user's checkout was never touched. There is nothing to clean up
-   remotely.
+   the user's checkout was never touched. A STOP because `worktree add`
+   refused removes nothing: that worktree is another run's. There is nothing
+   to clean up remotely.
 2. LABEL-REMOVE `status: processing`; LABEL-ADD `status: blocked`.
 3. ISSUE-COMMENT: what happened, the evidence (conflicting files / test output
    / error), and your **recommended next step**.

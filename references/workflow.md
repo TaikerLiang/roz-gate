@@ -263,11 +263,12 @@ command: **both exits** remove it (`git worktree remove --force <path>` then
 `git worktree prune`) — Done because the branch is already on the remote,
 STOP because the worktree *is* the uncommitted local work. A branch already
 checked out in another worktree makes `git worktree add` refuse: that
-refusal is the mutex between two commands running at once, and it is a STOP,
-never a reason to work in the checkout. Patrol itself touches no git at all —
+refusal is the mutex between two commands running at once, and it is a STOP
+that removes nothing — the worktree is the other run's — never a reason to
+work in the checkout. A command removes only the worktrees it created. Patrol itself touches no git at all —
 its scan is forge calls. The one piece of command state outside a worktree
-is rule E's fidelity-dispatch marker, which lives in the *session
-checkout's* git dir (`hooks/README.md`).
+is rule E's fidelity-dispatch marker, which lives in the *common* git dir
+the checkout and its worktrees share (`hooks/README.md`).
 
 The bridge between you and the team, both directions, and the owner of state
 management under one rule: **you move gate labels — a gate label is an

@@ -340,8 +340,8 @@ Launch both at once (they never see each other):
   which is what makes this dispatch structurally implementation-blind.
 - **Blindness is hook-enforced while the dispatch runs** (guard-blind,
   rule E): immediately before the dispatch, write the marker
-  `mkdir -p "$(git rev-parse --git-dir)/roz-gate" && printf 'issue=<n>\n' > "$(git rev-parse --git-dir)/roz-gate/fidelity-dispatch"`;
-  immediately after it returns, `rm -f "$(git rev-parse --git-dir)/roz-gate/fidelity-dispatch"`.
+  `mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`;
+  immediately after it returns, `rm -f "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`.
   While the marker exists, every read of `src/` and every git action on a
   `feat/` ref is denied mechanically, with the remedy in the message. The
   brief's "you never read the implementation" stays in the dispatch text —

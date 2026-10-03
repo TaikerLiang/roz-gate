@@ -104,9 +104,10 @@ Every fold above edits the spec **in a worktree of `spec/<n>`** —
 `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n> spec/<n>`
 before the first fold (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` → The
 main agent → The workspace); a refusal means another command holds the
-branch → the STOP exit. After processing, commit the spec changes there, push
-(so the CR reflects the resolutions), then
-`git worktree remove --force` it and `git worktree prune`. Use `--no-verify` only for unrelated hook failures,
+branch → the STOP exit. After processing, commit the spec changes there and
+push (so the CR reflects the resolutions). **Keep the worktree** through
+step 7 — the post-integration re-entry runs the hand-back suites in it —
+and remove it at step 7's end. Use `--no-verify` only for unrelated hook failures,
 and say so.
 
 ## 6b. Update the spec-gate kit
@@ -163,12 +164,17 @@ depends on where the issue is — decided by CR-FIND for `feat/<n>` /
 If threads remain open: LABEL-REMOVE `status: processing` and list which
 questions are still waiting.
 
+Whichever branch ran, end step 7 with
+`git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n>`
+then `git worktree prune`.
+
 ## 8. The STOP exit
 On anything this command cannot or should not decide — a fold that keeps
 failing, a rejected push, an impossible state: follow the STOP protocol.
-`git worktree remove --force` the `spec/<n>` worktree (the uncommitted spec
-edits live nowhere else; the user's checkout was never touched), replace the
-issue's status
+`git worktree remove --force` the `spec/<n>` worktree **if this run created
+it** (the uncommitted spec edits live nowhere else; the user's checkout was
+never touched — and a refused `worktree add` means the worktree is another
+run's, so remove nothing), replace the issue's status
 labels with `status: blocked` alone, and ISSUE-COMMENT: what happened, the
 evidence, and your recommended next step. Name the half-done thread if there is
 one — a folded-but-unresolved thread will be re-folded on re-run, and the human

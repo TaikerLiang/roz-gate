@@ -65,22 +65,22 @@ inside (the fidelity review and the stage-(5) code review are the same
 `reviewer` seat). So the **dispatching command** says so:
 
 ```sh
-mkdir -p "$(git rev-parse --git-dir)/roz-gate" && printf 'issue=<n>\n' > "$(git rev-parse --git-dir)/roz-gate/fidelity-dispatch"
+mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"
 # … Task/Agent dispatch …
-rm -f "$(git rev-parse --git-dir)/roz-gate/fidelity-dispatch"
+rm -f "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"
 ```
 
 Written immediately before the dispatch, removed immediately after it
 returns (next-stage B5b, patrol's address-review steps 2 and 3). It lives
-under the **session checkout's** git dir — `guard_blind.py` resolves it with
-`git rev-parse --absolute-git-dir` from the hook's cwd, which is the
-session's, so write it from there (never with `git -C <worktree>`, whose
-`--git-dir` is that worktree's private `worktrees/<name>` dir and the hook
-would not see it). Commands do their git work in linked worktrees under
-`<common-dir>/roz-gate/wt/`; the marker is the one piece of command state
-outside them, and it is shared by every worktree of that session checkout —
-so a dispatch in one session also blinds another session running on the
-same checkout: over-blocking, the fail direction this rule chooses. Never
+under the **common** git dir — `guard_blind.py` resolves it with
+`git rev-parse --git-common-dir` — which the checkout and every linked
+worktree share, so a dispatch running in the `qa/<n>` worktree
+(commands work in worktrees, issue #37) is governed by it whatever its
+cwd; a per-worktree `--git-dir` would be that worktree's private
+`worktrees/<name>` dir, where a marker written from the checkout is
+invisible and the rule silently off. One marker per checkout means a
+dispatch in one session also blinds another session on the same
+checkout: over-blocking, the fail direction this rule chooses. Never
 tracked, never in `git status`.
 The prefilter is one git call plus one stat. **Stale marker = rule still
 ON**: if a dispatch crashed and a later, non-blind read is denied, the deny

@@ -367,6 +367,13 @@ src("C8: spec-answers folds in a worktree", "commands/spec-answers.md",
     "git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n> spec/<n>")
 src("C8: spec-answers' STOP removes the worktree", "commands/spec-answers.md",
     "`git worktree remove --force` the `spec/<n>` worktree")
+_sa = read("commands/spec-answers.md")
+c.expect("pattern", "C8: spec-answers keeps the worktree through step 7's hand-back run",
+         "Keep the worktree" in section(_sa, r"^## 6\. ", r"^## 6b\. ")
+         and "git worktree remove --force" in section(_sa, r"^## 7\. ", r"^## 8\. "))
+for _f in ("commands/integrate.md", "commands/spec-answers.md"):
+    c.expect("pattern", "C8: %s's STOP removes only a worktree this run created" % _f,
+             re.search(r"[Ii]f this run created", read(_f)) is not None)
 src("C8: review-answers commits in a worktree of the CR's branch", "commands/review-answers.md",
     "git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<branch> <branch>")
 src("C8: patrol's address-review dispatches work in worktrees", "commands/patrol.md",
@@ -381,7 +388,7 @@ for _f in ("commands/next-stage.md", "commands/integrate.md", "commands/spec-ans
              re.search(r"git (checkout|switch|reset|stash|merge --abort)\b|^- Checkout `",
                        read(_f), re.M) is None)
 src("C8: hooks/README says which git dir the marker uses", "hooks/README.md",
-    "`git rev-parse --absolute-git-dir` from the hook's cwd")
+    "`git rev-parse --git-common-dir`")
 
 # ---------------------------------------------------------------------------
 # J1 · the judgment fixtures are frozen at T                (preventive)
