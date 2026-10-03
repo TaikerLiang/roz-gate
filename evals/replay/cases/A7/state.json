@@ -1,0 +1,62 @@
+{
+  "repo": {
+    "owner": "acme",
+    "name": "demo"
+  },
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Fix: banner typo",
+      "body": "**User story** — As a visitor, the banner reads correctly.",
+      "author": "paul",
+      "assignees": [
+        "paul"
+      ],
+      "labels": [
+        "track: fast",
+        "status: in-user-review"
+      ],
+      "createdAt": "2026-08-20T09:00:00Z",
+      "comments": []
+    },
+    "6": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — expired offers are excluded.",
+      "author": "paul",
+      "assignees": [
+        "paul"
+      ],
+      "state": "closed",
+      "labels": [
+        "track: spec",
+        "status: in-user-review"
+      ],
+      "createdAt": "2026-08-20T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "102": {
+      "number": 102,
+      "title": "fast: fix banner typo (#5)",
+      "state": "MERGED",
+      "isDraft": false,
+      "headRefName": "fast/5",
+      "baseRefName": "main",
+      "threads": [],
+      "reviews": [],
+      "comments": []
+    },
+    "103": {
+      "number": 103,
+      "title": "Spec: #6 Offer expiry enforcement",
+      "state": "MERGED",
+      "isDraft": false,
+      "headRefName": "spec/6",
+      "baseRefName": "main",
+      "threads": [],
+      "reviews": [],
+      "comments": []
+    }
+  }
+}

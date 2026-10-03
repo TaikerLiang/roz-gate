@@ -65,6 +65,8 @@ Wherever a command names a label like `status: ready-for-spec`, read it as
 | COMMENT-EDIT | `glab api -X PUT "projects/:id/merge_requests/<iid>/notes/<note-id>" -f body="..."` (issues: same shape under `issues/<n>/notes/<note-id>`) |
 | ISSUE-CREATE | `glab issue create --title "..." --description "..." [--label "<label>"]` |
 | ISSUE-EDIT-BODY | `glab issue update <n> --description "..."` (async intake only, at finalize — after the gate holder's gate label) |
+| ISSUE-LIST-CLOSED | `glab issue list --closed --label "<track label>" --output json` (patrol's close-out scan only) |
+| ISSUE-CLOSE | `glab issue close <n>` (patrol's close-out only — after the MR is merged; GitLab does not close the issue or strip its scoped labels on merge unless `Closes #<n>` sat in the description and the MR targeted the default branch) |
 
 ## Change requests
 
@@ -73,7 +75,7 @@ Wherever a command names a label like `status: ready-for-spec`, read it as
 | CR-OPEN | `glab mr create --source-branch <branch> --target-branch <target> --title "..." --description "..."` |
 | CR-OPEN-DRAFT | same + `--draft` |
 | CR-READY | `glab mr update <mr> --ready` |
-| CR-FIND | `glab mr list --source-branch <branch> --output json` (add `--all` when a command must also see merged MRs) |
+| CR-FIND | `glab mr list --source-branch <branch> --output json` (add `--all` when a command must also see merged MRs — the JSON's `state` is `merged` for them, `web_url` is what the close-out comment cites) |
 | CR-VIEW | `glab mr view <mr> --output json` (`draft` field) |
 | CR-MERGE | `glab mr merge <mr>` (the human's act at (7) — commands never run this) |
 

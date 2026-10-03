@@ -131,6 +131,20 @@ Base everything strictly on the issue body. Per the workflow's stage (2):
   paren on the same line makes the miss silent on exactly the tag whose
   purpose is to be seen, and a wrapped `(measured …` a checker cannot
   fully parse is a *present* tag, never read as absent.
+- **Must-read / supplement requirement:** each spec document is two
+  parts. The **must-read** is on top and stands alone — for `spec.md`:
+  `## Rules`, `## Scenarios`, `## Open Questions`, with **at most 3 lines
+  per rule** (title line + rationale italics); for `technical-spec.md`:
+  the numbered clauses (`G<k>`/`C<k>`) and the §5 port table. Everything
+  else — background, current-state surveys, glossary, design notes,
+  alternatives considered, worked examples — is the **supplement**: a
+  trailing `## Supplement` section whose body is one
+  `<details><summary>Supplement — <what it holds></summary>` block, and
+  the last must-read line points at it ("Details in the supplement
+  below."). A reader who needs more opens it; a reader who does not never
+  scrolls past it. Section headings, rule and clause IDs, tags and the
+  §5 table keep their exact shapes — the fold changes placement, never
+  the things the hooks and checkers parse.
 - **Scenario boundary:** scenario text states observable behaviour from
   an actor's observation surface — Given/When/Then only. Content
   addressed to another seat (test guidance, review guidance, "recorded so
@@ -181,7 +195,8 @@ something unrelated to the spec docs (e.g. lockfile drift), commit with
 ### A5. Open the CR
 CR-OPEN from `spec/<n>` targeting `<default_branch>`, title
 `Spec: #<n> <title>`, body: "Stage (2) spec refinement for #<n>. For review.
-Refs #<n>".
+Closes #<n>" — the (7) merge of this CR is the signature that closes the
+issue; where the forge does not close on it, patrol's close-out does.
 
 ### A6. Post open questions as inline review threads
 **Sweep first:** check the other spec docs for question-shaped content (an
@@ -300,7 +315,11 @@ Launch both at once (they never see each other):
   `uncovered / not testable through the port` row in `test-spec.md`
   cites the §5 limitation row it corresponds to; a row with no §5
   citation is a contract defect and takes the ambiguity route — never a
-  silent `uncovered` entry.
+  silent `uncovered` entry. `test-spec.md` keeps the **must-read on top**
+  — the marker declaration, the scenario→test map, the `uncovered` rows —
+  and folds per-test narrative and fixture notes into a trailing
+  `## Supplement` section whose body is one
+  `<details><summary>Supplement — <what it holds></summary>` block.
 
 ### B4. Commit + push + open both CRs (target = the spec branch)
 - Commit each branch's files and push. Use `--no-verify` only for unrelated
@@ -414,7 +433,8 @@ CR-OPEN from `fast/<n>` targeting `<default_branch>`, title
 - LABEL-REMOVE `status: ready-for-dev` and `status: processing`.
 - Report the CR and any review threads. **Next:** address review threads; once
   all are resolved (review-clean), LABEL-ADD `status: in-user-review` — then
-  the user reviews and merges the CR; merging closes the issue.
+  the user reviews and merges the CR; merging closes the issue (patrol's
+  close-out finishes it where the forge does not).
   `/roz-gate:integrate` does not apply.
 
 ---
@@ -430,5 +450,6 @@ the issue's status labels with `status: blocked` alone, and post the issue
 comment. This command **creates remote artifacts as it goes**, so the comment
 must inventory what already exists — branches pushed, CRs opened, partial
 deliverables committed — say which step it died on, and recommend how to
-continue. The escalation valve (C3) is **not** a failure — it is a designed
+continue; that is the must-read, the evidence folds under
+`<details><summary>Evidence</summary>`. The escalation valve (C3) is **not** a failure — it is a designed
 transition and never uses the STOP exit.

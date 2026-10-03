@@ -393,12 +393,13 @@ def main():
 
     # ---- issues
     if argv[:2] == ["issue", "list"]:
-        journal("issue-list")
+        state_q = (flag_val(argv, "--state") or "open").lower()
+        journal("issue-list", state=state_q)
         want = (flag_val(argv, "--json") or "").split(",")
         label = flag_val(argv, "--label")
         rows = []
         for n, iss in sorted(st.get("issues", {}).items(), key=lambda x: int(x[0])):
-            if iss.get("state", "open") != "open":
+            if state_q != "all" and iss.get("state", "open") != state_q:
                 continue
             if label and label not in iss.get("labels", []):
                 continue
@@ -434,6 +435,18 @@ def main():
         journal("issue-edit", write=True, issue=n, add=added, remove=removed,
                 body_edit=body is not None)
         save(st)
+        return
+
+    # ---- gh issue close <n> — patrol's close-out (issue #41). A write; an
+    # absent id stays UNKNOWN.
+    if argv[:2] == ["issue", "close"]:
+        n = argv[2] if len(argv) > 2 else ""
+        if n not in st.get("issues", {}):
+            unknown("issue %s not in fixture" % n)
+        st["issues"][n]["state"] = "closed"
+        journal("issue-close", write=True, issue=n)
+        save(st)
+        print("✓ Closed issue #%s" % n)
         return
 
     if argv[:2] == ["issue", "comment"]:

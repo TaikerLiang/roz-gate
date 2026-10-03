@@ -76,8 +76,8 @@ filter is a plain issue patrol only counts. Three beats — ask once, summarize 
    can share one comment; a first-line `summary` works too), the `product`
    agent (same intake brief, async mode) condenses the body + **all**
    comments into one
-   `**[intake] · summary**`: story + AC + proposed `track:` + an attributed
-   decision trail; unanswered questions resolve to their recommendations,
+   `**[intake] · summary**`: story + AC + proposed `track:` on top, an
+   attributed decision trail folded below; unanswered questions resolve to their recommendations,
    listed as explicit **assumptions**; disagreements are shown as
    **contested points** with both sides — one reply flips them. Corrections?
    Reply them — end with `summary` to re-read a revised summary first, or
@@ -200,7 +200,8 @@ Skips (2), (2a), (4) and (6). Picked up from `status: ready-for-dev`:
 - The guards replacing QA: a bug fix must carry a unit test reproducing it, the
   existing suite must stay green, **(5) still applies** (skippable for doc-only
   diffs), and you review and merge the CR yourself. Once review-clean the main
-  agent sets `status: in-user-review`; merging closes the issue.
+  agent sets `status: in-user-review`; merging closes the issue — the forge
+  on its own rule, or patrol's close-out on the next pass.
 - **(7) works the same here, on `fast/{n}`** — with the boundary inverted, as
   it is throughout this track: the main agent wrote the code, so it answers you
   directly, dispatches no seat, and skips the readback ceremony. A (7) change
@@ -291,7 +292,7 @@ a status report. Neither ever moves the other's.**
 | escalation valve: `track: fast` → `track: spec` + gate reset | main agent, atomically |
 | abnormal stop → `blocked` (+ issue comment) | the stopping command |
 | `blocked` cleared after you decide | main agent, at your direction |
-| labels retire at close | the closing merge — (7), or your fast-CR merge |
+| labels retire at close | the closing merge — (7), or your fast-CR merge; patrol's **close-out** finishes it (labels off, issue closed) where the forge does not do it on merge |
 
 **Invocation policy.** Workflow commands are executed by the main agent and —
 except `/roz-gate:to-issues`, which you always initiate (the inbox's async
@@ -309,7 +310,12 @@ the `processing` lock on entry and leaves through exactly one of two exits.
 should not decide: (1) remove the command's worktree(s) — the uncommitted local
 work lives nowhere else; (2) replace the issue's
 status labels with `blocked` alone; (3) post an issue comment — what happened,
-the evidence, what already exists remotely, a recommended next step. No third
+where it died, what already exists remotely, a recommended next step — as the
+**must-read, at most 12 rendered lines before the first `<details>`** (a
+phone's ~60 characters per line; a long line counts for several), with the
+evidence (logs, command output, diffs) folded below it in one
+`<details><summary>Evidence</summary>` block; the human on a phone reads the
+decision first and opens the evidence only to check it. No third
 exit. A stale `processing` therefore means exactly one thing — a killed run —
 and the phase label next to it says where.
 

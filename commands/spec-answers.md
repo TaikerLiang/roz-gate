@@ -175,8 +175,9 @@ failing, a rejected push, an impossible state: follow the STOP protocol.
 it** (the uncommitted spec edits live nowhere else; the user's checkout was
 never touched — and a refused `worktree add` means the worktree is another
 run's, so remove nothing), replace the issue's status
-labels with `status: blocked` alone, and ISSUE-COMMENT: what happened, the
-evidence, and your recommended next step. Name the half-done thread if there is
+labels with `status: blocked` alone, and ISSUE-COMMENT: what happened and
+your recommended next step as the must-read, the evidence folded under
+`<details><summary>Evidence</summary>`. Name the half-done thread if there is
 one — a folded-but-unresolved thread will be re-folded on re-run, and the human
 should know. Already-resolved threads are idempotent; a re-run skips them.
 

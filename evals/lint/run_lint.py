@@ -171,6 +171,57 @@ src("B4: the quote-block opening is forbidden in review replies",
     "commands/review-answers.md", "Never open with a quote block")
 
 # ---------------------------------------------------------------------------
+# B5 · the must-read stays on top and within budget           (defect: 1.19.0-)
+# Issue #42: agent-written documents grew until the human skipped them. Each
+# producing brief now states a budget — what is must-read, what folds into a
+# <details> supplement, and a cap on the must-read. The cap is one predicate,
+# held here and quoted by the briefs; the briefs carry the fold instruction.
+SUMMARY_CAP, STOP_CAP, PHONE_WIDTH = 25, 12, 60
+
+
+def must_read_lines(doc):
+    """Rendered lines before the first `<details` — the part a phone shows
+    unfolded, at PHONE_WIDTH characters per line, so a long source line
+    counts for several (codex review, PR #52). A document with no
+    supplement is all must-read."""
+    head = doc.split("<details", 1)[0]
+    return sum(-(-len(ln.strip()) // PHONE_WIDTH) for ln in head.splitlines() if ln.strip())
+
+
+c.expect("pattern", "B5 pattern: a summary within the cap counts its must-read only",
+         must_read_lines(fixture("b5_within.md")) <= SUMMARY_CAP)
+c.expect("pattern", "B5 pattern: a must-read over the cap is over",
+         must_read_lines(fixture("b5_over.md")) > SUMMARY_CAP)
+c.expect("pattern", "B5 pattern: no supplement at all means the whole document is must-read",
+         must_read_lines(fixture("b5_no_supplement.md")) > SUMMARY_CAP)
+c.expect("pattern", "B5 pattern: few source lines that wrap on a phone are over the cap",
+         must_read_lines(fixture("b5_wrapped.md")) > SUMMARY_CAP)
+src("B5 conformance: the intake summary states its cap",
+    "references/intake-brief.md",
+    "at most %d rendered lines before the first `<details>`" % SUMMARY_CAP)
+src("B5 conformance: the intake summary states the phone width the cap is rendered at",
+    "references/intake-brief.md", "~%d characters per line" % PHONE_WIDTH)
+src("B5 conformance: the intake summary names its supplement block",
+    "references/intake-brief.md",
+    "<details><summary>Supplement — context and decision trail</summary>")
+src("B5 conformance: the questions batch states its per-question budget",
+    "references/intake-brief.md", "at most 6 visible lines per question")
+src("B5 conformance: the STOP protocol states its cap",
+    "references/workflow.md", "at most %d rendered lines before the first `<details>`" % STOP_CAP)
+for _f in ("references/workflow.md", "commands/next-stage.md", "commands/integrate.md",
+           "commands/spec-answers.md", "commands/patrol.md"):
+    src("B5 conformance: %s folds STOP evidence" % _f, _f, "<details><summary>Evidence</summary>")
+src("B5 conformance: A3 states the spec documents' must-read sections",
+    "commands/next-stage.md",
+    "`## Rules`, `## Scenarios`, `## Open Questions`, with **at most 3 lines")
+src("B5 conformance: A3 names the spec supplement block",
+    "commands/next-stage.md", "`## Supplement` section whose body is one")
+src("B5 conformance: B3 folds test-spec narrative",
+    "commands/next-stage.md", "`test-spec.md` keeps the **must-read on top**")
+src("B5 conformance: the patrol report keeps the table and queue as must-read",
+    "commands/patrol.md", "trailing `## Details` heading after")
+
+# ---------------------------------------------------------------------------
 # E2 · a question left behind in the source document        (defect: 1.14.2-)
 # The first opus baseline: A6 said "relocate it verbatim", 5/5 runs copied;
 # the prose was made explicit ("move … delete it from the source document"),
@@ -301,6 +352,45 @@ src("D2 conformance: the fidelity brief names the enforcement",
     "references/fidelity-brief.md", "guard-blind")
 src("D2 conformance: hooks.json wires guard-blind on Bash|Read|Glob|Grep",
     "hooks/hooks.json", '"matcher": "Bash|Read|Glob|Grep"')
+
+# ---------------------------------------------------------------------------
+# C8 · a merged CR closes the issue out                        (defect: 1.19.0-)
+#      Issue #41: GitLab (and any CR against a release branch) leaves the
+#      issue open wearing in-user-review after the merge; patrol finishes it.
+for _f in ("references/forge-github.md", "references/forge-gitlab.md"):
+    src("C8: %s defines ISSUE-CLOSE" % _f, _f, "| ISSUE-CLOSE |")
+    src("C8: %s defines ISSUE-LIST-CLOSED (the forge may have closed on merge)" % _f, _f,
+        "| ISSUE-LIST-CLOSED |")
+c.expect("pattern", "C8: GitHub CR-FIND returns state and url (merged? which CR?)",
+         "baseRefName,state,url" in "\n".join(
+             line for line in read("references/forge-github.md").splitlines()
+             if "CR-FIND" in line))
+src("C8: the spec CR body closes the issue", "commands/next-stage.md",
+    'Stage (2) spec refinement for #<n>. For review.\nCloses #<n>"')
+src("C8: the fast CR body closes the issue", "commands/next-stage.md",
+    "body ending `Closes #<n>`")
+_iur = "\n".join(line for line in read("commands/patrol.md").splitlines()
+                 if line.startswith("| `status: in-user-review` |"))
+c.expect("pattern", "C8: patrol's in-user-review row routes a merged CR to the close-out",
+         "**merged**" in _iur and "close-out" in _iur)
+_scan = section(read("commands/patrol.md"), r"^- \*\*Close-out scan\.\*\*", r"^- Skip any issue")
+c.expect("pattern", "C8: the close-out scan looks for the merged CR with the all-states form",
+         "all-states form" in _scan and "**merged**" in _scan)
+_co = section(read("commands/patrol.md"), r"^### The close-out action",
+              r"^### The address-review action")
+for _nm, _lit in (("labels off", "LABEL-REMOVE every `track:` and `status:` label"),
+                  ("one shipped comment", "**[patrol] · shipped**"),
+                  ("issue closed", "ISSUE-CLOSE"),
+                  ("never repairs another status", "illegal state")):
+    c.expect("pattern", "C8: the close-out action — %s" % _nm, _lit in _co)
+src("C8: close-outs are exempt from the one-issue rule like intake",
+    "commands/patrol.md", "**close out every** issue whose CR is merged")
+c.expect("pattern", "C8: the shipped comment precedes the label removal (resumable)",
+         _co.index("ISSUE-COMMENT") < _co.index("ISSUE-CLOSE") < _co.index("LABEL-REMOVE"))
+src("C8: the scan includes issues the forge already closed", "commands/patrol.md",
+    "plus ISSUE-LIST-CLOSED per track label")
+src("C8: a part-way close-out is recognized by its marker", "commands/patrol.md",
+    "already carries a `**[patrol] · shipped**`")
 
 # ---------------------------------------------------------------------------
 # C7 · a branch is cut only from a base the remote has         (defect: 1.18.0-)

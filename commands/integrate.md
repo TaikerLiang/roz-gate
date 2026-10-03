@@ -133,8 +133,9 @@ label.
    refused removes nothing: that worktree is another run's. There is nothing
    to clean up remotely.
 2. LABEL-REMOVE `status: processing`; LABEL-ADD `status: blocked`.
-3. ISSUE-COMMENT: what happened, the evidence (conflicting files / test output
-   / error), and your **recommended next step**.
+3. ISSUE-COMMENT: what happened and your **recommended next step** as the
+   must-read; the evidence (conflicting files / test output / error) folded
+   under `<details><summary>Evidence</summary>`.
 Patrol skips `blocked` issues. The human decides, clears the label, and
 integration re-runs.
 
