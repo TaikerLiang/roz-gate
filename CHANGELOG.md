@@ -2,6 +2,32 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.19.0 — the base branch is config default_branch; a missing base stops the cut — 2026-10-03
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.19.0>
+
+**Behavior:** `default_branch` is the loop's base — `spec/<n>` and `fast/<n>` are cut from it and their CRs target it — and a base the remote does not have stops the cut instead of cutting from nothing. A team on sprint release branches sets it to the current one with `/roz-gate:config` and changes it at handover.
+
+### Behavior
+- **The base branch** (#38): every statement of the rule — `next-stage` §0, `workflow.md`, README, `config.md`, `init.md`, the onboarding builder — names config `default_branch` as what `spec/<n>` and `fast/<n>` are cut from, what their top-level CRs target, what the fast reviewer diffs against, and what (6) merges in before (7). `feat/<n>` and `qa/<n>` stay siblings off `spec/<n>`. The commands always read the current value: an issue cut from the previous base is the human's to retarget and rebase; nothing pins a base per issue. Hotfixes stay outside the loop.
+- **Existence check** (`next-stage` A2/C2): `git fetch --prune`, then `git rev-parse --verify -q origin/<default_branch>`; missing → STOP with `blocked`. A mistyped or retired base used to cut an empty branch; a plain fetch would have passed a stale tracking ref for a base the forge deleted (codex review).
+
+### Evals
+- **Replay C7** — the config names a base the remote lacks: F5's STOP obligations applied to the cut (blocked alone, the comment names the base, no CR, no push). Red-proof 6/6. **Baseline opus k=5: 5/5.**
+- **Replay F7** — `default_branch = release/20261006` with `main` and an older `release/20260926` also on the remote: `spec/5` must descend from the configured base and the CR must target it. Red-proof 6/6. **Baseline opus k=5: 5/5.** Every earlier `next-stage` seed carried `default_branch: main` with only `main` on the remote, so the base had never been varied.
+- **Lint C7** (88 → 102): A2/C2 cut from `<default_branch>`, prune, check, STOP; A5, C5, C6 and integrate read `<default_branch>`; no literal `main`/`master` as a base.
+- **LEDGER**: C7, F7, and the L2 row 1.18.0 forgot.
+
+### Tooling
+- **`/plan-issue`** (`.claude/skills/plan-issue/`, this repository's own development habit): read the issue and the code, grill first (one question at a time, a recommendation each; falls back to the pattern when the `grill-me` skill is absent), write the rulings back to the issue, then a plan in five sections — main (tier decision, out of scope), eval (what existing cases cannot see, new cases with ledger text, red-proofs, the baseline per tier as the maintainer's spend decision after the blindness commit), doc (a fixed scan table), release (bump reason, the release-note block carried in the PR body, one PR straight to main), done-when. Implementation waits for the go.
+- **CHANGELOG** regenerated through v1.18.0.
+
+### Docs
+- `evals/README.md` carries the C7/F7 baseline; README's evidence paragraph cites it.
+
+### Checks
+Hook tests 113/113 · lint 102/102 · red-proofs 5/5
+
 ## v1.18.0 — /roz-gate:config: the inbox filter and patrol model, settable any time — 2026-10-02
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.18.0>
