@@ -249,6 +249,28 @@ Skips (2), (2a), (4) and (6). Picked up from `status: ready-for-dev`:
 
 ## The main agent
 
+**The workspace.** You may be working in the checkout — on the default branch
+itself — while a scheduled patrol fires and auto-invokes `next-stage`,
+`integrate`, `spec-answers` or `review-answers`. So a command's **entire
+working surface is a linked worktree**, never your checkout: it creates
+`$(git rev-parse --git-common-dir)/roz-gate/wt/<branch>` with `git worktree
+add` at its branch step, and every checkout, merge, commit, test run and
+seat dispatch happens inside it (`cd` there or `git -C`). It never runs
+`git checkout`, `switch`, `reset`, `stash` or `merge` in your checkout, not
+even transiently; `git fetch` is the one git call it may make there, because
+a fetch touches no working tree. Nothing of the agent's work is visible in
+your checkout until it lands on the remote. The worktree lives for one
+command: **both exits** remove it (`git worktree remove --force <path>` then
+`git worktree prune`) — Done because the branch is already on the remote,
+STOP because the worktree *is* the uncommitted local work. A branch already
+checked out in another worktree makes `git worktree add` refuse: that
+refusal is the mutex between two commands running at once, and it is a STOP
+that removes nothing — the worktree is the other run's — never a reason to
+work in the checkout. A command removes only the worktrees it created. Patrol itself touches no git at all —
+its scan is forge calls. The one piece of command state outside a worktree
+is rule E's fidelity-dispatch marker, which lives in the *common* git dir
+the checkout and its worktrees share (`hooks/README.md`).
+
 The bridge between you and the team, both directions, and the owner of state
 management under one rule: **you move gate labels — a gate label is an
 authorization; agents and commands move transient labels — a transient label is
@@ -285,7 +307,8 @@ lock, never applies a gate label, and stops to report anything unexpected.
 **Command lifecycle & the STOP protocol.** Every state-mutating command takes
 the `processing` lock on entry and leaves through exactly one of two exits.
 **Done:** work complete, lock removed. **STOP:** it hit something it cannot or
-should not decide: (1) discard uncommitted local work; (2) replace the issue's
+should not decide: (1) remove the command's worktree(s) — the uncommitted local
+work lives nowhere else; (2) replace the issue's
 status labels with `blocked` alone; (3) post an issue comment — what happened,
 where it died, what already exists remotely, a recommended next step — as the
 **must-read, at most 12 rendered lines before the first `<details>`** (a

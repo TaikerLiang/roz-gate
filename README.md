@@ -232,7 +232,7 @@ discipline is the manners; the hook is the law.*
 Details, the fidelity-dispatch marker, and how to add a rule: `hooks/README.md`.
 
 Every state-mutating command has exactly two exits: **Done** (deliverable
-produced, lock removed) or **STOP** (discard local work, set `blocked` alone,
+produced, lock removed) or **STOP** (remove its worktree, set `blocked` alone,
 post evidence + a recommended next step). No third exit — so any terminal state
 is readable from the labels alone. At stage (7) the STOP exit takes the form of
 a prefixed `**[review] · question**` rather than `blocked`: `blocked` means "halt
@@ -455,6 +455,11 @@ work shaped like that, nothing about shapes never run.
 
 ## Troubleshooting
 
+- **Your checkout is never touched.** Commands do every checkout, merge, commit
+  and test run in a linked worktree under `.git/roz-gate/wt/<branch>` and remove
+  it on exit — so a scheduled patrol can fire while you are mid-edit on the
+  default branch. A worktree left behind by a killed run: `git worktree list`,
+  then `git worktree remove --force <path>`.
 - **Stale `processing` + a phase label** — a run was killed mid-flight. Look at
   what the dead run left (the phase label says where), clear the lock, re-run;
   commands are idempotent on re-entry.

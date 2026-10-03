@@ -23,6 +23,14 @@ attaching the seat's R&R row from
 → plugin defaults (`roz-gate:<role>`; implementer = the project's
 `implementer` agent).
 
+**Workspace.** Every git step below runs in a linked worktree, never in the
+user's checkout (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` → The main
+agent → The workspace): `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<branch> …`
+at the branch step, `cd` there (or `git -C`) for everything after, and
+`git worktree remove --force` + `git worktree prune` on **both** exits.
+`git worktree add` refusing because the branch is checked out elsewhere →
+another command holds it → STOP.
+
 ## 1. Select the issue
 - If an issue number was passed (`$ARGUMENTS`), target that issue. Verify it
   carries a gate label (`status: ready-for-spec` or `status: ready-for-dev`);
@@ -68,7 +76,9 @@ will do, THEN act:
 LABEL-ADD `status: processing`.
 
 ### A2. Branch
-Create `spec/<n>` from `<default_branch>` (`git fetch --prune` first — a stale tracking ref would pass the check for a base the forge deleted; then verify `origin/<default_branch>` exists — `git rev-parse --verify -q origin/<default_branch>` — and if it does not, **STOP**: the base the config names is not on the remote; never cut from anything else).
+Create `spec/<n>` from `<default_branch>` **in a worktree** —
+`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n> -b spec/<n> origin/<default_branch>`
+— and work there from here on (`git fetch --prune` first — a stale tracking ref would pass the check for a base the forge deleted; then verify `origin/<default_branch>` exists — `git rev-parse --verify -q origin/<default_branch>` — and if it does not, **STOP**: the base the config names is not on the remote; never cut from anything else).
 
 ### A3. Spec refinement (NO implementation code)
 Base everything strictly on the issue body. Per the workflow's stage (2):
@@ -219,6 +229,10 @@ if intake carried rulings) and post it as **one top-level comment** on
 the spec CR. This comment is the kit's permanent home — every later
 update edits it in place (COMMENT-EDIT), never posts a sibling.
 
+### A6c. Remove the worktree
+`git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n>`
+then `git worktree prune` — `spec/<n>` is on the remote; nothing local stays.
+
 ### A7. Flip labels — only AFTER the CR and threads are created
 LABEL-REMOVE `status: ready-for-spec` and `status: processing`;
 LABEL-ADD `status: in-spec-review`.
@@ -262,10 +276,15 @@ stands**: COMMENT-EDIT the spec-gate kit to append one line —
 since-you-approved diff. Also note in the report whether the spec changed
 after the kit's last update (the gate-produced-change signal,
 gate-kit.md § Instrumentation).
-`git fetch` first, then create both off `spec/<n>`:
-- `feat/<n>` (implementer) and `qa/<n>` (qa). They are **independent
-  siblings** — `qa/<n>` must contain NO implementation code; that is what
-  enforces the black box.
+`git fetch` first, then create both off `spec/<n>`, **each in its own
+worktree**:
+- `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/feat/<n> -b feat/<n> origin/spec/<n>`
+  (implementer) and
+  `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/qa/<n> -b qa/<n> origin/spec/<n>`
+  (qa). They are **independent siblings** — `qa/<n>` must contain NO
+  implementation code; that is what enforces the black box. Each seat is
+  dispatched **into its worktree** (its cwd); neither ever sees the user's
+  checkout.
 
 ### B3. Dispatch implementer AND qa IN PARALLEL
 Launch both at once (they never see each other):
@@ -336,12 +355,12 @@ Launch both at once (they never see each other):
 - Dispatch the **reviewer** seat a second time, in a **fresh context**
   (never a continuation of B5's), with
   `${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md` as its contract,
-  on a `qa/<n>` checkout — that branch contains no implementation code,
+  in the `qa/<n>` worktree — that branch contains no implementation code,
   which is what makes this dispatch structurally implementation-blind.
 - **Blindness is hook-enforced while the dispatch runs** (guard-blind,
   rule E): immediately before the dispatch, write the marker
-  `mkdir -p "$(git rev-parse --git-dir)/roz-gate" && printf 'issue=<n>\n' > "$(git rev-parse --git-dir)/roz-gate/fidelity-dispatch"`;
-  immediately after it returns, `rm -f "$(git rev-parse --git-dir)/roz-gate/fidelity-dispatch"`.
+  `mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`;
+  immediately after it returns, `rm -f "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`.
   While the marker exists, every read of `src/` and every git action on a
   `feat/` ref is denied mechanically, with the remedy in the message. The
   brief's "you never read the implementation" stays in the dispatch text —
@@ -354,7 +373,10 @@ Launch both at once (they never see each other):
   human, never a verdict.
 - Runs alongside B5 — it needs only `qa/<n>`, so it costs no wall-clock.
 
-### B6. Flip labels + report
+### B6. Remove the worktrees, flip labels + report
+- `git worktree remove --force` both `…/roz-gate/wt/feat/<n>` and
+  `…/roz-gate/wt/qa/<n>`, then `git worktree prune` — after B5b's marker is
+  gone, never while it is on.
 - LABEL-REMOVE `status: ready-for-dev` and `status: processing` (the open CRs
   are now the in-flight state).
 - Report the implementation CR, the QA CR, and the open threads on both.
@@ -376,7 +398,9 @@ reviewer, and the user's CR review.
 LABEL-ADD `status: processing`.
 
 ### C2. Branch
-Create `fast/<n>` from `<default_branch>` (`git fetch --prune` first — a stale tracking ref would pass the check for a base the forge deleted; then verify `origin/<default_branch>` exists — `git rev-parse --verify -q origin/<default_branch>` — and if it does not, **STOP**: the base the config names is not on the remote; never cut from anything else).
+Create `fast/<n>` from `<default_branch>` **in a worktree** —
+`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/fast/<n> -b fast/<n> origin/<default_branch>`
+— and work there from here on (`git fetch --prune` first — a stale tracking ref would pass the check for a base the forge deleted; then verify `origin/<default_branch>` exists — `git rev-parse --verify -q origin/<default_branch>` — and if it does not, **STOP**: the base the config names is not on the remote; never cut from anything else).
 
 ### C3. Implement — with the escalation valve armed
 - Make the minimum change that satisfies the issue's acceptance criteria. A bug
@@ -403,7 +427,9 @@ CR-OPEN from `fast/<n>` targeting `<default_branch>`, title
   agent wrote this code, so the reviewer is the independent check; it is NOT
   skippable — except for **doc-only** diffs.
 
-### C7. Flip labels + report
+### C7. Remove the worktree, flip labels + report
+- `git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/fast/<n>`
+  then `git worktree prune`.
 - LABEL-REMOVE `status: ready-for-dev` and `status: processing`.
 - Report the CR and any review threads. **Next:** address review threads; once
   all are resolved (review-clean), LABEL-ADD `status: in-user-review` — then
@@ -417,7 +443,9 @@ Process exactly **one** issue per run.
 
 **Failure = the STOP exit.** If any step after the lock fails — or you hit
 anything this command cannot or should not decide — follow the STOP protocol
-(`references/workflow.md` → The main agent): discard uncommitted local work, replace
+(`references/workflow.md` → The main agent): `git worktree remove --force` every
+worktree this run created (then `git worktree prune`) — never touch the user's
+checkout — replace
 the issue's status labels with `status: blocked` alone, and post the issue
 comment. This command **creates remote artifacts as it goes**, so the comment
 must inventory what already exists — branches pushed, CRs opened, partial

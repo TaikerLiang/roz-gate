@@ -14,6 +14,12 @@ BASH_DENIED = [
     ("rule E: message names the agent when the payload carries one", RUN4, "agent: roz-gate:qa"),
     ("rule E: git checkout feat/5 under the marker denied", "git checkout feat/5", "feat/ ref"),
     ("rule E: git diff qa/5...feat/5 denied", "git diff qa/5...feat/5 -- tests/", "feat/ ref"),
+    # Commands work in linked worktrees (issue #37); a worktree on a feat/ ref is a touch.
+    ("rule E: git worktree remove of the feat/ worktree under the marker denied",
+     "git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/feat/5",
+     "feat/ ref"),
+    ("rule E: cd into a worktree then checkout feat/5 denied",
+     "cd $(git rev-parse --git-common-dir)/roz-gate/wt/qa/5 && git checkout feat/5", "feat/ ref"),
     ("rule E: a read after an echo mention still denied",
      'echo "excluding src/" && cat src/app.txt', "read of src/"),
     # echo/printf are commands, never arguments (codex, PR #11: `grep echo src/app.txt` passed).
@@ -40,6 +46,10 @@ BASH_ALLOWED = [
     ("rule E: exclusion pathspec ':!src/**' allowed", "git grep -n price -- ':!src/**'"),
     ("rule E: qa/<n> work — tests and spec docs — allowed",
      "cat tests/acceptance/test_expiry.py && git status"),
+    ("rule E: the command's own qa/<n> worktree allowed",
+     "git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/qa/5 -b qa/5 origin/spec/5"),
+    ("rule E: git -C the qa/<n> worktree status allowed",
+     "git -C $(git rev-parse --git-common-dir)/roz-gate/wt/qa/5 status --short"),
 ]
 
 
@@ -57,6 +67,10 @@ class RuleE_FidelityDispatchIsBlind(HookTest):
         self.git(self.repo, "branch", "-q", "feat/5")
         self.git(self.repo, "checkout", "-q", "-b", "qa/5")
         self.marker = self.repo / ".git/roz-gate/fidelity-dispatch"
+        # The reviewer is dispatched into the qa worktree (issue #37): a
+        # linked worktree whose own --git-dir is .git/worktrees/<name>.
+        self.wt = self.repo / ".git/roz-gate/wt/spec/5"
+        self.git(self.repo, "worktree", "add", "-q", str(self.wt), "-b", "spec/5")
 
     def tool(self, tool, cwd=None, **tool_input):
         return self.call(tool, tool_input, cwd or self.repo, agent_type="roz-gate:qa")
@@ -73,6 +87,9 @@ class RuleE_FidelityDispatchIsBlind(HookTest):
         for name, cmd, says in BASH_DENIED:
             with self.case(name):
                 self.assertDenied(self.run_bash(cmd), says)
+        with self.case("rule E: the marker governs a call whose cwd is a linked worktree "
+                       "(codex, PR #53: --git-dir there is worktrees/<name>)"):
+            self.assertDenied(self.run_bash("cat src/app.txt", cwd=self.wt), "read of src/")
         with self.case("rule E: Read of an absolute src/ path denied"):
             self.assertDenied(self.tool("Read", file_path=str(repo / "src/app.txt")),
                               "Read under src/")

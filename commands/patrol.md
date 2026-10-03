@@ -122,7 +122,14 @@ issue in **any other** status, with no shipped marker, is an illegal state —
 report it, never repair.
 
 ### The address-review action — the (5) loop's engine
-For an in-flight CR with open review threads:
+For an in-flight CR with open review threads. Every dispatch below works in
+a linked worktree of its branch
+(`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<branch> <branch>`
+after a `git fetch`; `git worktree remove --force` + `git worktree prune`
+at step 4 and on STOP) — patrol itself never runs git in the user's checkout;
+its scan is forge calls only
+(`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` → The main agent → The
+workspace).
 1. Lock: LABEL-ADD `status: processing` (so the next pass doesn't
    double-dispatch).
 2. Spec track: implementation CR threads → dispatch `implementer` on
@@ -138,8 +145,9 @@ For an in-flight CR with open review threads:
    Re-checks of QA-CR fidelity threads use a fresh implementation-blind
    dispatch under the fidelity brief, on `qa/<n>` only — the same
    fidelity-dispatch procedure (marker on, dispatch, marker off).
-4. Clear the lock. Failures follow the STOP protocol — the `blocked`
-   comment's evidence folds under `<details><summary>Evidence</summary>`.
+4. Remove the worktree(s), clear the lock. Failures follow the STOP protocol
+   — the `blocked` comment's evidence folds under
+   `<details><summary>Evidence</summary>`.
 
 ### The async-intake action — the inbox's engine ((1b))
 For an open issue with no `track:` label. **Gate holder** = the issue's

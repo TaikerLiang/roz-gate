@@ -75,6 +75,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | C5 | Post-integration re-entry has a branch of its own | replay | "Folds, re-runs if behaviour changed, returns the issue to in-user-review." (without it the first-pass branch fires and tells a shipped feature it is ready to move to implementation) |
 | C6 | CR lookup sees merged CRs where it must | lint (defect 1.11.0-) | — |
 | C8 | A merged CR closes the issue out — the prose side | lint (defect 1.19.0-) | — |
+| C9 | A command's git work lives in a worktree it removes on every exit | lint (defect 1.19.0-) + hook (rule E worktree forms) | — |
 | C7 | A branch is cut only from a base the remote has | lint + replay | "Labels are blocked alone; the STOP comment names the missing base; no branch pushed, no CR opened." (a mistyped or retired `default_branch` used to cut an empty branch from nothing and open a CR against it — issue #38) |
 
 ### D · what a seat receives, and what it must not see
@@ -105,6 +106,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | F3 | Spec refinement lands a complete set | replay | "Both spec documents exist; the CR is open; the number of posted threads equals the number of entries in Open Questions; labels flipped exactly once; no question left in any other document." (the thread count catches a question written but never surfaced — the E2 failure, detected by arithmetic) |
 | F4 | A green verdict makes the claim it is entitled to | replay | "Both merged, suite captured, branch pushed, in-user-review applied — and the claim printed reads 'green against the pre-rework spec, at SHA x', never 'verified'." (the weakened claim is one sentence in a long command, exactly the kind that silently reverts to the confident phrasing) |
 | F5 | A STOP leaves nothing half-done | replay | "Labels are blocked alone; an issue comment names the claims and the remedy; no branch pushed, no CR opened, no remote write of any kind." (five obligations in one paragraph; four of five honoured looks like success in every log) |
+| F8 | A command leaves the user's checkout as it found it | replay | "HEAD is still main, the uncommitted edit and the untracked file are intact, no linked worktree is left behind, and spec/<n> reached the remote." (every earlier seed ran in a clean clone, where a checkout in the user's tree is invisible — issue #37) |
 | F7 | A branch is cut from the configured base, not the trunk | replay | "`spec/<n>` descends from `origin/<default_branch>` and the CR targets it — with `default_branch` naming a release branch while `main` and an older release branch also exist." (the only base ever exercised was `main`; a loop that always cut from the trunk measured 100% — issue #38) |
 | F6 | Compliance survives a long session — instrument, not assert | replay (instrument only) | "The same command run as turn 1, 3, 5, 8 and 12 of one session. Record the compliance rate at each position. No pass mark." (amended — see below) |
 

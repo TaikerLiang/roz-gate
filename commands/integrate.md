@@ -7,11 +7,14 @@ Drive **integration (6)** — the spec-compliance verdict — for one feature.
 Preconditions: the implementation CR's review threads are all resolved and the
 QA CR is complete. Follow these steps exactly; do nothing beyond them.
 
-**Safety invariant:** the local checkout is disposable, and the remote is
-untouched until a green verdict. The only remote writes this command ever
-makes: status labels, the green-verdict push of `spec/<n>`, and an issue
-comment when it stops. A local failure needs no remote cleanup — discard and
-re-run.
+**Safety invariant:** the user's checkout is **untouchable** — the user may be
+mid-edit on it when a scheduled patrol invokes this — and the **worktree** is
+the disposable thing: all merging and every test run happens in a linked
+worktree (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` → The main agent →
+The workspace), and the remote is untouched until a green verdict. The only
+remote writes this command ever makes: status labels, the green-verdict push
+of `spec/<n>`, and an issue comment when it stops. A local failure needs no
+remote cleanup — remove the worktree and re-run.
 
 ## 0. Load config & forge adapter
 
@@ -51,8 +54,12 @@ LABEL-ADD `status: processing`. Every exit — green or STOP — removes this
 label.
 
 ## 3. Local integration (get the verdict BEFORE finalizing)
-- Checkout `spec/<n>`. `git merge --no-edit feat/<n>` then
-  `git merge --no-edit qa/<n>` — this brings the contract + code + tests
+- `git fetch`, then
+  `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n> spec/<n>`
+  and work **in that worktree** for every step below (`cd` there or `git -C`).
+  `git worktree add` refusing (the branch is checked out elsewhere) → STOP
+  exit. There: `git merge --no-edit origin/feat/<n>` then
+  `git merge --no-edit origin/qa/<n>` — this brings the contract + code + tests
   together for the first time.
 - One mechanical carve-out: a conflict **only in `<lockfile>`** — accept both
   sides' manifest entries, regenerate (config `lockfile_regen`), continue, note
@@ -93,7 +100,9 @@ label.
      commit the cards were computed from — so a later (7) change can be seen
      to have outrun them. Kit comment or approved SHA missing (pre-1.10.0
      flow) → skip, note it in the report.
-  4. LABEL-ADD `status: in-user-review`; LABEL-REMOVE `status: processing`.
+  4. `git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n>`
+     then `git worktree prune` — the pushed branch is the record.
+  5. LABEL-ADD `status: in-user-review`; LABEL-REMOVE `status: processing`.
   The feature now waits at **(7)**, where the user reviews the spec CR and the
   main agent hosts the conversation (`/roz-gate:review-answers`). State what
   the run licenses and nothing more: *"green against the pre-rework spec, at
@@ -117,8 +126,12 @@ label.
   surprising → STOP exit.
 
 ## 6. The STOP exit — when in doubt, hand it to the human
-1. Discard local state (`git merge --abort` / reset). There is nothing to
-   clean up remotely.
+1. **If this run created it**,
+   `git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n>`
+   then `git worktree prune` — the half-merged state lives nowhere else, and
+   the user's checkout was never touched. A STOP because `worktree add`
+   refused removes nothing: that worktree is another run's. There is nothing
+   to clean up remotely.
 2. LABEL-REMOVE `status: processing`; LABEL-ADD `status: blocked`.
 3. ISSUE-COMMENT: what happened and your **recommended next step** as the
    must-read; the evidence (conflicting files / test output / error) folded

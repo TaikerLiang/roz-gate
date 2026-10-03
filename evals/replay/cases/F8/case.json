@@ -1,0 +1,6 @@
+{
+  "ledger": "F8 · A command leaves the user's checkout as it found it",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 2400
+}
