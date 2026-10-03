@@ -66,7 +66,7 @@ suffix stripped); both set, both must hold. A
 | `status: in-spec-review` | THREADS-LIST on its spec CR. Any unresolved thread whose last comment is a human answer (does not start with `**[` / `✅ [`) → actionable → `/roz-gate:spec-answers <n>`. Otherwise → waiting on the user |
 | no `status:`, `track: spec` | in flight: CR-FIND for `feat/<n>` and `qa/<n>`. Implementation CR exists with **zero open review threads** AND QA CR exists, **is not a draft, and has zero open fidelity threads** → actionable → `/roz-gate:integrate <n>`. Either CR has **open review threads** → actionable → **address-review** (below). Otherwise → in progress, not actionable |
 | no `status:`, `track: fast` | in flight: its CR has **open review threads** → actionable → **address-review**; review-clean → LABEL-ADD `status: in-user-review` and treat as waiting on the user |
-| `status: in-user-review` | the user is reviewing — and reviewing produces comments. Its CR (`spec/<n>` for `track: spec`, `fast/<n>` for `track: fast`; missing or closed → report, act on nothing) is read on **all three channels**: THREADS-LIST, REVIEWS-LIST, CR-COMMENTS-LIST. Any item whose latest entry does **not** start with `**[` or `✅ [` is **unheard** → actionable → `/roz-gate:review-answers <n>`. Otherwise → waiting on the user: say which wait, from the last agent marker — `· question` (your answer) / `· addressed` (your re-review) / none since the verdict (idle, N days) |
+| `status: in-user-review` | first, CR-FIND its CR (`spec/<n>` for `track: spec`, `fast/<n>` for `track: fast`) with the all-states form — **merged** → actionable → **close-out** (below): the human signed, the loop finishes the paperwork. Otherwise the user is reviewing — and reviewing produces comments. Its open CR (missing or closed-unmerged → report, act on nothing) is read on **all three channels**: THREADS-LIST, REVIEWS-LIST, CR-COMMENTS-LIST. Any item whose latest entry does **not** start with `**[` or `✅ [` is **unheard** → actionable → `/roz-gate:review-answers <n>`. Otherwise → waiting on the user: say which wait, from the last agent marker — `· question` (your answer) / `· addressed` (your re-review) / none since the verdict (idle, N days) |
 | `status: blocked` | waiting on the user — never re-invoke anything on it |
 | no `track:` label, in the inbox filter (inbox) | actionable → **async intake** (below) when a gate label is present (finalize), the gate holder's latest comment requests a summary, or no questions batch exists yet; otherwise the discussion is the humans' — waiting on the user |
 
@@ -84,10 +84,29 @@ commit — is exempt from the one-issue rule, like intake: it costs a comment,
 and a multi-day conversation must not starve the rest of the loop. A turn that
 dispatches or commits consumes the pass.
 
+Then **close out every** issue whose CR is merged (close-out, below) — a
+finalize, not a stage advance, so like intake it is exempt from the
+one-issue rule.
+
 Then triage **every** actionable inbox issue (async intake, below), one
 dispatch per issue. Intake is comment-only — no code, no gate labels — so it
 is exempt from the one-issue rule: after a single pass, everything that waits
 on the user is already posted.
+
+### The close-out action — labels retire at close
+For an issue at `status: in-user-review` whose CR is **merged**. The forge
+closes the issue itself only when its own rule fires (GitHub: `Closes #<n>`
+in the body **and** a CR targeting the repository's default branch; GitLab:
+the same keyword, and only against the default branch) — a release-branch
+base or a GitLab MR leaves the issue open wearing `in-user-review`. Patrol
+finishes it, idempotently:
+1. LABEL-REMOVE every `track:` and `status:` label the issue still wears
+   (skip what is already gone).
+2. ISSUE-COMMENT one line: `**[patrol] · shipped** — <CR url> merged; labels
+   retired.` Skip if a `**[patrol] · shipped**` comment is already there.
+3. ISSUE-CLOSE, if still open.
+No lock: every step is idempotent and nothing dispatches. A merged CR on an
+issue in **any other** status is an illegal state — report it, never repair.
 
 ### The address-review action — the (5) loop's engine
 For an in-flight CR with open review threads:
@@ -160,7 +179,7 @@ track-less issues not in the inbox filter` — so a quiet inbox is never a
 mystery. End with the user's queue: what (if anything) needs them — answer threads,
 answer intake questions, say `summary`, confirm a summary with the gate
 label, apply a gate label, or review &
-merge — with links.
+merge — with links. Close-outs appear in the table as `shipped`.
 
 ## 5. Notification (optional)
 If a messaging channel (e.g. Telegram) is connected and an issue **newly**

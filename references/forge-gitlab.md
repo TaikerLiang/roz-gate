@@ -65,6 +65,7 @@ Wherever a command names a label like `status: ready-for-spec`, read it as
 | COMMENT-EDIT | `glab api -X PUT "projects/:id/merge_requests/<iid>/notes/<note-id>" -f body="..."` (issues: same shape under `issues/<n>/notes/<note-id>`) |
 | ISSUE-CREATE | `glab issue create --title "..." --description "..." [--label "<label>"]` |
 | ISSUE-EDIT-BODY | `glab issue update <n> --description "..."` (async intake only, at finalize — after the gate holder's gate label) |
+| ISSUE-CLOSE | `glab issue close <n>` (patrol's close-out only — after the MR is merged; GitLab does not close the issue or strip its scoped labels on merge unless `Closes #<n>` sat in the description and the MR targeted the default branch) |
 
 ## Change requests
 

@@ -1,0 +1,28 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Fix: banner typo",
+      "body": "**User story** — As a visitor, the banner reads correctly.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: fast", "status: in-user-review"],
+      "createdAt": "2026-08-20T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "102": {
+      "number": 102,
+      "title": "fast: fix banner typo (#5)",
+      "state": "MERGED",
+      "isDraft": false,
+      "headRefName": "fast/5",
+      "baseRefName": "main",
+      "threads": [],
+      "reviews": [],
+      "comments": []
+    }
+  }
+}

@@ -436,6 +436,18 @@ def main():
         save(st)
         return
 
+    # ---- gh issue close <n> — patrol's close-out (issue #41). A write; an
+    # absent id stays UNKNOWN.
+    if argv[:2] == ["issue", "close"]:
+        n = argv[2] if len(argv) > 2 else ""
+        if n not in st.get("issues", {}):
+            unknown("issue %s not in fixture" % n)
+        st["issues"][n]["state"] = "closed"
+        journal("issue-close", write=True, issue=n)
+        save(st)
+        print("✓ Closed issue #%s" % n)
+        return
+
     if argv[:2] == ["issue", "comment"]:
         n = argv[2]
         body = body_arg(argv) or ""
