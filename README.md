@@ -87,7 +87,7 @@ template for mobile capture.
 |---|---|---|
 | (1) Intake | main agent + you | one issue = one user story, with observable acceptance criteria and a `track:` label |
 | (2) Spec | em + product + implementer | `spec.md` (scenarios) + `technical-spec.md` (the contract), opened as the **spec CR** |
-| (2a) Q&A | you + role agents | every open question a thread on the spec CR; your answers folded back into the spec |
+| (2a) Q&A | you + role agents | every open question a thread on the spec CR; your answers folded back into the spec — and a thread **you** open is an amendment, folded the same way |
 | (3) Implementation | implementer | `feat/{n}`: code + unit tests |
 | (4) Black-box QA | qa | `qa/{n}`: test plan + acceptance suite — written blind, from spec + contract only |
 | (5) Review | reviewer | severity-graded inline threads (`blocking`/`should-fix`/`nit`/`question`) until review-clean |
@@ -113,7 +113,13 @@ after construction, together with the builder, is theatre (the qa branch
 carrying no implementation code enforces this). And a contract ambiguity
 mid-build is never interpreted by the contractor: it goes back through a
 **change order** — (2a), the loop's only backward transition. You are the
-owner throughout: you sign (gate labels, the merge) and never build. Small
+owner throughout: you sign (gate labels, the merge) and never build. And when
+the spec stage shows *your* issue missed something, the size of the miss
+picks the route: the spec must cover more → open a thread on the spec CR,
+it is folded in; the story changed → close the spec CR, amend the issue,
+delete the old `spec/<n>` yourself (`git push origin --delete spec/<n>` — an
+agent never deletes or force-pushes a remote branch) and re-apply
+`ready-for-spec`; a different story → strip the labels, back to the inbox. Small
 deals (`track: fast`) skip the contract and close on the MOU alone.
 
 > **Note — the test port.** QA drives the system only through the contract.

@@ -1,0 +1,33 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, expired offers never apply, and an offer that expires while my cart is open is re-checked at checkout.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec", "status: in-spec-review"],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer expiry enforcement",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [
+        {"id": "T7", "isResolved": false, "path": "docs/specs/5/spec.md", "line": 4,
+         "comments": [
+           {"databaseId": 9020, "author": "paul", "body": "spec 漏了 issue 寫的第二句:購物車開著的時候優惠過期,結帳時要重新檢查。需要一條規則和一個 scenario。", "createdAt": "2026-08-23T10:00:00Z"}
+         ]}
+      ],
+      "reviews": [],
+      "comments": []
+    }
+  }
+}

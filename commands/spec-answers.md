@@ -33,14 +33,21 @@ the project's `implementer` agent).
 ## 2. Read the review threads
 THREADS-LIST on each CR.
 
-## 3. Identify ANSWERED threads
-A thread needs processing when ALL of:
-- it is **unresolved**, AND
-- it has **more than one** comment, AND
-- the **last** comment does NOT start with `**[` or `✅ [` (agent question
-  comments and agent replies start with `**[` / `✅ [`; anything else is a
-  human answer — note the bracket: a human's own `✅ 看起來可以` is an answer,
-  and the marker must not swallow it).
+## 3. Identify ANSWERED threads — and AMENDMENT requests
+A thread needs processing when it is **unresolved** and EITHER:
+- **an answer**: it has **more than one** comment and the **last** comment does
+  NOT start with `**[` or `✅ [` (agent question comments and agent replies
+  start with `**[` / `✅ [`; anything else is a human answer — note the
+  bracket: a human's own `✅ 看起來可以` is an answer, and the marker must not
+  swallow it); OR
+- **an amendment request**: its **first** comment does NOT start with `**[`
+  or `✅ [` — the human opened the thread themselves ("the spec misses X";
+  the issue was right, the spec must cover more) — and its last comment is
+  not an agent marker either. One comment is enough. No `[role]` tag exists:
+  the role is the **document the thread sits on** — `technical-spec.md` →
+  `implementer`; `spec.md` → `product`, or `em` when the thread is on a
+  section em owns (Problem Statement, Success Metrics, Architecture Notes,
+  Out of Scope); any other file → `product`.
 
 If a thread has only the original `**[...]**` question and no reply → leave it,
 the user has not answered yet. If no thread qualifies on any CR → report "no
@@ -56,7 +63,9 @@ both remove the lock.
 One at a time — fold → reply → resolve, so at most one thread is ever
 half-done:
 1. Read the role from the question comment's `[role]` tag and the user's
-   answer text.
+   answer text — for an amendment request, the role from the document (step
+   3) and the human's comment as the ruling; there is no question to answer,
+   only a gap to cover.
 2. **Re-spawn that role agent** (`product` / `em` / `implementer`), giving it:
    the issue body, the current `<specs_dir>/<n>/spec.md` (and
    `technical-spec.md` if relevant), the original question, and the user's
@@ -82,6 +91,12 @@ half-done:
      measurement still covers the edited claim, or the tag downgrades to
      `(unverified)`. A stale `(measured, <date>, <scope>)` certifying a claim
      nobody measured is worse than no tag.
+   **An amendment** has no `## Open Questions` item yet: add one, resolved
+   on arrival — `**[<role>] · A<k> · <2–4-word title>**` with a
+   `**Resolved:**` block (the human's ruling, attribution + date, "folded
+   into <IDs>") — so the collection point stays complete and a rule born
+   from an amendment carries `(from A<k>)` as its provenance, never
+   `(assumed)`.
    **Resolved-entry shape** (spec.md stays current truth; the argument lives
    in the ledger and the thread): a resolved `## Open Questions` item keeps
    exactly its title line, the question sentence, and a `**Resolved:**` block
@@ -95,7 +110,8 @@ half-done:
    NOT resolve — instead THREAD-REPLY a follow-up (starting
    `**[<role>] · follow-up**`) and leave the thread unresolved.
 4. Otherwise, after the spec edit: THREAD-REPLY
-   `✅ [<role>] resolved — <decision>, folded into spec.md.` then
+   `✅ [<role>] resolved — <decision>, folded into spec.md.` (an amendment:
+   `✅ [<role>] amended — <what changed>, folded into <document>.`) then
    THREAD-RESOLVE.
 5. **Story-level check:** if the resolution changes the user story /
    acceptance criteria, ISSUE-COMMENT a summary linking the thread. Do NOT

@@ -77,6 +77,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | C6 | CR lookup sees merged CRs where it must | lint (defect 1.11.0-) | — |
 | C8 | A merged CR closes the issue out — the prose side | lint (defect 1.19.0-) | — |
 | C9 | A command's git work lives in a worktree it removes on every exit | lint (defect 1.19.0-) + hook (rule E worktree forms) | — |
+| C10 | Re-entering the spec stage after a closed CR is the human's door | lint + replay | "Labels are blocked alone; the comment carries `git push origin --delete spec/<n>` and cites the closed CR; no CR created; the remote's refs unchanged — never force-pushed, never deleted by the agent." (a second `ready-for-spec` on a branch that still exists used to fail the cut with a git error, and the only automatic fixes — force-push, delete — would give agents a destructive remote write — issue #62) |
 | C7 | A branch is cut only from a base the remote has | lint + replay | "Labels are blocked alone; the STOP comment names the missing base; no branch pushed, no CR opened." (a mistyped or retired `default_branch` used to cut an empty branch from nothing and open a CR against it — issue #38) |
 
 ### D · what a seat receives, and what it must not see
@@ -96,6 +97,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | E2 | A seat's questions reach the holder from any document | lint (defect 1.14.2-) + replay + hook (guard-gate rule D) | "Relocated verbatim into spec.md's Open Questions, tagged with the raising role, before threads are posted." (threads are the only objects the gates count; a question outside the threaded surface blocks nothing) |
 | E3 | the implementer can stop and ask at stage (3) | lint (defect 1.12.0-) | — |
 | E4 | the stage-(5) reviewer has the same route | lint (defect 1.12.0-) | — |
+| E6 | A thread the human opens is an amendment, folded like an answer | replay | "`spec.md` on the remote carries the amendment; a `✅ [<role>] amended` reply; the thread resolved." (a human-opened thread has one comment and no `[role]` tag, so the answered-thread rule skipped it while patrol classified it actionable — every pass reported "no new answers" — issue #62) |
 | E5 | An answer folds into the document that owns it | replay | "technical-spec.md is modified. The spec.md entry records the resolution and points at the clause." (folded as prose beside the question instead, the contract never changes, QA derives from the unchanged contract, and the defect ships with a resolved thread pointing at it) |
 
 ### F · the loop end to end

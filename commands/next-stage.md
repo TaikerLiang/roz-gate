@@ -80,6 +80,17 @@ will do, THEN act:
 LABEL-ADD `status: processing`.
 
 ### A2. Branch
+**The branch may already exist** — a previous attempt at this stage. Before
+the cut, `git ls-remote --exit-code --heads origin spec/<n>`. It exists →
+CR-FIND (all-states form) its CR: **open** → illegal state, **STOP** (someone
+is still reviewing it; the gate label is wrong, not the branch); **closed
+unmerged, or no CR** → this is a **re-spec**, and the stale branch is the
+human's to remove: **STOP**, and the `blocked` comment and the report carry
+the remedy verbatim — `git push origin --delete spec/<n>` (and `feat/<n>` / `qa/<n>` if present) — *the human
+runs this; the agent never does*: an agent never deletes or force-pushes a
+remote branch, and the previous attempt stays readable in its closed CR
+(cite it). Re-apply the gate label after deleting; the next pass cuts fresh.
+
 Create `spec/<n>` from `<default_branch>` **in a worktree** —
 `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n> -b spec/<n> origin/<default_branch>`
 — and work there from here on (`git fetch --prune` first — a stale tracking ref would pass the check for a base the forge deleted; then verify `origin/<default_branch>` exists — `git rev-parse --verify -q origin/<default_branch>` — and if it does not, **STOP**: the base the config names is not on the remote; never cut from anything else).
@@ -402,6 +413,17 @@ reviewer, and the user's CR review.
 LABEL-ADD `status: processing`.
 
 ### C2. Branch
+**The branch may already exist** — a previous attempt at this stage. Before
+the cut, `git ls-remote --exit-code --heads origin fast/<n>`. It exists →
+CR-FIND (all-states form) its CR: **open** → illegal state, **STOP** (someone
+is still reviewing it; the gate label is wrong, not the branch); **closed
+unmerged, or no CR** → this is a **re-spec**, and the stale branch is the
+human's to remove: **STOP**, and the `blocked` comment and the report carry
+the remedy verbatim — `git push origin --delete fast/<n>` — *the human
+runs this; the agent never does*: an agent never deletes or force-pushes a
+remote branch, and the previous attempt stays readable in its closed CR
+(cite it). Re-apply the gate label after deleting; the next pass cuts fresh.
+
 Create `fast/<n>` from `<default_branch>` **in a worktree** —
 `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/fast/<n> -b fast/<n> origin/<default_branch>`
 — and work there from here on (`git fetch --prune` first — a stale tracking ref would pass the check for a base the forge deleted; then verify `origin/<default_branch>` exists — `git rev-parse --verify -q origin/<default_branch>` — and if it does not, **STOP**: the base the config names is not on the remote; never cut from anything else).
