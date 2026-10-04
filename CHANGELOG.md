@@ -2,6 +2,30 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.26.0 — three routes when the spec stage shows a gap; amendments; agents never delete or force-push a branch — 2026-10-04
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.26.0>
+
+**Behavior:** when the spec stage shows your issue missed something, the size of the miss picks the route — amend in place (a thread you open on the spec CR is folded in as an amendment), re-spec (close the CR, amend the issue, delete the old `spec/<n>` yourself, re-apply `ready-for-spec`), or back to the inbox. `next-stage` stops on a leftover branch and hands you the exact delete command. **An agent never deletes or force-pushes a remote branch.**
+
+### Behavior
+- **Three routes at (2a)** (#62, #63): `workflow.md` states them by how much changed; the inbox return applies from (2a) as from (7); the invariant that every remote write a command makes is additive.
+- **Amendments** (`spec-answers`): a thread whose first comment is the human's — no agent question, no `[role]` tag — is an amendment request: role from the document the thread sits on (THREADS-LIST now returns `path`/`line` on GitHub, the note position on GitLab; no path = a CR-level comment = product's), folded into the owning document, recorded as a resolved `A<k>` item with `(from A<k>)` provenance, replied `✅ [<role>] amended — …`, resolved. Such a thread used to be skipped while patrol classified it actionable — "no new answers" every pass.
+- **Re-spec** (`next-stage` A2/C2): `git ls-remote --exit-code --heads origin <b>/<n>` before the cut; exists + CR open → illegal state, STOP; exists + CR closed or absent → STOP with the remedy verbatim — `git push origin --delete <b>/<n>` — *the human runs this* — and the closed CR cited. Option D ruled over agent force-push, agent delete-then-recut, and per-attempt branch names.
+- **`-B` cuts** (codex review): every `worktree add` (spec, fast, feat, qa) uses `-B`, so the previous attempt's local ref — which survives its removed worktree — is reset instead of refusing the fresh cut; `-B` still refuses when the branch is checked out elsewhere, which is the mutex.
+
+### Evals
+- **Lint C10** (204 → 227): both branch steps carry the check, both STOPs and the remedy; the remedy line is addressed to the human; no `push --force` / `--force-with-lease` / `branch -D` in `commands/` or `references/`; the four `-B` cuts and no `-b`; the adapters' location fields and the stub's projection; workflow and spec-answers conformance.
+- **Replay E6** (red-proof 7/7): a human-opened thread on `spec.md` → `spec.md` changed on the remote, `✅ amended` reply, resolved, lock released.
+- **Replay C10** (red-proof 7/7): `spec/5` exists with CR #101 closed → blocked alone, the STOP comment carries the delete command and cites #101, no CR, the remote's refs byte-identical — never force-pushed, never deleted. The red-proof caught the first checker reading the cite from the human's own comment.
+- Neither has a SUT baseline yet.
+
+### Docs
+- README (stage table (2a), the change-order paragraph), the guide's (2a) card and wizard, onboarding step 5 and a new stop card "spec/<n> already exists", LEDGER C10/E6.
+
+### Checks
+Hook tests 130/130 · lint 227/227 · red-proofs 10/10
+
 ## v1.25.0 — patrol's scan is a read-only sub-agent; the main agent acts from its table — 2026-10-04
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.25.0>
