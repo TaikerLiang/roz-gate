@@ -69,9 +69,15 @@ c.expect("patrol-scan.md (verdict)", "#7's row: intake: questions",
          "intake" in row(7) and "question" in row(7))
 
 # ---- the scanner wrote nothing ----------------------------------------------
+# A write-shaped gh call. `gh api graphql -f query=…` is THREADS-LIST — a
+# read with a -f field — so a graphql call counts only when it carries a
+# mutation; a non-graphql `gh api` with -f/-F fields is an implicit POST.
+# (The first sweep scored the scanner's THREADS-LIST as a write.)
 WRITE = re.compile(r"gh (issue (edit|comment|close|create)"
                    r"|pr (create|comment|review|edit|merge|ready)"
-                   r"|api -X (POST|PATCH|PUT|DELETE)|api .*-f )")
+                   r"|api -X (POST|PATCH|PUT|DELETE)"
+                   r"|api graphql[^|;&]*\bmutation\b"
+                   r"|api (?!graphql)\S+[^|;&]* -[fF] )")
 scanner_writes = [b for ev in events if ev.get("parent_tool_use_id") == scanner_id
                   for b in blocks(ev) if b.get("type") == "tool_use" and b.get("name") == "Bash"
                   and WRITE.search((b.get("input") or {}).get("command", ""))]

@@ -68,7 +68,7 @@ def tool_result(uid, text, parent=None):
     return ev
 
 
-def transcript(table, scanner_write=False, relist=False, scanner=True):
+def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_mutation=False):
     ev = []
     if scanner:
         ev.append(tool_use("Task", {"prompt": "…${CLAUDE_PLUGIN_ROOT}/references/patrol-scan.md…",
@@ -77,11 +77,24 @@ def transcript(table, scanner_write=False, relist=False, scanner=True):
                                                "--json number,title,labels,assignees,createdAt"},
                            "t_s1", parent="t_scan"))
         ev.append(tool_result("t_s1", "[]", parent="t_scan"))
+        # THREADS-LIST is a read with a -f field — the scanner's bread and butter.
+        ev.append(tool_use("Bash", {"command": "gh api graphql -f query='query($pr:Int!){ "
+                                               "repository{ pullRequest(number:$pr){ reviewThreads"
+                                               "{ nodes{ id isResolved path line } } } } }' "
+                                               "-F pr=101"},
+                           "t_s3", parent="t_scan"))
+        ev.append(tool_result("t_s3", "{}", parent="t_scan"))
         if scanner_write:
             ev.append(tool_use("Bash",
                                {"command": 'gh issue edit 6 --add-label "status: processing"'},
                                "t_s2", parent="t_scan"))
             ev.append(tool_result("t_s2", "", parent="t_scan"))
+        if scanner_mutation:
+            ev.append(tool_use("Bash", {"command": "gh api graphql -f query='mutation { "
+                                                   "resolveReviewThread(input:{threadId:\"T1\"}) "
+                                                   "{ thread { isResolved } } }'"},
+                               "t_s4", parent="t_scan"))
+            ev.append(tool_result("t_s4", "{}", parent="t_scan"))
         ev.append(tool_result("t_scan", table))
     if relist:
         ev.append(tool_use("Bash", {"command": "gh issue list --state open --json number,labels"},
@@ -98,7 +111,7 @@ def transcript(table, scanner_write=False, relist=False, scanner=True):
 
 
 def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=True,
-              lock6=False, intake7=True):
+              lock6=False, intake7=True, scanner_mutation=False):
     run = os.path.join(tmp, "run")
     shutil.rmtree(run, ignore_errors=True)
     os.makedirs(os.path.join(run, "forge"))
@@ -121,7 +134,7 @@ def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=Tr
         for e in journal:
             f.write(json.dumps(e) + "\n")
     with open(os.path.join(run, "transcript.jsonl"), "w", encoding="utf-8") as f:
-        for e in transcript(table, scanner_write, relist, scanner):
+        for e in transcript(table, scanner_write, relist, scanner, scanner_mutation):
             f.write(json.dumps(e, ensure_ascii=False) + "\n")
     env = dict(os.environ, RUN_DIR=run, BARE=bare)
     return subprocess.run([sys.executable, os.path.join(CASE, "check.py")], env=env,
@@ -132,6 +145,7 @@ SHAPES = [
     ("the good pass: table, act on #5, #6 untouched, #7 asked", True, {}),
     ("a row with the wrong verdict (#5 waiting on user)", False, {"table": BAD_TABLE}),
     ("the scanner wrote a label", False, {"scanner_write": True}),
+    ("the scanner sent a graphql mutation", False, {"scanner_mutation": True}),
     ("the main agent re-listed issues after the table", False, {"relist": True}),
     ("no scanner at all (the old in-context scan)", False, {"scanner": False}),
     ("#6 locked too (one-issue rule broken)", False, {"lock6": True}),
