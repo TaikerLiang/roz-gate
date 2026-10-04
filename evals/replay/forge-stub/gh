@@ -698,6 +698,65 @@ def main():
             jq_project(view, flag_val(argv, "--jq", "-q"))
             return
 
+        # ---- gh api repos/o/r/pulls/<n> — one PR, REST shape (F9 run-5 on
+        # the v1.26.0 sweep: `.head.sha` for the hand-back SHA). The twin of
+        # `gh pr view --json`; head.sha resolves from the sandbox's objects.
+        # An absent number is an absent id → UNKNOWN; non-GET stays UNKNOWN.
+        m_pr = re.match(r"repos/[^/]+/[^/]+/pulls/(\d+)$", target)
+        if m_pr and method == "GET":
+            n_, pr_ = pr_lookup(st, m_pr.group(1))
+            if n_ is None:
+                unknown("pr %s not in fixture" % m_pr.group(1))
+            journal("pr-view", pr=n_, via="api")
+            head_ref = pr_.get("headRefName", "")
+            sha = ""
+            for cand in ("origin/%s" % head_ref, head_ref):
+                try:
+                    rp = subprocess.run(["git", "rev-parse", "--verify", "-q", cand + "^{commit}"],
+                                        capture_output=True, text=True, timeout=10)
+                except (OSError, subprocess.TimeoutExpired):
+                    rp = None
+                if rp is not None and rp.returncode == 0:
+                    sha = rp.stdout.strip()
+                    break
+            pr_state = pr_.get("state", "OPEN").lower()
+            jq_project({"number": int(n_), "title": pr_.get("title", ""), "body": pr_.get("body", ""),
+                        "state": "open" if pr_state == "open" else "closed",
+                        "draft": pr_.get("isDraft", False),
+                        "merged_at": "2026-08-24T12:00:00Z" if pr_state == "merged" else None,
+                        "html_url": "https://github.com/x/y/pull/%s" % n_,
+                        "head": {"ref": head_ref, "sha": sha or "0" * 40},
+                        "base": {"ref": pr_.get("baseRefName", "")},
+                        "user": {"login": pr_.get("author", st.get("agent_login", "paul"))}},
+                       flag_val(argv, "--jq", "-q"))
+            return
+
+        # ---- gh api repos/o/r/commits/<ref> — the commit a ref points at
+        # (F9 run-5: `.sha` of spec/5). Resolved from the sandbox's objects;
+        # an unknown ref is GitHub's 422/404 under the same route. GET only.
+        m_cm = re.match(r"repos/[^/]+/[^/]+/commits/(.+)$", target)
+        if m_cm and method == "GET":
+            ref = unquote(m_cm.group(1))
+            sha = ""
+            for cand in ("origin/%s" % ref, ref):
+                try:
+                    rp = subprocess.run(["git", "rev-parse", "--verify", "-q", cand + "^{commit}"],
+                                        capture_output=True, text=True, timeout=10)
+                except (OSError, subprocess.TimeoutExpired):
+                    rp = None
+                if rp is not None and rp.returncode == 0:
+                    sha = rp.stdout.strip()
+                    break
+            journal("commit-view", ref=ref, present=bool(sha))
+            if not sha:
+                sys.stderr.write("gh: No commit found for SHA: %s (HTTP 422)\n" % ref)
+                sys.exit(1)
+            msg = subprocess.run(["git", "log", "-1", "--format=%s", sha],
+                                 capture_output=True, text=True).stdout.strip()
+            jq_project({"sha": sha, "html_url": "https://github.com/x/y/commit/%s" % sha,
+                        "commit": {"message": msg}}, flag_val(argv, "--jq", "-q"))
+            return
+
         # ---- gh api /apps/<slug>, /users/<login> — the bot's identity by
         # name (judgment k=2 on 1.17.0: a bot-mode SUT whose token mint
         # failed went hunting for its App ID). Read-only, keyed on

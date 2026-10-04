@@ -33,9 +33,10 @@ import replaylib as rl  # noqa: E402
 
 GH = os.path.join(HERE, "forge-stub", "gh")
 STATE = {"agent_login": "roz-gatekeeper",
+         "prs": {"101": {"number": 101, "title": "Spec: #5", "state": "OPEN", "isDraft": False,
+                         "headRefName": "spec/5", "baseRefName": "main"}},
          "issues": {"5": {"title": "x", "labels": []},
-                    "6": {"title": "y", "labels": ["track: spec"], "state": "closed"}},
-         "prs": {}}
+                    "6": {"title": "y", "labels": ["track: spec"], "state": "closed"}}}
 
 # (name, argv after `gh`, expected journal route, a string stdout must carry)
 ROUTES = [
@@ -127,6 +128,16 @@ REF_ROUTES = [
      "work", "contents", 1, ""),
     ("contents: absent ref → 404, routed", ["api", "repos/acme/demo/contents/docs?ref=spec/9"],
      "work", "contents", 1, ""),
+    ("pulls/<n>: REST view, head.sha from the objects",
+     ["api", "repos/acme/demo/pulls/101", "--jq", ".head.sha"], "work", "pr-view", 0, None),
+    ("pulls/<n>: absent number → UNKNOWN", ["api", "repos/acme/demo/pulls/999"],
+     "work", "UNKNOWN", 64, ""),
+    ("pulls/<n>: PATCH stays UNKNOWN", ["api", "-X", "PATCH", "repos/acme/demo/pulls/101"],
+     "work", "UNKNOWN", 64, ""),
+    ("commits/<ref>: the ref's SHA", ["api", "repos/acme/demo/commits/spec/5", "--jq", ".sha"],
+     "work", "commit-view", 0, None),
+    ("commits/<ref>: unknown ref → 422, routed", ["api", "repos/acme/demo/commits/nope"],
+     "work", "commit-view", 1, ""),
     ("PUT to contents stays UNKNOWN", ["api", "-X", "PUT", "repos/acme/demo/contents/docs/x.md"],
      "work", "UNKNOWN", 64, ""),
     ("POST to a ref stays UNKNOWN",
