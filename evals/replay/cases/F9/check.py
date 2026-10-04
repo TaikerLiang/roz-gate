@@ -85,7 +85,12 @@ c.expect("patrol-scan.md (You write nothing)", "no forge write under the scanner
          scanner_id is not None and not scanner_writes)
 
 # ---- the main agent never re-listed after the table -------------------------
-LIST = re.compile(r"gh (issue list|pr list|api repos/[^ ]+/(issues|pulls)(\?|\s|$))")
+# A scan-shaped listing: the whole issue list, or the CR list WITHOUT --head
+# (a `pr list --head spec/<n>` is one issue's CR-FIND — what the action on
+# that issue is allowed to read; the first sweep flagged review-answers'
+# own CR lookup).
+LIST = re.compile(r"gh (issue list|pr list(?![^|;&]*--head)"
+                  r"|api repos/[^ ]+/(issues|pulls)(\?|\s|$))")
 relist = [b for ev in events[table_at + 1:]
           if table_at is not None and not ev.get("parent_tool_use_id")
           for b in blocks(ev) if b.get("type") == "tool_use" and b.get("name") == "Bash"
@@ -97,8 +102,14 @@ c.expect("patrol.md §2 (never re-read to confirm a row)",
 # ---- the actions: top row acted on, one-issue rule held, intake posted -------
 c.expect("patrol.md §3 (closest to done)", "the pass acted on #5 (lock or marker reply)",
          r.route_taken("5"))
-c.expect("patrol.md §3 (one loop issue per pass)", "#6 was not locked or advanced",
-         not r.has_label("6", "status: processing")
+# One loop issue per pass: #6 is untouched — its labels as seeded, no comment,
+# no lock, no branch, no CR. (The first sweep's run-2 ran next-stage on #6
+# after review-answers on #5, STOPped it to `blocked`, and the narrower
+# "not locked" check let it through.)
+_six = r.state()["issues"]["6"]
+c.expect("patrol.md §3 (one loop issue per pass)", "#6 was not touched at all",
+         sorted(_six.get("labels", [])) == ["status: ready-for-dev", "track: fast"]
+         and not _six.get("comments")
          and r.journal_writes(r"^pr-create$") == 0
          and r.git("rev-parse", "--verify", "-q", "refs/heads/fast/6")[0] != 0)
 c.expect("patrol.md §3 (the whole inbox)", "#7 got its **[intake]** questions batch",

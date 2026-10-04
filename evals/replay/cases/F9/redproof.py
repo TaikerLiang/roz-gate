@@ -100,6 +100,10 @@ def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_m
         ev.append(tool_use("Bash", {"command": "gh issue list --state open --json number,labels"},
                            "t_m0"))
         ev.append(tool_result("t_m0", "[]"))
+    # review-answers finds its own CR — one issue's CR-FIND, allowed after the table.
+    ev.append(tool_use("Bash", {"command": "gh pr list --head spec/5 --state all "
+                                           "--json number,state,url"}, "t_m_cr"))
+    ev.append(tool_result("t_m_cr", "[]"))
     ev.append(tool_use("Bash", {"command": 'gh issue edit 5 --add-label "status: processing"'},
                        "t_m1"))
     ev.append(tool_result("t_m1", ""))
@@ -111,7 +115,7 @@ def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_m
 
 
 def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=True,
-              lock6=False, intake7=True, scanner_mutation=False):
+              lock6=False, intake7=True, scanner_mutation=False, block6=False):
     run = os.path.join(tmp, "run")
     shutil.rmtree(run, ignore_errors=True)
     os.makedirs(os.path.join(run, "forge"))
@@ -120,6 +124,10 @@ def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=Tr
     st["issues"]["5"]["labels"].append("status: processing")
     if lock6:
         st["issues"]["6"]["labels"].append("status: processing")
+    if block6:
+        st["issues"]["6"]["labels"] = ["track: fast", "status: blocked"]
+        st["issues"]["6"]["comments"] = [{"id": 2, "author": "paul",
+                                          "body": "**[patrol] · blocked** — nothing to bump."}]
     if intake7:
         st["issues"]["7"]["comments"] = [{"id": 1, "author": "paul",
                                           "body": "**[intake]** 1. Expiry? (a) …"}]
@@ -149,6 +157,7 @@ SHAPES = [
     ("the main agent re-listed issues after the table", False, {"relist": True}),
     ("no scanner at all (the old in-context scan)", False, {"scanner": False}),
     ("#6 locked too (one-issue rule broken)", False, {"lock6": True}),
+    ("#6 acted on and STOPped to blocked (one-issue rule broken)", False, {"block6": True}),
     ("#7 never asked", False, {"intake7": False}),
 ]
 
