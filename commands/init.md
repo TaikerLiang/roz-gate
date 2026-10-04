@@ -19,7 +19,7 @@ Infer from the repo (lockfiles, manifests, CI config) and confirm with the
 user, one compact block, not twenty questions:
 - (not in the block) `default_branch` — the loop's base, `spec/<n>` and
   `fast/<n>` are cut from it and their CRs target it — is per person, per
-  clone: the remote's HEAD branch unless set with `! roz-config
+  clone: the remote's HEAD branch unless set with `/roz-gate:config
   default_branch <branch>` (`.claude/roz-gate.local.json`, never committed).
   Say so in the report; write nothing.
 - `test` — command that runs the full suite (e.g. `uv run pytest`, `npm test`)
@@ -123,9 +123,9 @@ map:
 3. Run `/roz-gate:patrol` (manually, on a loop, or scheduled) — it advances
    whatever the labels authorize and reports what waits on you.
 4. Your own loop keys — the base branch and the inbox filter — are set
-   without a model turn: `! roz-config` shows them, `! roz-config
-   inbox_label discuss` sets one (`.claude/roz-gate.local.json`, never
-   committed). Everything else in the block is edited by hand.
+   from a menu with `/roz-gate:config` (`.claude/roz-gate.local.json`,
+   never committed; the write is `bin/roz-config`'s). Everything else in
+   the block is edited by hand.
 
 Nothing in this command applies a gate label, and it never edits an existing
 CLAUDE.md section without showing the change first.
