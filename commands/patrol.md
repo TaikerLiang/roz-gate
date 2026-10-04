@@ -78,6 +78,10 @@ commit — is exempt from the one-issue rule, like intake: it costs a comment,
 and a multi-day conversation must not starve the rest of the loop. A turn that
 dispatches or commits consumes the pass.
 
+Then, for every row with verdict `hand-off: in-user-review` (a review-clean
+fast CR), LABEL-ADD `status: in-user-review` — a status report, not a stage
+advance, so exempt from the one-issue rule; the issue now waits on the user.
+
 Then **close out every** issue whose CR is merged (the rows with verdict
 `close-out`; the action below) — a
 finalize, not a stage advance, so like intake it is exempt from the

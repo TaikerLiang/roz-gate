@@ -504,11 +504,16 @@ for _col in ("`issue`", "`track`", "`status`", "`cr`", "`unheard`", "`verdict`",
         "| %s |" % _col)
 src("A8: patrol names the same columns", "commands/patrol.md",
     "`issue · track · status · cr · unheard · verdict\n· evidence`")
-for _v in ("actionable: review-answers", "close-out", "intake: questions", "waiting on user",
-           "illegal state", "locked:"):
+for _v in ("actionable: review-answers", "close-out", "hand-off: in-user-review",
+           "intake: questions", "waiting on user", "illegal state", "locked:"):
     src("A8: the verdict vocabulary carries `%s`" % _v, "references/patrol-scan.md", "`%s" % _v)
 src("A8: the inbox filter lives in the brief", "references/patrol-scan.md",
     "**subject to the inbox filter**")
+c.expect("pattern", "A8: the brief's fast-track row hands off instead of writing (codex review)",
+         "LABEL-ADD `status: in-user-review`" not in _brf
+         and "verdict `hand-off: in-user-review`" in _brf)
+src("A8: patrol applies the hand-off label for every hand-off row", "commands/patrol.md",
+    "verdict `hand-off: in-user-review`")
 c.expect("pattern", "A8: the scanner dispatches nothing (depth stays 1)",
          "it\ndispatches nothing itself" in _pat8 or "dispatches nothing itself" in _pat8)
 
