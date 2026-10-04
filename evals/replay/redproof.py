@@ -75,13 +75,13 @@ RESUME = [
 ]
 
 
-def run_route(argv):
+def run_route(argv, cwd=None):
     d = tempfile.mkdtemp()
     try:
         with open(os.path.join(d, "state.json"), "w") as f:
             json.dump(STATE, f)
         p = subprocess.run([sys.executable, GH] + argv, capture_output=True, text=True,
-                           env={**os.environ, "FORGE_STATE": d})
+                           env={**os.environ, "FORGE_STATE": d}, cwd=cwd)
         routes = [json.loads(line)["route"]
                   for line in open(os.path.join(d, "journal.jsonl")) if line.strip()]
         return p.returncode, p.stdout, routes
@@ -89,8 +89,52 @@ def run_route(argv):
         shutil.rmtree(d, ignore_errors=True)
 
 
+def git_sandbox():
+    """A work repo whose origin (a bare remote) has main and spec/5 — the
+    shape every replay sandbox has; the git-ref route reads it."""
+    tmp = tempfile.mkdtemp()
+    work = os.path.join(tmp, "work")
+    env = dict(os.environ, GIT_AUTHOR_NAME="a", GIT_AUTHOR_EMAIL="a@a",
+               GIT_COMMITTER_NAME="a", GIT_COMMITTER_EMAIL="a@a")
+    for cmd, cwd in (("git init -q --bare origin.git", tmp),
+                     ("git init -q -b main work", tmp),
+                     ("git commit -q --allow-empty -m seed && git branch spec/5 "
+                      "&& git remote add origin ../origin.git && git push -q origin --all", work)):
+        subprocess.run(["bash", "-c", cmd], cwd=cwd, env=env, check=True, capture_output=True)
+    return tmp, work
+
+
+# (name, argv, cwd kind, expected route, exit code, stdout needle)
+REF_ROUTES = [
+    ("branch present → its SHA",
+     ["api", "repos/acme/demo/git/ref/heads/spec%2F5", "--jq", ".object.sha"],
+     "work", "git-ref", 0, None),
+    ("branch present, refs/ spelling, unencoded", ["api", "repos/acme/demo/git/refs/heads/spec/5"],
+     "work", "git-ref", 0, '"ref": "refs/heads/spec/5"'),
+    ("branch absent → 404, still a routed read", ["api", "repos/acme/demo/git/ref/heads/spec%2F9"],
+     "work", "git-ref", 1, ""),
+    ("POST to a ref stays UNKNOWN",
+     ["api", "-X", "POST", "repos/acme/demo/git/refs/heads/spec%2F5"],
+     "work", "UNKNOWN", 64, ""),
+]
+
+
 def main():
     passed = failed = 0
+    tmp, work = git_sandbox()
+    try:
+        head = subprocess.check_output(["git", "-C", work, "rev-parse", "spec/5"],
+                                       text=True).strip()
+        for name, argv, _, route, rc_want, needle in REF_ROUTES:
+            rc, out, routes = run_route(argv, cwd=work)
+            ok = routes == [route] and rc == rc_want
+            if rc_want == 0:
+                ok = ok and (needle in out if needle else out.strip() == head)
+            print("%s route: %s -> %s" % ("PASS" if ok else "FAIL", name, route),
+                  "" if ok else "(got rc=%d routes=%s out=%r)" % (rc, routes, out[:120]))
+            passed, failed = passed + ok, failed + (not ok)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
     for name, argv, route, needle in ROUTES:
         rc, out, routes = run_route(argv)
         ok = routes == [route] and (rc == 64) == (route == "UNKNOWN")

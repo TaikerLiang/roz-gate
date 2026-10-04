@@ -630,6 +630,33 @@ def main():
                        flag_val(argv, "--jq", "-q"))
             return
 
+        # ---- gh api repos/o/r/git/ref/heads/<branch> — does the branch
+        # exist on the remote, and at which SHA (1.26.0's A2 check, asked
+        # through the API instead of `git ls-remote`; F9 run-1 on the
+        # v1.26.0 sweep). The forge's branches ARE the sandbox's bare
+        # remote, so the answer comes from `git ls-remote origin` in the
+        # caller's cwd; an absent branch is GitHub's 404, journaled under
+        # the same route — a legitimate read of nothing, never UNKNOWN.
+        m_ref = re.match(r"repos/[^/]+/[^/]+/git/refs?/heads/(.+)$", target)
+        if m_ref and method == "GET":
+            branch = unquote(m_ref.group(1))
+            try:
+                ls = subprocess.run(["git", "ls-remote", "--heads", "origin", branch],
+                                    capture_output=True, text=True, timeout=10)
+                sha = ls.stdout.split()[0] if ls.returncode == 0 and ls.stdout.strip() else ""
+            except (OSError, subprocess.TimeoutExpired):
+                sha = ""
+            journal("git-ref", branch=branch, present=bool(sha))
+            if not sha:
+                sys.stderr.write("gh: Not Found (HTTP 404)\n{\"message\":\"Not Found\"}\n")
+                sys.exit(1)
+            jq_project({"ref": "refs/heads/%s" % branch, "node_id": "REF_x",
+                        "url": "https://api.github.com/repos/x/y/git/refs/heads/%s" % branch,
+                        "object": {"sha": sha, "type": "commit",
+                                   "url": "https://api.github.com/repos/x/y/git/commits/%s" % sha}},
+                       flag_val(argv, "--jq", "-q"))
+            return
+
         # ---- gh api /apps/<slug>, /users/<login> — the bot's identity by
         # name (judgment k=2 on 1.17.0: a bot-mode SUT whose token mint
         # failed went hunting for its App ID). Read-only, keyed on
