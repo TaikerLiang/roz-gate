@@ -701,6 +701,7 @@ def main():
                     unknown("graphql threads: pr %s not in fixture" % pr)
                 journal("threads-list", pr=str(pr))
                 nodes = [{"id": t.get("id"), "isResolved": t.get("isResolved", False),
+                          "path": t.get("path"), "line": t.get("line"),
                           "comments": {"nodes": [
                               {"databaseId": c.get("databaseId"),
                                "body": c.get("body", ""),

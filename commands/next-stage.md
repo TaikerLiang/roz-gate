@@ -80,8 +80,20 @@ will do, THEN act:
 LABEL-ADD `status: processing`.
 
 ### A2. Branch
+**The branch may already exist** — a previous attempt at this stage. Before
+the cut, `git ls-remote --exit-code --heads origin spec/<n>`. It exists →
+CR-FIND (all-states form) its CR: **open** → illegal state, **STOP** (someone
+is still reviewing it; the gate label is wrong, not the branch); **closed
+unmerged, or no CR** → this is a **re-spec**, and the stale branch is the
+human's to remove: **STOP**, and the `blocked` comment and the report carry
+the remedy verbatim — `git push origin --delete spec/<n>` (and `feat/<n>` / `qa/<n>` if present) — *the human
+runs this; the agent never does*: an agent never deletes or force-pushes a
+remote branch, and the previous attempt stays readable in its closed CR
+(cite it). Re-apply the gate label after deleting; the next pass cuts fresh (the cut
+uses `-B`, so the previous attempt's local ref cannot block it).
+
 Create `spec/<n>` from `<default_branch>` **in a worktree** —
-`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n> -b spec/<n> origin/<default_branch>`
+`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n> -B spec/<n> origin/<default_branch>` (`-B`, not `-b`: after a re-spec the previous attempt's **local** `spec/<n>` ref may survive its removed worktree, and `-B` resets it onto the base; a local ref is not a remote branch — the invariant is untouched; a `-B` refused because the branch is checked out elsewhere is the mutex, a STOP)
 — and work there from here on (`git fetch --prune` first — a stale tracking ref would pass the check for a base the forge deleted; then verify `origin/<default_branch>` exists — `git rev-parse --verify -q origin/<default_branch>` — and if it does not, **STOP**: the base the config names is not on the remote; never cut from anything else).
 
 ### A3. Spec refinement (NO implementation code)
@@ -282,9 +294,9 @@ after the kit's last update (the gate-produced-change signal,
 gate-kit.md § Instrumentation).
 `git fetch` first, then create both off `spec/<n>`, **each in its own
 worktree**:
-- `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/feat/<n> -b feat/<n> origin/spec/<n>`
+- `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/feat/<n> -B feat/<n> origin/spec/<n>`
   (implementer) and
-  `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/qa/<n> -b qa/<n> origin/spec/<n>`
+  `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/qa/<n> -B qa/<n> origin/spec/<n>`
   (qa). They are **independent siblings** — `qa/<n>` must contain NO
   implementation code; that is what enforces the black box. Each seat is
   dispatched **into its worktree** (its cwd); neither ever sees the user's
@@ -402,8 +414,20 @@ reviewer, and the user's CR review.
 LABEL-ADD `status: processing`.
 
 ### C2. Branch
+**The branch may already exist** — a previous attempt at this stage. Before
+the cut, `git ls-remote --exit-code --heads origin fast/<n>`. It exists →
+CR-FIND (all-states form) its CR: **open** → illegal state, **STOP** (someone
+is still reviewing it; the gate label is wrong, not the branch); **closed
+unmerged, or no CR** → this is a **re-spec**, and the stale branch is the
+human's to remove: **STOP**, and the `blocked` comment and the report carry
+the remedy verbatim — `git push origin --delete fast/<n>` — *the human
+runs this; the agent never does*: an agent never deletes or force-pushes a
+remote branch, and the previous attempt stays readable in its closed CR
+(cite it). Re-apply the gate label after deleting; the next pass cuts fresh (the cut
+uses `-B`, so the previous attempt's local ref cannot block it).
+
 Create `fast/<n>` from `<default_branch>` **in a worktree** —
-`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/fast/<n> -b fast/<n> origin/<default_branch>`
+`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/fast/<n> -B fast/<n> origin/<default_branch>` (`-B`, not `-b`: after a re-spec the previous attempt's **local** `fast/<n>` ref may survive its removed worktree, and `-B` resets it onto the base; a local ref is not a remote branch — the invariant is untouched; a `-B` refused because the branch is checked out elsewhere is the mutex, a STOP)
 — and work there from here on (`git fetch --prune` first — a stale tracking ref would pass the check for a base the forge deleted; then verify `origin/<default_branch>` exists — `git rev-parse --verify -q origin/<default_branch>` — and if it does not, **STOP**: the base the config names is not on the remote; never cut from anything else).
 
 ### C3. Implement — with the escalation valve armed

@@ -1,0 +1,6 @@
+{
+  "ledger": "C10 · Re-entering the spec stage after a closed CR is the human's door",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 900
+}

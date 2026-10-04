@@ -112,6 +112,21 @@ contract QA tests against must learn the answer, or the pipe is one-way), and
 resolves the thread. A resolution that changes the user story → a comment on
 the issue (it never auto-edits the issue body/AC). Gate: all threads resolved.
 
+**When the spec stage shows the issue missed something — three routes, by how
+much changed.** (i) The story and its AC still hold, the spec must simply
+cover more → **amend in place**: open a thread on the spec CR yourself ("the
+spec misses X"); `spec-answers` treats a human-opened thread as an amendment
+request — folds it into the owning document, records it as a resolved
+`A<k>` item, replies, resolves. (ii) The **story itself changed** →
+**re-spec**: close the spec CR yourself, amend the issue, re-apply
+`ready-for-spec`; nothing halted abnormally, so no `blocked` is involved —
+but the old `spec/{n}` is yours to delete (`git push origin --delete
+spec/{n}`; `next-stage` stops and tells you so, because **an agent never
+deletes or force-pushes a remote branch**), and the previous spec stays
+readable in the closed CR. (iii) The issue is **a different story** → strip
+its `track:`/`status:` labels and it returns to the inbox, exactly as from
+(7) below.
+
 **(3) Implementation + (4) Validation — launch together**, gated by
 `status: ready-for-dev`. Independent siblings, both branched off `spec/{n}`,
 both CRs targeting the spec CR:
@@ -223,7 +238,7 @@ Skips (2), (2a), (4) and (6). Picked up from `status: ready-for-dev`:
   the gate holder's confirmation, which the next patrol pass finalizes into a
   body rewrite + the confirmed `track:` (`ready-for-spec` ⇒ `spec`,
   `ready-for-dev` ⇒ `fast`).
-- An issue also **returns to the inbox from (7)**: when your review concludes
+- An issue also **returns to the inbox from (2a) or (7)**: when your review concludes
   the issue itself was wrong, you strip its `track:` and `status:` labels and it
   is a raw idea again, discussion and decision ledger intact on the same issue.
   Redoing the work is cheap; re-answering what you already ruled is not, so the
@@ -271,7 +286,10 @@ that removes nothing — the worktree is the other run's — never a reason to
 work in the checkout. A command removes only the worktrees it created. Patrol itself touches no git at all —
 its scan is forge calls. The one piece of command state outside a worktree
 is rule E's fidelity-dispatch marker, which lives in the *common* git dir
-the checkout and its worktrees share (`hooks/README.md`).
+the checkout and its worktrees share (`hooks/README.md`). **An agent never
+deletes or force-pushes a remote branch**: every remote write a command
+makes is additive — a new branch, a commit on its own branch, a label, a
+comment. Removing a branch is the human's act, like a gate label.
 
 The bridge between you and the team, both directions, and the owner of state
 management under one rule: **you move gate labels — a gate label is an

@@ -91,7 +91,9 @@ glab api "projects/:id/merge_requests/<iid>/discussions?per_page=100"
 ```
 
 Each discussion has `id`, `notes[]` (with `id`, `body`, `author.username`,
-`resolvable`, `resolved`). A thread is "unresolved" if any resolvable note has
+`resolvable`, `resolved`, and on an inline note `position.new_path` /
+`position.new_line` — the location that routes a human-opened amendment to
+its document). A thread is "unresolved" if any resolvable note has
 `resolved: false`.
 
 **THREAD-POST-INLINE** — open a discussion anchored to a file line. GitLab
