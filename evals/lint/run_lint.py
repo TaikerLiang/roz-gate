@@ -649,6 +649,9 @@ c.expect("pattern", "L2: /roz-gate:config is only the menu — bin/roz-config do
 c.expect("pattern", "L2: /roz-gate:config never touches the block or the forge",
          "or `CLAUDE.md`\nyourself" in _cfg and "never create forge labels" in _cfg
          and "LABEL-LIST" not in _cfg)
+c.expect("pattern", "L2: /roz-gate:config splits inbox values on commas and quotes each",
+         "comma-separated" in _cfg and "never split on spaces" in _cfg
+         and '"<v1>" "<v2>"' in _cfg)
 c.expect("pattern", "L2: /roz-gate:config injects the tool's current values into the prompt",
          '!`python3 "${CLAUDE_PLUGIN_ROOT}/bin/roz-config"`' in _cfg)
 src("L2: roz-config migrates a pre-1.23 block once (upgrade path, codex review)",

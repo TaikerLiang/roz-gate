@@ -14,11 +14,17 @@ Current values (the tool's own output, resolved with defaults):
 !`python3 "${CLAUDE_PLUGIN_ROOT}/bin/roz-config"`
 ```
 
+## Values — comma-separated, because a label may contain spaces
+For the inbox keys the values are **comma-separated** (`discuss, good first
+issue` is two labels); split on commas, trim each, and pass **each value as
+its own quoted argument** to the tool — never split on spaces.
+`default_branch` is one value.
+
 ## With arguments — no menu
-`/roz-gate:config <key> [value …]` → run
-`python3 "${CLAUDE_PLUGIN_ROOT}/bin/roz-config" <key> [value …]` exactly as
-given and print its output line. A key with no value removes the override
-(back to the default). An unknown key is the tool's error to print.
+`/roz-gate:config <key> [values]` → split as above and run
+`python3 "${CLAUDE_PLUGIN_ROOT}/bin/roz-config" <key> "<v1>" "<v2>" …`; print
+its output line. A key with no value removes the override (back to the
+default). An unknown key is the tool's error to print.
 
 ## Without arguments — the menu
 1. Ask **which key**, as a single choice (AskUserQuestion when available,
@@ -28,9 +34,10 @@ given and print its output line. A key with no value removes the override
    - `inbox_label` — inbox filter: any of these labels; default = no filter
    - `inbox_assignee` — inbox filter: any of these logins; default = no filter
 2. Ask **the value**: one branch name for `default_branch`; one or more
-   labels / logins (space-separated) for the inbox keys; empty = remove
+   labels / logins, comma-separated, for the inbox keys; empty = remove
    the override.
-3. Run `python3 "${CLAUDE_PLUGIN_ROOT}/bin/roz-config" <key> <values…>` and
+3. Split on commas, quote each, run
+   `python3 "${CLAUDE_PLUGIN_ROOT}/bin/roz-config" <key> "<v1>" "<v2>" …` and
    print its output line verbatim. That line is the report; the next
    command run reads the new value.
 

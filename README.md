@@ -325,7 +325,7 @@ plugin's `bin/roz-config`, a stdlib Python tool, never by the model.
 ```
 /roz-gate:config                                  # menu: pick the key, enter the value
 /roz-gate:config default_branch release/20261006  # the loop's base; default = the remote's HEAD
-/roz-gate:config inbox_label discuss idea         # inbox filter: any of these labels (default: none)
+/roz-gate:config inbox_label discuss, idea        # inbox filter: any of these labels, comma-separated (default: none)
 /roz-gate:config inbox_assignee <login>           # inbox filter: any of these logins (default: none)
 /roz-gate:config inbox_label                      # no value = back to the default
 ```

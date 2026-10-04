@@ -270,8 +270,8 @@
         <h4><span class="en">Yours — per clone, never committed (/roz-gate:config)</span><span class="zh">你的——每個 clone 一份、永不 commit(/roz-gate:config)</span></h4>
         <label>default_branch</label><input id="f_branch" placeholder="main (remote HEAD)">
         <div class="hint"><span class="en">The loop's base: <code>spec/&lt;n&gt;</code> and <code>fast/&lt;n&gt;</code> are cut from it and target it. Default: the remote's HEAD branch. On a sprint cadence set the current release branch (<code>release/20261006</code>) and change it at handover; an issue already cut from the old one is yours to retarget and rebase.</span><span class="zh">loop 的基底:<code>spec/&lt;n&gt;</code> 與 <code>fast/&lt;n&gt;</code> 從這裡切、CR 打回這裡。預設是 remote 的 HEAD 分支。跑 sprint 就設成當期 release branch(<code>release/20261006</code>),交接時再改;已經從舊基底切出去的 issue 由你自己 retarget 與 rebase。</span></div>
-        <label>inbox_label</label><input id="f_ilabel" placeholder="discuss idea">
-        <div class="hint"><span class="en">Inbox filter, space-separated: only track-less issues carrying <b>any</b> of these labels are triaged — the rest of the tracker is a backlog patrol only counts. Empty = no filter.</span><span class="zh">inbox 篩選,空白分隔:只有帶<b>任一</b>這些 label 的 track-less issue 會被 triage——其他只是 backlog,patrol 只計數。空 = 不篩。</span></div>
+        <label>inbox_label</label><input id="f_ilabel" placeholder="discuss, idea">
+        <div class="hint"><span class="en">Inbox filter, comma-separated (a label may contain spaces): only track-less issues carrying <b>any</b> of these labels are triaged — the rest of the tracker is a backlog patrol only counts. Empty = no filter.</span><span class="zh">inbox 篩選,逗號分隔(label 可含空白):只有帶<b>任一</b>這些 label 的 track-less issue 會被 triage——其他只是 backlog,patrol 只計數。空 = 不篩。</span></div>
         <label>inbox_assignee</label><input id="f_iassg" placeholder="your-login">
         <div class="hint"><span class="en">Same, by assignee login. Both set = both must hold.</span><span class="zh">同上,以 assignee 登入名篩。兩個都設 = 兩個都要符合。</span></div>
       </div>
