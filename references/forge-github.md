@@ -68,14 +68,14 @@ Label names use the **space form**: `track: spec`, `track: fast`,
 
 Inline threads ride the REST comments API; thread state rides GraphQL.
 
-**THREADS-LIST** — all threads with resolution state and comments:
+**THREADS-LIST** — all threads with resolution state, location (`path`, `line` — what routes a human-opened amendment to its document) and comments:
 
 ```
 gh api graphql -f query='
 query($owner:String!,$repo:String!,$pr:Int!){
   repository(owner:$owner,name:$repo){ pullRequest(number:$pr){
     reviewThreads(first:100){ nodes{
-      id isResolved
+      id isResolved path line
       comments(first:50){ nodes{ databaseId body author{login} createdAt } }
     } }
   } }

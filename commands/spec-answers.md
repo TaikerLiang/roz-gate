@@ -44,7 +44,9 @@ A thread needs processing when it is **unresolved** and EITHER:
   or `✅ [` — the human opened the thread themselves ("the spec misses X";
   the issue was right, the spec must cover more) — and its last comment is
   not an agent marker either. One comment is enough. No `[role]` tag exists:
-  the role is the **document the thread sits on** — `technical-spec.md` →
+  the role is the **document the thread sits on** (THREADS-LIST returns each
+  thread's `path` and `line`; a thread with no path — a CR-level comment — is
+  `product`'s) — `technical-spec.md` →
   `implementer`; `spec.md` → `product`, or `em` when the thread is on a
   section em owns (Problem Statement, Success Metrics, Architecture Notes,
   Out of Scope); any other file → `product`.

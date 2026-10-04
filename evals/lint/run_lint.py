@@ -542,6 +542,20 @@ _del_lines = [(f, ln) for f, t in _prose.items() for ln in t.splitlines()
 c.expect("pattern", "C10: every `push --delete` in the prose is addressed to the human",
          _del_lines != [] and all(any(w in ln for w in ("human", "yours", "the agent never"))
                                   for _, ln in _del_lines))
+for _b, _base in (("spec", "<default_branch>"), ("fast", "<default_branch>"),
+                  ("feat", "spec/<n>"), ("qa", "spec/<n>")):
+    src("C10: the %s/<n> cut uses -B (a stale local ref after a re-spec cannot block it)" % _b,
+        "commands/next-stage.md",
+        "roz-gate/wt/%s/<n> -B %s/<n> origin/%s" % (_b, _b, _base))
+c.expect("pattern", "C10: no cut uses -b any more",
+         " -b spec/<n>" not in _ns10 and " -b fast/<n>" not in _ns10
+         and " -b feat/<n>" not in _ns10 and " -b qa/<n>" not in _ns10)
+src("C10: GitHub THREADS-LIST returns the thread's path and line", "references/forge-github.md",
+    "id isResolved path line")
+src("C10: GitLab THREADS-LIST names the note position", "references/forge-gitlab.md",
+    "`position.new_path`")
+src("C10: the forge stub serves path and line on threads", "evals/replay/forge-stub/gh",
+    '"path": t.get("path"), "line": t.get("line"),')
 src("C10: workflow.md states the invariant", "references/workflow.md",
     "**An agent never\ndeletes or force-pushes a remote branch**")
 src("C10: workflow.md gives the three routes at (2a)", "references/workflow.md",
