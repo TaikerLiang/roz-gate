@@ -335,8 +335,8 @@
 <!-- ───────────────────────── 5 patrol ───────────────────────── -->
 <section id="patrol"><div class="wrap">
   <h2><span class="no">5</span><span class="en">Patrol — the "what's next" button</span><span class="zh">Patrol——「接下來呢」按鈕</span></h2>
-  <p class="sub en">One pass: scan every open issue's labels, act on <b>one</b> in-loop issue whose labels already authorize a step, triage the whole inbox, and report what waits on you. Run it by hand whenever you wonder what's next, or schedule it (every 30 minutes is typical) once enough is in flight. It never applies a gate label.</p>
-  <p class="sub zh">一趟:掃過每張 open issue 的標籤,對<b>一張</b>標籤已授權的 loop 內 issue 動作,把整個 inbox triage 一遍,然後回報有什麼在等你。想知道接下來做什麼就手動跑;飛行中的事夠多了就排程(常見是每 30 分鐘)。它永遠不貼 gate label。</p>
+  <p class="sub en">One pass: a read-only scanner sub-agent classifies every open issue into one table (so the forge reads never pile up in the main agent's context), then the main agent acts on <b>one</b> in-loop issue whose labels already authorize a step, triage the whole inbox, and report what waits on you. Run it by hand whenever you wonder what's next, or schedule it (every 30 minutes is typical) once enough is in flight. It never applies a gate label.</p>
+  <p class="sub zh">一趟:先由一個唯讀的 scanner sub-agent 把每張 open issue 分類成一張表(forge 的讀取不會堆進主 agent 的 context),主 agent 再對<b>一張</b>標籤已授權的 loop 內 issue 動作,把整個 inbox triage 一遍,然後回報有什麼在等你。想知道接下來做什麼就手動跑;飛行中的事夠多了就排程(常見是每 30 分鐘)。它永遠不貼 gate label。</p>
   <div class="two">
     <div class="panel do">
       <h3><span class="en">Run it</span><span class="zh">跑它</span></h3>

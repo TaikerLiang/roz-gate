@@ -155,7 +155,7 @@ cannot authorize it.
 | `/roz-gate:integrate [n]` | run the stage-(6) verdict: merge locally, run the acceptance suite, classify red, finalize green |
 | `/roz-gate:review-answers [n]` | host one turn of your stage-(7) review: answer your CR comments from the artifacts, dispatch a seat when judgment is needed, change only what you confirm |
 | `/roz-gate:config` | set one of your three loop keys — the base branch, the inbox label list, the inbox assignee list — from a menu; the write is `bin/roz-config`'s, per clone, never committed |
-| `/roz-gate:patrol` | one supervisory pass: scan every open issue's state, invoke whichever command is already authorized, triage the inbox, report what waits on you |
+| `/roz-gate:patrol` | one supervisory pass: a read-only scanner sub-agent classifies every open issue into one table (the main agent's context never holds the forge reads); the main agent invokes whichever command the table authorizes, triages the inbox, reports what waits on you |
 | `/roz-gate:uninit` | retire the loop from this repo: verify nothing is in flight, remove the scaffolding `init` installed, keep every work product — run before `/plugin uninstall` |
 
 Run `/roz-gate:patrol` manually as a "what's next" button, or schedule it
