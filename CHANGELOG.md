@@ -2,6 +2,27 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.25.0 — patrol's scan is a read-only sub-agent; the main agent acts from its table — 2026-10-04
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.25.0>
+
+**Behavior:** patrol's scan is now one **read-only scanner sub-agent** that classifies every open issue into a table; the main agent decides and acts from that table alone and never re-reads the forge to confirm a row. The forge reads stay out of the main agent's context, so a scheduled patrol stays stable over long sessions.
+
+### Behavior
+- **The scanner** (#59, #60): `references/patrol-scan.md` is the scanner's brief and the **only** home of the scan and classification rules (patrol's old §1–§2, moved verbatim) plus the read-only rule — no LABEL-*, ISSUE-COMMENT, ISSUE-CLOSE, dispatch or git — and the table contract: `issue · track · status · cr · unheard · verdict · evidence`, a fixed verdict vocabulary, the inbox-filter line. `patrol.md` dispatches it once per pass with the brief, the forge adapter path and `roz-config`'s three keys, then acts on the `verdict` column: one in-loop action, every close-out, every intake batch, the report. The scanner dispatches nothing (depth stays 1).
+- **Hand-off** (codex review): a review-clean fast CR is the verdict `hand-off: in-user-review`; the main agent applies the label — a status report, exempt from the one-issue rule.
+
+### Evals
+- **Lint A8** (176 → 204): `patrol.md` carries no classification table and runs no scan op; the brief carries the table, the inbox filter, the read-only rule, every column and verdict literal, the hand-off; patrol dispatches with the brief, says never re-read, applies the hand-off. B3/C6/C8/L2 readers of the old §1–§2 read the brief.
+- **F1 amended** ("a quiet loop stays quiet"): exactly one dispatch — the scanner, prompt naming its brief — and zero writes.
+- **Replay F9** (red-proof 7/7, no baseline yet): #5 in-user-review with an unheard comment, #6 fast + ready-for-dev, #7 raw inbox idea → the scanner's result has rows with the right verdicts; the pass acts on #5, locks nothing else, posts #7's batch; no forge write under the scanner's parent id; no issue/CR listing by the main agent after the table.
+
+### Docs
+- README patrol row, `workflow.md` invocation policy, onboarding step 5, the guide's wizard note, LEDGER A8/F9/F1.
+
+### Checks
+Hook tests 130/130 · lint 204/204 · red-proofs 8/8
+
 ## v1.24.0 — your three loop keys, per clone: roz-config and its /roz-gate:config menu — 2026-10-04
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.24.0>
