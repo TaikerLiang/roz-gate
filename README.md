@@ -154,6 +154,7 @@ cannot authorize it.
 | `/roz-gate:spec-answers [n]` | fold your answers on spec-CR threads back into the spec, resolve the threads |
 | `/roz-gate:integrate [n]` | run the stage-(6) verdict: merge locally, run the acceptance suite, classify red, finalize green |
 | `/roz-gate:review-answers [n]` | host one turn of your stage-(7) review: answer your CR comments from the artifacts, dispatch a seat when judgment is needed, change only what you confirm |
+| `/roz-gate:config` | set one of your three loop keys — the base branch, the inbox label list, the inbox assignee list — from a menu; the write is `bin/roz-config`'s, per clone, never committed |
 | `/roz-gate:patrol` | one supervisory pass: scan every open issue's state, invoke whichever command is already authorized, triage the inbox, report what waits on you |
 | `/roz-gate:uninit` | retire the loop from this repo: verify nothing is in flight, remove the scaffolding `init` installed, keep every work product — run before `/plugin uninstall` |
 
@@ -167,10 +168,10 @@ as a lock, and never applies a gate label.
 Open an issue from the forge's mobile app with **no labels** — two rough
 sentences are enough (the "Idea" template `init` installs reminds you). An
 issue with no `track:` label is the **inbox**: invisible to the rest of the
-loop. A busy tracker can narrow it — yours, per clone: `! roz-config
-inbox_label discuss idea` / `! roz-config inbox_assignee <login>` admit only
-track-less issues carrying any of those labels / assigned to any of those
-logins (both set = both); everything else is a plain issue patrol counts in
+loop. A busy tracker can narrow it — yours, per clone, set from a menu with
+`/roz-gate:config` (`inbox_label` / `inbox_assignee`): only track-less issues
+carrying any of those labels / assigned to any of those logins are the inbox
+(both set = both); everything else is a plain issue patrol counts in
 its report and never comments on. Three beats — **ask once, summarize on demand, the label confirms**:
 
 1. Patrol posts **one** batch of clarifying questions (numbered, each option
@@ -316,19 +317,23 @@ command reads it before acting:
 - patrol_model: <model id>       # optional — model for the seats patrol dispatches; absent = runtime default
 ```
 
-Three keys are **yours, per clone** — never in the block, never committed —
-and set without a model turn, with Claude Code's `!` prefix or any shell:
+Three keys are **yours, per clone** — never in the block, never committed.
+`/roz-gate:config` shows them and sets one from a menu; with arguments it
+skips the menu. The prompt is only the menu: the write is done by the
+plugin's `bin/roz-config`, a stdlib Python tool, never by the model.
 
 ```
-! roz-config                                  # effective values, (default) marked
-! roz-config default_branch release/20261006  # the loop's base; default = the remote's HEAD
-! roz-config inbox_label discuss idea         # inbox filter: any of these labels (default: none)
-! roz-config inbox_assignee <login>           # inbox filter: any of these logins (default: none)
-! roz-config inbox_label                      # no value = back to the default
+/roz-gate:config                                  # menu: pick the key, enter the value
+/roz-gate:config default_branch release/20261006  # the loop's base; default = the remote's HEAD
+/roz-gate:config inbox_label discuss idea         # inbox filter: any of these labels (default: none)
+/roz-gate:config inbox_assignee <login>           # inbox filter: any of these logins (default: none)
+/roz-gate:config inbox_label                      # no value = back to the default
 ```
 
 They live in `.claude/roz-gate.local.json` (added to `.git/info/exclude` on
-first write); commands read them through `roz-config --json`. Teams on sprint
+first write); commands read them through `bin/roz-config --json`. An
+upgraded repo that still carries them in the block is migrated once, on the
+first run. Teams on sprint
 release branches set `default_branch` to the current one and change it at
 handover; an issue already cut from the previous base is yours to move —
 retarget its CR and rebase — the loop never pins a base per issue. The other

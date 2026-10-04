@@ -237,8 +237,8 @@
 <!-- ───────────────────────── 3 configure ───────────────────────── -->
 <section id="config"><div class="wrap">
   <h2><span class="no">3</span><span class="en">Configure — the team's block, and your own three keys</span><span class="zh">設定——團隊的 block,和你自己的三個 key</span></h2>
-  <p class="sub en">What the loop knows about the <b>project</b> is one block in CLAUDE.md, written by <code>init</code> and committed. Three keys are <b>yours</b> instead — per person, per clone, never committed: the base branch and the inbox filter. You set them without a model turn: <code>! roz-config inbox_label discuss</code>. Play with the knobs: the block on the right is what lands in your file; the commands under it are your local keys.</p>
-  <p class="sub zh">loop 對<b>專案</b>知道的一切,是 CLAUDE.md 裡由 <code>init</code> 寫入、進版控的一個 block。另外三個 key 是<b>你自己的</b>——每人每個 clone 一份、永不 commit:基底分支與 inbox 篩選。設定不經過模型:<code>! roz-config inbox_label discuss</code>。試試這些開關:右邊的 block 是會寫進檔案的內容,下面的指令則是你的本地 key。</p>
+  <p class="sub en">What the loop knows about the <b>project</b> is one block in CLAUDE.md, written by <code>init</code> and committed. Three keys are <b>yours</b> instead — per person, per clone, never committed: the base branch and the inbox filter. You set them from a menu: <code>/roz-gate:config</code> — the write is a small Python tool's, never the model's. Play with the knobs: the block on the right is what lands in your file; the commands under it are your local keys.</p>
+  <p class="sub zh">loop 對<b>專案</b>知道的一切,是 CLAUDE.md 裡由 <code>init</code> 寫入、進版控的一個 block。另外三個 key 是<b>你自己的</b>——每人每個 clone 一份、永不 commit:基底分支與 inbox 篩選。用選單設定:<code>/roz-gate:config</code>——寫入由一支小 Python 工具完成,不是模型。試試這些開關:右邊的 block 是會寫進檔案的內容,下面的指令則是你的本地 key。</p>
   <div class="two">
     <div class="panel">
       <div class="form" id="cfgform">
@@ -267,7 +267,7 @@
         <label>patrol_model</label><input id="f_model" placeholder="claude-sonnet-5">
         <div class="hint"><span class="en">The model patrol dispatches its seats with — not the model patrol itself runs on.</span><span class="zh">patrol 派工時 seats 用的 model——不是 patrol 自己跑的 model。</span></div>
 
-        <h4><span class="en">Yours — per clone, never committed (roz-config)</span><span class="zh">你的——每個 clone 一份、永不 commit(roz-config)</span></h4>
+        <h4><span class="en">Yours — per clone, never committed (/roz-gate:config)</span><span class="zh">你的——每個 clone 一份、永不 commit(/roz-gate:config)</span></h4>
         <label>default_branch</label><input id="f_branch" placeholder="main (remote HEAD)">
         <div class="hint"><span class="en">The loop's base: <code>spec/&lt;n&gt;</code> and <code>fast/&lt;n&gt;</code> are cut from it and target it. Default: the remote's HEAD branch. On a sprint cadence set the current release branch (<code>release/20261006</code>) and change it at handover; an issue already cut from the old one is yours to retarget and rebase.</span><span class="zh">loop 的基底:<code>spec/&lt;n&gt;</code> 與 <code>fast/&lt;n&gt;</code> 從這裡切、CR 打回這裡。預設是 remote 的 HEAD 分支。跑 sprint 就設成當期 release branch(<code>release/20261006</code>),交接時再改;已經從舊基底切出去的 issue 由你自己 retarget 與 rebase。</span></div>
         <label>inbox_label</label><input id="f_ilabel" placeholder="discuss idea">
@@ -435,7 +435,7 @@
   <ul class="check" data-group="week" id="week-list">
     <li><input type="checkbox" id="w1"><span><span class="en">Plugin installed; <code>/roz-gate:init</code> ran and its files are committed</span><span class="zh">plugin 裝好;<code>/roz-gate:init</code> 跑過,檔案已 commit</span></span></li>
     <li><input type="checkbox" id="w2"><span><span class="en">The eight labels exist on the forge</span><span class="zh">forge 上有那八個標籤</span></span></li>
-    <li><input type="checkbox" id="w3"><span><span class="en">Config block reviewed; <code>! roz-config</code> run once — base branch and inbox filter set if you need them</span><span class="zh">看過 config block;跑過一次 <code>! roz-config</code>——需要的話設好基底分支與 inbox 篩選</span></span></li>
+    <li><input type="checkbox" id="w3"><span><span class="en">Config block reviewed; <code>/roz-gate:config</code> run once — base branch and inbox filter set if you need them</span><span class="zh">看過 config block;跑過一次 <code>/roz-gate:config</code>——需要的話設好基底分支與 inbox 篩選</span></span></li>
     <li><input type="checkbox" id="w4"><span><span class="en">One idea filed and triaged in comments (beats 1–2)</span><span class="zh">一張 idea 開了、在留言裡 triage 過(節拍 1–2)</span></span></li>
     <li><input type="checkbox" id="w5"><span><span class="en">Your first gate label applied — and the body rewritten on the next patrol pass</span><span class="zh">貼了第一個 gate label——下一趟 patrol 把 body 改寫了</span></span></li>
     <li><input type="checkbox" id="w6"><span><span class="en">Spec threads answered inline; <code>ready-for-dev</code> applied</span><span class="zh">在 spec CR 上 inline 回答 threads;貼了 <code>ready-for-dev</code></span></span></li>
@@ -546,10 +546,10 @@ function renderCfg(){
   $('cfgpre').innerHTML = s;
   const loc = LOCAL.map(([k,f]) => [k, f()]).filter(([,v]) => v);
   const steps = loc.length
-    ? `<pre style="margin-top:0">${loc.map(([k,v]) => `! roz-config ${k} ${esc(v)}`).join('\n')}</pre><p style="font-size:.84rem;color:var(--muted);margin-top:8px">${B('Typed at the Claude Code prompt with the <code>!</code> prefix — no model turn. Each line writes <code>.claude/roz-gate.local.json</code> (added to <code>.git/info/exclude</code> on first write); a key with no value goes back to its default. <code>! roz-config</code> alone shows the effective values.',
-        '在 Claude Code 提示列用 <code>!</code> 前綴輸入——不經過模型。每行寫進 <code>.claude/roz-gate.local.json</code>(第一次寫入時加進 <code>.git/info/exclude</code>);key 不給值就回到預設。單獨打 <code>! roz-config</code> 會列出生效值。')}</p>`
-    : `<p style="font-size:.9rem;color:var(--muted)">${B('Nothing local set — the defaults are the remote\'s HEAD branch and no inbox filter. Come back the day your tracker fills with issues that aren\'t ideas (<code>! roz-config inbox_label discuss</code>), or when a sprint hands over (<code>! roz-config default_branch release/20261020</code>).',
-        '沒設本地 key——預設是 remote 的 HEAD 分支、inbox 不篩。哪天 tracker 塞滿不是 idea 的 issue(<code>! roz-config inbox_label discuss</code>),或 sprint 交接(<code>! roz-config default_branch release/20261020</code>),再回來。')}</p>`;
+    ? `<pre style="margin-top:0">${loc.map(([k,v]) => `/roz-gate:config ${k} ${esc(v)}`).join('\n')}</pre><p style="font-size:.84rem;color:var(--muted);margin-top:8px">${B('Typed at the Claude Code prompt; without arguments it is a menu. Each line writes <code>.claude/roz-gate.local.json</code> (added to <code>.git/info/exclude</code> on first write); a key with no value goes back to its default. The write is the plugin\'s <code>bin/roz-config</code>, a Python tool — the prompt is only the menu.',
+        '在 Claude Code 提示列輸入;不帶參數就是選單。每行寫進 <code>.claude/roz-gate.local.json</code>(第一次寫入時加進 <code>.git/info/exclude</code>);key 不給值就回到預設。寫入由 plugin 的 <code>bin/roz-config</code>(Python 工具)完成——指令本身只是選單。')}</p>`
+    : `<p style="font-size:.9rem;color:var(--muted)">${B('Nothing local set — the defaults are the remote\'s HEAD branch and no inbox filter. Come back the day your tracker fills with issues that aren\'t ideas (<code>/roz-gate:config inbox_label discuss</code>), or when a sprint hands over (<code>/roz-gate:config default_branch release/20261020</code>).',
+        '沒設本地 key——預設是 remote 的 HEAD 分支、inbox 不篩。哪天 tracker 塞滿不是 idea 的 issue(<code>/roz-gate:config inbox_label discuss</code>),或 sprint 交接(<code>/roz-gate:config default_branch release/20261020</code>),再回來。')}</p>`;
   $('cfgsteps').innerHTML = steps;
   store.set('cfg', {seg, f: Object.fromEntries(['f_branch','f_test','f_adir','f_atest','f_sync','f_lock','f_regen','f_specs','f_layout','f_trace','f_bot','f_op','f_ilabel','f_iassg','f_model'].map(id => [id, $(id).value]))});
 }

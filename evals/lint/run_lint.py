@@ -631,7 +631,9 @@ for _f in _readers:
     c.expect("pattern", "L2: %s does not read default_branch from the block" % _f,
              _blk is None or "default_branch" not in _blk.group(1))
 for _k in _tool_keys:
-    src("L2: README documents %s under roz-config" % _k, "README.md", "! roz-config %s" % _k)
+    src("L2: README documents %s under /roz-gate:config" % _k, "README.md",
+        "/roz-gate:config %s" % _k)
+    src("L2: /roz-gate:config's menu names %s" % _k, "commands/config.md", "`%s`" % _k)
 _pat = read("commands/patrol.md")
 c.expect("pattern", "L2: the inbox keys are lists — any of, both must hold, empty = no filter",
          "**any** of its labels" in _pat and "**any** of its logins" in _pat
@@ -641,9 +643,14 @@ c.expect("pattern", "L2: a filtered-out issue is counted, never acted on",
          and re.search(r"never\s+commented on, never locked, never listed", _pat) is not None)
 c.expect("pattern", "L2: the filter is inbox-only — track: issues advance regardless",
          "The filter applies to the inbox alone" in _pat)
-c.expect("pattern", "L2: /roz-gate:config is gone — no tool edits the block",
-         not os.path.exists(os.path.join(R, "commands", "config.md"))
-         and "/roz-gate:config" not in read("README.md"))
+_cfg = read("commands/config.md")
+c.expect("pattern", "L2: /roz-gate:config is only the menu — bin/roz-config does the write",
+         _cfg.count('bin/roz-config"') >= 3 and "never edit `.claude/roz-gate.local.json`" in _cfg)
+c.expect("pattern", "L2: /roz-gate:config never touches the block or the forge",
+         "or `CLAUDE.md`\nyourself" in _cfg and "never create forge labels" in _cfg
+         and "LABEL-LIST" not in _cfg)
+c.expect("pattern", "L2: /roz-gate:config injects the tool's current values into the prompt",
+         '!`python3 "${CLAUDE_PLUGIN_ROOT}/bin/roz-config"`' in _cfg)
 src("L2: roz-config migrates a pre-1.23 block once (upgrade path, codex review)",
     "bin/roz-config", "def migrate(root, path):")
 src("L2: the template still carries the block (specs_dir)", "templates/claude-workflow.md",
