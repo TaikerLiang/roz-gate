@@ -98,7 +98,10 @@ def git_sandbox():
                GIT_COMMITTER_NAME="a", GIT_COMMITTER_EMAIL="a@a")
     for cmd, cwd in (("git init -q --bare origin.git", tmp),
                      ("git init -q -b main work", tmp),
-                     ("git commit -q --allow-empty -m seed && git branch spec/5 "
+                     ("git commit -q --allow-empty -m seed && git checkout -q -b spec/5 "
+                      "&& mkdir -p docs/specs/5 && echo '# Spec #5' > docs/specs/5/spec.md "
+                      "&& echo '# Tech' > docs/specs/5/technical-spec.md && git add -A "
+                      "&& git commit -qm spec && git checkout -q main "
                       "&& git remote add origin ../origin.git && git push -q origin --all", work)):
         subprocess.run(["bash", "-c", cmd], cwd=cwd, env=env, check=True, capture_output=True)
     return tmp, work
@@ -113,6 +116,19 @@ REF_ROUTES = [
      "work", "git-ref", 0, '"ref": "refs/heads/spec/5"'),
     ("branch absent → 404, still a routed read", ["api", "repos/acme/demo/git/ref/heads/spec%2F9"],
      "work", "git-ref", 1, ""),
+    ("contents: a directory on a branch",
+     ["api", "repos/acme/demo/contents/docs/specs/5?ref=spec/5", "--jq", ".[].path"],
+     "work", "contents", 0, "docs/specs/5/spec.md"),
+    ("contents: a file on a branch (base64)",
+     ["api", "repos/acme/demo/contents/docs/specs/5/spec.md?ref=spec/5", "--jq", ".encoding"],
+     "work", "contents", 0, "base64"),
+    ("contents: absent path → 404, routed",
+     ["api", "repos/acme/demo/contents/docs/nope?ref=spec/5"],
+     "work", "contents", 1, ""),
+    ("contents: absent ref → 404, routed", ["api", "repos/acme/demo/contents/docs?ref=spec/9"],
+     "work", "contents", 1, ""),
+    ("PUT to contents stays UNKNOWN", ["api", "-X", "PUT", "repos/acme/demo/contents/docs/x.md"],
+     "work", "UNKNOWN", 64, ""),
     ("POST to a ref stays UNKNOWN",
      ["api", "-X", "POST", "repos/acme/demo/git/refs/heads/spec%2F5"],
      "work", "UNKNOWN", 64, ""),

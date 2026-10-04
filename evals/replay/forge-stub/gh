@@ -657,6 +657,47 @@ def main():
                        flag_val(argv, "--jq", "-q"))
             return
 
+        # ---- gh api repos/o/r/contents/<path>?ref=<branch> — a file or a
+        # directory on a branch, read from the forge instead of a checkout
+        # (F9 run-3 on the v1.26.0 sweep: review-answers listing the spec
+        # dir on spec/5). Served from the sandbox's objects: `origin/<ref>`
+        # when the tracking ref exists, else the local branch; absent path
+        # or ref → GitHub's 404 under the same route. GET only.
+        m_ct = re.match(r"repos/[^/]+/[^/]+/contents/(.*)$", target)
+        if m_ct and method == "GET":
+            path_ = unquote(m_ct.group(1)).strip("/")
+            ref = query.get("ref") or "HEAD"
+            def _git(*a):
+                try:
+                    r_ = subprocess.run(["git", *a], capture_output=True, text=True, timeout=10)
+                except (OSError, subprocess.TimeoutExpired):
+                    return None
+                return r_.stdout if r_.returncode == 0 else None
+            rev = None
+            for cand in ("origin/%s" % ref, ref):
+                if _git("rev-parse", "--verify", "-q", cand + "^{commit}"):
+                    rev = cand
+                    break
+            listing = _git("ls-tree", rev, path_ if path_ else ".") if rev else None
+            journal("contents", ref=ref, path=path_, present=bool(listing and listing.strip()))
+            if not listing or not listing.strip():
+                sys.stderr.write("gh: Not Found (HTTP 404)\n{\"message\":\"Not Found\"}\n")
+                sys.exit(1)
+            rows = [ln.split(None, 3) for ln in listing.splitlines() if ln.strip()]
+            if len(rows) == 1 and rows[0][1] == "blob" and rows[0][3] == path_:
+                import base64
+                blob = _git("show", "%s:%s" % (rev, path_)) or ""
+                view = {"name": path_.rsplit("/", 1)[-1], "path": path_, "type": "file",
+                        "size": len(blob.encode("utf-8")), "encoding": "base64",
+                        "content": base64.b64encode(blob.encode("utf-8")).decode("ascii")}
+            else:
+                dir_rows = _git("ls-tree", rev, path_ + "/" if path_ else ".") or ""
+                view = [{"name": r4[3].rsplit("/", 1)[-1], "path": r4[3],
+                         "type": "dir" if r4[1] == "tree" else "file"}
+                        for r4 in (ln.split(None, 3) for ln in dir_rows.splitlines() if ln.strip())]
+            jq_project(view, flag_val(argv, "--jq", "-q"))
+            return
+
         # ---- gh api /apps/<slug>, /users/<login> — the bot's identity by
         # name (judgment k=2 on 1.17.0: a bot-mode SUT whose token mint
         # failed went hunting for its App ID). Read-only, keyed on
