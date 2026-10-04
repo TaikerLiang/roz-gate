@@ -637,11 +637,12 @@ def main():
         # remote, so the answer comes from `git ls-remote origin` in the
         # caller's cwd; an absent branch is GitHub's 404, journaled under
         # the same route — a legitimate read of nothing, never UNKNOWN.
-        m_ref = re.match(r"repos/[^/]+/[^/]+/git/refs?/heads/(.+)$", target)
+        m_ref = re.match(r"/?repos/[^/]+/[^/]+/git/refs?/heads/(.+)$", target)
         if m_ref and method == "GET":
             branch = unquote(m_ref.group(1))
             try:
-                ls = subprocess.run(["git", "ls-remote", "--heads", "origin", branch],
+                ls = subprocess.run(["git", "ls-remote", "--heads", "origin",
+                                     "refs/heads/%s" % branch],
                                     capture_output=True, text=True, timeout=10)
                 sha = ls.stdout.split()[0] if ls.returncode == 0 and ls.stdout.strip() else ""
             except (OSError, subprocess.TimeoutExpired):
@@ -663,7 +664,7 @@ def main():
         # dir on spec/5). Served from the sandbox's objects: `origin/<ref>`
         # when the tracking ref exists, else the local branch; absent path
         # or ref → GitHub's 404 under the same route. GET only.
-        m_ct = re.match(r"repos/[^/]+/[^/]+/contents/(.*)$", target)
+        m_ct = re.match(r"/?repos/[^/]+/[^/]+/contents/(.*)$", target)
         if m_ct and method == "GET":
             path_ = unquote(m_ct.group(1)).strip("/")
             ref = query.get("ref") or "HEAD"
@@ -702,7 +703,7 @@ def main():
         # the v1.26.0 sweep: `.head.sha` for the hand-back SHA). The twin of
         # `gh pr view --json`; head.sha resolves from the sandbox's objects.
         # An absent number is an absent id → UNKNOWN; non-GET stays UNKNOWN.
-        m_pr = re.match(r"repos/[^/]+/[^/]+/pulls/(\d+)$", target)
+        m_pr = re.match(r"/?repos/[^/]+/[^/]+/pulls/(\d+)$", target)
         if m_pr and method == "GET":
             n_, pr_ = pr_lookup(st, m_pr.group(1))
             if n_ is None:
@@ -734,7 +735,7 @@ def main():
         # ---- gh api repos/o/r/commits/<ref> — the commit a ref points at
         # (F9 run-5: `.sha` of spec/5). Resolved from the sandbox's objects;
         # an unknown ref is GitHub's 422/404 under the same route. GET only.
-        m_cm = re.match(r"repos/[^/]+/[^/]+/commits/(.+)$", target)
+        m_cm = re.match(r"/?repos/[^/]+/[^/]+/commits/(.+)$", target)
         if m_cm and method == "GET":
             ref = unquote(m_cm.group(1))
             sha = ""
