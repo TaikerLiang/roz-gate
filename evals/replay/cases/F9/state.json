@@ -1,0 +1,48 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, expired offers never apply.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec", "status: in-user-review"],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": []
+    },
+    "6": {
+      "title": "Bump the HTTP client to 3.2",
+      "body": "**User story** — As a maintainer, I want the HTTP client on 3.2 so the deprecation warnings stop.\n\n**Acceptance criteria**\n- Lockfile updated; the suite stays green.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: fast", "status: ready-for-dev"],
+      "createdAt": "2026-08-18T09:00:00Z",
+      "comments": []
+    },
+    "7": {
+      "title": "Gift cards",
+      "body": "We should sell gift cards. Not sure about expiry or partial redemption.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": [],
+      "createdAt": "2026-08-20T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer expiry enforcement",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [],
+      "reviews": [],
+      "comments": [
+        {"id": 800, "author": "paul", "body": "看起來可以。merge 之前想確認一件事:R1 的過期判斷是用下單時間還是結帳時間?", "created_at": "2026-08-21T08:00:00Z"}
+      ]
+    }
+  }
+}

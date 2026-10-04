@@ -1,10 +1,10 @@
 ---
-description: One patrol pass — scan open issues' worn state, auto-invoke the right workflow command, triage the inbox, and report what waits on the user
+description: One patrol pass — a read-only scanner sub-agent classifies every issue into one table; the main agent acts on it (one loop issue, every close-out, the whole inbox) and reports what waits on the user
 ---
 
 One **patrol pass** over the loop (see
-`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` → Invocation policy). Read
-state, act once, report. Follow these steps; do nothing beyond them.
+`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` → Invocation policy). A
+scanner sub-agent reads state into one table; you act once from it, report. Follow these steps; do nothing beyond them.
 
 ## 0. Load config & forge adapter
 
@@ -40,53 +40,32 @@ workflow prose embedded in CLAUDE.md (a fat pre-0.6 copy) — the plugin's
 `references/workflow.md` and command files are authoritative. A matching
 stamp means no re-init is needed, whatever the plugin version.
 
-## 1. Scan
-- ISSUE-LIST (all open issues).
-- Issues **without a `track:` label** are the **inbox** — pre-loop, valid, kept
-  for step 2's inbox row only — **subject to the inbox filter** (the two
-  lists from `roz-config --json`): with `inbox_label` non-empty, only those
-  carrying **any** of its labels; with `inbox_assignee` non-empty, only those
-  assigned to **any** of its logins (the `assignees` ISSUE-LIST returns —
-compare logins with the bot-mode normalization: `app/` prefix and `[bot]`
-suffix stripped); both non-empty, both must hold; an empty list is no
-  filter. A
-  track-less issue outside the filter is **not in the inbox**: never
-  commented on, never locked, never listed as waiting — only counted for the
-  report. The filter applies to the inbox alone; an issue carrying a
-  `track:` label advances by its labels whoever holds it.
-- For issues with a `track:` label, validate the invariants (exactly one
-  `track:`; at most one `status:` besides the processing lock; `track: fast`
-  never with a spec-stage status). An issue in an illegal state: **skip it and
-  report it** — never repair labels.
-- **Close-out scan.** For every issue wearing a `track:` label — the open
-  ones above, plus ISSUE-LIST-CLOSED per track label (the forge closes an
-  issue on merge where its own rule fires, and leaves the loop labels on) —
-  CR-FIND its CR (`spec/<n>` / `fast/<n>`) with the all-states form. CR
-  **merged** → a close-out candidate: **legal** when the issue is at
-  `status: in-user-review` or already carries a `**[patrol] · shipped**`
-  comment (a close-out interrupted part-way — finish it); any other status
-  without that marker is an illegal state — report, never repair. Candidates
-  leave the classification below; they are handled by the close-out action.
-- Skip any issue with `status: processing` (locked by a running command — list
-  it in the report with the phase label beside it and how long it has worn the
-  lock: a stale pair is a killed run, and a silently skipped one dies one click
-  from done) or `status: blocked` (a stopped step awaits the human — list it in
-  the report's user queue, with its latest issue comment).
+## 1. Dispatch the scanner — read state through one sub-agent
 
-## 2. Classify each remaining issue
+Dispatch **one** sub-agent (the plugin default `general-purpose`; it
+dispatches nothing itself) with, as its whole prompt:
+`${CLAUDE_PLUGIN_ROOT}/references/patrol-scan.md` (the scan and
+classification rules — this command does not repeat them), the forge
+adapter path (`${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md`), and the
+three local keys from `bin/roz-config --json`. The scanner is **read-only**
+and returns the table the brief defines; everything it read stays in its
+context, not yours.
 
-| State | Meaning |
-|---|---|
-| `status: ready-for-spec` / `ready-for-dev` | actionable → `/roz-gate:next-stage <n>` |
-| `status: in-spec-review` | THREADS-LIST on its spec CR. Any unresolved thread whose last comment is a human answer (does not start with `**[` / `✅ [`) → actionable → `/roz-gate:spec-answers <n>`. Otherwise → waiting on the user |
-| no `status:`, `track: spec` | in flight: CR-FIND for `feat/<n>` and `qa/<n>`. Implementation CR exists with **zero open review threads** AND QA CR exists, **is not a draft, and has zero open fidelity threads** → actionable → `/roz-gate:integrate <n>`. Either CR has **open review threads** → actionable → **address-review** (below). Otherwise → in progress, not actionable |
-| no `status:`, `track: fast` | in flight: its CR has **open review threads** → actionable → **address-review**; review-clean → LABEL-ADD `status: in-user-review` and treat as waiting on the user |
-| `status: in-user-review` | its CR (`spec/<n>` for `track: spec`, `fast/<n>` for `track: fast`) was found **merged** by the close-out scan → actionable → **close-out** (below): the human signed, the loop finishes the paperwork. Otherwise the user is reviewing — and reviewing produces comments. Its open CR (missing or closed-unmerged → report, act on nothing) is read on **all three channels**: THREADS-LIST, REVIEWS-LIST, CR-COMMENTS-LIST. Any item whose latest entry does **not** start with `**[` or `✅ [` is **unheard** → actionable → `/roz-gate:review-answers <n>`. Otherwise → waiting on the user: say which wait, from the last agent marker — `· question` (your answer) / `· addressed` (your re-review) / none since the verdict (idle, N days) |
-| `status: blocked` | waiting on the user — never re-invoke anything on it |
-| no `track:` label, in the inbox filter (inbox) | actionable → **async intake** (below) when a gate label is present (finalize), the gate holder's latest comment requests a summary, or no questions batch exists yet; otherwise the discussion is the humans' — waiting on the user |
+## 2. The table is the only source
+
+The scanner's table (columns `issue · track · status · cr · unheard · verdict
+· evidence`, then the `inbox filter:` line) is the state of the loop for this
+pass. **Never re-read the forge to confirm a row** — no ISSUE-LIST, no
+CR-FIND, no channel listing in this command; the action you take on an issue
+reads what *it* needs (a `/roz-gate:review-answers` turn reads its CR). A row
+you cannot act on as written — a verdict outside the brief's list, a missing
+`cr` for an actionable row — is reported as an illegal state, never
+re-derived. The report's rows and the user's queue cite the `evidence`
+column.
 
 ## 3. Act — one loop issue per pass, plus the whole inbox
-In-loop work: pick the actionable issue **closest to done** — priority:
+In-loop work: from the rows whose `verdict` starts with `actionable:`, pick the
+issue **closest to done** — priority:
 `/roz-gate:review-answers` > `/roz-gate:integrate` > address-review >
 `/roz-gate:spec-answers` > `/roz-gate:next-stage` (`ready-for-dev`) >
 `/roz-gate:next-stage` (`ready-for-spec`) — and perform that action. The (7)
@@ -99,12 +78,13 @@ commit — is exempt from the one-issue rule, like intake: it costs a comment,
 and a multi-day conversation must not starve the rest of the loop. A turn that
 dispatches or commits consumes the pass.
 
-Then **close out every** issue whose CR is merged (close-out, below) — a
+Then **close out every** issue whose CR is merged (the rows with verdict
+`close-out`; the action below) — a
 finalize, not a stage advance, so like intake it is exempt from the
 one-issue rule.
 
-Then triage **every** actionable inbox issue (async intake, below), one
-dispatch per issue. Intake is comment-only — no code, no gate labels — so it
+Then triage **every** actionable inbox issue (the rows with an `intake:`
+verdict; async intake, below), one dispatch per issue. Intake is comment-only — no code, no gate labels — so it
 is exempt from the one-issue rule: after a single pass, everything that waits
 on the user is already posted.
 

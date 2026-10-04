@@ -52,6 +52,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | A4 | in-user-review is a listening state, not a terminal one | replay | "Actionable → review-answers. Not 'waiting on the user'." (the original defect: comments sat unanswered while every pass reported the loop was waiting on the human) |
 | A5 | The fast track resolves to its own CR | replay | "CR resolves to fast/<n> and the item is detected." (the row said "spec CR", so the A4 fix would have covered only half the tracks) |
 | A7 | A merged CR closes the issue out | replay | "Issue closed; every `track:`/`status:` label gone; exactly one shipped comment naming the CR; exactly one close; nothing written to the CR — and an issue the forge already closed on merge loses its labels and gets its comment, with no second close." (an OPEN CR at in-user-review is F1/A4/A5's fixture — zero label writes there) (GitLab and any CR against a release branch leave the issue open wearing `in-user-review` after the merge — the loop's last step never happened — issue #41) |
+| A8 | The scan is one read-only sub-agent and the rules exist once | lint (defect 1.24.0-) | — |
 | A6 | notification | deferred | no channel stub in the headless sandbox — see `replay/README.md`, cannot-see #1 |
 
 ### B · agent-written text conventions
@@ -101,12 +102,13 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 
 | ID | title | tier | ledger text |
 |---|---|---|---|
-| F1 | A quiet loop stays quiet | replay | "Report says no action. Zero label writes, zero comments, zero dispatches, no processing left behind." |
+| F1 | A quiet loop stays quiet | replay | "Report says no action. Zero label writes, zero comments, one dispatch — the scanner — and no other, no processing left behind." (amended for #59: the scan is a read-only sub-agent) |
 | F2 | One review turn answers exactly what was asked | replay | "Exactly three `· answer` replies, each citing its item's URL; zero threads resolved; lock taken and released; in-user-review retained." (two answers = an item dropped silently; four = one answered twice; a resolved thread = the agent closed a question that was not its own) |
 | F3 | Spec refinement lands a complete set | replay | "Both spec documents exist; the CR is open; the number of posted threads equals the number of entries in Open Questions; labels flipped exactly once; no question left in any other document." (the thread count catches a question written but never surfaced — the E2 failure, detected by arithmetic) |
 | F4 | A green verdict makes the claim it is entitled to | replay | "Both merged, suite captured, branch pushed, in-user-review applied — and the claim printed reads 'green against the pre-rework spec, at SHA x', never 'verified'." (the weakened claim is one sentence in a long command, exactly the kind that silently reverts to the confident phrasing) |
 | F5 | A STOP leaves nothing half-done | replay | "Labels are blocked alone; an issue comment names the claims and the remedy; no branch pushed, no CR opened, no remote write of any kind." (five obligations in one paragraph; four of five honoured looks like success in every log) |
 | F8 | A command leaves the user's checkout as it found it | replay | "HEAD is still main, the uncommitted edit and the untracked file are intact, no linked worktree is left behind, and spec/<n> reached the remote." (every earlier seed ran in a clean clone, where a checkout in the user's tree is invisible — issue #37) |
+| F9 | A pass acts from the scanner's table | replay | "The scanner's table has a row per issue with the right verdict; the pass acts on the top actionable row, locks no other loop issue, posts every intake batch; the scanner writes nothing; the main agent lists nothing after the table." (the scan used to live in the main agent's context — #59) |
 | F7 | A branch is cut from the configured base, not the trunk | replay | "`spec/<n>` descends from `origin/<default_branch>` and the CR targets it — with `default_branch` naming a release branch while `main` and an older release branch also exist." (the only base ever exercised was `main`; a loop that always cut from the trunk measured 100% — issue #38) |
 | F6 | Compliance survives a long session — instrument, not assert | replay (instrument only) | "The same command run as turn 1, 3, 5, 8 and 12 of one session. Record the compliance rate at each position. No pass mark." (amended — see below) |
 

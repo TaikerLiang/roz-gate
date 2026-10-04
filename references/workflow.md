@@ -300,8 +300,10 @@ a status report. Neither ever moves the other's.**
 except `/roz-gate:to-issues`, which you always initiate (the inbox's async
 intake is likewise initiated by you, by filing the raw issue) — do not wait
 for you to type them. A patrol pass (`/roz-gate:patrol`, run manually, on a loop, or on
-a schedule) reads each open issue's worn state and invokes the right command
-per its classification table; it acts on one in-loop issue per pass (closest
+a schedule) sends one **read-only scanner sub-agent** to classify every open
+issue into a table (`references/patrol-scan.md` — the single home of the
+classification rules; the forge reads stay in the scanner's context, not the
+main agent's) and invokes the right command per that table; it acts on one in-loop issue per pass (closest
 to done) and then triages the **whole inbox** (intake is comment-only, so
 every batch of questions lands in a single pass), treats `processing` as a
 lock, never applies a gate label, and stops to report anything unexpected.

@@ -6,9 +6,11 @@
 #   top-level comment starts `✅ [` (heard); #7 inbox — questions batch already
 #   posted, no `summary` request (not actionable, patrol.md:130-135).
 # source: ledger F1 — "Report says no action. Zero label writes, zero
-#   comments, zero dispatches, no processing left behind."
+#   comments, one dispatch — the scanner — and no other, no processing left
+#   behind." (amended for #59: the scan is a read-only sub-agent)
 # source: commands/patrol.md:67 — "If nothing is actionable, act on nothing."
 # source: commands/patrol.md:7 — "Follow these steps; do nothing beyond them."
+import json
 import os
 import sys
 
@@ -17,7 +19,12 @@ from replaylib import Checker, Run
 
 r, c = Run(), Checker()
 c.expect("ledger F1", "zero forge writes of any kind", r.journal_writes() == 0)
-c.expect("ledger F1", "zero seat dispatches", r.dispatch_count() == 0)
+# 1.25.0 (#59): the scan is itself one read-only dispatch — the scanner,
+# whose prompt names its brief. Exactly that one, and no other.
+_disp = list(r.tool_uses(("Task", "Agent")))
+c.expect("ledger F1 (as amended for #59)", "exactly one dispatch, and it is the scanner",
+         len(_disp) == 1
+         and "patrol-scan.md" in json.dumps(_disp[0].get("input", {}), ensure_ascii=False))
 c.expect("ledger F1 (no processing left behind)",
          "no issue wears status: processing",
          not any("status: processing" in i.get("labels", [])

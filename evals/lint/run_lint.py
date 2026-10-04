@@ -150,7 +150,7 @@ src("B2 conformance: opening-token-only is stated as the rule",
 for f in ("commands/next-stage.md", "commands/patrol.md",
           "commands/spec-answers.md", "commands/review-answers.md"):
     src("B3: %s carries the '**[' marker literal" % f, f, "**[")
-for f in ("commands/patrol.md", "commands/spec-answers.md",
+for f in ("references/patrol-scan.md", "commands/spec-answers.md",
           "commands/review-answers.md"):
     src("B3: %s carries the '✅ [' marker literal" % f, f, "✅ [")
 B3_DIRS = ("commands", "references", "agents", "templates")
@@ -369,11 +369,12 @@ src("C8: the spec CR body closes the issue", "commands/next-stage.md",
     'Stage (2) spec refinement for #<n>. For review.\nCloses #<n>"')
 src("C8: the fast CR body closes the issue", "commands/next-stage.md",
     "body ending `Closes #<n>`")
-_iur = "\n".join(line for line in read("commands/patrol.md").splitlines()
+_iur = "\n".join(line for line in read("references/patrol-scan.md").splitlines()
                  if line.startswith("| `status: in-user-review` |"))
 c.expect("pattern", "C8: patrol's in-user-review row routes a merged CR to the close-out",
          "**merged**" in _iur and "close-out" in _iur)
-_scan = section(read("commands/patrol.md"), r"^- \*\*Close-out scan\.\*\*", r"^- Skip any issue")
+_scan = section(read("references/patrol-scan.md"), r"^- \*\*Close-out scan\.\*\*",
+                r"^- Skip any issue")
 c.expect("pattern", "C8: the close-out scan looks for the merged CR with the all-states form",
          "all-states form" in _scan and "**merged**" in _scan)
 _co = section(read("commands/patrol.md"), r"^### The close-out action",
@@ -387,9 +388,9 @@ src("C8: close-outs are exempt from the one-issue rule like intake",
     "commands/patrol.md", "**close out every** issue whose CR is merged")
 c.expect("pattern", "C8: the shipped comment precedes the label removal (resumable)",
          _co.index("ISSUE-COMMENT") < _co.index("ISSUE-CLOSE") < _co.index("LABEL-REMOVE"))
-src("C8: the scan includes issues the forge already closed", "commands/patrol.md",
+src("C8: the scan includes issues the forge already closed", "references/patrol-scan.md",
     "plus ISSUE-LIST-CLOSED per track label")
-src("C8: a part-way close-out is recognized by its marker", "commands/patrol.md",
+src("C8: a part-way close-out is recognized by its marker", "references/patrol-scan.md",
     "already carries a `**[patrol] · shipped**`")
 
 # ---------------------------------------------------------------------------
@@ -479,6 +480,37 @@ for _f in ("commands/next-stage.md", "commands/integrate.md", "commands/spec-ans
                        read(_f), re.M) is None)
 src("C9: hooks/README says which git dir the marker uses", "hooks/README.md",
     "`git rev-parse --git-common-dir`")
+
+# ---------------------------------------------------------------------------
+# A8 · the scan is one read-only sub-agent and the rules exist once
+#      (defect: 1.24.0-, #59) — patrol.md used to carry §1–§2 itself and read
+#      every channel into the main agent's context; the rules now live in the
+#      scanner's brief and patrol acts from its table.
+_pat8 = read("commands/patrol.md")
+_brf = read("references/patrol-scan.md")
+c.expect("pattern", "A8: patrol.md carries no classification table (the brief does)",
+         "| State | Meaning |" not in _pat8 and "| State | Meaning |" in _brf)
+c.expect("pattern", "A8: patrol.md runs no scan op itself",
+         not re.search(r"^- ISSUE-LIST", _pat8, re.M) and "Close-out scan." not in _pat8)
+src("A8: patrol dispatches the scanner with the brief", "commands/patrol.md",
+    "${CLAUDE_PLUGIN_ROOT}/references/patrol-scan.md")
+src("A8: patrol never re-reads the forge to confirm a row", "commands/patrol.md",
+    "**Never re-read the forge to confirm a row**")
+src("A8: the scanner is read-only", "references/patrol-scan.md", "## You write nothing")
+for _op in ("LABEL-ADD", "ISSUE-COMMENT", "ISSUE-CLOSE", "no dispatch, no git"):
+    c.expect("pattern", "A8: the brief forbids %s" % _op, _op in _brf.split("## Scan")[0])
+for _col in ("`issue`", "`track`", "`status`", "`cr`", "`unheard`", "`verdict`", "`evidence`"):
+    src("A8: the brief's table contract names column %s" % _col, "references/patrol-scan.md",
+        "| %s |" % _col)
+src("A8: patrol names the same columns", "commands/patrol.md",
+    "`issue · track · status · cr · unheard · verdict\n· evidence`")
+for _v in ("actionable: review-answers", "close-out", "intake: questions", "waiting on user",
+           "illegal state", "locked:"):
+    src("A8: the verdict vocabulary carries `%s`" % _v, "references/patrol-scan.md", "`%s" % _v)
+src("A8: the inbox filter lives in the brief", "references/patrol-scan.md",
+    "**subject to the inbox filter**")
+c.expect("pattern", "A8: the scanner dispatches nothing (depth stays 1)",
+         "it\ndispatches nothing itself" in _pat8 or "dispatches nothing itself" in _pat8)
 
 # ---------------------------------------------------------------------------
 # J1 · the judgment fixtures are frozen at T                (preventive)
@@ -583,7 +615,7 @@ c.expect("pattern", "C6: gitlab adapter CR-FIND documents --all for merged MRs",
          "--all" in gl_crfind)
 src("C6: the post-integration detection path cites the all-states form",
     "commands/spec-answers.md", "all-states form")
-inflight = "\n".join(line for line in read("commands/patrol.md").splitlines()
+inflight = "\n".join(line for line in read("references/patrol-scan.md").splitlines()
                      if "no `status:`, `track: spec`" in line)
 must_not_match("C6: patrol's in-flight row keeps the open-only default",
                r"all-states|--state all|--all\b", inflight)
@@ -634,7 +666,7 @@ for _k in _tool_keys:
     src("L2: README documents %s under /roz-gate:config" % _k, "README.md",
         "/roz-gate:config %s" % _k)
     src("L2: /roz-gate:config's menu names %s" % _k, "commands/config.md", "`%s`" % _k)
-_pat = read("commands/patrol.md")
+_pat = read("references/patrol-scan.md")
 c.expect("pattern", "L2: the inbox keys are lists — any of, both must hold, empty = no filter",
          "**any** of its labels" in _pat and "**any** of its logins" in _pat
          and "an empty list is no\n  filter" in _pat)
