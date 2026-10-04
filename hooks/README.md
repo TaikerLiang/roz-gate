@@ -105,7 +105,7 @@ bump.
 ## Running the tests
 
 ```sh
-python3 hooks/tests/run_tests.py                # 113 cases, one PASS/FAIL line each
+python3 hooks/tests/run_tests.py                # 128 cases, one PASS/FAIL line each — the hooks and bin/roz-config
 python3 -m unittest discover -s hooks/tests     # same tests, unittest's own output
 ```
 

@@ -19,8 +19,11 @@ remote cleanup — remove the worktree and re-run.
 ## 0. Load config & forge adapter
 
 Read the `### Roz Gate config` block in the project's CLAUDE.md (`forge`,
-`default_branch`, `test`, `acceptance_test`, `env_sync`, `lockfile`,
-`lockfile_regen`, `acceptance_dir`), then
+`test`, `acceptance_test`, `env_sync`, `lockfile`, `lockfile_regen`,
+`acceptance_dir`). **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee` are per person,
+per clone, never in the block: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`
+and use its values (`.claude/roz-gate.local.json`, defaults resolved — the
+remote's HEAD branch, empty lists). Then
 `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the concrete CLI behind
 every CAPITALIZED-OP. Missing config → stop; tell the user to run
 `/roz-gate:init`. **Personas**: the `implementer` / `qa` fix dispatches in

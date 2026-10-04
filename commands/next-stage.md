@@ -10,9 +10,13 @@ follow the matched path's steps exactly and do nothing beyond them.
 ## 0. Load config & forge adapter
 
 Read the `### Roz Gate config` block in the project's CLAUDE.md (`forge`,
-`default_branch` — the loop's **base**: `spec/<n>` and `fast/<n>` are cut from it
-and their CRs target it; `feat/<n>` and `qa/<n>` stay siblings off `spec/<n>` — `test`, `env_sync`, `lockfile`, `specs_dir`,
-`acceptance_dir`). Then read `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md`
+`test`, `env_sync`, `lockfile`, `specs_dir`, `acceptance_dir`). **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee` are per person,
+per clone, never in the block: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`
+and use its values (`.claude/roz-gate.local.json`, defaults resolved — the
+remote's HEAD branch, empty lists).
+`default_branch` is the loop's **base**: `spec/<n>` and `fast/<n>` are cut from
+it and their CRs target it; `feat/<n>` and `qa/<n>` stay siblings off
+`spec/<n>`. Then read `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md`
 and use its concrete CLI for every CAPITALIZED-OP below. Label names follow the
 adapter's scheme (GitLab uses scoped forms). If the config block is missing,
 stop and tell the user to run `/roz-gate:init`. **Personas**: every role

@@ -11,7 +11,10 @@ Follow these steps; do nothing beyond them.
 Read the `### Roz Gate config` block in the project's CLAUDE.md, then
 `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the concrete CLI behind
 every CAPITALIZED-OP. Missing config → stop; tell the user to run
-`/roz-gate:init`. **Personas**: the role re-spawns in step 5 resolve through
+`/roz-gate:init`. **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee` are per person,
+per clone, never in the block: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`
+and use its values (`.claude/roz-gate.local.json`, defaults resolved — the
+remote's HEAD branch, empty lists). **Personas**: the role re-spawns in step 5 resolve through
 the `### Roz Gate personas` block — dispatch the mapped subagent, attaching
 the seat's R&R row from `${CLAUDE_PLUGIN_ROOT}/references/workflow.md` as its
 contract. Block missing → plugin defaults (`roz-gate:<role>`; implementer =

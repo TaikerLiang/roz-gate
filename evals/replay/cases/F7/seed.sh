@@ -5,10 +5,10 @@
 # ever been measured with default_branch: main.
 set -eu
 bash "$(dirname "$0")/../../lib/seed-common.sh" "$1"
-sed -i.bak 's|^- default_branch: main$|- default_branch: release/20261006|' CLAUDE.md
-rm CLAUDE.md.bak
-grep -q '^- default_branch: release/20261006$' CLAUDE.md
-git -c user.email=paul@example.com -c user.name=paul commit -qam "config: base is release/20261006"
+mkdir -p .claude && printf '{"default_branch": "release/20261006"}\n' > .claude/roz-gate.local.json
+grep -q '"default_branch": "release/20261006"' .claude/roz-gate.local.json
+printf '.claude/roz-gate.local.json\n' >> .git/info/exclude
+git -c user.email=paul@example.com -c user.name=paul commit -qam "seed (base release/20261006 is local, uncommitted)" --allow-empty
 git checkout -qb release/20260926
 echo "sprint 1" > src/sprint.txt
 git add -A

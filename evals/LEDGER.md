@@ -122,7 +122,7 @@ text follows the experiment; the driver's citation was updated to match.
 |---|---|---|
 | J1 | the judgment fixtures are frozen at T | lint (preventive) |
 | L1 | one stage map | lint (preventive) |
-| L2 | the config keys patrol reads are the ones config offers and README documents | lint (defect 1.18.0) |
+| L2 | the local keys `roz-config` accepts are the ones the commands read and README documents | lint (defect 1.18.0) |
 
 ## The judgment corpus
 

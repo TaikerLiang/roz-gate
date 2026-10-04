@@ -614,28 +614,43 @@ c.expect("pattern", "E4: reviewer-to-implementer settlement is forbidden explici
          "never settled" in b5)
 
 # ---------------------------------------------------------------------------
-# L2 · the config keys patrol reads are the ones /roz-gate:config offers and
-#      README documents — a key documented in one place and read nowhere is a
-#      silent no-op                                           (defect: 1.18.0)
-_cfg = read("commands/config.md")
+# L2 · the local keys roz-config accepts are the ones the commands read and
+#      README documents — a key settable but read nowhere is a silent no-op,
+#      a key read from the block is a team value pretending to be yours
+#                                                   (defect: 1.18.0-, #55)
+_tool = read("bin/roz-config")
+_m = re.search(r'^KEYS = \((.*?)\)$', _tool, re.M)
+_tool_keys = tuple(re.findall(r'"([a-z_]+)"', _m.group(1))) if _m else ()
+c.expect("pattern", "L2: bin/roz-config accepts exactly the three local keys",
+         _tool_keys == ("default_branch", "inbox_label", "inbox_assignee"))
+_readers = ("commands/patrol.md", "commands/next-stage.md", "commands/integrate.md",
+            "commands/spec-answers.md", "commands/review-answers.md")
+for _f in _readers:
+    src("L2: %s reads the local keys through roz-config --json" % _f, _f, "bin/roz-config --json")
+    _blk = re.search(r"config` block in the project's CLAUDE\.md \(([^)]*)\)", read(_f))
+    c.expect("pattern", "L2: %s does not read default_branch from the block" % _f,
+             _blk is None or "default_branch" not in _blk.group(1))
+for _k in _tool_keys:
+    src("L2: README documents %s under roz-config" % _k, "README.md", "! roz-config %s" % _k)
 _pat = read("commands/patrol.md")
-_rd = read("README.md")
-for _k in ("inbox_label", "inbox_assignee", "patrol_model"):
-    src("L2: /roz-gate:config offers %s" % _k, "commands/config.md", "`%s`" % _k)
-    src("L2: patrol reads %s" % _k, "commands/patrol.md", "`%s`" % _k)
-    src("L2: README config block documents %s" % _k, "README.md", "- %s:" % _k)
+c.expect("pattern", "L2: the inbox keys are lists — any of, both must hold, empty = no filter",
+         "**any** of its labels" in _pat and "**any** of its logins" in _pat
+         and "an empty list is no\n  filter" in _pat)
 c.expect("pattern", "L2: a filtered-out issue is counted, never acted on",
          "not in the inbox filter" in _pat
          and re.search(r"never\s+commented on, never locked, never listed", _pat) is not None)
 c.expect("pattern", "L2: the filter is inbox-only — track: issues advance regardless",
          "The filter applies to the inbox alone" in _pat)
-c.expect("pattern", "L2: config never creates forge labels",
-         "never create forge labels" in _cfg)
-c.expect("pattern", "L2: config never clears a required key",
-         "never clear\na required key" in _cfg or "never clear a required key" in _cfg)
+c.expect("pattern", "L2: /roz-gate:config is gone — no tool edits the block",
+         not os.path.exists(os.path.join(R, "commands", "config.md"))
+         and "/roz-gate:config" not in read("README.md"))
+src("L2: roz-config migrates a pre-1.23 block once (upgrade path, codex review)",
+    "bin/roz-config", "def migrate(root, path):")
+src("L2: the template still carries the block (specs_dir)", "templates/claude-workflow.md",
+    "- specs_dir:")
+c.expect("pattern", "L2: the template has no default_branch line",
+         "default_branch" not in read("templates/claude-workflow.md"))
 src("L2: GitHub ISSUE-LIST returns assignees (the inbox filter reads them)",
     "references/forge-github.md", "--json number,title,labels,assignees,createdAt")
-for _f in ("references/forge-github.md", "references/forge-gitlab.md"):
-    src("L2: %s defines LABEL-LIST" % _f, _f, "| LABEL-LIST |")
 
 c.finish()

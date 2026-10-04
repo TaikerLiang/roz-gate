@@ -18,7 +18,6 @@ roz-gate issue.
 ### Roz Gate config
 
 - forge: github
-- default_branch: main
 - test: true
 - acceptance_dir: tests/acceptance
 - acceptance_test: true

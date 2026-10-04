@@ -15,7 +15,6 @@ the config below.
 ### Roz Gate config
 
 - forge: {{FORGE}}
-- default_branch: {{DEFAULT_BRANCH}}
 - test: {{TEST}}
 - acceptance_dir: {{ACCEPTANCE_DIR}}
 - acceptance_test: {{ACCEPTANCE_TEST}}
