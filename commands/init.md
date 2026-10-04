@@ -17,10 +17,11 @@ before writing it.
 ## 2. Detect the stack, confirm the config
 Infer from the repo (lockfiles, manifests, CI config) and confirm with the
 user, one compact block, not twenty questions:
-- `default_branch` (from the remote HEAD) — the loop's base: `spec/<n>` and
-  `fast/<n>` are cut from it and their CRs target it. A team shipping from sprint release branches
-  sets it to the current one and changes it at handover with
-  `/roz-gate:config`.
+- (not in the block) `default_branch` — the loop's base, `spec/<n>` and
+  `fast/<n>` are cut from it and their CRs target it — is per person, per
+  clone: the remote's HEAD branch unless set with `! roz-config
+  default_branch <branch>` (`.claude/roz-gate.local.json`, never committed).
+  Say so in the report; write nothing.
 - `test` — command that runs the full suite (e.g. `uv run pytest`, `npm test`)
 - `acceptance_dir` (default `tests/acceptance`) and `acceptance_test` — command
   for one feature's acceptance dir
@@ -121,8 +122,10 @@ map:
 2. You apply the gate label (`status: ready-for-spec` / `ready-for-dev`).
 3. Run `/roz-gate:patrol` (manually, on a loop, or scheduled) — it advances
    whatever the labels authorize and reports what waits on you.
-4. Change any config key later with `/roz-gate:config` (inbox filter, patrol
-   model, paths) — no re-init needed.
+4. Your own loop keys — the base branch and the inbox filter — are set
+   without a model turn: `! roz-config` shows them, `! roz-config
+   inbox_label discuss` sets one (`.claude/roz-gate.local.json`, never
+   committed). Everything else in the block is edited by hand.
 
 Nothing in this command applies a gate label, and it never edits an existing
 CLAUDE.md section without showing the change first.

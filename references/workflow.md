@@ -63,9 +63,9 @@ proposed at intake and confirmed (or overridden) by you:
 **(1b) The inbox — async intake.** An open issue with **no `track:` label** is
 the **inbox**: a raw idea captured away from the keyboard (e.g. the forge's
 mobile app), not yet in the loop — every command except intake triage ignores
-it. The project may narrow the inbox (`inbox_label`, `inbox_assignee` in the
-config block — set with `/roz-gate:config`): a track-less issue outside the
-filter is a plain issue patrol only counts. Three beats — ask once, summarize on demand, the label confirms:
+it. You may narrow your inbox (`inbox_label`, `inbox_assignee` — lists, yours
+per clone, set with `! roz-config …`): a track-less issue outside the filter
+is a plain issue patrol only counts. Three beats — ask once, summarize on demand, the label confirms:
 1. Patrol posts **one** batched questions comment (prefixed `**[intake]**`,
    numbered, each option with a marked recommendation) — then leaves the
    thread to the humans: free-form discussion, anyone may weigh in, from any
@@ -158,12 +158,14 @@ QA's black-box tests against the implementation **for the first time**.
 Pass/fail is the verdict on whether the implementation matches the spec — this
 is where genuine bugs surface.
 
-**The base branch.** Config `default_branch` is the loop's base: `spec/{n}`
+**The base branch.** `default_branch` — yours, per clone (`! roz-config
+default_branch <branch>`, `.claude/roz-gate.local.json`, never committed;
+default: the remote's HEAD) — is the loop's base: `spec/{n}`
 and `fast/{n}` are cut from it, their CRs target it, the fast reviewer diffs
 against it, and (6) merges it in before (7) — `feat/{n}` and `qa/{n}` are
 siblings off `spec/{n}` and target it, as (3)/(4) say. It is whatever the team ships
 from — the trunk, or on a sprint cadence the current release branch
-(`release/20261006`), changed at handover with `/roz-gate:config`. The
+(`release/20261006`), changed at handover with `roz-config`. The
 commands always read the current value: an issue cut from the previous base
 is the human's to move (retarget its CR, rebase); nothing in the loop pins or
 detects it. A base the remote does not have stops the cut (`blocked`).

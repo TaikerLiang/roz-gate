@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+"""roz-config — the three loop keys that are yours, per repo, never committed.
+
+    roz-config                                  # effective values, (default) marked
+    roz-config --json                           # the same as JSON (what commands read)
+    roz-config default_branch release/20261006  # set
+    roz-config inbox_label discuss idea         # set a list (any of these labels)
+    roz-config inbox_assignee TaikerLiang       # set a list (any of these logins)
+    roz-config inbox_label                      # no value: remove the override
+
+Stored in `.claude/roz-gate.local.json` at the repository root — one file per
+person per clone, like Claude Code's own `settings.local.json`; the first
+write adds it to `.git/info/exclude`, so it is never committed. No model
+turn: run it with Claude Code's `!` prefix (`! roz-config inbox_label
+discuss`) or from any shell.
+
+Defaults when a key is absent: `default_branch` is the remote's HEAD branch
+(`refs/remotes/origin/HEAD`; `main` when the remote has no HEAD), the inbox
+keys are empty lists — no filter. Stdlib only, Python 3.9-compatible, like
+the hooks: nothing here may depend on uv or a virtualenv.
+"""
+
+import json
+import os
+import subprocess
+import sys
+
+KEYS = ("default_branch", "inbox_label", "inbox_assignee")
+LIST_KEYS = ("inbox_label", "inbox_assignee")
+REL = ".claude/roz-gate.local.json"
+USAGE = __doc__.split("\n\n")[1]
+
+
+def git(*args):
+    try:
+        out = subprocess.run(["git", *args], capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return out.stdout.strip() if out.returncode == 0 else None
+
+
+def repo_root():
+    root = git("rev-parse", "--show-toplevel")
+    if not root:
+        sys.stderr.write("roz-config: not inside a git repository\n")
+        sys.exit(2)
+    return root
+
+
+def default_branch():
+    ref = git("symbolic-ref", "-q", "--short", "refs/remotes/origin/HEAD")
+    if ref and ref.startswith("origin/"):
+        return ref[len("origin/"):], True
+    return "main", False
+
+
+def load(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        return {}
+    except ValueError as e:
+        sys.stderr.write("roz-config: %s is not valid JSON (%s) — fix or delete it\n" % (path, e))
+        sys.exit(2)
+    if not isinstance(data, dict):
+        sys.stderr.write("roz-config: %s must hold a JSON object\n" % path)
+        sys.exit(2)
+    return data
+
+
+def effective(stored):
+    """(value, is_default) per key — lists for the inbox keys."""
+    out = {}
+    for k in KEYS:
+        if k in stored and stored[k] not in ("", [], None):
+            v = stored[k]
+            out[k] = ([v] if isinstance(v, str) else list(v), False) if k in LIST_KEYS \
+                else (str(v), False)
+        elif k in LIST_KEYS:
+            out[k] = ([], True)
+        else:
+            out[k] = (default_branch()[0], True)
+    return out
+
+
+def exclude(root):
+    """Add the file to .git/info/exclude once — per-person state is never committed."""
+    common = git("rev-parse", "--path-format=absolute", "--git-common-dir") \
+        or git("rev-parse", "--git-common-dir")
+    if not common:
+        return
+    if not os.path.isabs(common):
+        common = os.path.join(root, common)
+    info = os.path.join(common, "info")
+    os.makedirs(info, exist_ok=True)
+    path = os.path.join(info, "exclude")
+    try:
+        with open(path, encoding="utf-8") as f:
+            if REL in f.read().split("\n"):
+                return
+    except FileNotFoundError:
+        pass
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(REL + "\n")
+
+
+def show(eff, as_json):
+    if as_json:
+        print(json.dumps({k: v for k, (v, _) in eff.items()}, ensure_ascii=False))
+        return
+    _, has_head = default_branch()
+    for k in KEYS:
+        v, dflt = eff[k]
+        shown = " ".join(v) if isinstance(v, list) else v
+        note = ""
+        if dflt:
+            note = "  (default: no filter)" if k in LIST_KEYS else (
+                "  (default: origin/HEAD)" if has_head else "  (default: origin/HEAD unset, assuming main)")
+        print("%-16s %s%s" % (k, shown or "-", note))
+
+
+def main(argv):
+    if argv and argv[0] in ("-h", "--help"):
+        print(USAGE)
+        return 0
+    root = repo_root()
+    path = os.path.join(root, REL)
+    stored = load(path)
+    if not argv or argv == ["--json"]:
+        show(effective(stored), as_json=bool(argv))
+        return 0
+    key, values = argv[0], argv[1:]
+    if key not in KEYS:
+        sys.stderr.write("roz-config: unknown key %r — one of: %s\n" % (key, ", ".join(KEYS)))
+        return 2
+    if key not in LIST_KEYS and len(values) > 1:
+        sys.stderr.write("roz-config: %s takes one value\n" % key)
+        return 2
+    values = [v for v in values if v.strip()]
+    if not values:
+        stored.pop(key, None)
+        action = "removed the override"
+    else:
+        stored[key] = values if key in LIST_KEYS else values[0]
+        action = "set"
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump({k: stored[k] for k in KEYS if k in stored}, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    exclude(root)
+    v, dflt = effective(stored)[key]
+    shown = " ".join(v) if isinstance(v, list) else v
+    print("%s %s → %s%s  [%s]" % (key, action, shown or "-", " (default)" if dflt else "", REL))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

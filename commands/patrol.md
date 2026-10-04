@@ -13,7 +13,11 @@ Read the `### Roz Gate config` block in the project's CLAUDE.md, then
 every CAPITALIZED-OP. Missing config → stop; tell the user to run
 `/roz-gate:init`. A legacy `### Gated Loop config` block (the plugin's
 pre-1.0 name) counts as present — use its values and flag the re-init in the
-report.
+report. **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee` are per person,
+per clone, never in the block: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`
+and use its values (`.claude/roz-gate.local.json`, defaults resolved — the
+remote's HEAD branch, empty lists). The report names the
+effective values of the three.
 
 **Model**: `patrol_model` in the config block, when present, is the model
 every seat dispatched from this command runs on (`product` for async intake,
@@ -39,11 +43,13 @@ stamp means no re-init is needed, whatever the plugin version.
 ## 1. Scan
 - ISSUE-LIST (all open issues).
 - Issues **without a `track:` label** are the **inbox** — pre-loop, valid, kept
-  for step 2's inbox row only — **subject to the inbox filter**: with
-  `inbox_label` set, only those carrying that label; with `inbox_assignee`
-  set, only those assigned to that login (the `assignees` ISSUE-LIST returns —
+  for step 2's inbox row only — **subject to the inbox filter** (the two
+  lists from `roz-config --json`): with `inbox_label` non-empty, only those
+  carrying **any** of its labels; with `inbox_assignee` non-empty, only those
+  assigned to **any** of its logins (the `assignees` ISSUE-LIST returns —
 compare logins with the bot-mode normalization: `app/` prefix and `[bot]`
-suffix stripped); both set, both must hold. A
+suffix stripped); both non-empty, both must hold; an empty list is no
+  filter. A
   track-less issue outside the filter is **not in the inbox**: never
   commented on, never locked, never listed as waiting — only counted for the
   report. The filter applies to the inbox alone; an issue carrying a
