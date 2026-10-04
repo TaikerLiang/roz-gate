@@ -2,6 +2,57 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.24.0 — your three loop keys, per clone: roz-config and its /roz-gate:config menu — 2026-10-04
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.24.0>
+
+**Behavior:** three loop keys — `default_branch`, `inbox_label`, `inbox_assignee` — are now yours, per person, per clone, never committed, set from a menu with `/roz-gate:config`; the write is a stdlib Python tool's, never the model's. They leave the `CLAUDE.md` block. Version 1.23.0 is #56's intermediate manifest and carries no tag.
+
+### Behavior
+- **`bin/roz-config`** (#55, #56): `roz-config` prints the three effective values with `(default)` marked; `--json` is what commands read; `roz-config default_branch release/20261006`, `roz-config inbox_label discuss "good first issue"` (lists: any of), a key alone removes the override. Stored in `.claude/roz-gate.local.json`, added to `.git/info/exclude` on first write. Defaults: the remote's HEAD branch (`main` when it has none), empty lists. Claude Code's `userConfig` / `/config` panel is user-level only — one value per machine — and was rejected for repo-level keys.
+- **Upgrade** (codex review): the first run that finds no local file seeds it once from the block's `default_branch` / `inbox_*` lines (comma-separated → lists), says so on stderr, and the block is ignored from then on — a configured release base or inbox filter survives the upgrade.
+- **`/roz-gate:config`** (#57) is the menu for the tool: it injects the current values into the prompt, asks which key and what value with the runtime's option picker, splits inbox values on commas (a forge label may contain spaces — codex review) and runs the tool with each value quoted; with arguments it skips the menu. No prose logic: no validation, no file edit, no forge lookup.
+- **Commands** (`patrol`, `next-stage`, `integrate`, `spec-answers`, `review-answers`) read the three through `bin/roz-config --json`; patrol's filter is any-of within a key, both keys must hold, empty = no filter. `init` no longer writes `default_branch`; the template drops it. `bin` joins the pre-push behavior paths.
+
+### Evals
+- **Runtime suite** 118 → 130: `hooks/tests/test_roz_config.py` — defaults with and without `origin/HEAD`, set/replace/remove, lists, one value for `default_branch`, unknown key, excluded once and invisible to git, subdirectory and linked-worktree resolution, outside a repo, corrupt file never overwritten, the one-time migration and its absence.
+- **Lint L2** rewritten (164 → 176): the tool's `KEYS` are exactly the three; every reading command calls `--json` and names no `default_branch` in its block list; README documents each under `/roz-gate:config`; the menu names the keys, calls the tool, never edits the JSON or `CLAUDE.md`, has no forge lookup, splits on commas and quotes; the upgrade migration; the template is clean.
+- **Replay seeds**: `seed-common.sh` drops `default_branch`; F7/C7 write the local JSON. Red-proofs 7/7. No SUT re-measure of F7/C7 yet.
+
+### Docs
+- README (command table, inbox section, config block + the local-keys block), onboarding step 3 (the builder's "Yours — per clone" group renders `/roz-gate:config …` lines), `workflow.md`, `init`, `hooks/README.md`, LEDGER L2.
+
+### Checks
+Hook tests 130/130 · lint 176/176 · red-proofs 7/7
+
+## v1.22.0 — worktrees for every command; patrol closes merged issues out; must-read documents — 2026-10-03
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.22.0>
+
+**Behavior:** three changes for a target repo — every state-mutating command now works in a linked worktree and never touches your checkout; patrol closes an issue out after its CR merges; agent-written documents keep a must-read on top and fold the rest. Versions 1.20.0 and 1.21.0 are the intermediate manifests of #51 and #52 and carry no tag.
+
+### Behavior
+- **The workspace** (#37, #53): `next-stage`, `integrate`, `spec-answers`, `review-answers` and patrol's address-review dispatches cut, merge, commit, test and dispatch seats in a linked worktree at `$(git rev-parse --git-common-dir)/roz-gate/wt/<branch>`, removed on both exits — no `git checkout`/`switch`/`reset`/`stash`/`merge` in your checkout, not even transiently, so a scheduled patrol can fire while you are mid-edit on the default branch. STOP's first obligation is "remove the worktree(s) this run created". A branch already checked out elsewhere makes `git worktree add` refuse: the mutex between concurrent commands, and a STOP that removes nothing.
+- **Rule E's marker lives in the common git dir** (`--git-common-dir`): a fidelity dispatch running in the `qa/<n>` worktree is governed by the same marker as the checkout. Under the old `--git-dir` lookup the rule was silently off for exactly that dispatch (codex review); a hook test now calls from a linked worktree under the marker and is denied.
+- **Close-out** (#41, #51): after you merge, patrol's next pass closes the issue out — one `**[patrol] · shipped**` comment, issue closed, every `track:`/`status:` label removed — wherever the forge did not finish it (GitLab; a CR against a release branch; GitHub's auto-close, which leaves the loop labels on). The action order is comment → ISSUE-CLOSE → LABEL-REMOVE, so an interrupted pass resumes; a merged CR without the marker on any other status is an illegal state. The spec CR body now says `Closes #<n>` (`Refs` was not deliberate). `ISSUE-CLOSE` and `ISSUE-LIST-CLOSED` on both adapters; GitHub CR-FIND returns `state,url`.
+- **Must-read / supplement** (#42, #52): each producing brief states which sections are the must-read, what folds into `<details><summary>…</summary>` below, and a cap — intake summary 25 rendered lines, STOP comment 12, 3 lines per spec rule, 6 visible lines per intake question — rendered at a phone's ~60 characters, so a long bullet counts for several (codex review). Parsed shapes (markers, `## Open Questions`, `R<k>`/`G<k>`/`C<k>`, the §5 table) are unchanged.
+
+### Evals
+- **Replay A7** (red-proof 10/10): the merged-CR close-out on an open issue and on one the forge already closed. **Replay F8** (red-proof 5/5): the user mid-edit on the default branch is untouched by `next-stage`. Neither has a SUT baseline yet.
+- **Lint** 102 → 164: **B5** the rendered-line counter over four fixtures plus conformance on every producer; **C8** the close-out prose, both adapters' new ops, `Closes` in A5/C5; **C9** the workspace rule at every branch site and every exit, no command instructs a checkout in your tree, the marker's git dir.
+- **Hook tests** 113 → 118: the worktree forms of rule E; a call from a linked worktree under the marker.
+- **Stub**: `gh issue close` routed; `issue list` honors `--state`.
+- **LEDGER**: A7, B5, C8, C9, F8.
+
+### Tooling
+- **`/plan-issue`** (`.claude/skills/plan-issue/`, this repository's own habit — #49): grill first, rulings back on the issue, a five-section plan, implementation waits for the go.
+
+### Docs
+- README (§ Labels, troubleshooting), `workflow.md` (The workspace; close-out; 1b), the site's (7)/gate cards, simulator and wizard, onboarding step 5 and beat 2, quiz Q1, `evals/README.md` (C7/F7 baseline 5/5 each), CHANGELOG through v1.19.0.
+
+### Checks
+Hook tests 118/118 · lint 164/164 · red-proofs 7/7
+
 ## v1.19.0 — the base branch is config default_branch; a missing base stops the cut — 2026-10-03
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.19.0>
