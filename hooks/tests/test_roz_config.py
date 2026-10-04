@@ -129,6 +129,37 @@ class RozConfigTest(unittest.TestCase):
             self.assertEqual(json.loads(p.stdout)["inbox_label"], [],
                              "a worktree is its own checkout: its own file, its own defaults")
 
+    # ---- upgrade from a pre-1.23 block ------------------------------------
+    def test_migrates_block_values_once(self):
+        with self.subTest(
+                'roz-config: a pre-1.23 block seeds the local file once, then is ignored'):
+            (self.root / "CLAUDE.md").write_text(
+                "## Development Workflow (Roz Gate)\n\n### Roz Gate config\n\n"
+                "- forge: github\n- default_branch: release/20261006\n- test: true\n"
+                "- inbox_label: discuss, idea\n- inbox_assignee: paul\n\n### Roz Gate personas\n\n"
+                "- product: roz-gate:product\n")
+            p = self.run_tool("--json")
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertIn("seeded", p.stderr)
+            self.assertEqual(json.loads(p.stdout),
+                             {"default_branch": "release/20261006",
+                              "inbox_label": ["discuss", "idea"], "inbox_assignee": ["paul"]})
+            self.assertTrue((self.root / REL).exists())
+            self.run_tool("default_branch")        # remove the override …
+            p = self.run_tool("--json")
+            self.assertEqual(json.loads(p.stdout)["default_branch"], "main",
+                             "… and the block is not consulted again")
+            self.assertNotIn("seeded", p.stderr)
+
+    def test_no_migration_without_block_keys(self):
+        with self.subTest(
+                'roz-config: a block without the three keys seeds nothing'):
+            (self.root / "CLAUDE.md").write_text("### Roz Gate config\n\n- forge: github\n")
+            p = self.run_tool("--json")
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertFalse((self.root / REL).exists())
+            self.assertEqual(p.stderr, "")
+
     def test_outside_a_repo(self):
         with self.subTest(
                 'roz-config: outside a repository exits 2'):

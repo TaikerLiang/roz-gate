@@ -644,6 +644,8 @@ c.expect("pattern", "L2: the filter is inbox-only — track: issues advance rega
 c.expect("pattern", "L2: /roz-gate:config is gone — no tool edits the block",
          not os.path.exists(os.path.join(R, "commands", "config.md"))
          and "/roz-gate:config" not in read("README.md"))
+src("L2: roz-config migrates a pre-1.23 block once (upgrade path, codex review)",
+    "bin/roz-config", "def migrate(root, path):")
 src("L2: the template still carries the block (specs_dir)", "templates/claude-workflow.md",
     "- specs_dir:")
 c.expect("pattern", "L2: the template has no default_branch line",

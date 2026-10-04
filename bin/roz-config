@@ -16,12 +16,18 @@ discuss`) or from any shell.
 
 Defaults when a key is absent: `default_branch` is the remote's HEAD branch
 (`refs/remotes/origin/HEAD`; `main` when the remote has no HEAD), the inbox
-keys are empty lists — no filter. Stdlib only, Python 3.9-compatible, like
+keys are empty lists — no filter.
+
+Upgrade (pre-1.23 repos kept these keys in CLAUDE.md's `### Roz Gate config`
+block): the first run that finds no local file seeds it from those lines —
+once, said so on stderr — so a configured base or inbox filter survives the
+upgrade; the block is ignored from then on. Stdlib only, Python 3.9-compatible, like
 the hooks: nothing here may depend on uv or a virtualenv.
 """
 
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -67,6 +73,48 @@ def load(path):
         sys.stderr.write("roz-config: %s must hold a JSON object\n" % path)
         sys.exit(2)
     return data
+
+
+def block_values(root):
+    """The three keys as a pre-1.23 CLAUDE.md block carried them, if any."""
+    found = {}
+    for name in ("CLAUDE.md", "CLAUDE.local.md"):
+        try:
+            with open(os.path.join(root, name), encoding="utf-8") as f:
+                text = f.read()
+        except OSError:
+            continue
+        m = re.search(r"^### (?:Roz Gate|Gated Loop) config\n(.*?)(?=^#|\Z)", text, re.M | re.S)
+        if not m:
+            continue
+        for line in m.group(1).splitlines():
+            lm = re.match(r"^- (%s):\s*(.*?)\s*$" % "|".join(KEYS), line)
+            if lm and lm.group(2) and lm.group(1) not in found:
+                k, v = lm.group(1), lm.group(2)
+                found[k] = [x.strip() for x in v.split(",") if x.strip()] if k in LIST_KEYS else v
+    return found
+
+
+def migrate(root, path):
+    """No local file yet, but the block still carries the keys → seed once."""
+    if os.path.exists(path):
+        return {}
+    found = block_values(root)
+    if not found:
+        return {}
+    write(root, path, found)
+    sys.stderr.write("roz-config: seeded %s from CLAUDE.md's config block (%s) — the block's "
+                     "lines are now ignored; delete them when convenient\n"
+                     % (REL, ", ".join(sorted(found))))
+    return found
+
+
+def write(root, path, stored):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump({k: stored[k] for k in KEYS if k in stored}, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    exclude(root)
 
 
 def effective(stored):
@@ -126,7 +174,7 @@ def main(argv):
         return 0
     root = repo_root()
     path = os.path.join(root, REL)
-    stored = load(path)
+    stored = load(path) or migrate(root, path)
     if not argv or argv == ["--json"]:
         show(effective(stored), as_json=bool(argv))
         return 0
@@ -144,11 +192,7 @@ def main(argv):
     else:
         stored[key] = values if key in LIST_KEYS else values[0]
         action = "set"
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump({k: stored[k] for k in KEYS if k in stored}, f, indent=2, ensure_ascii=False)
-        f.write("\n")
-    exclude(root)
+    write(root, path, stored)
     v, dflt = effective(stored)[key]
     shown = " ".join(v) if isinstance(v, list) else v
     print("%s %s → %s%s  [%s]" % (key, action, shown or "-", " (default)" if dflt else "", REL))
