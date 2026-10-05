@@ -20,14 +20,14 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(CASE))))
 GIT_ID = {"GIT_AUTHOR_NAME": "a", "GIT_AUTHOR_EMAIL": "a@a",
           "GIT_COMMITTER_NAME": "a", "GIT_COMMITTER_EMAIL": "a@a"}
 GOOD_TABLE = "\n".join([
-    "| issue | track | status | cr | unheard | verdict | evidence |",
-    "|---|---|---|---|---|---|---|",
-    "| #5 Offer expiry enforcement | spec | in-user-review | 101 open "
+    "| issue | track | status | holder | cr | unheard | verdict | evidence |",
+    "|---|---|---|---|---|---|---|---|",
+    "| #5 Offer expiry enforcement | spec | in-user-review | paul | 101 open "
     "| 1 (…/pull/101#issuecomment-800) | actionable: review-answers "
     "| latest top-level comment is the human's |",
-    "| #6 Bump the HTTP client to 3.2 | fast | ready-for-dev | none | 0 "
+    "| #6 Bump the HTTP client to 3.2 | fast | ready-for-dev | paul | none | 0 "
     "| actionable: next-stage (ready-for-dev) | gate label worn |",
-    "| #7 Gift cards | — | — | none | 0 | intake: questions | no **[intake]** batch yet |",
+    "| #7 Gift cards | — | — | paul | none | 0 | intake: questions | no **[intake]** batch yet |",
     "inbox filter: none · 0 track-less issues not in the inbox filter"])
 BAD_TABLE = GOOD_TABLE.replace("actionable: review-answers", "waiting on user: your answer")
 

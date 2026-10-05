@@ -499,11 +499,14 @@ src("A8: patrol never re-reads the forge to confirm a row", "commands/patrol.md"
 src("A8: the scanner is read-only", "references/patrol-scan.md", "## You write nothing")
 for _op in ("LABEL-ADD", "ISSUE-COMMENT", "ISSUE-CLOSE", "no dispatch, no git"):
     c.expect("pattern", "A8: the brief forbids %s" % _op, _op in _brf.split("## Scan")[0])
-for _col in ("`issue`", "`track`", "`status`", "`cr`", "`unheard`", "`verdict`", "`evidence`"):
+for _col in ("`issue`", "`track`", "`status`", "`holder`", "`cr`", "`unheard`", "`verdict`",
+             "`evidence`"):
     src("A8: the brief's table contract names column %s" % _col, "references/patrol-scan.md",
         "| %s |" % _col)
 src("A8: patrol names the same columns", "commands/patrol.md",
-    "`issue · track · status · cr · unheard · verdict\n· evidence`")
+    "`issue · track · status · holder · cr · unheard ·\nverdict · evidence`")
+src("A8: intake reads the gate holder from the row, never re-lists (F9 run-3)",
+    "commands/patrol.md", "read from the table, never re-listed")
 for _v in ("actionable: review-answers", "close-out", "hand-off: in-user-review",
            "intake: questions", "waiting on user", "illegal state", "locked:"):
     src("A8: the verdict vocabulary carries `%s`" % _v, "references/patrol-scan.md", "`%s" % _v)

@@ -64,7 +64,7 @@ suffix stripped); both non-empty, both must hold; an empty list is no
 
 ## The table — your whole deliverable
 
-Return exactly one Markdown table, one row per issue the scan saw (open loop
+Return exactly one Markdown table — `issue · track · status · holder · cr · unheard · verdict · evidence` — one row per issue the scan saw (open loop
 issues, close-out candidates, locked, blocked, inbox issues in the filter),
 then one line for the filtered-out count. Columns, in this order:
 
@@ -73,6 +73,7 @@ then one line for the filtered-out count. Columns, in this order:
 | `issue` | number and title |
 | `track` | `spec` / `fast` / `—` (inbox) |
 | `status` | the `status:` label worn, or `—` |
+| `holder` | the gate holder — the issue's assignees, else its author, **humans only** (a `bot_login` never holds a gate; `none` when no human) — what intake and the user's queue need, so the main agent never re-lists for assignees |
 | `cr` | the loop CR: number, state (`open` / `draft` / `merged` / `closed` / `none`), url |
 | `unheard` | count of unheard items, each with its url (0 when none) |
 | `verdict` | one of: `actionable: review-answers` · `actionable: integrate` · `actionable: address-review` · `actionable: spec-answers` · `actionable: next-stage (ready-for-dev)` · `actionable: next-stage (ready-for-spec)` · `close-out` · `hand-off: in-user-review` · `intake: questions` · `intake: summary` · `intake: finalize` · `waiting on user: <which wait>` · `in progress` · `illegal state: <why>` · `locked: <phase> · <age>` · `blocked` |

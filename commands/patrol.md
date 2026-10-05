@@ -53,8 +53,8 @@ context, not yours.
 
 ## 2. The table is the only source
 
-The scanner's table (columns `issue · track · status · cr · unheard · verdict
-· evidence`, then the `inbox filter:` line) is the state of the loop for this
+The scanner's table (columns `issue · track · status · holder · cr · unheard ·
+verdict · evidence`, then the `inbox filter:` line) is the state of the loop for this
 pass. **Never re-read the forge to confirm a row** — no ISSUE-LIST, no
 CR-FIND, no channel listing in this command; the action you take on an issue
 reads what *it* needs (a `/roz-gate:review-answers` turn reads its CR). A row
@@ -140,8 +140,9 @@ workspace).
    `<details><summary>Evidence</summary>`.
 
 ### The async-intake action — the inbox's engine ((1b))
-For an open issue with no `track:` label. **Gate holder** = the issue's
-assignee (unassigned → the issue author, **if human**). A bot identity
+For an open issue with no `track:` label. **Gate holder** = the row's
+`holder` column — the issue's assignee (unassigned → the issue author, **if
+human**), read from the table, never re-listed. A bot identity
 (`bot_login`) never holds a gate: a bot-authored, unassigned issue has **no
 gate holder** — only the questions batch may be posted on it, and the
 report lists it in the user's queue as "needs an assignee". The thread is
