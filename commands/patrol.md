@@ -47,7 +47,10 @@ dispatches nothing itself) with, as its whole prompt:
 `${CLAUDE_PLUGIN_ROOT}/references/patrol-scan.md` (the scan and
 classification rules — this command does not repeat them), the forge
 adapter path (`${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md`), and the
-three local keys from `bin/roz-config --json`. The scanner is **read-only**
+three local keys from `bin/roz-config --json`, and the config block's
+`bot_login` list (normalized: `app/` prefix and `[bot]` suffix stripped;
+empty in user mode) so the scanner can tell a human holder from a bot. The
+scanner is **read-only**
 and returns the table the brief defines; everything it read stays in its
 context, not yours.
 

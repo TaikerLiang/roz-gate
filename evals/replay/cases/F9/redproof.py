@@ -131,6 +131,9 @@ def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=Tr
 SHAPES = [
     ("the good pass: table, act on #5, #6 untouched, #7 asked", True, {}),
     ("a row with the wrong verdict (#5 waiting on user)", False, {"table": BAD_TABLE}),
+    ("the good pass, #7 unassigned — holder is its author", True,
+     {"table": GOOD_TABLE.replace("| #7 Gift cards | — | — | paul |",
+                                  "| #7 Gift cards | — | — | paul (author; unassigned) |")}),
     ("the scanner wrote a label", False, {"scanner_write": True}),
     ("the main agent re-listed issues after the table", False, {"relist": True}),
     ("no scanner at all (the old in-context scan)", False, {"scanner": False}),
