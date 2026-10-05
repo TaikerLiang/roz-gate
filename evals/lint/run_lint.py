@@ -791,8 +791,8 @@ for _f, _hdr in _commit_points:
              _BRIEF in _win)
     c.expect("pattern", "L3: %s · %s pushes from the returned sha" % (_f, _hdr.strip()),
              "returned\n`sha`" in _win or "returned `sha`" in _win or "returned\nsha" in _win)
-_no_commit = sorted(set(f for f, _ in _commit_points)) + [
-    "commands/integrate.md", "commands/patrol.md", "commands/init.md", "commands/to-issues.md"]
+_no_commit = sorted(set(f for f, _ in _commit_points)
+                    | {"commands/integrate.md", "commands/init.md", "commands/to-issues.md"})
 for _f in _no_commit:
     _txt = read(_f)
     c.expect("pattern", "L3: %s carries no --no-verify rule of its own (the brief does)" % _f,
