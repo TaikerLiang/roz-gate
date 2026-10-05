@@ -127,6 +127,7 @@ text follows the experiment; the driver's citation was updated to match.
 | J1 | the judgment fixtures are frozen at T | lint (preventive) |
 | L1 | one stage map | lint (preventive) |
 | L2 | the local keys `roz-config` accepts are the ones the commands read and README documents | lint (defect 1.18.0) |
+| L3 | every commit a command makes goes through the commit sub-agent's brief | lint (preventive) |
 
 ## The judgment corpus
 

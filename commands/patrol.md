@@ -130,9 +130,16 @@ workspace).
    the fidelity-dispatch procedure** (next-stage.md B5b: marker on,
    dispatch, marker off — guard-blind denies any `src/` read or `feat/`
    action while it runs) (it may
-   decline a finding that lacks verbatim citations) — fix and/or reply,
-   push. Fast track: the main agent addresses its own CR's threads directly
+   decline a finding that lacks verbatim citations) — fix and/or reply.
+   Fast track: the main agent addresses its own CR's threads directly
    (it wrote the code; `implementer` is never dispatched onto `fast/<n>`).
+   Either way the seat never commits: commit through the **commit**
+   sub-agent — one dispatch per branch,
+   `${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the worktree
+   path, branch, files and message; it returns one `branch · sha · hook`
+   row and the pre-commit output stays out of your context — then push
+   from the returned `sha` (`no-verify:` → say so; `failed:` → STOP with
+   the excerpt).
 3. Dispatch `reviewer` to re-check the addressed threads and THREAD-RESOLVE
    those it is satisfied with; what stays open waits for the next round.
    Re-checks of QA-CR fidelity threads use a fresh implementation-blind
