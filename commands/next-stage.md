@@ -204,9 +204,13 @@ Base everything strictly on the issue body. Per the workflow's stage (2):
   - The why as **one italic line**.
 
 ### A4. Commit + push
-Commit the two spec docs on `spec/<n>` and push. If a pre-commit hook fails on
-something unrelated to the spec docs (e.g. lockfile drift), commit with
-`--no-verify` (these are docs-only) and say so.
+Dispatch the **commit** sub-agent (the plugin default `general-purpose`; it
+dispatches nothing itself) with, as its whole prompt,
+`${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the `spec/<n>` worktree
+path, the branch, the two spec docs and the commit message. It returns one
+`branch · sha · hook` row; the pre-commit output stays in its context, not
+yours. Push `spec/<n>` from the returned `sha`; a `no-verify:` row is said
+so in the report; a `failed:` row is a STOP with its excerpt in the report.
 
 ### A5. Open the CR
 CR-OPEN from `spec/<n>` targeting `<default_branch>`, title
@@ -338,8 +342,12 @@ Launch both at once (they never see each other):
   `<details><summary>Supplement — <what it holds></summary>` block.
 
 ### B4. Commit + push + open both CRs (target = the spec branch)
-- Commit each branch's files and push. Use `--no-verify` only for unrelated
-  pre-commit drift, and say so.
+- Commit each branch's files through the **commit** sub-agent — one dispatch
+  per branch, `${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus that
+  branch's worktree path, branch, files and message (the hook rules and the
+  `branch · sha · hook` return live in the brief, nowhere else) — then push
+  each from its returned `sha`. A `no-verify:` row is said so in the report;
+  a `failed:` row is a STOP with its excerpt in the report.
 - CR-OPEN for `feat/<n>` targeting `spec/<n>`, title `feat: implement #<n>`;
   CR-OPEN-DRAFT for `qa/<n>` targeting `spec/<n>`, title
   `test: #<n> black-box (QA)`. **Both target `spec/<n>`.**
@@ -445,6 +453,11 @@ Run the affected tests plus the existing suite (config `test`). The suite must
 stay green before opening the CR.
 
 ### C5. Commit + push + open the CR (target = default branch)
+Commit through the **commit** sub-agent —
+`${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the `fast/<n>` worktree
+path, branch, files and message; it returns one `branch · sha · hook` row and
+the pre-commit output stays out of your context. Push from the returned
+`sha` (`no-verify:` → say so; `failed:` → STOP with the excerpt). Then
 CR-OPEN from `fast/<n>` targeting `<default_branch>`, title
 `fast: #<n> <title>`, body ending `Closes #<n>`.
 

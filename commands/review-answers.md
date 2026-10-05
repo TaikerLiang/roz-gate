@@ -114,8 +114,10 @@ CR-VIEW first: not open → discard, write nothing, report what never landed (th
 user merged mid-turn; surviving items are a follow-up issue's business). Then,
 by change class:
 
-- **Doc or comment only** → commit and say so.
-- **Code** → commit, then the **hand-back rule**
+- **Doc or comment only** → commit (through the commit sub-agent, below) and
+  say so.
+- **Code** → commit (through the commit sub-agent, below), then the
+  **hand-back rule**
   (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md`): re-run config
   `acceptance_test` for the feature **and** config `test`, capture the output,
   and only then push. Red → the stage-(6) taxonomy (`commands/integrate.md`
@@ -141,7 +143,12 @@ One commit per turn, its message citing the comment(s) it answers — made in
 a **worktree of the CR's branch**
 (`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<branch> <branch>`
 after a `git fetch`, `${CLAUDE_PLUGIN_ROOT}/references/workflow.md` → The main
-agent → The workspace), where the hand-back rule's test runs also happen;
+agent → The workspace), where the hand-back rule's test runs also happen,
+and made by the **commit** sub-agent: one dispatch,
+`${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the worktree path,
+branch, files and message; it returns one `branch · sha · hook` row and the
+pre-commit output stays out of your context; you push from the returned
+`sha` (`no-verify:` → say so; `failed:` → stop and report the excerpt);
 `git worktree remove --force` it (then `git worktree prune`) when the turn
 ends, pushed or not. Then
 COMMENT-EDIT the gate-kit comment

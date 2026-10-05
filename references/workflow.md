@@ -272,7 +272,11 @@ itself — while a scheduled patrol fires and auto-invokes `next-stage`,
 working surface is a linked worktree**, never your checkout: it creates
 `$(git rev-parse --git-common-dir)/roz-gate/wt/<branch>` with `git worktree
 add` at its branch step, and every checkout, merge, commit, test run and
-seat dispatch happens inside it (`cd` there or `git -C`). It never runs
+seat dispatch happens inside it (`cd` there or `git -C`). The commit itself
+is made by the **commit sub-agent** (`references/commit-brief.md`) dispatched
+into that worktree — the target repo's pre-commit output lands in its
+context, never the main agent's, for the same reason patrol's scan is a
+sub-agent; the main agent pushes from the `sha` it returns. It never runs
 `git checkout`, `switch`, `reset`, `stash` or `merge` in your checkout, not
 even transiently; `git fetch` is the one git call it may make there, because
 a fetch touches no working tree. Nothing of the agent's work is visible in

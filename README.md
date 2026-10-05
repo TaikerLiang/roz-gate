@@ -480,7 +480,10 @@ work shaped like that, nothing about shapes never run.
   and test run in a linked worktree under `.git/roz-gate/wt/<branch>` and remove
   it on exit — so a scheduled patrol can fire while you are mid-edit on the
   default branch. A worktree left behind by a killed run: `git worktree list`,
-  then `git worktree remove --force <path>`.
+  then `git worktree remove --force <path>`. The commit in that worktree is
+  made by a **commit sub-agent** (`references/commit-brief.md`): your
+  pre-commit hooks' output lands in its context, not the main agent's, and
+  the main agent pushes from the SHA it returns.
 - **Stale `processing` + a phase label** — a run was killed mid-flight. Look at
   what the dead run left (the phase label says where), clear the lock, re-run;
   commands are idempotent on re-entry.

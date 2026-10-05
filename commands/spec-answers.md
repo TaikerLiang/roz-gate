@@ -125,11 +125,15 @@ Every fold above edits the spec **in a worktree of `spec/<n>`** —
 `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n> spec/<n>`
 before the first fold (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` → The
 main agent → The workspace); a refusal means another command holds the
-branch → the STOP exit. After processing, commit the spec changes there and
-push (so the CR reflects the resolutions). **Keep the worktree** through
+branch → the STOP exit. After processing, commit the spec changes there
+through the **commit** sub-agent — one dispatch,
+`${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the worktree path,
+`spec/<n>`, the spec files and the message; it returns one `branch · sha ·
+hook` row and the hook output stays out of your context — then push from
+the returned `sha` (so the CR reflects the resolutions; `no-verify:` → say
+so; `failed:` → STOP with the excerpt). **Keep the worktree** through
 step 7 — the post-integration re-entry runs the hand-back suites in it —
-and remove it at step 7's end. Use `--no-verify` only for unrelated hook failures,
-and say so.
+and remove it at step 7's end.
 
 ## 6b. Update the spec-gate kit
 COMMENT-EDIT the spec CR's gate-kit comment
