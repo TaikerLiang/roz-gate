@@ -2,6 +2,31 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.27.0 — every commit goes through a commit sub-agent; the scanner's table carries the gate holder — 2026-10-05
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.27.0>
+
+**Behavior:** every commit a command makes is now made by a **commit sub-agent** briefed by `references/commit-brief.md`; the target repo's pre-commit output stays out of the main agent's context. Push, CR, labels and the report stay with the main agent. The scanner's table also carries the gate holder, so patrol never lists issues after the table.
+
+### Behavior
+- **The commit brief** (#67, #70): `references/commit-brief.md` is the only home of the commit rules — stage → commit in the worktree the main agent names, no push / rebase / amend / forge op / dispatch; a hook failure on a committed file is fixed and retried once, unrelated drift is `--no-verify` with the reason recorded, anything else is `failed:` and stops; it returns one table `branch · sha · hook` (`clean` / `no-verify: <reason>` / `failed: <≤20 lines>`). `next-stage` A4/B4/C5, `spec-answers` §6, `review-answers` §6 and `patrol`'s address-review step dispatch it and push from the returned `sha`; the per-step `--no-verify` sentences are gone. Seats still never touch git. `integrate`'s merge commits stay with the main agent — conflict resolution is its judgment, and the brief is forbidden to merge.
+- **Scanner table carries the gate holder** (#68, from the v1.26.0 sweep's F9 run-3): the brief gains a `holder` column (assignees, else author, humans only); patrol's §2 list and the intake action read it from the row, so the main agent has no reason left to list issues after the table.
+
+### Evals
+- **Lint L3** (231 → 268): the brief carries every rule and literal; each of the six commit points names it and pushes from the returned `sha`; no command carries a `--no-verify` rule of its own or tells the main agent to run `git commit`; `workflow.md` and README name the sub-agent. Red-proofed by mutation, three ways, each one check red and back (recorded in the checker's commit message).
+- **Lint A8** holds the `holder` column in the brief and patrol's reads of it; **F9**'s red-proof table and checker carry the column.
+- **F9 checker** (#65, the v1.26.0 sweep's findings): the scanner's GraphQL THREADS-LIST is a read, not a write; a per-issue `gh pr list --head spec/<n>` after the table is one issue's CR-FIND, not a re-scan; "untouched" means labels as seeded, no comment, no branch, no CR. Harness red-proof 21 → 30, F9 red-proof 7 → 9. Rescored: run-1 PASS, run-2 a genuine FAIL.
+- **v1.26.0 opus baseline recorded** (#69): seven cases at k=5 on 2026-10-05 in `evals/README.md`'s baseline section.
+
+### Tooling
+- **Forge stub** (#65): two read-only routes — `gh api repos/o/r/git/ref/heads/<branch>` (answered from `git ls-remote --heads origin`, absent → 404) and `gh api repos/o/r/contents/<path>?ref=<branch>` (served from the sandbox's objects, absent → 404); writes and absent ids stay UNKNOWN.
+
+### Docs
+- README § Your checkout is never touched and its evidence paragraph, `workflow.md` workspace paragraph, LEDGER L3, evals README lint count 14 → 15 and the baseline section.
+
+### Checks
+Hook tests 130/130 · lint 268/268 · red-proofs 10/10
+
 ## v1.26.0 — three routes when the spec stage shows a gap; amendments; agents never delete or force-push a branch — 2026-10-04
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.26.0>
