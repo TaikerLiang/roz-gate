@@ -120,6 +120,22 @@ Wilson 90% [65%, 100%] each; checker commit `f5e106d`, before any run.
 Until these, every `next-stage` seed carried `default_branch: main` with
 only `main` on the remote, so the base had never been varied.
 
+**Replay, k=5, plugin v1.26.0 (2026-10-05) — the 1.20–1.26 cases:** A7
+(close-out) 5/5, C10 (re-spec STOP) 5/5, E6 (human-opened thread folded as
+an amendment) 5/5, F8 (the user's checkout untouched) 5/5, and the base-branch
+pair re-measured on the local-JSON seeds — F7 5/5, C7 5/5. **F9** (a pass
+acts from the scanner's table) **3/5**, Wilson 90% [27%, 86%]: runs 1, 4, 5
+pass; run-2 acted on a second loop issue and re-listed; run-3 re-listed
+twice — once for intake's gate holder, which the table did not carry (the
+`holder` column, 1.26.1), once to confirm labels for the report. Two
+residual deviations, then: "re-read the forge to confirm a row" (2/5) and,
+once, a second loop issue acted on in one pass (1/5). The sweep's
+harness findings — four read-only stub routes and three F9 checker shapes
+(a GraphQL THREADS-LIST is a read; a per-issue CR-FIND is allowed; a
+background-dispatched scanner hands its table back as a
+`task_notification`) — shipped with the sweep; runs 1 and 5 were rescored
+under the fixed checker and say so in their `result.json`.
+
 **Judgment, k=2 (opus judge, quote-verified, zero judge-invalid):**
 
 | fixture | recall | precision | questions | historical |
