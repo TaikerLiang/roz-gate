@@ -1,4 +1,4 @@
-"""bin/roz-config — the three per-person loop keys, in a throwaway repo.
+"""bin/roz-config — the four per-person loop keys, in a throwaway repo.
 
 Runtime like the hooks (stdlib, plain python3), so it lives in the runtime
 suite. Every case runs the real executable; nothing is imported.
@@ -60,7 +60,7 @@ class RozConfigTest(unittest.TestCase):
             self.set_origin_head("release/20261006")
             self.assertEqual(json.loads(self.run_tool("--json").stdout),
                              {"default_branch": "release/20261006",
-                              "inbox_label": [], "inbox_assignee": []})
+                              "inbox_label": [], "inbox_assignee": [], "helper_model": ""})
 
     # ---- writes ---------------------------------------------------------
     def test_set_replace_remove_default_branch(self):
@@ -97,11 +97,49 @@ class RozConfigTest(unittest.TestCase):
 
     def test_unknown_key_refused(self):
         with self.subTest(
-                'roz-config: an unknown key is refused and names the three'):
-            p = self.run_tool("patrol_model", "x")
+                'roz-config: an unknown key is refused and names the four'):
+            p = self.run_tool("model", "x")
             self.assertEqual(p.returncode, 2)
-            self.assertIn("default_branch, inbox_label, inbox_assignee", p.stderr)
+            self.assertIn("default_branch, inbox_label, inbox_assignee, helper_model", p.stderr)
             self.assertFalse((self.root / REL).exists())
+
+    # ---- helper_model: the scanner's and the commit sub-agent's model ------
+    def test_helper_model_set_show_json_remove(self):
+        with self.subTest(
+                'roz-config: helper_model set, shown, carried by --json, removed to runtime'):
+            p = self.run_tool()
+            self.assertIn("helper_model     -  (default: runtime)", p.stdout)
+            self.assertEqual(json.loads(self.run_tool("--json").stdout)["helper_model"], "")
+            p = self.run_tool("helper_model", "claude-haiku-4-5")
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(self.stored(), {"helper_model": "claude-haiku-4-5"})
+            self.assertIn("helper_model     claude-haiku-4-5", self.run_tool().stdout)
+            self.assertEqual(json.loads(self.run_tool("--json").stdout)["helper_model"],
+                             "claude-haiku-4-5")
+            p = self.run_tool("helper_model")
+            self.assertIn("removed the override", p.stdout)
+            self.assertEqual(self.stored(), {})
+            self.assertIn("(default: runtime)", self.run_tool().stdout)
+
+    def test_helper_model_takes_one_value(self):
+        with self.subTest(
+                'roz-config: helper_model refuses two values, writes nothing'):
+            p = self.run_tool("helper_model", "a", "b")
+            self.assertEqual(p.returncode, 2)
+            self.assertFalse((self.root / REL).exists())
+
+    def test_migrates_patrol_model_to_helper_model(self):
+        with self.subTest(
+                "roz-config: a block's patrol_model line seeds helper_model once and says so"):
+            (self.root / "CLAUDE.md").write_text(
+                "### Roz Gate config\n\n- forge: github\n- patrol_model: claude-sonnet-5\n\n"
+                "### Roz Gate personas\n")
+            p = self.run_tool("--json")
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertIn("patrol_model", p.stderr)
+            self.assertIn("helper_model", p.stderr)
+            self.assertEqual(json.loads(p.stdout)["helper_model"], "claude-sonnet-5")
+            self.assertEqual(self.stored(), {"helper_model": "claude-sonnet-5"})
 
     # ---- never committed, nothing else touched ----------------------------
     def test_excluded_and_repo_untouched(self):
@@ -143,7 +181,8 @@ class RozConfigTest(unittest.TestCase):
             self.assertIn("seeded", p.stderr)
             self.assertEqual(json.loads(p.stdout),
                              {"default_branch": "release/20261006",
-                              "inbox_label": ["discuss", "idea"], "inbox_assignee": ["paul"]})
+                              "inbox_label": ["discuss", "idea"], "inbox_assignee": ["paul"],
+                              "helper_model": ""})
             self.assertTrue((self.root / REL).exists())
             self.run_tool("default_branch")        # remove the override …
             p = self.run_tool("--json")

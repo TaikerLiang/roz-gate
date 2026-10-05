@@ -716,11 +716,14 @@ c.expect("pattern", "E4: reviewer-to-implementer settlement is forbidden explici
 #      README documents — a key settable but read nowhere is a silent no-op,
 #      a key read from the block is a team value pretending to be yours
 #                                                   (defect: 1.18.0-, #55)
+#      1.28.0 (#66): helper_model is the fourth key — the scanner's and the
+#      commit sub-agent's model; patrol_model (the block, patrol's seats) is
+#      retired and must survive nowhere in the prose.
 _tool = read("bin/roz-config")
 _m = re.search(r'^KEYS = \((.*?)\)$', _tool, re.M)
 _tool_keys = tuple(re.findall(r'"([a-z_]+)"', _m.group(1))) if _m else ()
-c.expect("pattern", "L2: bin/roz-config accepts exactly the three local keys",
-         _tool_keys == ("default_branch", "inbox_label", "inbox_assignee"))
+c.expect("pattern", "L2: bin/roz-config accepts exactly the four local keys",
+         _tool_keys == ("default_branch", "inbox_label", "inbox_assignee", "helper_model"))
 _readers = ("commands/patrol.md", "commands/next-stage.md", "commands/integrate.md",
             "commands/spec-answers.md", "commands/review-answers.md")
 for _f in _readers:
@@ -760,6 +763,23 @@ c.expect("pattern", "L2: the template has no default_branch line",
          "default_branch" not in read("templates/claude-workflow.md"))
 src("L2: GitHub ISSUE-LIST returns assignees (the inbox filter reads them)",
     "references/forge-github.md", "--json number,title,labels,assignees,author,createdAt")
+_pm = read("commands/patrol.md")
+_model = section(_pm, r"^\*\*Model\*\*", r"^$")
+c.expect("pattern", "L2: patrol's Model paragraph: helper_model is the scanner's and the "
+         "commit sub-agent's, from roz-config, never the seats'",
+         "`helper_model`" in _model and "scanner" in _model and "commit" in _model
+         and "roz-config" in _model and re.search(r"seats?\b.*runtime", _model, re.S) is not None)
+c.expect("pattern", "L2: patrol dispatches the scanner on helper_model",
+         "helper_model" in section(_pm, r"^## 1\. Dispatch the scanner", r"^## 2\. "))
+c.expect("pattern", "L2: README's block has no patrol_model line; the per-clone section has four",
+         "- patrol_model" not in read("README.md") and "Four keys are **yours" in read("README.md"))
+c.expect("pattern", "L2: patrol_model survives nowhere in the prose or the docs",
+         "patrol_model" not in dirs_text("commands", "references", "templates", "docs")
+         and "patrol_model" not in read("README.md"))
+c.expect("pattern", "L2: the onboarding builder offers helper_model as a per-clone key",
+         "helper_model" in read("docs/onboarding.html"))
+src("L2: roz-config seeds helper_model from an old patrol_model line", "bin/roz-config",
+    '"patrol_model"')
 
 # ---------------------------------------------------------------------------
 # L3 · every commit a command makes goes through the commit sub-agent's brief
@@ -769,7 +789,7 @@ src("L2: GitHub ISSUE-LIST returns assignees (the inbox filter reads them)",
 #      live once, in references/commit-brief.md; the commands dispatch it and
 #      push from the sha it returns.
 _cb = read("references/commit-brief.md")
-for _lit in ("No push, no rebase, no amend, no force", "**No dispatch.**",
+for _lit in ("No push, no rebase, no amend, no force", "**No dispatch.**", "`helper_model`",
              "retry **once**", "--no-verify", "`clean`", "`no-verify: <one\nline>`",
              "`failed: <≤20-line excerpt", "| branch | sha | hook |",
              "the main agent pushes"):
@@ -791,6 +811,8 @@ for _f, _hdr in _commit_points:
              _BRIEF in _win)
     c.expect("pattern", "L3: %s · %s pushes from the returned sha" % (_f, _hdr.strip()),
              "returned\n`sha`" in _win or "returned `sha`" in _win or "returned\nsha" in _win)
+    c.expect("pattern", "L3: %s · %s dispatches on helper_model when set" % (_f, _hdr.strip()),
+             "helper_model" in _win)
 _no_commit = sorted(set(f for f, _ in _commit_points)
                     | {"commands/integrate.md", "commands/init.md", "commands/to-issues.md"})
 for _f in _no_commit:
