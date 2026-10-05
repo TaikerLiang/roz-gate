@@ -20,14 +20,14 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(CASE))))
 GIT_ID = {"GIT_AUTHOR_NAME": "a", "GIT_AUTHOR_EMAIL": "a@a",
           "GIT_COMMITTER_NAME": "a", "GIT_COMMITTER_EMAIL": "a@a"}
 GOOD_TABLE = "\n".join([
-    "| issue | track | status | cr | unheard | verdict | evidence |",
-    "|---|---|---|---|---|---|---|",
-    "| #5 Offer expiry enforcement | spec | in-user-review | 101 open "
+    "| issue | track | status | holder | cr | unheard | verdict | evidence |",
+    "|---|---|---|---|---|---|---|---|",
+    "| #5 Offer expiry enforcement | spec | in-user-review | paul | 101 open "
     "| 1 (…/pull/101#issuecomment-800) | actionable: review-answers "
     "| latest top-level comment is the human's |",
-    "| #6 Bump the HTTP client to 3.2 | fast | ready-for-dev | none | 0 "
+    "| #6 Bump the HTTP client to 3.2 | fast | ready-for-dev | paul | none | 0 "
     "| actionable: next-stage (ready-for-dev) | gate label worn |",
-    "| #7 Gift cards | — | — | none | 0 | intake: questions | no **[intake]** batch yet |",
+    "| #7 Gift cards | — | — | paul | none | 0 | intake: questions | no **[intake]** batch yet |",
     "inbox filter: none · 0 track-less issues not in the inbox filter"])
 BAD_TABLE = GOOD_TABLE.replace("actionable: review-answers", "waiting on user: your answer")
 
@@ -161,6 +161,9 @@ SHAPES = [
     ("the good pass: table, act on #5, #6 untouched, #7 asked", True, {}),
     ("the good pass, scanner dispatched in the background", True, {"background": True}),
     ("a row with the wrong verdict (#5 waiting on user)", False, {"table": BAD_TABLE}),
+    ("the good pass, #7 unassigned — holder is its author", True,
+     {"table": GOOD_TABLE.replace("| #7 Gift cards | — | — | paul |",
+                                  "| #7 Gift cards | — | — | paul (author; unassigned) |")}),
     ("the scanner wrote a label", False, {"scanner_write": True}),
     ("the scanner sent a graphql mutation", False, {"scanner_mutation": True}),
     ("the main agent re-listed issues after the table", False, {"relist": True}),

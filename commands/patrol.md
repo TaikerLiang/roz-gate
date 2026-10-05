@@ -47,14 +47,17 @@ dispatches nothing itself) with, as its whole prompt:
 `${CLAUDE_PLUGIN_ROOT}/references/patrol-scan.md` (the scan and
 classification rules — this command does not repeat them), the forge
 adapter path (`${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md`), and the
-three local keys from `bin/roz-config --json`. The scanner is **read-only**
+three local keys from `bin/roz-config --json`, and the config block's
+`bot_login` list (normalized: `app/` prefix and `[bot]` suffix stripped;
+empty in user mode) so the scanner can tell a human holder from a bot. The
+scanner is **read-only**
 and returns the table the brief defines; everything it read stays in its
 context, not yours.
 
 ## 2. The table is the only source
 
-The scanner's table (columns `issue · track · status · cr · unheard · verdict
-· evidence`, then the `inbox filter:` line) is the state of the loop for this
+The scanner's table (columns `issue · track · status · holder · cr · unheard ·
+verdict · evidence`, then the `inbox filter:` line) is the state of the loop for this
 pass. **Never re-read the forge to confirm a row** — no ISSUE-LIST, no
 CR-FIND, no channel listing in this command; the action you take on an issue
 reads what *it* needs (a `/roz-gate:review-answers` turn reads its CR). A row
@@ -140,8 +143,9 @@ workspace).
    `<details><summary>Evidence</summary>`.
 
 ### The async-intake action — the inbox's engine ((1b))
-For an open issue with no `track:` label. **Gate holder** = the issue's
-assignee (unassigned → the issue author, **if human**). A bot identity
+For an open issue with no `track:` label. **Gate holder** = the row's
+`holder` column — the issue's assignee (unassigned → the issue author, **if
+human**), read from the table, never re-listed. A bot identity
 (`bot_login`) never holds a gate: a bot-authored, unassigned issue has **no
 gate holder** — only the questions batch may be posted on it, and the
 report lists it in the user's queue as "needs an assignee". The thread is

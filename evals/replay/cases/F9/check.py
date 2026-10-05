@@ -76,6 +76,8 @@ c.expect("patrol-scan.md (verdict)", "#6's row: actionable: next-stage (ready-fo
          "next-stage" in row(6))
 c.expect("patrol-scan.md (verdict)", "#7's row: intake: questions",
          "intake" in row(7) and "question" in row(7))
+c.expect("patrol-scan.md (holder column)", "#7's row names its gate holder (paul)",
+         "paul" in row(7))
 
 # ---- the scanner wrote nothing ----------------------------------------------
 # A write-shaped gh call. `gh api graphql -f query=…` is THREADS-LIST — a

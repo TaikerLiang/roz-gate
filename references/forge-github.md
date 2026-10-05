@@ -38,8 +38,8 @@ Two modes, set by `agent_identity` in the Roz Gate config (key absent →
 
 | Op | Command |
 |---|---|
-| ISSUE-LIST | `gh issue list --state open --json number,title,labels,assignees,createdAt` (add `--label "<label>"` to filter; `assignees` is what the inbox filter reads) |
-| ISSUE-VIEW | `gh issue view <n> --json title,body,labels,comments` |
+| ISSUE-LIST | `gh issue list --state open --json number,title,labels,assignees,author,createdAt` (add `--label "<label>"` to filter; `assignees` and `author` are what the inbox filter and the gate-holder fallback read; `assignees` is what the inbox filter reads) |
+| ISSUE-VIEW | `gh issue view <n> --json title,body,labels,assignees,author,comments` |
 | LABEL-ADD | `gh issue edit <n> --add-label "<label>"` |
 | LABEL-REMOVE | `gh issue edit <n> --remove-label "<label>"` |
 | ISSUE-COMMENT | `gh issue comment <n> --body "..."` |
