@@ -630,6 +630,134 @@ def main():
                        flag_val(argv, "--jq", "-q"))
             return
 
+        # ---- gh api repos/o/r/git/ref/heads/<branch> — does the branch
+        # exist on the remote, and at which SHA (1.26.0's A2 check, asked
+        # through the API instead of `git ls-remote`; F9 run-1 on the
+        # v1.26.0 sweep). The forge's branches ARE the sandbox's bare
+        # remote, so the answer comes from `git ls-remote origin` in the
+        # caller's cwd; an absent branch is GitHub's 404, journaled under
+        # the same route — a legitimate read of nothing, never UNKNOWN.
+        m_ref = re.match(r"/?repos/[^/]+/[^/]+/git/refs?/heads/(.+)$", target)
+        if m_ref and method == "GET":
+            branch = unquote(m_ref.group(1))
+            try:
+                ls = subprocess.run(["git", "ls-remote", "--heads", "origin",
+                                     "refs/heads/%s" % branch],
+                                    capture_output=True, text=True, timeout=10)
+                sha = ls.stdout.split()[0] if ls.returncode == 0 and ls.stdout.strip() else ""
+            except (OSError, subprocess.TimeoutExpired):
+                sha = ""
+            journal("git-ref", branch=branch, present=bool(sha))
+            if not sha:
+                sys.stderr.write("gh: Not Found (HTTP 404)\n{\"message\":\"Not Found\"}\n")
+                sys.exit(1)
+            jq_project({"ref": "refs/heads/%s" % branch, "node_id": "REF_x",
+                        "url": "https://api.github.com/repos/x/y/git/refs/heads/%s" % branch,
+                        "object": {"sha": sha, "type": "commit",
+                                   "url": "https://api.github.com/repos/x/y/git/commits/%s" % sha}},
+                       flag_val(argv, "--jq", "-q"))
+            return
+
+        # ---- gh api repos/o/r/contents/<path>?ref=<branch> — a file or a
+        # directory on a branch, read from the forge instead of a checkout
+        # (F9 run-3 on the v1.26.0 sweep: review-answers listing the spec
+        # dir on spec/5). Served from the sandbox's objects: `origin/<ref>`
+        # when the tracking ref exists, else the local branch; absent path
+        # or ref → GitHub's 404 under the same route. GET only.
+        m_ct = re.match(r"/?repos/[^/]+/[^/]+/contents/(.*)$", target)
+        if m_ct and method == "GET":
+            path_ = unquote(m_ct.group(1)).strip("/")
+            ref = query.get("ref") or "HEAD"
+            def _git(*a):
+                try:
+                    r_ = subprocess.run(["git", *a], capture_output=True, text=True, timeout=10)
+                except (OSError, subprocess.TimeoutExpired):
+                    return None
+                return r_.stdout if r_.returncode == 0 else None
+            rev = None
+            for cand in ("origin/%s" % ref, ref):
+                if _git("rev-parse", "--verify", "-q", cand + "^{commit}"):
+                    rev = cand
+                    break
+            listing = _git("ls-tree", rev, path_ if path_ else ".") if rev else None
+            journal("contents", ref=ref, path=path_, present=bool(listing and listing.strip()))
+            if not listing or not listing.strip():
+                sys.stderr.write("gh: Not Found (HTTP 404)\n{\"message\":\"Not Found\"}\n")
+                sys.exit(1)
+            rows = [ln.split(None, 3) for ln in listing.splitlines() if ln.strip()]
+            if len(rows) == 1 and rows[0][1] == "blob" and rows[0][3] == path_:
+                import base64
+                blob = _git("show", "%s:%s" % (rev, path_)) or ""
+                view = {"name": path_.rsplit("/", 1)[-1], "path": path_, "type": "file",
+                        "size": len(blob.encode("utf-8")), "encoding": "base64",
+                        "content": base64.b64encode(blob.encode("utf-8")).decode("ascii")}
+            else:
+                dir_rows = _git("ls-tree", rev, path_ + "/" if path_ else ".") or ""
+                view = [{"name": r4[3].rsplit("/", 1)[-1], "path": r4[3],
+                         "type": "dir" if r4[1] == "tree" else "file"}
+                        for r4 in (ln.split(None, 3) for ln in dir_rows.splitlines() if ln.strip())]
+            jq_project(view, flag_val(argv, "--jq", "-q"))
+            return
+
+        # ---- gh api repos/o/r/pulls/<n> — one PR, REST shape (F9 run-5 on
+        # the v1.26.0 sweep: `.head.sha` for the hand-back SHA). The twin of
+        # `gh pr view --json`; head.sha resolves from the sandbox's objects.
+        # An absent number is an absent id → UNKNOWN; non-GET stays UNKNOWN.
+        m_pr = re.match(r"/?repos/[^/]+/[^/]+/pulls/(\d+)$", target)
+        if m_pr and method == "GET":
+            n_, pr_ = pr_lookup(st, m_pr.group(1))
+            if n_ is None:
+                unknown("pr %s not in fixture" % m_pr.group(1))
+            journal("pr-view", pr=n_, via="api")
+            head_ref = pr_.get("headRefName", "")
+            sha = ""
+            for cand in ("origin/%s" % head_ref, head_ref):
+                try:
+                    rp = subprocess.run(["git", "rev-parse", "--verify", "-q", cand + "^{commit}"],
+                                        capture_output=True, text=True, timeout=10)
+                except (OSError, subprocess.TimeoutExpired):
+                    rp = None
+                if rp is not None and rp.returncode == 0:
+                    sha = rp.stdout.strip()
+                    break
+            pr_state = pr_.get("state", "OPEN").lower()
+            jq_project({"number": int(n_), "title": pr_.get("title", ""), "body": pr_.get("body", ""),
+                        "state": "open" if pr_state == "open" else "closed",
+                        "draft": pr_.get("isDraft", False),
+                        "merged_at": "2026-08-24T12:00:00Z" if pr_state == "merged" else None,
+                        "html_url": "https://github.com/x/y/pull/%s" % n_,
+                        "head": {"ref": head_ref, "sha": sha or "0" * 40},
+                        "base": {"ref": pr_.get("baseRefName", "")},
+                        "user": {"login": pr_.get("author", st.get("agent_login", "paul"))}},
+                       flag_val(argv, "--jq", "-q"))
+            return
+
+        # ---- gh api repos/o/r/commits/<ref> — the commit a ref points at
+        # (F9 run-5: `.sha` of spec/5). Resolved from the sandbox's objects;
+        # an unknown ref is GitHub's 422/404 under the same route. GET only.
+        m_cm = re.match(r"/?repos/[^/]+/[^/]+/commits/(.+)$", target)
+        if m_cm and method == "GET":
+            ref = unquote(m_cm.group(1))
+            sha = ""
+            for cand in ("origin/%s" % ref, ref):
+                try:
+                    rp = subprocess.run(["git", "rev-parse", "--verify", "-q", cand + "^{commit}"],
+                                        capture_output=True, text=True, timeout=10)
+                except (OSError, subprocess.TimeoutExpired):
+                    rp = None
+                if rp is not None and rp.returncode == 0:
+                    sha = rp.stdout.strip()
+                    break
+            journal("commit-view", ref=ref, present=bool(sha))
+            if not sha:
+                sys.stderr.write("gh: No commit found for SHA: %s (HTTP 422)\n" % ref)
+                sys.exit(1)
+            msg = subprocess.run(["git", "log", "-1", "--format=%s", sha],
+                                 capture_output=True, text=True).stdout.strip()
+            jq_project({"sha": sha, "html_url": "https://github.com/x/y/commit/%s" % sha,
+                        "commit": {"message": msg}}, flag_val(argv, "--jq", "-q"))
+            return
+
         # ---- gh api /apps/<slug>, /users/<login> — the bot's identity by
         # name (judgment k=2 on 1.17.0: a bot-mode SUT whose token mint
         # failed went hunting for its App ID). Read-only, keyed on

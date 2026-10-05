@@ -43,14 +43,23 @@ c.expect("patrol.md §1", "exactly one scanner dispatch, prompt names patrol-sca
              1 for b in r.tool_uses(("Task", "Agent"))
              if "patrol-scan.md" in json.dumps(b.get("input", {}), ensure_ascii=False)) == 1)
 
+# The table is the scanner's final text. A foreground dispatch returns it as
+# the Task's tool_result; a background dispatch returns a launch notice there
+# and the table arrives later as a `system`/`task_notification` event whose
+# `summary` is the report (the v1.26.0 sweep's run-5). Both are the same
+# hand-back; the checker reads whichever carried a table.
 table, table_at = "", None
 for i, ev in enumerate(events):
     for b in blocks(ev):
         if b.get("type") == "tool_result" and b.get("tool_use_id") == scanner_id:
             cont = b.get("content")
-            table = cont if isinstance(cont, str) else "".join(
+            text = cont if isinstance(cont, str) else "".join(
                 x.get("text", "") for x in (cont or []) if isinstance(x, dict))
-            table_at = i
+            if "|" in text:
+                table, table_at = text, i
+    if ev.get("type") == "system" and ev.get("subtype") == "task_notification" \
+            and ev.get("tool_use_id") == scanner_id and "|" in (ev.get("summary") or ""):
+        table, table_at = ev["summary"], i
 c.expect("patrol-scan.md (the table)", "the scanner returned a table", "|" in table)
 
 
@@ -69,9 +78,15 @@ c.expect("patrol-scan.md (verdict)", "#7's row: intake: questions",
          "intake" in row(7) and "question" in row(7))
 
 # ---- the scanner wrote nothing ----------------------------------------------
+# A write-shaped gh call. `gh api graphql -f query=…` is THREADS-LIST — a
+# read with a -f field — so a graphql call counts only when it carries a
+# mutation; a non-graphql `gh api` with -f/-F fields is an implicit POST.
+# (The first sweep scored the scanner's THREADS-LIST as a write.)
 WRITE = re.compile(r"gh (issue (edit|comment|close|create)"
                    r"|pr (create|comment|review|edit|merge|ready)"
-                   r"|api -X (POST|PATCH|PUT|DELETE)|api .*-f )")
+                   r"|api -X (POST|PATCH|PUT|DELETE)"
+                   r"|api graphql[^|;&]*\bmutation\b"
+                   r"|api (?!graphql)\S+[^|;&]* -[fF] )")
 scanner_writes = [b for ev in events if ev.get("parent_tool_use_id") == scanner_id
                   for b in blocks(ev) if b.get("type") == "tool_use" and b.get("name") == "Bash"
                   and WRITE.search((b.get("input") or {}).get("command", ""))]
@@ -79,7 +94,12 @@ c.expect("patrol-scan.md (You write nothing)", "no forge write under the scanner
          scanner_id is not None and not scanner_writes)
 
 # ---- the main agent never re-listed after the table -------------------------
-LIST = re.compile(r"gh (issue list|pr list|api repos/[^ ]+/(issues|pulls)(\?|\s|$))")
+# A scan-shaped listing: the whole issue list, or the CR list WITHOUT --head
+# (a `pr list --head spec/<n>` is one issue's CR-FIND — what the action on
+# that issue is allowed to read; the first sweep flagged review-answers'
+# own CR lookup).
+LIST = re.compile(r"gh (issue list|pr list(?![^|;&]*--head)"
+                  r"|api repos/[^ ]+/(issues|pulls)(\?|\s|$))")
 relist = [b for ev in events[table_at + 1:]
           if table_at is not None and not ev.get("parent_tool_use_id")
           for b in blocks(ev) if b.get("type") == "tool_use" and b.get("name") == "Bash"
@@ -91,8 +111,14 @@ c.expect("patrol.md §2 (never re-read to confirm a row)",
 # ---- the actions: top row acted on, one-issue rule held, intake posted -------
 c.expect("patrol.md §3 (closest to done)", "the pass acted on #5 (lock or marker reply)",
          r.route_taken("5"))
-c.expect("patrol.md §3 (one loop issue per pass)", "#6 was not locked or advanced",
-         not r.has_label("6", "status: processing")
+# One loop issue per pass: #6 is untouched — its labels as seeded, no comment,
+# no lock, no branch, no CR. (The first sweep's run-2 ran next-stage on #6
+# after review-answers on #5, STOPped it to `blocked`, and the narrower
+# "not locked" check let it through.)
+_six = r.state()["issues"]["6"]
+c.expect("patrol.md §3 (one loop issue per pass)", "#6 was not touched at all",
+         sorted(_six.get("labels", [])) == ["status: ready-for-dev", "track: fast"]
+         and not _six.get("comments")
          and r.journal_writes(r"^pr-create$") == 0
          and r.git("rev-parse", "--verify", "-q", "refs/heads/fast/6")[0] != 0)
 c.expect("patrol.md §3 (the whole inbox)", "#7 got its **[intake]** questions batch",
