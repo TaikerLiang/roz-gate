@@ -756,7 +756,7 @@ c.expect("pattern", "L2: /roz-gate:config splits inbox values on commas and quot
 c.expect("pattern", "L2: /roz-gate:config injects the tool's current values into the prompt",
          '!`python3 "${CLAUDE_PLUGIN_ROOT}/bin/roz-config"`' in _cfg)
 src("L2: roz-config migrates a pre-1.23 block once (upgrade path, codex review)",
-    "bin/roz-config", "def migrate(root, path):")
+    "bin/roz-config", "def migrate(root, path, stored):")
 src("L2: the template still carries the block (specs_dir)", "templates/claude-workflow.md",
     "- specs_dir:")
 c.expect("pattern", "L2: the template has no default_branch line",

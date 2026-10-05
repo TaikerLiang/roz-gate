@@ -100,19 +100,29 @@ def block_values(root):
     return found
 
 
-def migrate(root, path):
-    """No local file yet, but the block still carries the keys → seed once."""
-    if os.path.exists(path):
-        return {}
+def migrate(root, path, stored):
+    """The block still carries keys the local file has never held → seed once.
+
+    No local file: every block key seeds it (the 1.23 upgrade). A file that
+    exists but has never held `helper_model` (a 1.27 clone that set another
+    key) takes the block's `patrol_model` line once — and only that key: the
+    three others were seeded or deliberately left at their defaults when the
+    file was born. "Never held" is the key's absence; removing the override
+    stores "" (the default) rather than dropping the key, so a block line
+    that is still there cannot seed it again.
+    """
     found = block_values(root)
+    if os.path.exists(path):
+        found = {k: v for k, v in found.items() if k == "helper_model" and k not in stored}
     if not found:
-        return {}
-    write(root, path, found)
+        return stored
+    stored = dict(stored, **found)
+    write(root, path, stored)
     named = ", ".join("patrol_model → helper_model" if k == "helper_model" else k
                       for k in sorted(found))
     sys.stderr.write("roz-config: seeded %s from CLAUDE.md's config block (%s) — the block's "
                      "lines are now ignored; delete them when convenient\n" % (REL, named))
-    return found
+    return stored
 
 
 def write(root, path, stored):
@@ -183,7 +193,7 @@ def main(argv):
         return 0
     root = repo_root()
     path = os.path.join(root, REL)
-    stored = load(path) or migrate(root, path)
+    stored = migrate(root, path, load(path))
     if not argv or argv == ["--json"]:
         show(effective(stored), as_json=bool(argv))
         return 0
@@ -196,7 +206,10 @@ def main(argv):
         return 2
     values = [v for v in values if v.strip()]
     if not values:
-        stored.pop(key, None)
+        if key == "helper_model":
+            stored[key] = ""           # the tombstone: see migrate()
+        else:
+            stored.pop(key, None)
         action = "removed the override"
     else:
         stored[key] = values if key in LIST_KEYS else values[0]

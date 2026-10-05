@@ -118,8 +118,9 @@ class RozConfigTest(unittest.TestCase):
                              "claude-haiku-4-5")
             p = self.run_tool("helper_model")
             self.assertIn("removed the override", p.stdout)
-            self.assertEqual(self.stored(), {})
+            self.assertEqual(self.stored(), {"helper_model": ""}, "the tombstone, not a pop")
             self.assertIn("(default: runtime)", self.run_tool().stdout)
+            self.assertEqual(json.loads(self.run_tool("--json").stdout)["helper_model"], "")
 
     def test_helper_model_takes_one_value(self):
         with self.subTest(
@@ -140,6 +141,26 @@ class RozConfigTest(unittest.TestCase):
             self.assertIn("helper_model", p.stderr)
             self.assertEqual(json.loads(p.stdout)["helper_model"], "claude-sonnet-5")
             self.assertEqual(self.stored(), {"helper_model": "claude-sonnet-5"})
+
+    def test_migrates_patrol_model_into_an_existing_local_file(self):
+        with self.subTest(
+                "roz-config: a 1.27 clone with a local file takes the block's patrol_model "
+                "once; removing it is final (codex review, PR #73)"):
+            self.run_tool("inbox_label", "discuss")          # the file exists before the upgrade
+            (self.root / "CLAUDE.md").write_text(
+                "### Roz Gate config\n\n- forge: github\n- default_branch: release/1\n"
+                "- patrol_model: claude-sonnet-5\n")
+            p = self.run_tool("--json")
+            self.assertIn("patrol_model → helper_model", p.stderr)
+            self.assertEqual(self.stored(), {"inbox_label": ["discuss"],
+                                             "helper_model": "claude-sonnet-5"},
+                             "only the renamed key enters an existing file — never default_branch")
+            p = self.run_tool("--json")
+            self.assertEqual(p.stderr, "", "seeded once")
+            self.run_tool("helper_model")                    # the user removes the override …
+            p = self.run_tool("--json")
+            self.assertEqual(p.stderr, "", "… and the block line does not seed it again")
+            self.assertEqual(json.loads(p.stdout)["helper_model"], "")
 
     # ---- never committed, nothing else touched ----------------------------
     def test_excluded_and_repo_untouched(self):
