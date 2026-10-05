@@ -127,8 +127,9 @@ pair re-measured on the local-JSON seeds — F7 5/5, C7 5/5. **F9** (a pass
 acts from the scanner's table) **3/5**, Wilson 90% [27%, 86%]: runs 1, 4, 5
 pass; run-2 acted on a second loop issue and re-listed; run-3 re-listed
 twice — once for intake's gate holder, which the table did not carry (the
-`holder` column, 1.26.1), once to confirm labels for the report. The
-residual deviation is "re-read the forge to confirm a row". The sweep's
+`holder` column, 1.26.1), once to confirm labels for the report. Two
+residual deviations, then: "re-read the forge to confirm a row" (2/5) and,
+once, a second loop issue acted on in one pass (1/5). The sweep's
 harness findings — four read-only stub routes and three F9 checker shapes
 (a GraphQL THREADS-LIST is a read; a per-issue CR-FIND is allowed; a
 background-dispatched scanner hands its table back as a
