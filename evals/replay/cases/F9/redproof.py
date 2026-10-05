@@ -68,7 +68,8 @@ def tool_result(uid, text, parent=None):
     return ev
 
 
-def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_mutation=False):
+def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_mutation=False,
+               background=False):
     ev = []
     if scanner:
         ev.append(tool_use("Task", {"prompt": "…${CLAUDE_PLUGIN_ROOT}/references/patrol-scan.md…",
@@ -95,7 +96,13 @@ def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_m
                                                    "{ thread { isResolved } } }'"},
                                "t_s4", parent="t_scan"))
             ev.append(tool_result("t_s4", "{}", parent="t_scan"))
-        ev.append(tool_result("t_scan", table))
+        if background:
+            # the launch notice in the tool_result, the table in a later notification
+            ev.append(tool_result("t_scan", "Async agent launched successfully. agentId: a1"))
+            ev.append({"type": "system", "subtype": "task_notification", "task_id": "a1",
+                       "tool_use_id": "t_scan", "status": "completed", "summary": table})
+        else:
+            ev.append(tool_result("t_scan", table))
     if relist:
         ev.append(tool_use("Bash", {"command": "gh issue list --state open --json number,labels"},
                            "t_m0"))
@@ -115,7 +122,8 @@ def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_m
 
 
 def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=True,
-              lock6=False, intake7=True, scanner_mutation=False, block6=False):
+              lock6=False, intake7=True, scanner_mutation=False, block6=False,
+              background=False):
     run = os.path.join(tmp, "run")
     shutil.rmtree(run, ignore_errors=True)
     os.makedirs(os.path.join(run, "forge"))
@@ -142,7 +150,7 @@ def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=Tr
         for e in journal:
             f.write(json.dumps(e) + "\n")
     with open(os.path.join(run, "transcript.jsonl"), "w", encoding="utf-8") as f:
-        for e in transcript(table, scanner_write, relist, scanner, scanner_mutation):
+        for e in transcript(table, scanner_write, relist, scanner, scanner_mutation, background):
             f.write(json.dumps(e, ensure_ascii=False) + "\n")
     env = dict(os.environ, RUN_DIR=run, BARE=bare)
     return subprocess.run([sys.executable, os.path.join(CASE, "check.py")], env=env,
@@ -151,6 +159,7 @@ def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=Tr
 
 SHAPES = [
     ("the good pass: table, act on #5, #6 untouched, #7 asked", True, {}),
+    ("the good pass, scanner dispatched in the background", True, {"background": True}),
     ("a row with the wrong verdict (#5 waiting on user)", False, {"table": BAD_TABLE}),
     ("the scanner wrote a label", False, {"scanner_write": True}),
     ("the scanner sent a graphql mutation", False, {"scanner_mutation": True}),

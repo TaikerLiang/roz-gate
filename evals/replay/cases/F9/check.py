@@ -43,14 +43,23 @@ c.expect("patrol.md §1", "exactly one scanner dispatch, prompt names patrol-sca
              1 for b in r.tool_uses(("Task", "Agent"))
              if "patrol-scan.md" in json.dumps(b.get("input", {}), ensure_ascii=False)) == 1)
 
+# The table is the scanner's final text. A foreground dispatch returns it as
+# the Task's tool_result; a background dispatch returns a launch notice there
+# and the table arrives later as a `system`/`task_notification` event whose
+# `summary` is the report (the v1.26.0 sweep's run-5). Both are the same
+# hand-back; the checker reads whichever carried a table.
 table, table_at = "", None
 for i, ev in enumerate(events):
     for b in blocks(ev):
         if b.get("type") == "tool_result" and b.get("tool_use_id") == scanner_id:
             cont = b.get("content")
-            table = cont if isinstance(cont, str) else "".join(
+            text = cont if isinstance(cont, str) else "".join(
                 x.get("text", "") for x in (cont or []) if isinstance(x, dict))
-            table_at = i
+            if "|" in text:
+                table, table_at = text, i
+    if ev.get("type") == "system" and ev.get("subtype") == "task_notification" \
+            and ev.get("tool_use_id") == scanner_id and "|" in (ev.get("summary") or ""):
+        table, table_at = ev["summary"], i
 c.expect("patrol-scan.md (the table)", "the scanner returned a table", "|" in table)
 
 
