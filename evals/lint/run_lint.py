@@ -780,6 +780,7 @@ _commit_points = (
     ("commands/next-stage.md", "### C5. Commit + push + open the CR"),
     ("commands/spec-answers.md", "## 6. Commit the spec edits"),
     ("commands/review-answers.md", "One commit per turn"),
+    ("commands/patrol.md", "2. Spec track: implementation CR threads"),
 )
 _BRIEF = "${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md"
 for _f, _hdr in _commit_points:
