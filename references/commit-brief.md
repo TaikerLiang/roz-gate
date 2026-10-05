@@ -8,7 +8,9 @@ opens the CR and reports from that table alone. This file is the **only**
 home of the commit rules — the commands do not repeat them. The reason is
 context: a target repo's pre-commit hooks (formatters, linters, test runs)
 can print pages, and every page lands in whoever ran `git commit`. That is
-you, not the main agent.
+you, not the main agent. The work is mechanical, so the main agent
+dispatches you on `helper_model` (`bin/roz-config --json`) when it is set;
+absent → the runtime's default.
 
 ## You commit, nothing else
 

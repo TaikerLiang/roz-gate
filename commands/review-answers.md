@@ -144,7 +144,7 @@ a **worktree of the CR's branch**
 (`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<branch> <branch>`
 after a `git fetch`, `${CLAUDE_PLUGIN_ROOT}/references/workflow.md` → The main
 agent → The workspace), where the hand-back rule's test runs also happen,
-and made by the **commit** sub-agent: one dispatch,
+and made by the **commit** sub-agent: one dispatch, on `helper_model` when set,
 `${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the worktree path,
 branch, files and message; it returns one `branch · sha · hook` row and the
 pre-commit output stays out of your context; you push from the returned

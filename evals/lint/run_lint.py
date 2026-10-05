@@ -768,7 +768,8 @@ _model = section(_pm, r"^\*\*Model\*\*", r"^$")
 c.expect("pattern", "L2: patrol's Model paragraph: helper_model is the scanner's and the "
          "commit sub-agent's, from roz-config, never the seats'",
          "`helper_model`" in _model and "scanner" in _model and "commit" in _model
-         and "roz-config" in _model and re.search(r"seats?\b.*runtime", _model, re.S) is not None)
+         and "roz-config" in _model
+         and re.search(r"seats?\b.*runtime", _model, re.S | re.I) is not None)
 c.expect("pattern", "L2: patrol dispatches the scanner on helper_model",
          "helper_model" in section(_pm, r"^## 1\. Dispatch the scanner", r"^## 2\. "))
 c.expect("pattern", "L2: README's block has no patrol_model line; the per-clone section has four",
