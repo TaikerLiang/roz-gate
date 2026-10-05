@@ -126,7 +126,7 @@ Every fold above edits the spec **in a worktree of `spec/<n>`** —
 before the first fold (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` → The
 main agent → The workspace); a refusal means another command holds the
 branch → the STOP exit. After processing, commit the spec changes there
-through the **commit** sub-agent — one dispatch,
+through the **commit** sub-agent — one dispatch, on `helper_model` when set,
 `${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the worktree path,
 `spec/<n>`, the spec files and the message; it returns one `branch · sha ·
 hook` row and the hook output stays out of your context — then push from

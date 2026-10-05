@@ -236,9 +236,9 @@
 
 <!-- ───────────────────────── 3 configure ───────────────────────── -->
 <section id="config"><div class="wrap">
-  <h2><span class="no">3</span><span class="en">Configure — the team's block, and your own three keys</span><span class="zh">設定——團隊的 block,和你自己的三個 key</span></h2>
-  <p class="sub en">What the loop knows about the <b>project</b> is one block in CLAUDE.md, written by <code>init</code> and committed. Three keys are <b>yours</b> instead — per person, per clone, never committed: the base branch and the inbox filter. You set them from a menu: <code>/roz-gate:config</code> — the write is a small Python tool's, never the model's. Play with the knobs: the block on the right is what lands in your file; the commands under it are your local keys.</p>
-  <p class="sub zh">loop 對<b>專案</b>知道的一切,是 CLAUDE.md 裡由 <code>init</code> 寫入、進版控的一個 block。另外三個 key 是<b>你自己的</b>——每人每個 clone 一份、永不 commit:基底分支與 inbox 篩選。用選單設定:<code>/roz-gate:config</code>——寫入由一支小 Python 工具完成,不是模型。試試這些開關:右邊的 block 是會寫進檔案的內容,下面的指令則是你的本地 key。</p>
+  <h2><span class="no">3</span><span class="en">Configure — the team's block, and your own four keys</span><span class="zh">設定——團隊的 block,和你自己的四個 key</span></h2>
+  <p class="sub en">What the loop knows about the <b>project</b> is one block in CLAUDE.md, written by <code>init</code> and committed. Four keys are <b>yours</b> instead — per person, per clone, never committed: the base branch, the inbox filter and the helper model. You set them from a menu: <code>/roz-gate:config</code> — the write is a small Python tool's, never the model's. Play with the knobs: the block on the right is what lands in your file; the commands under it are your local keys.</p>
+  <p class="sub zh">loop 對<b>專案</b>知道的一切,是 CLAUDE.md 裡由 <code>init</code> 寫入、進版控的一個 block。另外四個 key 是<b>你自己的</b>——每人每個 clone 一份、永不 commit:基底分支、inbox 篩選與 helper model。用選單設定:<code>/roz-gate:config</code>——寫入由一支小 Python 工具完成,不是模型。試試這些開關:右邊的 block 是會寫進檔案的內容,下面的指令則是你的本地 key。</p>
   <div class="two">
     <div class="panel">
       <div class="form" id="cfgform">
@@ -264,8 +264,6 @@
         <div class="hint"><span class="en"><b>user</b>: agents act as your <code>gh</code> session — zero setup, but your own account's comments never notify you. <b>bot</b>: a GitHub App / GitLab project token; your phone rings, and a bot never holds a gate.</span><span class="zh"><b>user</b>:agents 用你的 <code>gh</code> session——零設定,但自己帳號的留言不會通知你。<b>bot</b>:GitHub App / GitLab project token;手機會響,而且 bot 永遠不持有 gate。</span></div>
         <label>bot_login</label><input id="f_bot" placeholder="roz-gatekeeper" disabled>
         <label>operator</label><input id="f_op" placeholder="your-login" disabled>
-        <label>patrol_model</label><input id="f_model" placeholder="claude-sonnet-5">
-        <div class="hint"><span class="en">The model patrol dispatches its seats with — not the model patrol itself runs on.</span><span class="zh">patrol 派工時 seats 用的 model——不是 patrol 自己跑的 model。</span></div>
 
         <h4><span class="en">Yours — per clone, never committed (/roz-gate:config)</span><span class="zh">你的——每個 clone 一份、永不 commit(/roz-gate:config)</span></h4>
         <label>default_branch</label><input id="f_branch" placeholder="main (remote HEAD)">
@@ -274,6 +272,8 @@
         <div class="hint"><span class="en">Inbox filter, comma-separated (a label may contain spaces): only track-less issues carrying <b>any</b> of these labels are triaged — the rest of the tracker is a backlog patrol only counts. Empty = no filter.</span><span class="zh">inbox 篩選,逗號分隔(label 可含空白):只有帶<b>任一</b>這些 label 的 track-less issue 會被 triage——其他只是 backlog,patrol 只計數。空 = 不篩。</span></div>
         <label>inbox_assignee</label><input id="f_iassg" placeholder="your-login">
         <div class="hint"><span class="en">Same, by assignee login. Both set = both must hold.</span><span class="zh">同上,以 assignee 登入名篩。兩個都設 = 兩個都要符合。</span></div>
+        <label>helper_model</label><input id="f_model" placeholder="claude-haiku-4-5">
+        <div class="hint"><span class="en">The model for the two mechanical sub-agents — patrol's scanner and every command's commit sub-agent. Basic work; a cheaper model does it. Seats always run on the runtime default; so does the command itself.</span><span class="zh">兩個機械性 sub-agent 用的 model——patrol 的 scanner,與每個命令的 commit sub-agent。基本工作,便宜的 model 就夠。Seats 一律用 runtime 預設;命令本身也是。</span></div>
       </div>
     </div>
     <div>
@@ -529,12 +529,12 @@ const OPT = [
   ['agent_identity', () => seg.ident==='bot' ? 'bot' : ''],
   ['bot_login',      () => seg.ident==='bot' ? $('f_bot').value.trim() : ''],
   ['operator',       () => seg.ident==='bot' ? $('f_op').value.trim() : ''],
-  ['patrol_model',   () => $('f_model').value.trim()],
 ];
 const LOCAL = [
   ['default_branch',  () => $('f_branch').value.trim()],
   ['inbox_label',     () => $('f_ilabel').value.trim()],
   ['inbox_assignee',  () => $('f_iassg').value.trim()],
+  ['helper_model',    () => $('f_model').value.trim()],
 ];
 function renderCfg(){
   if(!cfgReady) return;

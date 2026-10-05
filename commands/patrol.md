@@ -17,12 +17,15 @@ report. **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee` are
 per clone, never in the block: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`
 and use its values (`.claude/roz-gate.local.json`, defaults resolved — the
 remote's HEAD branch, empty lists). The report names the
-effective values of the three.
+effective values of the four.
 
-**Model**: `patrol_model` in the config block, when present, is the model
-every seat dispatched from this command runs on (`product` for async intake,
-`implementer` for address-review); absent → the runtime's default. It never
-changes the model this command itself runs on — that is the session's.
+**Model**: `helper_model` from `bin/roz-config --json`, when set, is the
+model the two mechanical sub-agents run on — the **scanner** (§1) and the
+**commit** sub-agent (address-review, step 2 below) — basic work that a
+cheaper model does; absent (`""`) → the runtime's default. Seats (`product`,
+`implementer`, `reviewer`) always run on the runtime default: no key
+configures them. It never changes the model this command itself runs on —
+that is the session's.
 
 **Personas**: every role dispatch below (`product`, `implementer`,
 `reviewer`) resolves through the `### Roz Gate personas` block — dispatch the
@@ -42,12 +45,13 @@ stamp means no re-init is needed, whatever the plugin version.
 
 ## 1. Dispatch the scanner — read state through one sub-agent
 
-Dispatch **one** sub-agent (the plugin default `general-purpose`; it
-dispatches nothing itself) with, as its whole prompt:
+Dispatch **one** sub-agent (the plugin default `general-purpose`, on
+`helper_model` when set; it dispatches nothing itself) with, as its whole prompt:
 `${CLAUDE_PLUGIN_ROOT}/references/patrol-scan.md` (the scan and
 classification rules — this command does not repeat them), the forge
 adapter path (`${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md`), and the
-three local keys from `bin/roz-config --json`, and the config block's
+local keys from `bin/roz-config --json` (`helper_model` is the dispatch's
+model, not a value the scanner reads), and the config block's
 `bot_login` list (normalized: `app/` prefix and `[bot]` suffix stripped;
 empty in user mode) so the scanner can tell a human holder from a bot. The
 scanner is **read-only**
@@ -134,7 +138,7 @@ workspace).
    Fast track: the main agent addresses its own CR's threads directly
    (it wrote the code; `implementer` is never dispatched onto `fast/<n>`).
    Either way the seat never commits: commit through the **commit**
-   sub-agent — one dispatch per branch,
+   sub-agent — one dispatch per branch, on `helper_model` when set,
    `${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the worktree
    path, branch, files and message; it returns one `branch · sha · hook`
    row and the pre-commit output stays out of your context — then push

@@ -160,7 +160,7 @@ cannot authorize it.
 | `/roz-gate:spec-answers [n]` | fold your answers on spec-CR threads back into the spec, resolve the threads |
 | `/roz-gate:integrate [n]` | run the stage-(6) verdict: merge locally, run the acceptance suite, classify red, finalize green |
 | `/roz-gate:review-answers [n]` | host one turn of your stage-(7) review: answer your CR comments from the artifacts, dispatch a seat when judgment is needed, change only what you confirm |
-| `/roz-gate:config` | set one of your three loop keys — the base branch, the inbox label list, the inbox assignee list — from a menu; the write is `bin/roz-config`'s, per clone, never committed |
+| `/roz-gate:config` | set one of your four loop keys — the base branch, the inbox label list, the inbox assignee list, the helper model — from a menu; the write is `bin/roz-config`'s, per clone, never committed |
 | `/roz-gate:patrol` | one supervisory pass: a read-only scanner sub-agent classifies every open issue into one table (the main agent's context never holds the forge reads); the main agent invokes whichever command the table authorizes, triages the inbox, reports what waits on you |
 | `/roz-gate:uninit` | retire the loop from this repo: verify nothing is in flight, remove the scaffolding `init` installed, keep every work product — run before `/plugin uninstall` |
 
@@ -320,10 +320,9 @@ command reads it before acting:
 - agent_identity: bot            # optional — see "Agent identity"; absent = user
 - bot_login: <bot username>      # optional
 - operator: <your forge login>   # optional
-- patrol_model: <model id>       # optional — model for the seats patrol dispatches; absent = runtime default
 ```
 
-Three keys are **yours, per clone** — never in the block, never committed.
+Four keys are **yours, per clone** — never in the block, never committed.
 `/roz-gate:config` shows them and sets one from a menu; with arguments it
 skips the menu. The prompt is only the menu: the write is done by the
 plugin's `bin/roz-config`, a stdlib Python tool, never by the model.
@@ -333,6 +332,7 @@ plugin's `bin/roz-config`, a stdlib Python tool, never by the model.
 /roz-gate:config default_branch release/20261006  # the loop's base; default = the remote's HEAD
 /roz-gate:config inbox_label discuss, idea        # inbox filter: any of these labels, comma-separated (default: none)
 /roz-gate:config inbox_assignee <login>           # inbox filter: any of these logins (default: none)
+/roz-gate:config helper_model <model id>          # patrol's scanner and every command's commit sub-agent (default: the runtime's; seats are never configured)
 /roz-gate:config inbox_label                      # no value = back to the default
 ```
 

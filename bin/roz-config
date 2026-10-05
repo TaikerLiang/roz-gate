@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""roz-config — the three loop keys that are yours, per repo, never committed.
+"""roz-config — the four loop keys that are yours, per repo, never committed.
 
     roz-config                                  # effective values, (default) marked
     roz-config --json                           # the same as JSON (what commands read)
     roz-config default_branch release/20261006  # set
     roz-config inbox_label discuss idea         # set a list (any of these labels)
     roz-config inbox_assignee TaikerLiang       # set a list (any of these logins)
+    roz-config helper_model claude-haiku-4-5    # the scanner's and the commit sub-agent's model
     roz-config inbox_label                      # no value: remove the override
 
 Stored in `.claude/roz-gate.local.json` at the repository root — one file per
@@ -16,12 +17,15 @@ discuss`) or from any shell.
 
 Defaults when a key is absent: `default_branch` is the remote's HEAD branch
 (`refs/remotes/origin/HEAD`; `main` when the remote has no HEAD), the inbox
-keys are empty lists — no filter.
+keys are empty lists — no filter, `helper_model` is empty — the runtime's
+default model for patrol's scanner and every command's commit sub-agent
+(seats are never model-configured).
 
 Upgrade (pre-1.23 repos kept these keys in CLAUDE.md's `### Roz Gate config`
-block): the first run that finds no local file seeds it from those lines —
-once, said so on stderr — so a configured base or inbox filter survives the
-upgrade; the block is ignored from then on. Stdlib only, Python 3.9-compatible, like
+block; pre-1.28 ones kept `patrol_model` there): the first run that finds no
+local file seeds it from those lines — once, said so on stderr; a
+`patrol_model` line becomes `helper_model` — so a configured base, inbox
+filter or model survives the upgrade; the block is ignored from then on. Stdlib only, Python 3.9-compatible, like
 the hooks: nothing here may depend on uv or a virtualenv.
 """
 
@@ -31,7 +35,8 @@ import re
 import subprocess
 import sys
 
-KEYS = ("default_branch", "inbox_label", "inbox_assignee")
+KEYS = ("default_branch", "inbox_label", "inbox_assignee", "helper_model")
+RENAMED = {"patrol_model": "helper_model"}   # pre-1.28 block line → local key
 LIST_KEYS = ("inbox_label", "inbox_assignee")
 REL = ".claude/roz-gate.local.json"
 USAGE = __doc__.split("\n\n")[1]
@@ -76,7 +81,7 @@ def load(path):
 
 
 def block_values(root):
-    """The three keys as a pre-1.23 CLAUDE.md block carried them, if any."""
+    """The keys as a pre-1.23 (or pre-1.28 `patrol_model`) block carried them, if any."""
     found = {}
     for name in ("CLAUDE.md", "CLAUDE.local.md"):
         try:
@@ -88,25 +93,36 @@ def block_values(root):
         if not m:
             continue
         for line in m.group(1).splitlines():
-            lm = re.match(r"^- (%s):\s*(.*?)\s*$" % "|".join(KEYS), line)
-            if lm and lm.group(2) and lm.group(1) not in found:
-                k, v = lm.group(1), lm.group(2)
+            lm = re.match(r"^- (%s):\s*(.*?)\s*$" % "|".join(KEYS + tuple(RENAMED)), line)
+            if lm and lm.group(2) and RENAMED.get(lm.group(1), lm.group(1)) not in found:
+                k, v = RENAMED.get(lm.group(1), lm.group(1)), lm.group(2)
                 found[k] = [x.strip() for x in v.split(",") if x.strip()] if k in LIST_KEYS else v
     return found
 
 
-def migrate(root, path):
-    """No local file yet, but the block still carries the keys → seed once."""
-    if os.path.exists(path):
-        return {}
+def migrate(root, path, stored):
+    """The block still carries keys the local file has never held → seed once.
+
+    No local file: every block key seeds it (the 1.23 upgrade). A file that
+    exists but has never held `helper_model` (a 1.27 clone that set another
+    key) takes the block's `patrol_model` line once — and only that key: the
+    three others were seeded or deliberately left at their defaults when the
+    file was born. "Never held" is the key's absence; removing the override
+    stores "" (the default) rather than dropping the key, so a block line
+    that is still there cannot seed it again.
+    """
     found = block_values(root)
+    if os.path.exists(path):
+        found = {k: v for k, v in found.items() if k == "helper_model" and k not in stored}
     if not found:
-        return {}
-    write(root, path, found)
+        return stored
+    stored = dict(stored, **found)
+    write(root, path, stored)
+    named = ", ".join("patrol_model → helper_model" if k == "helper_model" else k
+                      for k in sorted(found))
     sys.stderr.write("roz-config: seeded %s from CLAUDE.md's config block (%s) — the block's "
-                     "lines are now ignored; delete them when convenient\n"
-                     % (REL, ", ".join(sorted(found))))
-    return found
+                     "lines are now ignored; delete them when convenient\n" % (REL, named))
+    return stored
 
 
 def write(root, path, stored):
@@ -127,6 +143,8 @@ def effective(stored):
                 else (str(v), False)
         elif k in LIST_KEYS:
             out[k] = ([], True)
+        elif k == "helper_model":
+            out[k] = ("", True)
         else:
             out[k] = (default_branch()[0], True)
     return out
@@ -163,7 +181,8 @@ def show(eff, as_json):
         shown = " ".join(v) if isinstance(v, list) else v
         note = ""
         if dflt:
-            note = "  (default: no filter)" if k in LIST_KEYS else (
+            note = "  (default: no filter)" if k in LIST_KEYS else "  (default: runtime)" \
+                if k == "helper_model" else (
                 "  (default: origin/HEAD)" if has_head else "  (default: origin/HEAD unset, assuming main)")
         print("%-16s %s%s" % (k, shown or "-", note))
 
@@ -174,7 +193,7 @@ def main(argv):
         return 0
     root = repo_root()
     path = os.path.join(root, REL)
-    stored = load(path) or migrate(root, path)
+    stored = migrate(root, path, load(path))
     if not argv or argv == ["--json"]:
         show(effective(stored), as_json=bool(argv))
         return 0
@@ -187,7 +206,10 @@ def main(argv):
         return 2
     values = [v for v in values if v.strip()]
     if not values:
-        stored.pop(key, None)
+        if key == "helper_model":
+            stored[key] = ""           # the tombstone: see migrate()
+        else:
+            stored.pop(key, None)
         action = "removed the override"
     else:
         stored[key] = values if key in LIST_KEYS else values[0]

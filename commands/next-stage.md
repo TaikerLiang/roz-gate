@@ -204,8 +204,9 @@ Base everything strictly on the issue body. Per the workflow's stage (2):
   - The why as **one italic line**.
 
 ### A4. Commit + push
-Dispatch the **commit** sub-agent (the plugin default `general-purpose`; it
-dispatches nothing itself) with, as its whole prompt,
+Dispatch the **commit** sub-agent (the plugin default `general-purpose`, on
+`helper_model` from `bin/roz-config --json` when set; it dispatches nothing
+itself) with, as its whole prompt,
 `${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the `spec/<n>` worktree
 path, the branch, the two spec docs and the commit message. It returns one
 `branch · sha · hook` row; the pre-commit output stays in its context, not
@@ -343,7 +344,8 @@ Launch both at once (they never see each other):
 
 ### B4. Commit + push + open both CRs (target = the spec branch)
 - Commit each branch's files through the **commit** sub-agent — one dispatch
-  per branch, `${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus that
+  per branch, on `helper_model` when set,
+  `${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus that
   branch's worktree path, branch, files and message (the hook rules and the
   `branch · sha · hook` return live in the brief, nowhere else) — then push
   each from its returned `sha`. A `no-verify:` row is said so in the report;
@@ -453,7 +455,7 @@ Run the affected tests plus the existing suite (config `test`). The suite must
 stay green before opening the CR.
 
 ### C5. Commit + push + open the CR (target = default branch)
-Commit through the **commit** sub-agent —
+Commit through the **commit** sub-agent, on `helper_model` when set —
 `${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the `fast/<n>` worktree
 path, branch, files and message; it returns one `branch · sha · hook` row and
 the pre-commit output stays out of your context. Push from the returned
