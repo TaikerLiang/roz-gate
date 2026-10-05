@@ -454,7 +454,8 @@ The release gate runs lint and the hook unit tests on every push. The opus
 baseline as of 2026-09-21: replay 17/18 cases at 100% (k=5), F6 no
 in-session decay across three 12-turn sessions; judgment at k=2, F-63 recall
 1/2 · precision 1/2 against the historical run's 2/2 · 0/2. A later baseline,
-2026-10-03: the two base-branch cases added in 1.19.0 (C7, F7) at 5/5 each. Every case
+2026-10-03: the two base-branch cases added in 1.19.0 (C7, F7) at 5/5 each;
+2026-10-05, v1.26.0: A7, C10, E6, F8, F7, C7 at 5/5, F9 (the scanner pass) 3/5. Every case
 derives from one repository and one operator — green proves no regression on
 work shaped like that, nothing about shapes never run.
 
