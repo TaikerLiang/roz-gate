@@ -201,16 +201,21 @@ label.
    merged (a post-green shape), the next step reads: clear `blocked` —
    patrol re-verdicts on its next pass, or run `/roz-gate:integrate <n>`.
    **The cap STOP** (`fix_rounds` spent, still red) has a fixed shape. The
-   must-read: the cap was reached (*N of N rounds*); the **pattern** line —
-   *N rounds · class · file* ("4 harness issues in a row, all in
-   `…AcceptanceSupport`"); and the human's **three doors**, one sentence
+   must-read: the cap was reached (*N of N rounds*; under `fix_rounds: 0`,
+   *0 of 0 — every RED stops at once*); the **pattern** line — *N rounds ·
+   class · file* ("4 harness issues in a row, all in `…AcceptanceSupport`";
+   with no fix round, the classification of the one run); and the human's
+   **three doors**, one sentence
    each: **clear `blocked`** (patrol re-runs integrate with a fresh budget),
    **raise `fix_rounds`** in the block, or **send it back** (a contract
    defect / a spec round). N rounds of the same class in the same file is
    information, not bad luck — say so. Inside the Evidence block, above
-   the last run's output, the **round ledger**: one row per round,
-   `round · class · fixed · branch · sha · first failing line` (the fix
+   the last run's output, the **round ledger**:
+   `round · class · fixed · branch · sha · first failing line`. Its first
+   row is **round 0 — the run that went red before any fix** (`fixed`,
+   `branch`, `sha` are `—`); each fix round follows as one row (the fix
    commit the seat returned; the first line of that round's first failure).
+   Under `fix_rounds: 0` the ledger is that one row.
 Patrol skips `blocked` issues. The human decides, clears the label, and
 integration re-runs.
 

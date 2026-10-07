@@ -820,6 +820,11 @@ c.expect("pattern", "C14: the cap STOP names the pattern and the three doors",
 c.expect("pattern", "C14: the round ledger folds in the Evidence block",
          "`round · class · fixed · branch · sha · first failing line`" in _ig6
          and "Inside the Evidence block" in _ig6)
+# codex review, PR #88: `fix_rounds: 0` has no fix round, so the ledger opens with the run
+# that went red, and the pattern line degrades to that run's classification.
+c.expect("pattern", "C14: the ledger opens with round 0 — the run that went red before any fix",
+         "**round 0 — the run that went red before any fix**" in _ig6
+         and "*0 of 0 — every RED stops at once*" in _ig6)
 c.expect("pattern", "C14: the report names the rounds spent",
          "**rounds spent**" in _ig7)
 c.expect("pattern", "C14: review-answers §6 caps by config `fix_rounds`",
