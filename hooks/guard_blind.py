@@ -151,47 +151,45 @@ def suite_under_src(acceptance_dir):
 def suite_operand_re(suite, top):
     """A shell operand naming the suite: relative (`src/test/…`, `./src/test/…`,
     after `)/` as in `$(git rev-parse --show-toplevel)/src/test/…`) or absolute
-    (any `/…/<suite>…` — the blanker then checks it really resolves under the
-    toplevel's suite: a caller may spell the toplevel through a symlink,
-    macOS's `/var/…` for `/private/var/…`); the suite dir itself or anything
-    below it, never a sibling such as `…/acceptance-old/`."""
+    (any `/…/<suite>…`); the suite dir itself or anything below it, never a
+    sibling such as `…/acceptance-old/`. The operand ends at whitespace, a
+    quote or a shell control / redirection character — `cat <suite>/T;cat
+    <src/main/App` is two operands, and the second is a read (codex review,
+    PR #84). Spelling is only the candidate: the blanker resolves it."""
     quoted = re.escape(suite)
-    tail = r"(?![\w.-])[^\s'\"]*"
+    tail = r"(?![\w.-])[^\s'\"<>|;&()]*"
     forms = [r"(?:(?<![\w.\-/])|(?<=\)/))(?:\./)?" + quoted + tail]
     if top:
-        forms.append(r"(?<![\w.-])/[^\s'\"]*?/" + quoted + tail)
+        forms.append(r"(?<![\w.-])/[^\s'\"<>|;&()]*?/" + quoted + tail)
     return re.compile("|".join(forms))
 
 
-def suite_blanker(suite, top):
-    """Blank an operand the regex matched — unless it climbs out of the suite
-    (`…/acceptance/../../main/…`, kept for the src/ match) or, absolute, does
-    not resolve under the toplevel's suite (another tree's `src/test/…`)."""
-    want = os.path.join(os.path.realpath(top), suite) if top else None
+def resolves_under_suite(path, suite, top):
+    """The operand's REAL location is at or under the toplevel's suite:
+    `realpath` resolves `..` and symlinks alike, so a climb out of the suite
+    (`…/acceptance/../../main/…`), a symlink inside it that points out
+    (`…/acceptance/impl → ../../../../main`, codex review, PR #84), another
+    tree's `src/test/…`, and a toplevel spelled through a symlink (macOS's
+    `/var/…` for `/private/var/…`) all land where they really point. The
+    suite dir itself is joined lexically — a suite that is itself a symlink
+    out of src/ exempts nothing."""
+    if not top:
+        return False
+    want = os.path.join(os.path.realpath(top), suite)
+    rp = os.path.realpath(path if os.path.isabs(path) else os.path.join(top, path))
+    return rp == want or rp.startswith(want + "/")
 
+
+def suite_blanker(suite, top):
     def blank(m):
-        op = m.group(0)
-        if op.startswith("/"):
-            rp = os.path.realpath(op)
-            return " " if want and (rp == want or rp.startswith(want + "/")) else op
-        return op if "/.." in op or op.startswith("..") else " "
+        return " " if resolves_under_suite(m.group(0), suite, top) else m.group(0)
     return blank
 
 
 def under_suite(path, suite, top):
-    """A tool path (absolute or repo-relative, normalized) at or under the suite."""
-    if os.path.isabs(path):
-        if not top:
-            return False
-        try:
-            rel = os.path.relpath(os.path.realpath(path), os.path.realpath(top))
-        except ValueError:
-            return False
-    else:
-        rel = path[2:] if path.startswith("./") else path
-    segs = [x for x in os.path.normpath(rel).replace(os.sep, "/").split("/") if x not in (".", "")]
-    want = suite.split("/")
-    return segs[:len(want)] == want
+    """A tool path (absolute or repo-relative) whose real location is at or
+    under the suite — the same resolution as a Bash operand."""
+    return resolves_under_suite(path, suite, top)
 
 
 def tool_reads_src(tool, inp, suite=None, top=None):

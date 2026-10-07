@@ -204,9 +204,32 @@ class RuleE_SuiteUnderSrc(HookTest):
              "cat %s/../../../main/java/acme/App.java" % suite),
             ("suite: another tree's src/ is not the suite — denied",
              "cat vendor/%s/ExpiryTest.java" % suite),
+            # The operand ends at a shell control character (codex, PR #84).
+            ("suite: `cat <suite>/T;cat<src/main/App` — the second read denied",
+             "cat %s/ExpiryTest.java;cat<src/main/java/acme/App.java" % suite),
+            ("suite: `cat <suite>/T|cat src/main/App` denied",
+             "cat %s/ExpiryTest.java|cat src/main/java/acme/App.java" % suite),
+            ("suite: `cat <suite>/T&&cat src/main/App` denied",
+             "cat %s/ExpiryTest.java&&cat src/main/java/acme/App.java" % suite),
+            ("suite: `cat <suite>/T>src/main/x` names src/main — denied",
+             "cat %s/ExpiryTest.java>src/main/java/acme/Out.java" % suite),
         ]:
             with self.case(name):
                 self.assertDenied(self.run_bash(cmd), "read of src/")
+        # A symlink inside the suite that points out of it (codex, PR #84).
+        (repo / suite / "impl").symlink_to("../../../../main")
+        with self.case("suite: a symlink inside the suite pointing at src/main — Bash denied"):
+            self.assertDenied(self.run_bash("cat %s/impl/java/acme/App.java" % suite),
+                              "read of src/")
+        with self.case("suite: the same symlink, absolute — Bash denied"):
+            self.assertDenied(self.run_bash("cat %s/%s/impl/java/acme/App.java" % (repo, suite)),
+                              "read of src/")
+        with self.case("suite: the same symlink — Read denied"):
+            self.assertDenied(self.tool("Read", file_path=str(
+                repo / suite / "impl/java/acme/App.java")), "Read under src/")
+        with self.case("suite: a symlink inside the suite that stays inside — allowed"):
+            (repo / suite / "alias").symlink_to(".")
+            self.assertAllowed(self.run_bash("cat %s/alias/ExpiryTest.java" % suite))
         with self.case("suite: the deny message names the readable suite"):
             self.assertDenied(self.run_bash("cat src/main/java/acme/App.java"),
                               "its `%s` is readable here" % suite)

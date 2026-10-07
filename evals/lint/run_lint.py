@@ -358,7 +358,9 @@ c.expect("hook rule E (#81: everything else under src/ stays denied)",
          and _gb.violation("Bash", {"command": "cat %s/../../../main/java/App.java" % _SUITE},
                            None, _SUITE, _TOP) is not None
          and _gb.violation("Read", {"file_path": "%s/%s/../../../main/java/App.java"
-                                    % (_TOP, _SUITE)}, None, _SUITE, _TOP) is not None)
+                                    % (_TOP, _SUITE)}, None, _SUITE, _TOP) is not None
+         and _gb.violation("Bash", {"command": "cat %s/T;cat<src/main/App" % _SUITE},
+                           None, _SUITE, _TOP) is not None)
 c.expect("hook rule E (#81: only a suite strictly under src/ is exempt)",
          "D2 pattern: tests/acceptance, src and src/ yield no exemption",
          _gb.suite_under_src("tests/acceptance") is None and _gb.suite_under_src("src") is None
