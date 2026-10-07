@@ -2,6 +2,27 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.30.0 — a merged CR is never re-merged: integrate validates the spec tip, patrol routes the re-verdict — 2026-10-07
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.30.0>
+
+**Behavior:** `/roz-gate:integrate` no longer re-merges a `feat`/`qa` CR the forge already shows as merged — once both are merged it validates the current `spec/<n>` tip as it stands (a rebase, a sync with concurrent work), and patrol now routes that re-verdict after you clear `blocked`.
+
+### Behavior
+- **Integrate merges what is open, never what is merged** (#77): step 1 reads both CRs in the all-states form; a merged CR contributes nothing to step 3, an open one is merged as before; both merged → *re-verdict at SHA `<x>`, nothing merged* — suites run against the tip, cards regenerated wholesale, `cards-sha` re-stamped, `in-user-review` applied. The conflict #77 hit was a re-merge of two already-incorporated branches into a `spec/<n>` that had moved independently.
+- **Patrol re-verdicts**: the scanner's in-flight row reads merged CRs; both merged (or merged + open-ready) → `actionable: integrate`. "You decide, the label clears, the step re-runs" now holds for integrate.
+- **Entry preconditions**: integrate stops on `ready-for-*` and `in-spec-review`; `in-user-review` and no status are its legal entries.
+
+### Evals
+- **C12** (new, lint + replay): #77's shape in the sandbox — both CRs merged, `spec/5` moved, a re-merge would conflict; checker + red-proof in the blindness commit; baseline pending.
+- **C13** (new, replay): a both-merged, status-less issue in front of patrol — the scanner's row reads `actionable: integrate`; baseline pending. **C6** amended: the in-flight row's open-only guard inverts into an all-states anchor. F9 untouched.
+
+### Docs
+- README (6) rows and command table; index label card; `workflow.md` (6); ledger, CONTRIBUTING, evals README.
+
+### Checks
+Hook tests 194/194 · lint 372/372 · red-proofs 15/15
+
 ## v1.29.1 — rule E no longer denies the fidelity dispatch's own suite under src/ — 2026-10-07
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.29.1>
