@@ -44,9 +44,21 @@ mapped subagent, attaching the seat's R&R row from
   died run: report it, clear it, re-run.)
 - `status: blocked` → stop: waiting on the human — see the issue's last
   comment.
+- `status: ready-for-spec` / `ready-for-dev` → stop: a gate state,
+  `next-stage`'s to pick up. `status: in-spec-review` → stop: a spec thread
+  is open, `spec-answers` owns the issue. The legal entries are **no
+  `status:`** (patrol's route, or the human cleared `blocked`) and **`status:
+  in-user-review`** (the human moved `<spec-branch>` and wants it
+  re-verified; the finalize re-applies the label it found).
 - From issue `<n>` (`$ARGUMENTS`): the spec branch `<spec-branch>`, the
-  implementation CR (head `<feat-branch>`), the QA CR (head `<qa-branch>`) — CR-FIND.
-  Verify the **implementation CR has no open review threads** (THREADS-LIST).
+  implementation CR (head `<feat-branch>`), the QA CR (head `<qa-branch>`) —
+  CR-FIND **in its all-states form** (`--state all` / `--all`): a CR the
+  forge shows as **merged** is the signal step 3 reads — its content is
+  already in `<spec-branch>`. Bind each CR's state, `open` / `draft` /
+  `merged`; a closed-unmerged CR counts as absent, and a CR that is absent
+  stops the run as it always has.
+  Verify the **implementation CR has no open review threads** (THREADS-LIST)
+  — a merged CR too: a merged MR can still carry an unresolved thread.
   If any are open, stop and list them — review must be clean before
   integration.
 - Verify the **QA CR is not a draft** (CR-VIEW) — draft means QA is still
@@ -66,9 +78,21 @@ label.
   `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<spec-branch> <spec-branch>`
   and work **in that worktree** for every step below (`cd` there or `git -C`).
   `git worktree add` refusing (the branch is checked out elsewhere) → STOP
-  exit. There: `git merge --no-edit origin/<feat-branch>` then
-  `git merge --no-edit origin/<qa-branch>` — this brings the contract + code + tests
-  together for the first time.
+  exit. There, **merge what is open, never what is merged**: for each of the
+  two CRs, state `open` → `git merge --no-edit origin/<feat-branch>` /
+  `git merge --no-edit origin/<qa-branch>` — this brings the contract + code
+  + tests together for the first time; state `merged` → nothing to merge,
+  its content is already in `<spec-branch>`. **Both merged → nothing is
+  merged**: the worktree holds `<spec-branch>`'s tip as it stands, and steps
+  4–5 run against it — a **re-verdict**. Once both CRs are merged, integrate
+  validates the current `<spec-branch>` tip; it never reconstructs it from
+  stale `feat`/`qa` branch tips. The spec branch is the integration source
+  of truth from that moment, and it legitimately moves without either
+  branch changing — a rebase onto a new base, a sync with concurrently
+  merged work, a resolved conflict, a cherry-pick — each wanting a fresh
+  verdict on the tip as it stands. Re-merging a merged branch re-introduces
+  an input already consumed, and its stale tip conflicts with every later
+  move of the spec branch (#77).
 - One mechanical carve-out: a conflict **only in `<lockfile>`** — accept both
   sides' manifest entries, regenerate (config `lockfile_regen`), continue, note
   it in the report.
@@ -106,7 +130,10 @@ label.
      annotated with the thread or amendment that caused it; empty → say
      "the spec you approved is byte-identical"). Stamp `cards-sha` — the
      commit the cards were computed from — so a later (7) change can be seen
-     to have outrun them. Kit comment or approved SHA missing (pre-1.10.0
+     to have outrun them. On a re-verdict the cards are regenerated
+     **wholesale** from the new run and `cards-sha` re-stamped (the
+     hand-back rule; `${CLAUDE_PLUGIN_ROOT}/references/gate-kit.md`) — never
+     patched. Kit comment or approved SHA missing (pre-1.10.0
      flow) → skip, note it in the report.
   4. `git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/<spec-branch>`
      then `git worktree prune` — the pushed branch is the record.
@@ -143,12 +170,17 @@ label.
 2. LABEL-REMOVE `status: processing`; LABEL-ADD `status: blocked`.
 3. ISSUE-COMMENT: what happened and your **recommended next step** as the
    must-read; the evidence (conflicting files / test output / error) folded
-   under `<details><summary>Evidence</summary>`.
+   under `<details><summary>Evidence</summary>`. When a CR was already
+   merged (a post-green shape), the next step reads: clear `blocked` —
+   patrol re-verdicts on its next pass, or run `/roz-gate:integrate <n>`.
 Patrol skips `blocked` issues. The human decides, clears the label, and
 integration re-runs.
 
 ## 7. Report
-The verdict (green / red and what was fixed where / stopped and why), any
+The verdict (green / red and what was fixed where / stopped and why), what
+step 3 merged — *merged `<feat-branch>` and `<qa-branch>`*, *merged
+`<qa-branch>` only*, or *re-verdict at SHA `<x>`, nothing merged — both CRs
+were already incorporated; `<spec-branch>` moved independently* — any
 lockfile regeneration, and what waits on whom. Rule/scenario IDs in the
 report follow the citation convention: first mention carries the ID's title
 and a link to its definition. A red verdict is a **result**; a

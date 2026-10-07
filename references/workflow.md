@@ -174,7 +174,13 @@ resolved**.
 and the QA CR is ready, the main agent merges **both** into `spec/{n}` and runs
 QA's black-box tests against the implementation **for the first time**.
 Pass/fail is the verdict on whether the implementation matches the spec — this
-is where genuine bugs surface.
+is where genuine bugs surface. Once both CRs are merged, a later run
+**validates the current `spec/{n}` tip and merges nothing** — the spec branch
+is the integration source of truth from that moment, never reconstructed from
+stale `feat/{n}` / `qa/{n}` tips; it moves legitimately without either branch
+changing (a rebase onto a new base, a sync with concurrently merged work),
+and each move wants a fresh verdict. Patrol routes that re-verdict like the
+first one.
 
 **The base branch.** `default_branch` — yours, per clone (`/roz-gate:config
 default_branch <branch>`, `.claude/roz-gate.local.json`, never committed;

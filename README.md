@@ -91,7 +91,7 @@ template for mobile capture.
 | (3) Implementation | implementer | `feat/{n}`: code + unit tests |
 | (4) Black-box QA | qa | `qa/{n}`: test plan + acceptance suite — written blind, from spec + contract only |
 | (5) Review | reviewer | severity-graded inline threads (`blocking`/`should-fix`/`nit`/`question`) until review-clean |
-| (6) Integration | main agent | both branches merged locally, QA's suite runs against the code for the first time — **the verdict** |
+| (6) Integration | main agent | both branches merged locally, QA's suite runs against the code for the first time — **the verdict**; once both CRs are merged, a later run validates the current spec tip and merges nothing |
 | (7) Review | **you** + main agent | you review the spec CR (spec + code + tests + green verdict); the main agent answers your comments there and changes only what you confirm; you merge, or send it back |
 
 **The mental model: owner, contractor, inspector.** The loop is the
@@ -158,7 +158,7 @@ cannot authorize it.
 | `/roz-gate:to-issues` | live intake: the `product` agent (under the intake brief) clarifies your idea one question at a time; the main agent only relays and publishes the confirmed story — one issue = one story |
 | `/roz-gate:next-stage [n]` | advance one gated issue — spec stage, parallel impl+QA+review, or fast track — routed by its labels; prints the workflow map first |
 | `/roz-gate:spec-answers [n]` | fold your answers on spec-CR threads back into the spec, resolve the threads |
-| `/roz-gate:integrate [n]` | run the stage-(6) verdict: merge locally, run the acceptance suite, classify red, finalize green |
+| `/roz-gate:integrate [n]` | run the stage-(6) verdict: merge what is open (never what is merged), run the acceptance suite, classify red, finalize green |
 | `/roz-gate:review-answers [n]` | host one turn of your stage-(7) review: answer your CR comments from the artifacts, dispatch a seat when judgment is needed, change only what you confirm |
 | `/roz-gate:config` | set one of your four loop keys — the base branch, the inbox label list, the inbox assignee list, the helper model — from a menu; the write is `bin/roz-config`'s, per clone, never committed |
 | `/roz-gate:patrol` | one supervisory pass: a read-only scanner sub-agent classifies every open issue into one table (the main agent's context never holds the forge reads); the main agent invokes whichever command the table authorizes, triages the inbox, reports what waits on you |
