@@ -95,15 +95,118 @@ SRC_MENTIONED = re.compile(
     r"""|(?:^|\s)#[^\n]*""", re.M)
 
 
-def bash_reads_src(cmd):
-    return SRC_PATH.search(SRC_MENTIONED.sub(" ", SRC_EXCLUDED.sub(" ", cmd))) is not None
+def bash_reads_src(cmd, suite=None, top=None):
+    cmd = SRC_MENTIONED.sub(" ", SRC_EXCLUDED.sub(" ", cmd))
+    if suite:
+        cmd = suite_operand_re(suite, top).sub(suite_blanker(suite, top), cmd)
+    return SRC_PATH.search(cmd) is not None
 # --------------------------------------------------------------------------
+
+# ---- the suite is not the implementation (issue #81, 1.29.1) -------------
+# A Maven/Gradle layout keeps the acceptance suite under src/test/…; the
+# predicate above read `src/test/java/acme/acceptance/T.java` as a read of
+# the implementation, and the fidelity dispatch could not read the very
+# suite it audits. The block's `acceptance_dir` is where the suite is —
+# "what you need is on qa/<n>" — so an operand or a tool path under it is
+# never a read of src/. Only a suite STRICTLY under src/ gets an exemption
+# (`tests/acceptance` has nothing to exempt; `src` itself would swallow the
+# rule and exempts nothing). A Bash operand that climbs out of the suite
+# (`…/acceptance/../../main/java/App.java`) is not blanked; a tool path is
+# normalized before the containment test, so the climb lands where it
+# really points. The four regexes above are untouched (lint D2 holds them
+# byte-identical to the replay checker).
+DEFAULT_ACCEPTANCE_DIR = "tests/acceptance"
+
+
+def load_acceptance_dir(top):
+    """`acceptance_dir` from the project's CLAUDE.md Roz Gate config block —
+    the block only, as guard_acceptance reads it. None → not a roz-gate
+    project, or no toplevel."""
+    if not top:
+        return None
+    try:
+        with open(os.path.join(top, "CLAUDE.md"), encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        return None
+    blk = re.search(r"^###\s+(?:Roz Gate|Gated Loop) config\s*$(.*?)(?=^#|\Z)", text,
+                    re.M | re.S)
+    if not blk:
+        return None
+    m = re.search(r"^-\s*acceptance_dir:\s*(.+)$", blk.group(1), re.M)
+    return m.group(1).strip().strip("`") if m else DEFAULT_ACCEPTANCE_DIR
+
+
+def suite_under_src(acceptance_dir):
+    """The suite's repo-relative path when it sits strictly under src/, else None."""
+    if not acceptance_dir:
+        return None
+    segs = [x for x in os.path.normpath(acceptance_dir).replace(os.sep, "/").split("/")
+            if x not in (".", "")]
+    if len(segs) < 2 or segs[0] != "src" or ".." in segs:
+        return None
+    return "/".join(segs)
+
+
+def suite_operand_re(suite, top):
+    """A shell operand naming the suite: relative (`src/test/…`, `./src/test/…`,
+    after `)/` as in `$(git rev-parse --show-toplevel)/src/test/…`) or absolute
+    (any `/…/<suite>…`); the suite dir itself or anything below it, never a
+    sibling such as `…/acceptance-old/`. The operand ends at whitespace, a
+    quote or a shell control / redirection character — `cat <suite>/T;cat
+    <src/main/App` is two operands, and the second is a read (codex review,
+    PR #84). Spelling is only the candidate: the blanker resolves it."""
+    quoted = re.escape(suite)
+    tail = r"(?![\w.-])[^\s'\"<>|;&()]*"
+    forms = [r"(?:(?<![\w.\-/])|(?<=\)/))(?:\./)?" + quoted + tail]
+    if top:
+        forms.append(r"(?<![\w.-])/[^\s'\"<>|;&()]*?/" + quoted + tail)
+    return re.compile("|".join(forms))
+
+
+def resolves_under_suite(path, suite, top):
+    """The operand's REAL location is at or under the toplevel's suite:
+    `realpath` resolves `..` and symlinks alike, so a climb out of the suite
+    (`…/acceptance/../../main/…`), a symlink inside it that points out
+    (`…/acceptance/impl → ../../../../main`, codex review, PR #84), another
+    tree's `src/test/…`, and a toplevel spelled through a symlink (macOS's
+    `/var/…` for `/private/var/…`) all land where they really point. The
+    suite dir itself is joined lexically — a suite that is itself a symlink
+    out of src/ exempts nothing."""
+    if not top:
+        return False
+    want = os.path.join(os.path.realpath(top), suite)
+    rp = os.path.realpath(path if os.path.isabs(path) else os.path.join(top, path))
+    return rp == want or rp.startswith(want + "/")
+
+
+def suite_blanker(suite, top):
+    def blank(m):
+        return " " if resolves_under_suite(m.group(0), suite, top) else m.group(0)
+    return blank
+
+
+def under_suite(path, suite, top):
+    """A tool path (absolute or repo-relative) whose real location is at or
+    under the suite — the same resolution as a Bash operand."""
+    return resolves_under_suite(path, suite, top)
+
+
+def tool_reads_src(tool, inp, suite=None, top=None):
+    """A Read/Glob/Grep input naming src/ — unless every such value is under the suite."""
+    if not suite:
+        return SRC_PATH.search(json.dumps(inp, ensure_ascii=False)) is not None
+    for v in inp.values():
+        text = v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)
+        if SRC_PATH.search(text) and not (isinstance(v, str) and under_suite(v, suite, top)):
+            return True
+    return False
 
 BLIND_MSG = (
     "Roz Gate: blocked — this is a fidelity dispatch and it is "
     "implementation-blind: `src/` and `feat/<n>` are off-limits (%s). What "
     "you need is in spec.md / technical-spec.md and the QA suite on "
-    "qa/<n>. If you believe a read of the implementation is required, "
+    "qa/<n>%s. If you believe a read of the implementation is required, "
     "report it as a finding instead of performing it "
     "(references/fidelity-brief.md, the blindness rule). Not inside a "
     "fidelity dispatch? Then the marker is stale — the dispatching command "
@@ -152,20 +255,31 @@ def ref_touch_re(ref):
         r"|worktree)\b[^|;&\n]*(?<![\w-])" + re.escape(ref) + r"(?![\w-])")
 
 
-def violation(tool, inp, ref=None):
-    """The D2 checker's dispatch_blind(), per call: what it names."""
+def violation(tool, inp, ref=None, suite=None, top=None):
+    """The D2 checker's dispatch_blind(), per call: what it names. `suite`
+    is the acceptance dir when it sits under src/ (never a read); `top`
+    the repo toplevel the absolute forms resolve against."""
     if tool == "Bash":
         cmd = inp.get("command") or ""
         if GIT_TOUCH.search(cmd):
             return "a git action on a feat/ ref"
         if ref and ref_touch_re(ref).search(cmd):
             return "a git action on %s, the implementation branch" % ref
-        if bash_reads_src(cmd):
+        if bash_reads_src(cmd, suite, top):
             return "a read of src/"
     elif tool in ("Read", "Glob", "Grep"):
-        if SRC_PATH.search(json.dumps(inp, ensure_ascii=False)):
+        if tool_reads_src(tool, inp, suite, top):
             return "a %s under src/" % tool
     return None
+
+
+def toplevel():
+    try:
+        out = subprocess.run(["git", "rev-parse", "--show-toplevel"],
+                             capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return out.stdout.strip() if out.returncode == 0 else None
 
 
 def main():
@@ -178,11 +292,14 @@ def main():
         return
     inp = payload.get("tool_input") or {}
     marker = marker_path()
-    what = violation(tool, inp, marker_ref(marker))
+    top = toplevel()
+    suite = suite_under_src(load_acceptance_dir(top))
+    what = violation(tool, inp, marker_ref(marker), suite, top)
     if not what:
         return
     agent = payload.get("agent_type")
-    deny(BLIND_MSG % (what, marker or "<git-dir>/" + MARKER_REL,
+    deny(BLIND_MSG % (what, " (its `%s` is readable here)" % suite if suite else "",
+                      marker or "<git-dir>/" + MARKER_REL,
                       " (agent: %s)" % agent if agent else ""))
 
 

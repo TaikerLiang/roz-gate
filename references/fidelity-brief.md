@@ -19,8 +19,10 @@ this dispatch must not continue a context that has: a fidelity reviewer
 who has seen the implementation rates tests faithful because they pass —
 the exact bias this audit exists to remove. If your context has touched
 `<feat-branch>`, abort and say so. While this dispatch runs, guard-blind
-denies every read of `src/` and every git action on `<feat-branch>` (the
-ref the dispatch marker names — or any `feat/` ref) mechanically; a denial is not an obstacle to route around — if you believe
+denies every read of `src/` outside `<acceptance_dir>` (a suite that lives
+under `src/test/…` is yours to read — it is what you audit) and every git
+action on `<feat-branch>` (the ref the dispatch marker names — or any
+`feat/` ref) mechanically; a denial is not an obstacle to route around — if you believe
 the read is required, it is a finding, and you report it instead.
 
 Your authority is `spec.md` and `technical-spec.md`, nothing else.

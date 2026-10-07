@@ -148,7 +148,8 @@ both CRs targeting the spec CR:
 - **(5q)** `reviewer`, in a separate implementation-blind dispatch on
   `qa/{n}` (the branch topology enforces the blindness, and since 1.16.0
   guard-blind rule E enforces it at the tool layer while the dispatch's
-  marker exists — no read of `src/`, no touch of `feat/{n}`), audits the QA
+  marker exists — no read of `src/` outside the suite, no touch of
+  `feat/{n}`), audits the QA
   suite's fidelity to the spec — the suite the verdict is computed from
   is otherwise the loop's only unaudited artifact. Findings are two-way
   cited threads on the QA CR; both CRs must be thread-clean before (6).
