@@ -1,0 +1,44 @@
+{
+  "repo": {
+    "owner": "acme",
+    "name": "demo"
+  },
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, expired offers never apply, and an offer that expires while my cart is open is re-checked at checkout.\n\n**Acceptance criteria**\n- An offer past its `expires_at` is not applied.\n- Expiry during an open cart is re-checked at checkout.",
+      "author": "paul",
+      "assignees": [
+        "paul"
+      ],
+      "labels": [
+        "track: spec",
+        "status: ready-for-spec",
+        "type: fix"
+      ],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": [
+        {
+          "id": 700,
+          "author": "paul",
+          "body": "Closed #101: the issue missed the open-cart case. Amended the story above; re-running the spec stage.",
+          "createdAt": "2026-08-24T09:00:00Z"
+        }
+      ]
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer expiry enforcement",
+      "state": "CLOSED",
+      "isDraft": false,
+      "headRefName": "spec/paul/5/1",
+      "baseRefName": "main",
+      "threads": [],
+      "reviews": [],
+      "comments": []
+    }
+  }
+}
