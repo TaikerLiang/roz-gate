@@ -47,6 +47,10 @@ user, one compact block, not twenty questions:
   `@Traces(issue, scenario)` annotation, a `# traces:` comment). Absent →
   qa picks one idiomatic to the language and declares it in
   `test-spec.md`.
+- `fix_rounds` — optional: the fix-and-rerun budget on a red suite at (6)
+  and in a (7) hand-back, a non-negative integer (`0` → every red stops at
+  once). Absent → 3. Write it only when the project wants another number;
+  any other value stops the reading command as a config error.
 - After confirming: `mkdir -p` the configured `acceptance_dir` and
   `specs_dir` — a configured path must exist from day one, not first
   materialize at stage (6).

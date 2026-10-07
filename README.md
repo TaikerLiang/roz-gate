@@ -158,7 +158,7 @@ cannot authorize it.
 | `/roz-gate:to-issues` | live intake: the `product` agent (under the intake brief) clarifies your idea one question at a time; the main agent only relays and publishes the confirmed story — one issue = one story |
 | `/roz-gate:next-stage [n]` | advance one gated issue — spec stage, parallel impl+QA+review, or fast track — routed by its labels; prints the workflow map first |
 | `/roz-gate:spec-answers [n]` | fold your answers on spec-CR threads back into the spec, resolve the threads |
-| `/roz-gate:integrate [n]` | run the stage-(6) verdict: merge what is open (never what is merged), run the acceptance suite, classify red, finalize green |
+| `/roz-gate:integrate [n]` | run the stage-(6) verdict: merge what is open (never what is merged), run the acceptance suite, classify red (up to `fix_rounds` rounds), finalize green |
 | `/roz-gate:review-answers [n]` | host one turn of your stage-(7) review: answer your CR comments from the artifacts, dispatch a seat when judgment is needed, change only what you confirm |
 | `/roz-gate:config` | set one of your four loop keys — the base branch, the inbox label list, the inbox assignee list, the helper model — from a menu; the write is `bin/roz-config`'s, per clone, never committed |
 | `/roz-gate:patrol` | one supervisory pass: a read-only scanner sub-agent classifies every open issue into one table (the main agent's context never holds the forge reads); the main agent invokes whichever command the table authorizes, triages the inbox, reports what waits on you |
@@ -322,6 +322,7 @@ command reads it before acting:
 - bot_login: <bot username>      # optional
 - operator: <your forge login>   # optional
 - branch_template: {type}/{user}/{n}/{seq}   # optional — your branch convention; absent = {kind}/{n}, see "Branch names"
+- fix_rounds: 3                   # optional — fix-and-rerun rounds at (6) and in a (7) hand-back; absent = 3, 0 = every red stops
 ```
 
 Five keys are **yours, per clone** — never in the block, never committed.

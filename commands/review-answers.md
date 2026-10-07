@@ -12,7 +12,10 @@ confirm. Follow these steps; do nothing beyond them.
 
 Read the `### Roz Gate config` block in the project's CLAUDE.md (`forge`,
 `test`, `acceptance_test`, `env_sync`, `specs_dir`, `acceptance_dir`,
-`branch_template`). **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee`,
+`branch_template`, `fix_rounds`). `fix_rounds` is optional — a non-negative integer, the fix-and-rerun
+budget; **absent → 3; any other value → stop here, before the lock**, a
+config error like a missing block: name the key and the value, default
+nothing. **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee`,
 `helper_model`, `branch_user` are per person,
 per clone, never in the block: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`
 and use its values (`.claude/roz-gate.local.json`, defaults resolved — the
@@ -132,7 +135,9 @@ by change class:
   obstacle); a failing assertion that faithfully states the contract is the
   **contract-defect** class and it is **never yours to classify as
   "they authorized it"** — that reading would launder any red at the last gate.
-  Stop and let the user rule. Cap: 3 attempts, then stop and report.
+  Stop and let the user rule. Cap: config `fix_rounds` attempts (absent → 3;
+  `0` → the first red stops), then stop and report — the report names the
+  rounds spent and the pattern (*N rounds · class · file*).
   On `track: fast`, a code change re-dispatches `reviewer` on the new commits —
   it is the whole guard that track has.
 - **Spec semantics** — the change alters what a rule or scenario means → do
