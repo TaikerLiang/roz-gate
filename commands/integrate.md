@@ -20,7 +20,10 @@ remote cleanup — remove the worktree and re-run.
 
 Read the `### Roz Gate config` block in the project's CLAUDE.md (`forge`,
 `test`, `acceptance_test`, `env_sync`, `lockfile`, `lockfile_regen`,
-`acceptance_dir`, `branch_template`). **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee`,
+`acceptance_dir`, `branch_template`, `fix_rounds`). `fix_rounds` is optional — a non-negative integer, the fix-and-rerun
+budget; **absent → 3; any other value → stop here, before the lock**, a
+config error like a missing block: name the key and the value, default
+nothing. **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee`,
 `helper_model`, `branch_user` are per person,
 per clone, never in the block: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`
 and use its values (`.claude/roz-gate.local.json`, defaults resolved — the
@@ -165,8 +168,11 @@ label.
     the test from the amended contract.
   **An integration RED is never resolved by editing a QA assertion to match
   observed behaviour** — that rewrites the verdict into an echo of the
-  implementation. Push the fix, re-run from step 3. Cap: **3** fix-and-rerun
-  rounds; still red → STOP exit.
+  implementation. Push the fix, re-run from step 3. Cap: config
+  **`fix_rounds`** fix-and-rerun rounds (absent → 3; `0` → every RED is a
+  STOP at once, the human routes each fix; §0 already refused anything
+  else), counted **per run** — a run cleared from `blocked` starts at
+  round 1; still red at the cap → the **cap STOP** (step 6).
   **After a re-verdict RED** the fixed branch's CR is merged, so step 3 would
   skip the fix: route as (7) does (`commands/review-answers.md` §6) — a
   **real bug** is fixed by `implementer` **on `<spec-branch>` in the
@@ -194,12 +200,24 @@ label.
    under `<details><summary>Evidence</summary>`. When a CR was already
    merged (a post-green shape), the next step reads: clear `blocked` —
    patrol re-verdicts on its next pass, or run `/roz-gate:integrate <n>`.
+   **The cap STOP** (`fix_rounds` spent, still red) has a fixed shape. The
+   must-read: the cap was reached (*N of N rounds*); the **pattern** line —
+   *N rounds · class · file* ("4 harness issues in a row, all in
+   `…AcceptanceSupport`"); and the human's **three doors**, one sentence
+   each: **clear `blocked`** (patrol re-runs integrate with a fresh budget),
+   **raise `fix_rounds`** in the block, or **send it back** (a contract
+   defect / a spec round). N rounds of the same class in the same file is
+   information, not bad luck — say so. Inside the Evidence block, above
+   the last run's output, the **round ledger**: one row per round,
+   `round · class · fixed · branch · sha · first failing line` (the fix
+   commit the seat returned; the first line of that round's first failure).
 Patrol skips `blocked` issues. The human decides, clears the label, and
 integration re-runs.
 
 ## 7. Report
-The verdict (green / red and what was fixed where / stopped and why), what
-step 3 merged — *merged `<feat-branch>` and `<qa-branch>`*, *merged
+The verdict (green / red and what was fixed where / stopped and why) with
+the **rounds spent** — *green after round 2 of 3*, *stopped at the cap, 3 of
+3* — what step 3 merged — *merged `<feat-branch>` and `<qa-branch>`*, *merged
 `<qa-branch>` only*, or *re-verdict at SHA `<x>`, nothing merged — both CRs
 were already incorporated; `<spec-branch>` moved independently* — any
 lockfile regeneration, and what waits on whom. Rule/scenario IDs in the
