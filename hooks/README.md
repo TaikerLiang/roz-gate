@@ -28,7 +28,7 @@ The files:
 | `hooks.json` | the registry: which event (`PreToolUse` only, today), which tools (matcher), which `.sh` runs |
 | `guard-gate.sh` · `guard_gate.py` | Bash commands — rules A–D |
 | `guard-blind.sh` · `guard_blind.py` | Bash / Read / Glob / Grep during a fidelity dispatch — rule E |
-| `guard-acceptance.sh` · `guard_acceptance.py` | Edit / Write / MultiEdit on a `spec/<n>` branch — the acceptance rule |
+| `guard-acceptance.sh` · `guard_acceptance.py` | Edit / Write / MultiEdit on a spec branch (`spec/<n>`, or whatever `branch_template` renders) — the acceptance rule |
 | `tests/test_guard_*.py` | the cases, one file per guard, one class per rule: synthetic hook input in, exit code and stderr asserted |
 | `tests/test_fixtures.py` | every fixture carries the fields the guard reads |
 | `tests/hooktest.py` | `HookTest`: runs a guard's `.sh`, builds throwaway repos, swaps fixtures |
@@ -55,8 +55,8 @@ Any "no" → a replay case, not a hook, and never prose alone.
 | **B** human-only gate labels | `guard-gate` · Bash | `--add-label` (gh) / `issue update --label` (glab) naming `ready-for-spec` or `ready-for-dev` | the gate holder applies the label themselves | static, no API |
 | **C** quote-open guard | `guard-gate` · Bash | a comment-shaped forge write whose body carries a roz-gate marker and opens with `>` (per shell segment; `--body-file` read back, heredoc parsed) | put the marker on line one | an unreadable marker-carrying `--body-file` fails **closed** |
 | **D** open questions have one home | `guard-gate` · Bash | a `git commit` while any `<specs_dir>/*/technical-spec.md` — working tree **or** index — carries a heading matching `^#+ .*open questions` | move it to `spec.md`'s Open Questions, delete it here, `git add`, commit | index checked too: a fixed file never re-staged would commit the stale section |
-| **E** fidelity dispatch is blind | `guard-blind` · Bash, Read, Glob, Grep | while the marker exists: a Read/Glob/Grep path under `src/`; in Bash, a git checkout/switch/diff/show/log/merge/restore/worktree on a `feat/` ref, or a read of `src/` after blanking exclusion operands (`grep -v`, `:!`, `--exclude`, `-not -path`) and echo/printf operands and comments | what you need is on `qa/<n>`; a required read is a **finding**, not an action | a **stale marker keeps the rule ON** — over-blocking is visible, under-blocking is not |
-| **acceptance** | `guard-acceptance` · Edit, Write, MultiEdit | on a `spec/<n>` branch, a write under `<acceptance_dir>` | make the change on `qa/<n>`, merge it in | branch-and-path only; no exemption list |
+| **E** fidelity dispatch is blind | `guard-blind` · Bash, Read, Glob, Grep | while the marker exists: a Read/Glob/Grep path under `src/`; in Bash, a git checkout/switch/diff/show/log/merge/restore/worktree on a `feat/` ref or on the ref the marker's `feat=` line names (the bound implementation branch, `references/branch-names.md`), or a read of `src/` after blanking exclusion operands (`grep -v`, `:!`, `--exclude`, `-not -path`) and echo/printf operands and comments | what you need is on `qa/<n>`; a required read is a **finding**, not an action | a **stale marker keeps the rule ON** — over-blocking is visible, under-blocking is not |
+| **acceptance** | `guard-acceptance` · Edit, Write, MultiEdit | on a spec branch — `spec/*`, or HEAD matching the block's `branch_template` rendered for the spec kind — a write under `<acceptance_dir>` | make the change on `qa/<n>`, merge it in | branch-and-path only; no exemption list |
 
 ## The fidelity-dispatch marker (rule E)
 
@@ -65,13 +65,17 @@ inside (the fidelity review and the stage-(5) code review are the same
 `reviewer` seat). So the **dispatching command** says so:
 
 ```sh
-mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"
+mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\nfeat=<feat-branch>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"
 # … Task/Agent dispatch …
 rm -f "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"
 ```
 
 Written immediately before the dispatch, removed immediately after it
-returns (next-stage B5b, patrol's address-review steps 2 and 3). It lives
+returns (next-stage B5b, patrol's address-review steps 2 and 3). Its
+`feat=` line is the bound implementation branch — under a
+`branch_template` that is not a `feat/` ref, and the hook denies a git
+action on that exact name as it does on `feat/`; a marker without the line
+(the 1.16–1.28 shape) enforces the `feat/` literal alone. It lives
 under the **common** git dir — `guard_blind.py` resolves it with
 `git rev-parse --git-common-dir` — which the checkout and every linked
 worktree share, so a dispatch running in the `qa/<n>` worktree

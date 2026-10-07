@@ -2,9 +2,12 @@
 """Roz Gate enforcement — layer 2: the acceptance suite is not editable on a
 spec branch.
 
-Invoked by guard-acceptance.sh only when HEAD is a ``spec/<n>`` branch. One
-rule (the acceptance rule — no letter; rule C is guard-gate's quote-open
-rule), the mechanical form of existing protocol text:
+Invoked by guard-acceptance.sh only when HEAD is a ``spec/<n>`` branch — or,
+when the config block sets ``branch_template`` (references/branch-names.md),
+on every branch: the spec kind is then whatever the template renders, and
+this script decides by matching HEAD against it. One rule (the acceptance
+rule — no letter; rule C is guard-gate's quote-open rule), the mechanical
+form of existing protocol text:
 
   Acceptance tests are written on ``qa/<n>`` and reach ``spec/<n>`` by
   merge (references/workflow.md (4); commands/integrate.md step 3). An
@@ -61,12 +64,14 @@ def git(*args):
     return out.stdout.strip() if out.returncode == 0 else None
 
 
-def load_acceptance_dir(top):
-    """`acceptance_dir` from the project's CLAUDE.md Roz Gate config block.
+def load_config(top):
+    """(`acceptance_dir`, `branch_template`) from the project's CLAUDE.md
+    Roz Gate config block.
 
     None → not a roz-gate project (no config block): nothing to enforce.
-    Config block present but the key absent → the documented default, the
-    same fallback /roz-gate:init writes.
+    Config block present but `acceptance_dir` absent → the documented
+    default, the same fallback /roz-gate:init writes. `branch_template`
+    absent → None: the spec branch is `spec/*`, the prefilter's own test.
     """
     try:
         with open(os.path.join(top, "CLAUDE.md"), encoding="utf-8") as f:
@@ -76,7 +81,37 @@ def load_acceptance_dir(top):
     if not re.search(r"^###\s+(Roz Gate|Gated Loop) config\s*$", text, re.M):
         return None
     m = re.search(r"^-\s*acceptance_dir:\s*(.+)$", text, re.M)
-    return (m.group(1).strip().strip("`") if m else DEFAULT_ACCEPTANCE_DIR)
+    t = re.search(r"^-\s*branch_template:\s*(\S+)", text, re.M)
+    return (m.group(1).strip().strip("`") if m else DEFAULT_ACCEPTANCE_DIR,
+            t.group(1).strip("`") if t else None)
+
+
+# The placeholders as patterns, for the spec kind (references/branch-names.md
+# § The hooks): `{user}` is one path segment, `{n}` and `{seq}` numbers,
+# `{kind}` and `{type}` the literal `spec`. Any other `{…}` makes the
+# template invalid — the commands STOP on it; here it renders to a pattern
+# that matches nothing, so an invalid template enforces nothing rather
+# than everything.
+SPEC_SLOTS = {"{kind}": "spec", "{type}": "spec", "{user}": r"[^/]+",
+              "{n}": r"[0-9]+", "{seq}": r"[0-9]+"}
+
+
+def spec_branch_re(template):
+    out = ""
+    for piece in re.split(r"(\{[a-z]+\})", template):
+        if piece.startswith("{"):
+            if piece not in SPEC_SLOTS:
+                return re.compile(r"(?!)")
+            out += SPEC_SLOTS[piece]
+        else:
+            out += re.escape(piece)
+    return re.compile(out + r"\Z")
+
+
+def is_spec_branch(branch, template):
+    if template is None:
+        return branch.startswith("spec/")
+    return spec_branch_re(template).match(branch) is not None
 
 
 def under(path, directory):
@@ -107,8 +142,12 @@ def main():
     top = git("rev-parse", "--show-toplevel")
     if not top:
         return
-    acceptance_dir = load_acceptance_dir(top)
-    if not acceptance_dir:
+    config = load_config(top)
+    if not config:
+        return
+    acceptance_dir, template = config
+    branch = git("rev-parse", "--abbrev-ref", "HEAD") or ""
+    if not is_spec_branch(branch, template):
         return
 
     try:
@@ -118,7 +157,7 @@ def main():
     if not under(rel, acceptance_dir):
         return
 
-    deny(BLOCK_MSG % (rel, git("rev-parse", "--abbrev-ref", "HEAD") or "spec/?"))
+    deny(BLOCK_MSG % (rel, branch or "spec/?"))
 
 
 main()

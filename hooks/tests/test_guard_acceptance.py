@@ -53,6 +53,46 @@ class AcceptanceSuiteIsNotEditableOnSpecBranch(HookTest):
         with self.case("acceptance_dir at the repo root enforces nothing"):
             self.assertAllowed(self.edit(root, "Edit", "src/anything.py"))
 
+    # branch_template (#75): the spec branch is whatever the template renders.
+    def test_branch_template(self):
+        tpl = self.new_repo(
+            {"CLAUDE.md": config_block(forge="github", acceptance_dir="tests/acceptance",
+                                       branch_template="{type}/{user}/{n}/{seq}")},
+            commit=True, branch="spec/pwliangc/63/1")
+        with self.case("template: a templated spec branch is a spec branch — acceptance edit "
+                       "denied"):
+            self.assertDenied(self.edit(tpl, "Edit", ACCEPTANCE_FILE), "acceptance suite")
+        with self.case("template: implementation code on the templated spec branch allowed"):
+            self.assertAllowed(self.edit(tpl, "Edit", "src/offers/repo.py"))
+        self.git(tpl, "checkout", "-q", "-b", "test/pwliangc/63/1")
+        with self.case("template: the templated qa branch (type test) allowed — that is the road"):
+            self.assertAllowed(self.edit(tpl, "Edit", ACCEPTANCE_FILE))
+        self.git(tpl, "checkout", "-q", "-b", "fix/pwliangc/63/1")
+        with self.case("template: the templated implementation branch allowed"):
+            self.assertAllowed(self.edit(tpl, "Edit", ACCEPTANCE_FILE))
+        self.git(tpl, "checkout", "-q", "-b", "spec/pwliangc/63/1x")
+        with self.case("template: a near-miss (trailing junk) is not the spec branch"):
+            self.assertAllowed(self.edit(tpl, "Edit", ACCEPTANCE_FILE))
+        self.git(tpl, "checkout", "-q", "-b", "spec/63")
+        with self.case("template: the pre-template name spec/<n> is NOT a spec branch under it"):
+            self.assertAllowed(self.edit(tpl, "Edit", ACCEPTANCE_FILE))
+        # {kind} first, {user} later: the prefilter's spec/* test still routes it to python.
+        kind_first = self.new_repo(
+            {"CLAUDE.md": config_block(forge="github", acceptance_dir="tests/acceptance",
+                                       branch_template="{kind}/{user}/{n}")},
+            commit=True, branch="spec/paul/7")
+        with self.case("template: {kind}/{user}/{n} spec branch denied"):
+            self.assertDenied(self.edit(kind_first, "Edit", ACCEPTANCE_FILE), "acceptance suite")
+        # An invalid template (unknown placeholder) enforces nothing rather than everything.
+        bad = self.new_repo(
+            {"CLAUDE.md": config_block(forge="github", acceptance_dir="tests/acceptance",
+                                       branch_template="{kind}/{ticket}")},
+            commit=True, branch="spec/63")
+        with self.case("template: an unknown placeholder matches no branch (enforces nothing)"):
+            self.assertAllowed(self.edit(bad, "Edit", ACCEPTANCE_FILE))
+        with self.case("no template line: spec/<n> still denied (the 1.11–1.28 rule, unchanged)"):
+            self.assertDenied(self.edit(self.repo, "Edit", ACCEPTANCE_FILE), "acceptance suite")
+
     def test_other_branches(self):
         self.git(self.repo, "checkout", "-q", "-b", "qa/63")
         with self.case("same file on qa/<n> allowed — that is the road"):

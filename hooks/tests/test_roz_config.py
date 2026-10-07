@@ -1,4 +1,4 @@
-"""bin/roz-config — the four per-person loop keys, in a throwaway repo.
+"""bin/roz-config — the five per-person loop keys, in a throwaway repo.
 
 Runtime like the hooks (stdlib, plain python3), so it lives in the runtime
 suite. Every case runs the real executable; nothing is imported.
@@ -60,7 +60,8 @@ class RozConfigTest(unittest.TestCase):
             self.set_origin_head("release/20261006")
             self.assertEqual(json.loads(self.run_tool("--json").stdout),
                              {"default_branch": "release/20261006",
-                              "inbox_label": [], "inbox_assignee": [], "helper_model": ""})
+                              "inbox_label": [], "inbox_assignee": [], "helper_model": "",
+                              "branch_user": ""})
 
     # ---- writes ---------------------------------------------------------
     def test_set_replace_remove_default_branch(self):
@@ -97,10 +98,11 @@ class RozConfigTest(unittest.TestCase):
 
     def test_unknown_key_refused(self):
         with self.subTest(
-                'roz-config: an unknown key is refused and names the four'):
+                'roz-config: an unknown key is refused and names the five'):
             p = self.run_tool("model", "x")
             self.assertEqual(p.returncode, 2)
-            self.assertIn("default_branch, inbox_label, inbox_assignee, helper_model", p.stderr)
+            self.assertIn("default_branch, inbox_label, inbox_assignee, helper_model, branch_user",
+                          p.stderr)
             self.assertFalse((self.root / REL).exists())
 
     # ---- helper_model: the scanner's and the commit sub-agent's model ------
@@ -203,7 +205,7 @@ class RozConfigTest(unittest.TestCase):
             self.assertEqual(json.loads(p.stdout),
                              {"default_branch": "release/20261006",
                               "inbox_label": ["discuss", "idea"], "inbox_assignee": ["paul"],
-                              "helper_model": ""})
+                              "helper_model": "", "branch_user": ""})
             self.assertTrue((self.root / REL).exists())
             self.run_tool("default_branch")        # remove the override …
             p = self.run_tool("--json")
@@ -235,6 +237,31 @@ class RozConfigTest(unittest.TestCase):
             self.assertEqual(p.returncode, 2)
             self.assertEqual((self.root / REL).read_text(), "{not json")
 
+
+    # ---- branch_user: the {user} slot of branch_template (#75) -------------
+    def test_branch_user_set_show_json_remove(self):
+        with self.subTest(
+                'roz-config: branch_user set, shown, carried by --json, removed to the forge '
+                'login'):
+            p = self.run_tool()
+            self.assertIn("branch_user      -  (default: the forge login)", p.stdout)
+            self.assertEqual(json.loads(self.run_tool("--json").stdout)["branch_user"], "")
+            p = self.run_tool("branch_user", "pwliangc")
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(self.stored(), {"branch_user": "pwliangc"})
+            self.assertIn("branch_user      pwliangc", self.run_tool().stdout)
+            self.assertEqual(json.loads(self.run_tool("--json").stdout)["branch_user"], "pwliangc")
+            p = self.run_tool("branch_user")
+            self.assertIn("removed the override", p.stdout)
+            self.assertEqual(self.stored(), {})
+            self.assertEqual(json.loads(self.run_tool("--json").stdout)["branch_user"], "")
+
+    def test_branch_user_takes_one_value(self):
+        with self.subTest('roz-config: branch_user refuses two values, writes nothing'):
+            p = self.run_tool("branch_user", "a", "b")
+            self.assertEqual(p.returncode, 2)
+            self.assertIn("takes one value", p.stderr)
+            self.assertFalse((self.root / REL).exists())
 
 if __name__ == "__main__":
     unittest.main()

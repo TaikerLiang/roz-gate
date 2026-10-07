@@ -43,6 +43,16 @@ deny message names the file to remove; under-blocking a fidelity read is
 the invisible failure this rule closes. ``agent_type`` is reported in the
 message when present, never relied on.
 
+The marker's content (1.29.0, references/branch-names.md): a repo whose
+``branch_template`` names the implementation branch ``fix/pwliangc/5/1``
+has no ``feat/`` ref to deny, so the dispatching command writes
+``feat=<the bound implementation branch>`` into the marker and a git
+action on THAT ref is denied too — the same verbs, the exact name. The
+``feat/`` literal stays denied regardless (the pre-template rule, and the
+D2 predicate held byte-identical with the checker); an empty or
+``issue=``-only marker is the 1.16–1.28 shape and enforces exactly what
+it did.
+
 Exit 0 allows the tool call; exit 2 blocks it and feeds stderr to the
 model.
 """
@@ -121,12 +131,35 @@ def marker_path():
     return os.path.abspath(out.stdout.strip()) + "/" + MARKER_REL
 
 
-def violation(tool, inp):
+def marker_ref(path):
+    """The implementation branch the marker names (`feat=<branch>`), or None."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("feat="):
+                    return line[len("feat="):].strip() or None
+    except (OSError, TypeError):
+        pass
+    return None
+
+
+def ref_touch_re(ref):
+    """GIT_TOUCH's shape for one exact ref: the same verbs, the bound name
+    (not a prefix — `fix/paul/5/1` must not deny `fix/paul/5/10`; a leading
+    `origin/` is still that ref)."""
+    return re.compile(
+        r"\bgit\b[^|;&\n]*\b(checkout|switch|diff|show|log|merge|restore"
+        r"|worktree)\b[^|;&\n]*(?<![\w-])" + re.escape(ref) + r"(?![\w-])")
+
+
+def violation(tool, inp, ref=None):
     """The D2 checker's dispatch_blind(), per call: what it names."""
     if tool == "Bash":
         cmd = inp.get("command") or ""
         if GIT_TOUCH.search(cmd):
             return "a git action on a feat/ ref"
+        if ref and ref_touch_re(ref).search(cmd):
+            return "a git action on %s, the implementation branch" % ref
         if bash_reads_src(cmd):
             return "a read of src/"
     elif tool in ("Read", "Glob", "Grep"):
@@ -144,11 +177,12 @@ def main():
     if tool not in ("Bash", "Read", "Glob", "Grep"):
         return
     inp = payload.get("tool_input") or {}
-    what = violation(tool, inp)
+    marker = marker_path()
+    what = violation(tool, inp, marker_ref(marker))
     if not what:
         return
     agent = payload.get("agent_type")
-    deny(BLIND_MSG % (what, marker_path() or "<git-dir>/" + MARKER_REL,
+    deny(BLIND_MSG % (what, marker or "<git-dir>/" + MARKER_REL,
                       " (agent: %s)" % agent if agent else ""))
 
 

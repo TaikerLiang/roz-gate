@@ -107,6 +107,34 @@ class RuleE_FidelityDispatchIsBlind(HookTest):
         with self.case("rule E: stale marker still denies and names the marker file"):
             self.assertDenied(self.run_bash(RUN4), "roz-gate/fidelity-dispatch")
 
+        # branch_template (#75): the marker names the bound implementation ref.
+        self.write(self.marker, "issue=5\nfeat=fix/pwliangc/5/1\n")
+        with self.case("rule E: git checkout of the marker's ref denied"):
+            self.assertDenied(self.run_bash("git checkout fix/pwliangc/5/1"),
+                              "fix/pwliangc/5/1, the implementation branch")
+        with self.case("rule E: git diff test/…...fix/… (the marker's ref) denied"):
+            self.assertDenied(self.run_bash(
+                "git diff test/pwliangc/5/1...fix/pwliangc/5/1 -- tests/"), "implementation branch")
+        with self.case("rule E: git log origin/<marker ref> denied (a leading origin/ is "
+                       "that ref)"):
+            self.assertDenied(self.run_bash("git log origin/fix/pwliangc/5/1 --oneline"),
+                              "implementation branch")
+        with self.case("rule E: git worktree remove of the marker ref's worktree denied"):
+            self.assertDenied(self.run_bash(
+                "git worktree remove --force $(git rev-parse --git-common-dir)"
+                "/roz-gate/wt/fix/pwliangc/5/1"),
+                "implementation branch")
+        with self.case("rule E: the feat/ literal stays denied under a templated marker"):
+            self.assertDenied(self.run_bash("git checkout feat/5"), "feat/ ref")
+        with self.case("rule E: a longer sequence of the same issue is not the marker's ref"):
+            self.assertAllowed(self.run_bash("git log fix/pwliangc/5/10 --oneline"))
+        with self.case("rule E: the templated qa branch (type test) allowed"):
+            self.assertAllowed(self.run_bash("git diff test/pwliangc/5/1 -- tests/"))
+        with self.case("rule E: a prompt that MENTIONS the ref is not a git action"):
+            self.assertAllowed(self.run_bash('echo "do not touch fix/pwliangc/5/1" && ls tests'))
+        with self.case("rule E: src/ read still denied under a templated marker"):
+            self.assertDenied(self.run_bash(RUN4), "read of src/")
+
         self.marker.unlink()
         with self.case("rule E: marker removed — the same read is allowed again"):
             self.assertAllowed(self.run_bash(RUN4))
