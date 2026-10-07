@@ -1,0 +1,6 @@
+{
+  "ledger": "C12 · A merged CR is never re-merged — integrate validates the spec tip",
+  "prompt": "/roz-gate:integrate 5",
+  "k": 5,
+  "timeout": 1800
+}

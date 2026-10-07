@@ -1048,7 +1048,7 @@
    "a": 1,
    "why": "兩個當初對照 release notes 檢查的 defect 都沒真的修好：adapter 文件寫了 merged-CR 的查法，但使用它的 command 從沒呼叫。「A lint anchors on the site that reads the rule, or it proves nothing.」",
    "src": "evals/README.md § Method（Why conformance must read the source）",
-   "bg": "lint tier 的 C6 case 守護「CR lookup 在該看到 merged CR 的地方要看到它」。evals/README 的 Method 節記錄了一個發現：兩個曾經對照 release notes 檢查的 defect（B1、C6）「都錯了」，原因是同一種——fix 落在寫規則的地方，而不是讀規則的地方。這決定了 lint 該 anchor 在哪裡。"
+   "bg": "lint tier 的 C6 case 守護「CR lookup 在該看到 merged CR 的地方要看到它」。evals/README 的 Method 節記錄了一個發現：兩個曾經對照 release notes 檢查的 defect（B1、C6）「都錯了」，原因是同一種——fix 落在寫規則的地方，而不是讀規則的地方。這決定了 lint 該 anchor 在哪裡。1.30.0 起 patrol-scan 的 in-flight row 也成了讀者:它改用 all-states form,好把兩個 CR 都已 merged 的 issue 路由回 integrate 做 re-verdict(#77),C6 的 anchor 跟著多一個。"
   },
   {
    "id": 50,
