@@ -725,10 +725,54 @@ c.expect("pattern", "C6: gitlab adapter CR-FIND documents --all for merged MRs",
          "--all" in gl_crfind)
 src("C6: the post-integration detection path cites the all-states form",
     "commands/spec-answers.md", "all-states form")
+# 1.30.0 (#77): the in-flight row joins the readers. Until then this block
+# held it to the open-only default; a merged feat/qa CR therefore read as
+# absent, a both-merged issue (the human cleared a STOP, or moved the spec
+# branch) classified "in progress" forever, and the re-verdict never ran.
 inflight = "\n".join(line for line in read("references/patrol-scan.md").splitlines()
                      if "no `status:`, `track: spec`" in line)
-must_not_match("C6: patrol's in-flight row keeps the open-only default",
-               r"all-states|--state all|--all\b", inflight)
+must_match("C6: patrol's in-flight row cites the all-states form", r"all-states form", inflight)
+src("C6: integrate's CR lookup cites the all-states form", "commands/integrate.md",
+    "all-states form")
+
+# ---------------------------------------------------------------------------
+# C12 · A merged CR is never re-merged — integrate validates the spec tip
+#       (defect: 1.29.1-, #77) — step 3 said "merge both"; on an issue whose
+#       feat/qa CRs were already merged and whose spec branch had moved, that
+#       re-merged two stale tips and stopped on a two-line conflict. The
+#       replay case measures the model; these anchors hold the sentences it
+#       follows, on every surface that states the rule.
+_flat = re.sub(r"\s+", " ", read("commands/integrate.md"))
+_ig3 = re.sub(r"\s+", " ", section(read("commands/integrate.md"), r"^## 3\. ", r"^## 4\. "))
+c.expect("pattern", "C12: integrate step 3 merges what is open, never what is merged",
+         "**merge what is open, never what is merged**" in _ig3)
+c.expect("pattern", "C12: integrate step 3 — both merged → nothing is merged, a re-verdict",
+         "**Both merged → nothing is merged**" in _ig3 and "a **re-verdict**" in _ig3)
+c.expect("pattern", "C12: integrate step 3 states the rule",
+         "validates the current `<spec-branch>` tip; it never reconstructs it from stale "
+         "`feat`/`qa` branch tips" in _ig3)
+c.expect("pattern", "C12: integrate step 1 binds each CR's state, closed-unmerged is absent",
+         "Bind each CR's state, `open` / `draft` / `merged`; a closed-unmerged CR counts as "
+         "absent" in _flat)
+c.expect("pattern", "C12: integrate's legal entries are no status and in-user-review",
+         "`status: in-spec-review` → stop" in _flat
+         and "`status: ready-for-spec` / `ready-for-dev` → stop" in _flat
+         and "**`status: in-user-review`**" in _flat)
+c.expect("pattern", "C12: the finalize regenerates the cards wholesale on a re-verdict",
+         "On a re-verdict the cards are regenerated **wholesale**" in _flat)
+c.expect("pattern", "C12: the report names what step 3 merged",
+         "*re-verdict at SHA `<x>`, nothing merged" in _flat)
+must_match("C12: the in-flight row reads a merged CR as present",
+           r"shows as \*\*merged\*\* exists for this row", inflight)
+must_match("C12: the in-flight row routes both-merged to integrate",
+           r"both merged, or merged \+ open-ready, included", inflight)
+c.expect("pattern", "C12: workflow.md (6) states the rule",
+         "**validates the current `spec/{n}` tip and merges nothing**"
+         in re.sub(r"\s+", " ", read("references/workflow.md")))
+src("C12: README's (6) row states the rule", "README.md",
+    "a later run validates the current spec tip and merges nothing")
+src("C12: README's command row says merge what is open", "README.md",
+    "merge what is open (never what is merged)")
 
 # ---------------------------------------------------------------------------
 # D1 · the reviewer receives the claim it reviews against   (defect: 1.8.0-)
