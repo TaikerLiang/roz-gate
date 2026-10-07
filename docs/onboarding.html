@@ -264,6 +264,8 @@
         <div class="hint"><span class="en"><b>user</b>: agents act as your <code>gh</code> session — zero setup, but your own account's comments never notify you. <b>bot</b>: a GitHub App / GitLab project token; your phone rings, and a bot never holds a gate.</span><span class="zh"><b>user</b>:agents 用你的 <code>gh</code> session——零設定,但自己帳號的留言不會通知你。<b>bot</b>:GitHub App / GitLab project token;手機會響,而且 bot 永遠不持有 gate。</span></div>
         <label>bot_login</label><input id="f_bot" placeholder="roz-gatekeeper" disabled>
         <label>operator</label><input id="f_op" placeholder="your-login" disabled>
+        <label>branch_template</label><input id="f_tpl" placeholder="{type}/{user}/{n}/{seq}">
+        <div class="hint"><span class="en">Your branch-naming convention, one template over <code>{kind}</code>, <code>{type}</code>, <code>{user}</code>, <code>{n}</code>, <code>{seq}</code> — e.g. <code>{type}/{user}/{n}/{seq}</code> renders <code>spec/pwliangc/5/1</code>, <code>fix/pwliangc/5/1</code>, <code>test/pwliangc/5/1</code> (<code>{type}</code> is <code>spec</code> / <code>test</code> / the issue's <code>type:</code> label). Absent: <code>{kind}/{n}</code>, i.e. <code>spec/&lt;n&gt;</code>, <code>feat/&lt;n&gt;</code>, <code>qa/&lt;n&gt;</code>, <code>fast/&lt;n&gt;</code>. Committed — the hooks and everyone's commands read it.</span><span class="zh">你的分支命名慣例,一個模板,可用 <code>{kind}</code>、<code>{type}</code>、<code>{user}</code>、<code>{n}</code>、<code>{seq}</code>——例如 <code>{type}/{user}/{n}/{seq}</code> 會長成 <code>spec/pwliangc/5/1</code>、<code>fix/pwliangc/5/1</code>、<code>test/pwliangc/5/1</code>(<code>{type}</code> 是 <code>spec</code> / <code>test</code> / issue 的 <code>type:</code> label)。沒設:<code>{kind}/{n}</code>,也就是 <code>spec/&lt;n&gt;</code>、<code>feat/&lt;n&gt;</code>、<code>qa/&lt;n&gt;</code>、<code>fast/&lt;n&gt;</code>。會 commit——hooks 和所有人的命令都讀它。</span></div>
 
         <h4><span class="en">Yours — per clone, never committed (/roz-gate:config)</span><span class="zh">你的——每個 clone 一份、永不 commit(/roz-gate:config)</span></h4>
         <label>default_branch</label><input id="f_branch" placeholder="main (remote HEAD)">
@@ -274,6 +276,8 @@
         <div class="hint"><span class="en">Same, by assignee login. Both set = both must hold.</span><span class="zh">同上,以 assignee 登入名篩。兩個都設 = 兩個都要符合。</span></div>
         <label>helper_model</label><input id="f_model" placeholder="claude-haiku-4-5">
         <div class="hint"><span class="en">The model for the two mechanical sub-agents — patrol's scanner and every command's commit sub-agent. Basic work; a cheaper model does it. Seats always run on the runtime default; so does the command itself.</span><span class="zh">兩個機械性 sub-agent 用的 model——patrol 的 scanner,與每個命令的 commit sub-agent。基本工作,便宜的 model 就夠。Seats 一律用 runtime 預設;命令本身也是。</span></div>
+        <label>branch_user</label><input id="f_buser" placeholder="your-login">
+        <div class="hint"><span class="en">The <code>{user}</code> slot of <code>branch_template</code>. Default: your forge login. Other people's branches are found on the remote by pattern — nobody computes your name.</span><span class="zh">填進 <code>branch_template</code> 的 <code>{user}</code>。預設是你的 forge 登入名。別人的分支靠 pattern 在 remote 上找——沒有人會去算你的名字。</span></div>
       </div>
     </div>
     <div>
@@ -451,7 +455,7 @@
   <p class="sub zh">停下來就是系統在正常運作:agents 被禁止用猜的。每種樣子都告訴你該看哪裡。</p>
   <div class="stops">
     <div class="stop"><b>status: blocked</b><span class="en">An abnormal halt: a command hit something it cannot or must not decide and left an issue comment with evidence and a recommendation. Decide, clear the label; the step re-runs clean. It is <i>not</i> an agent waiting for an answer — that looks like open threads.</span><span class="zh">異常停機:指令碰到它不能或不該決定的事,留下一則含證據與建議的 issue 留言。你決定、清掉標籤;步驟從乾淨狀態重跑。它<i>不是</i> agent 在等你回答——那會長成開著的 threads。</span></div>
-    <div class="stop"><b><span class="en">spec/&lt;n&gt; already exists</span><span class="zh">spec/&lt;n&gt; 已經存在</span></b><span class="en">You closed a spec CR, fixed the issue and re-applied <code>ready-for-spec</code> — the old branch is still on the remote. The agent stops and gives you the exact command (<code>git push origin --delete spec/&lt;n&gt;</code>); it never deletes or force-pushes a remote branch itself. Delete, and the next pass cuts fresh; the previous spec stays readable in the closed CR.</span><span class="zh">你關了 spec CR、改好 issue、重貼 <code>ready-for-spec</code>——舊分支還在 remote 上。agent 會停下來給你確切的指令(<code>git push origin --delete spec/&lt;n&gt;</code>);它自己永遠不刪、不 force-push remote 分支。刪掉後下一趟重切;上一版 spec 留在已關的 CR 裡可查。</span></div>
+    <div class="stop"><b><span class="en">spec/&lt;n&gt; already exists</span><span class="zh">spec/&lt;n&gt; 已經存在</span></b><span class="en">You closed a spec CR, fixed the issue and re-applied <code>ready-for-spec</code> — the old branch is still on the remote. The agent stops and gives you the exact command (<code>git push origin --delete spec/&lt;n&gt;</code>); it never deletes or force-pushes a remote branch itself. Delete, and the next pass cuts fresh; the previous spec stays readable in the closed CR. Under a <code>branch_template</code> with <code>{seq}</code> there is nothing to delete: the next pass cuts <code>…/2</code> and the old branch stays.</span><span class="zh">你關了 spec CR、改好 issue、重貼 <code>ready-for-spec</code>——舊分支還在 remote 上。agent 會停下來給你確切的指令(<code>git push origin --delete spec/&lt;n&gt;</code>);它自己永遠不刪、不 force-push remote 分支。刪掉後下一趟重切;上一版 spec 留在已關的 CR 裡可查。<code>branch_template</code> 有 <code>{seq}</code> 的話不用刪:下一趟直接切 <code>…/2</code>,舊分支留著。</span></div>
     <div class="stop"><b>processing + a phase label</b><span class="en">A run was killed mid-flight. The phase label says where; clear the lock and re-run — commands are idempotent on re-entry.</span><span class="zh">一次執行被中途砍掉。階段標籤說明死在哪;清掉鎖、重跑——指令重入是冪等的。</span></div>
     <div class="stop"><b><span class="en">illegal label state</span><span class="zh">非法標籤組合</span></b><span class="en">Two <code>track:</code> labels, <code>fast</code> with a spec-stage status… A command found it and stopped on purpose. Fix the labels by hand; commands never repair them.</span><span class="zh">兩個 <code>track:</code>、<code>fast</code> 配 spec 階段的 status…指令發現後故意停下。手動把標籤修好;指令從不自行修標籤。</span></div>
     <div class="stop"><b><span class="en">QA CR stays a draft</span><span class="zh">QA CR 一直是草稿</span></b><span class="en">QA paused on an open question. Look for an unresolved thread on the spec CR, or <code>in-spec-review</code> on the issue.</span><span class="zh">QA 停在一個未解的問題上。去 spec CR 找未 resolve 的 thread,或 issue 上的 <code>in-spec-review</code>。</span></div>
@@ -529,12 +533,14 @@ const OPT = [
   ['agent_identity', () => seg.ident==='bot' ? 'bot' : ''],
   ['bot_login',      () => seg.ident==='bot' ? $('f_bot').value.trim() : ''],
   ['operator',       () => seg.ident==='bot' ? $('f_op').value.trim() : ''],
+  ['branch_template', () => $('f_tpl').value.trim()],
 ];
 const LOCAL = [
   ['default_branch',  () => $('f_branch').value.trim()],
   ['inbox_label',     () => $('f_ilabel').value.trim()],
   ['inbox_assignee',  () => $('f_iassg').value.trim()],
   ['helper_model',    () => $('f_model').value.trim()],
+  ['branch_user',     () => $('f_buser').value.trim()],
 ];
 function renderCfg(){
   if(!cfgReady) return;
@@ -552,7 +558,7 @@ function renderCfg(){
     : `<p style="font-size:.9rem;color:var(--muted)">${B('Nothing local set — the defaults are the remote\'s HEAD branch and no inbox filter. Come back the day your tracker fills with issues that aren\'t ideas (<code>/roz-gate:config inbox_label discuss</code>), or when a sprint hands over (<code>/roz-gate:config default_branch release/20261020</code>).',
         '沒設本地 key——預設是 remote 的 HEAD 分支、inbox 不篩。哪天 tracker 塞滿不是 idea 的 issue(<code>/roz-gate:config inbox_label discuss</code>),或 sprint 交接(<code>/roz-gate:config default_branch release/20261020</code>),再回來。')}</p>`;
   $('cfgsteps').innerHTML = steps;
-  store.set('cfg', {seg, f: Object.fromEntries(['f_branch','f_test','f_adir','f_atest','f_sync','f_lock','f_regen','f_specs','f_layout','f_trace','f_bot','f_op','f_ilabel','f_iassg','f_model'].map(id => [id, $(id).value]))});
+  store.set('cfg', {seg, f: Object.fromEntries(['f_branch','f_test','f_adir','f_atest','f_sync','f_lock','f_regen','f_specs','f_layout','f_trace','f_bot','f_op','f_tpl','f_ilabel','f_iassg','f_model','f_buser'].map(id => [id, $(id).value]))});
 }
 function wireCfg(){
   document.querySelectorAll('#cfgform .seg').forEach(g => g.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
