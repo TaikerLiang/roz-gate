@@ -55,7 +55,7 @@ Any "no" → a replay case, not a hook, and never prose alone.
 | **B** human-only gate labels | `guard-gate` · Bash | `--add-label` (gh) / `issue update --label` (glab) naming `ready-for-spec` or `ready-for-dev` | the gate holder applies the label themselves | static, no API |
 | **C** quote-open guard | `guard-gate` · Bash | a comment-shaped forge write whose body carries a roz-gate marker and opens with `>` (per shell segment; `--body-file` read back, heredoc parsed) | put the marker on line one | an unreadable marker-carrying `--body-file` fails **closed** |
 | **D** open questions have one home | `guard-gate` · Bash | a `git commit` while any `<specs_dir>/*/technical-spec.md` — working tree **or** index — carries a heading matching `^#+ .*open questions` | move it to `spec.md`'s Open Questions, delete it here, `git add`, commit | index checked too: a fixed file never re-staged would commit the stale section |
-| **E** fidelity dispatch is blind | `guard-blind` · Bash, Read, Glob, Grep | while the marker exists: a Read/Glob/Grep path under `src/`; in Bash, a git checkout/switch/diff/show/log/merge/restore/worktree on a `feat/` ref or on the ref the marker's `feat=` line names (the bound implementation branch, `references/branch-names.md`), or a read of `src/` after blanking exclusion operands (`grep -v`, `:!`, `--exclude`, `-not -path`) and echo/printf operands and comments | what you need is on `qa/<n>`; a required read is a **finding**, not an action | a **stale marker keeps the rule ON** — over-blocking is visible, under-blocking is not |
+| **E** fidelity dispatch is blind | `guard-blind` · Bash, Read, Glob, Grep | while the marker exists: a Read/Glob/Grep path under `src/`; in Bash, a git checkout/switch/diff/show/log/merge/restore/worktree on a `feat/` ref or on the ref the marker's `feat=` line names (the bound implementation branch, `references/branch-names.md`), or a read of `src/` outside `<acceptance_dir>` after blanking exclusion operands (`grep -v`, `:!`, `--exclude`, `-not -path`), echo/printf operands, comments, and operands under the suite (a suite strictly under `src/` — Maven's `src/test/…` — is what the dispatch audits; `src` itself exempts nothing, a climb out of the suite is not blanked) | what you need is on `qa/<n>`; a required read is a **finding**, not an action | a **stale marker keeps the rule ON** — over-blocking is visible, under-blocking is not |
 | **acceptance** | `guard-acceptance` · Edit, Write, MultiEdit | on a spec branch — `spec/*`, or HEAD matching the block's `branch_template` rendered for the spec kind — a write under `<acceptance_dir>` | make the change on `qa/<n>`, merge it in | branch-and-path only; no exemption list |
 
 ## The fidelity-dispatch marker (rule E)
@@ -109,7 +109,7 @@ bump.
 ## Running the tests
 
 ```sh
-python3 hooks/tests/run_tests.py                # 134 cases, one PASS/FAIL line each — the hooks and bin/roz-config
+python3 hooks/tests/run_tests.py                # one PASS/FAIL line per case — the hooks and bin/roz-config
 python3 -m unittest discover -s hooks/tests     # same tests, unittest's own output
 ```
 
