@@ -115,7 +115,7 @@ place, detail collapsed behind `<details>`.
 
 **5. Since-you-approved diff** *(final kit only)* — the approved SHA is
 stamped into the kit when Path B starts (the gate label is the approval
-of `spec/<n>` at that commit). At finalize:
+of `<spec-branch>` at that commit). At finalize:
 `git diff <approved-sha>..HEAD -- <specs_dir>/<n>/`, **each hunk
 annotated with the thread or amendment that caused it**; if empty, say
 so: *"the spec you approved is byte-identical."* Approval that can

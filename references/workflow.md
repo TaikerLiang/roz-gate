@@ -123,7 +123,9 @@ request — folds it into the owning document, records it as a resolved
 but the old `spec/{n}` is yours to delete (`git push origin --delete
 spec/{n}`; `next-stage` stops and tells you so, because **an agent never
 deletes or force-pushes a remote branch**), and the previous spec stays
-readable in the closed CR. (iii) The issue is **a different story** → strip
+readable in the closed CR. Under a `branch_template` that carries `{seq}`
+there is nothing to delete: the next pass cuts the next sequence and the
+old branch stays (`references/branch-names.md`). (iii) The issue is **a different story** → strip
 its `track:`/`status:` labels and it returns to the inbox, exactly as from
 (7) below.
 
@@ -184,6 +186,17 @@ from — the trunk, or on a sprint cadence the current release branch
 commands always read the current value: an issue cut from the previous base
 is the human's to move (retarget its CR, rebase); nothing in the loop pins or
 detects it. A base the remote does not have stops the cut (`blocked`).
+
+**The branch names.** `spec/{n}`, `feat/{n}`, `qa/{n}`, `fast/{n}` are the
+**default** names — the block's `branch_template` renders them for a repo
+with its own convention (`{type}/{user}/{n}/{seq}` → `spec/pwliangc/5/1`,
+`fix/pwliangc/5/1`, `test/pwliangc/5/1`): `{type}` is `spec` / `test` / the
+issue's `type:` label, `{user}` your `branch_user` (or your forge login),
+`{seq}` the attempt. Every command binds its names once from the template
+and finds an existing branch on the remote by pattern — it never guesses
+another person's `{user}`; the hooks read the same template
+(`references/branch-names.md`). Like the base, a template change is yours
+to carry for an issue already cut.
 
 **(7) Review** — after a green (6), the main agent brings the default branch
 into `spec/{n}` (resolving conflicts on the feature branch so the spec CR's

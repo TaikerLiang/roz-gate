@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""roz-config — the four loop keys that are yours, per repo, never committed.
+"""roz-config — the five loop keys that are yours, per repo, never committed.
 
     roz-config                                  # effective values, (default) marked
     roz-config --json                           # the same as JSON (what commands read)
@@ -7,6 +7,7 @@
     roz-config inbox_label discuss idea         # set a list (any of these labels)
     roz-config inbox_assignee TaikerLiang       # set a list (any of these logins)
     roz-config helper_model claude-haiku-4-5    # the scanner's and the commit sub-agent's model
+    roz-config branch_user pwliangc             # the {user} slot of branch_template
     roz-config inbox_label                      # no value: remove the override
 
 Stored in `.claude/roz-gate.local.json` at the repository root — one file per
@@ -19,7 +20,9 @@ Defaults when a key is absent: `default_branch` is the remote's HEAD branch
 (`refs/remotes/origin/HEAD`; `main` when the remote has no HEAD), the inbox
 keys are empty lists — no filter, `helper_model` is empty — the runtime's
 default model for patrol's scanner and every command's commit sub-agent
-(seats are never model-configured).
+(seats are never model-configured), `branch_user` is empty — the commands
+fill `{user}` with the forge login of the account running them (WHOAMI;
+`references/branch-names.md`). This tool never asks the forge.
 
 Upgrade (pre-1.23 repos kept these keys in CLAUDE.md's `### Roz Gate config`
 block; pre-1.28 ones kept `patrol_model` there): the first run that finds no
@@ -35,7 +38,8 @@ import re
 import subprocess
 import sys
 
-KEYS = ("default_branch", "inbox_label", "inbox_assignee", "helper_model")
+KEYS = ("default_branch", "inbox_label", "inbox_assignee", "helper_model", "branch_user")
+EMPTY_DEFAULT = ("helper_model", "branch_user")   # absent = "" — the runtime / WHOAMI decides
 RENAMED = {"patrol_model": "helper_model"}   # pre-1.28 block line → local key
 LIST_KEYS = ("inbox_label", "inbox_assignee")
 REL = ".claude/roz-gate.local.json"
@@ -143,7 +147,7 @@ def effective(stored):
                 else (str(v), False)
         elif k in LIST_KEYS:
             out[k] = ([], True)
-        elif k == "helper_model":
+        elif k in EMPTY_DEFAULT:
             out[k] = ("", True)
         else:
             out[k] = (default_branch()[0], True)
@@ -182,7 +186,8 @@ def show(eff, as_json):
         note = ""
         if dflt:
             note = "  (default: no filter)" if k in LIST_KEYS else "  (default: runtime)" \
-                if k == "helper_model" else (
+                if k == "helper_model" else "  (default: the forge login)" \
+                if k == "branch_user" else (
                 "  (default: origin/HEAD)" if has_head else "  (default: origin/HEAD unset, assuming main)")
         print("%-16s %s%s" % (k, shown or "-", note))
 

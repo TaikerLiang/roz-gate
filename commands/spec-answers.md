@@ -11,10 +11,15 @@ Follow these steps; do nothing beyond them.
 Read the `### Roz Gate config` block in the project's CLAUDE.md, then
 `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the concrete CLI behind
 every CAPITALIZED-OP. Missing config → stop; tell the user to run
-`/roz-gate:init`. **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee` are per person,
+`/roz-gate:init`. **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee`,
+`helper_model`, `branch_user` are per person,
 per clone, never in the block: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`
 and use its values (`.claude/roz-gate.local.json`, defaults resolved — the
-remote's HEAD branch, empty lists). **Personas**: the role re-spawns in step 5 resolve through
+remote's HEAD branch, empty lists, empty strings). **Branch names**: bind `<spec-branch>`,
+`<feat-branch>`, `<qa-branch>`, `<fast-branch>` per
+`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md` (the block's
+`branch_template`, absent → `{kind}/{n}`; an existing branch is found by
+Lookup, never guessed). Nothing below spells a branch name. **Personas**: the role re-spawns in step 5 resolve through
 the `### Roz Gate personas` block — dispatch the mapped subagent, attaching
 the seat's R&R row from `${CLAUDE_PLUGIN_ROOT}/references/workflow.md` as its
 contract. Block missing → plugin defaults (`roz-gate:<role>`; implementer =
@@ -22,9 +27,9 @@ the project's `implementer` agent).
 
 ## 1. Find spec CRs to check (read-only)
 - If an issue number was passed (`$ARGUMENTS`), use the CR whose head branch is
-  `spec/<n>` (CR-FIND).
+  `<spec-branch>` (CR-FIND).
 - Otherwise, for every issue with label `status: in-spec-review`, find its spec
-  CR (head branch `spec/<n>`, open).
+  CR (head branch `<spec-branch>`, open).
 - Skip any issue carrying `status: processing` (another command holds it) or
   `status: blocked` (waiting on the human).
 - An `in-spec-review` issue whose spec CR is missing or closed is an impossible
@@ -120,15 +125,15 @@ half-done:
    edit the issue body/AC — the user decides whether to amend.
 
 ## 6. Commit the spec edits
-Every fold above edits the spec **in a worktree of `spec/<n>`** —
+Every fold above edits the spec **in a worktree of `<spec-branch>`** —
 `git fetch`, then
-`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n> spec/<n>`
+`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<spec-branch> <spec-branch>`
 before the first fold (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` → The
 main agent → The workspace); a refusal means another command holds the
 branch → the STOP exit. After processing, commit the spec changes there
 through the **commit** sub-agent — one dispatch, on `helper_model` when set,
 `${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the worktree path,
-`spec/<n>`, the spec files and the message; it returns one `branch · sha ·
+`<spec-branch>`, the spec files and the message; it returns one `branch · sha ·
 hook` row and the hook output stays out of your context — then push from
 the returned `sha` (so the CR reflects the resolutions; `no-verify:` → say
 so; `failed:` → STOP with the excerpt). **Keep the worktree** through
@@ -147,11 +152,11 @@ note it in the report.
 
 ## 7. Promote when fully answered
 Re-check the CR's threads. If **every** thread is resolved, the next step
-depends on where the issue is — decided by CR-FIND for `feat/<n>` /
-`qa/<n>` **in its all-states form** (the adapter's merged-CR variant,
+depends on where the issue is — decided by CR-FIND for `<feat-branch>` /
+`<qa-branch>` **in its all-states form** (the adapter's merged-CR variant,
 `--state all` / `--all`): the open-only default reads *merged* as
 *absent* and would send a shipped issue back through implementation.
-- **First pass through (2a)** — no `feat/<n>` / `qa/<n>` CRs exist:
+- **First pass through (2a)** — no `<feat-branch>` / `<qa-branch>` CRs exist:
   LABEL-REMOVE `status: processing` (leave `status: in-spec-review`). Before
   reporting ready, two checks:
   - `grep -nE '(^|[(,])[[:space:]]*unverified' <specs_dir>/<n>/*.md` (the
@@ -168,18 +173,18 @@ depends on where the issue is — decided by CR-FIND for `feat/<n>` /
   Then report that #<n> is fully answered and ready for the user's approval
   to move to implementation. Do NOT touch the gate — applying `ready-for-dev`
   is the user's.
-- **Mid-flight re-entry** — open `feat/<n>` / `qa/<n>` CRs exist (the thread
+- **Mid-flight re-entry** — open `<feat-branch>` / `<qa-branch>` CRs exist (the thread
   was a contract ambiguity raised during (3)+(4)): LABEL-REMOVE both
   `status: in-spec-review` and `status: processing`, then re-dispatch the
   paused side (normally `qa`) with the amended contract so it resumes. When
   `qa` reports its suite complete, CR-READY its CR — until then it stays
   draft. Report the amendment and what resumed.
-- **Post-integration re-entry** — `feat/<n>` / `qa/<n>` exist but are
+- **Post-integration re-entry** — `<feat-branch>` / `<qa-branch>` exist but are
   **merged** (the issue came back from (7): the user's review raised something
   that changed what a rule means). The work is built, so this never returns to
   implementation. Fold, then: if the amendment changed behaviour, honour the
   **hand-back rule** — re-run config `acceptance_test` and config `test` on
-  `spec/<n>`, capture the output, regenerate the gate kit's evidence cards
+  `<spec-branch>`, capture the output, regenerate the gate kit's evidence cards
   wholesale and re-stamp `cards-sha`. A red here is the stage-(6) taxonomy
   (`commands/integrate.md` step 5), never an assertion edited to match. Then
   LABEL-REMOVE both `status: in-spec-review` and `status: processing`,
@@ -190,13 +195,13 @@ If threads remain open: LABEL-REMOVE `status: processing` and list which
 questions are still waiting.
 
 Whichever branch ran, end step 7 with
-`git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n>`
+`git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/<spec-branch>`
 then `git worktree prune`.
 
 ## 8. The STOP exit
 On anything this command cannot or should not decide — a fold that keeps
 failing, a rejected push, an impossible state: follow the STOP protocol.
-`git worktree remove --force` the `spec/<n>` worktree **if this run created
+`git worktree remove --force` the `<spec-branch>` worktree **if this run created
 it** (the uncommitted spec edits live nowhere else; the user's checkout was
 never touched — and a refused `worktree add` means the worktree is another
 run's, so remove nothing), replace the issue's status

@@ -11,10 +11,16 @@ confirm. Follow these steps; do nothing beyond them.
 ## 0. Load config & forge adapter
 
 Read the `### Roz Gate config` block in the project's CLAUDE.md (`forge`,
-`test`, `acceptance_test`, `env_sync`, `specs_dir`, `acceptance_dir`). **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee` are per person,
+`test`, `acceptance_test`, `env_sync`, `specs_dir`, `acceptance_dir`,
+`branch_template`). **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee`,
+`helper_model`, `branch_user` are per person,
 per clone, never in the block: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`
 and use its values (`.claude/roz-gate.local.json`, defaults resolved — the
-remote's HEAD branch, empty lists). Then
+remote's HEAD branch, empty lists, empty strings). **Branch names**: bind `<spec-branch>`,
+`<feat-branch>`, `<qa-branch>`, `<fast-branch>` per
+`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md` (the block's
+`branch_template`, absent → `{kind}/{n}`; an existing branch is found by
+Lookup, never guessed). Nothing below spells a branch name. Then
 `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the concrete CLI behind
 every CAPITALIZED-OP. Missing config → stop; tell the user to run
 `/roz-gate:init`. **Personas**: the seat dispatches below resolve through the
@@ -26,7 +32,7 @@ contract. Block missing → plugin defaults.
 - Issue `<n>` from `$ARGUMENTS`, or every issue labelled
   `status: in-user-review`. Skip any carrying `status: processing` (another
   command holds it).
-- The CR is `spec/<n>` for `track: spec`, `fast/<n>` for `track: fast` (CR-FIND).
+- The CR is `<spec-branch>` for `track: spec`, `<fast-branch>` for `track: fast` (CR-FIND).
   Missing or closed while the label persists → report it and act on nothing.
 - **Read all three channels** — THREADS-LIST (inline threads), REVIEWS-LIST
   (review summary bodies), CR-COMMENTS-LIST (top-level comments). An item is
@@ -121,8 +127,8 @@ by change class:
   (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md`): re-run config
   `acceptance_test` for the feature **and** config `test`, capture the output,
   and only then push. Red → the stage-(6) taxonomy (`commands/integrate.md`
-  step 5): real bug → fix; harness issue → `qa`, **on `qa/<n>`, merged back**
-  (a hook blocks acceptance-file edits on `spec/<n>` — that is the road, not an
+  step 5): real bug → fix; harness issue → `qa`, **on `<qa-branch>`, merged back**
+  (a hook blocks acceptance-file edits on `<spec-branch>` — that is the road, not an
   obstacle); a failing assertion that faithfully states the contract is the
   **contract-defect** class and it is **never yours to classify as
   "they authorized it"** — that reading would launder any red at the last gate.
@@ -165,7 +171,7 @@ you never do): close the CRs, LABEL-REMOVE the `track:` label and every
 `status:` label. The issue is the inbox again ((1b)) and the next patrol pass
 picks it up.
 
-State the cost once, factually: the merged work is on `spec/<n>` and
+State the cost once, factually: the merged work is on `<spec-branch>` and
 re-derivable — that part is cheap — but their **decision ledger** is their own
 rulings, and a fresh intake would re-ask them. Offer to carry it into the new
 intake as **prior answers to confirm, not re-answer**; the ledger is already

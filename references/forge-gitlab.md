@@ -67,6 +67,7 @@ Wherever a command names a label like `status: ready-for-spec`, read it as
 | ISSUE-EDIT-BODY | `glab issue update <n> --description "..."` (async intake only, at finalize — after the gate holder's gate label) |
 | ISSUE-LIST-CLOSED | `glab issue list --closed --label "<track label>" --output json` (patrol's close-out scan only) |
 | ISSUE-CLOSE | `glab issue close <n>` (patrol's close-out only — after the MR is merged; GitLab does not close the issue or strip its scoped labels on merge unless `Closes #<n>` sat in the description and the MR targeted the default branch) |
+| WHOAMI | `glab api user --jq .username` — the username of the account running the command, the `{user}` slot of `branch_template` when `branch_user` is unset (`references/branch-names.md`); in bot mode the slot is the first `bot_login`, never a forge call |
 
 ## Change requests
 
