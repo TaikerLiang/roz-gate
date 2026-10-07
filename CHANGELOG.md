@@ -2,6 +2,25 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.31.0 — fix_rounds: the fix-and-rerun cap is yours to set; the cap STOP lists every round and your three doors — 2026-10-07
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.31.0>
+
+**Behavior:** the fix-and-rerun cap at (6) and in a (7) hand-back is the block's optional `fix_rounds` (absent = 3, per run; a bad value is a config error); hitting it is a STOP whose comment lists every round and your three doors.
+
+### Behavior
+- **`fix_rounds`** (#78): optional config-block key, a non-negative integer — integrate step 5 and review-answers §6 read it; absent → 3; `0` → every RED stops at once; any other value is a config error that stops the run before the lock. Per run: a run cleared from `blocked` starts at round 1. `init` documents it; the onboarding builder offers it.
+- **The cap STOP**: `blocked` alone; must-read = cap reached · the pattern (*N rounds · class · file*) · the three doors (clear `blocked` — patrol re-runs with a fresh budget; raise `fix_rounds`; send it back); the round ledger (`round · class · fixed · branch · sha · first failing line`) folds in the Evidence block. The report names the rounds spent.
+
+### Evals
+- **C14** (new, lint): anchors `fix_rounds` on every reading and documenting site and the cap STOP's shape; `must_not_match` on a literal cap. Lint count refreshed in `evals/README.md`.
+
+### Docs
+- README block and command table; index `blocked` card; onboarding builder and stop card; init's key list.
+
+### Checks
+Hook tests 194/194 · lint 388/388 · red-proofs 15/15
+
 ## v1.30.0 — a merged CR is never re-merged: integrate validates the spec tip, patrol routes the re-verdict — 2026-10-07
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.30.0>
