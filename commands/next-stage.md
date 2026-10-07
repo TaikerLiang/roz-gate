@@ -88,9 +88,8 @@ LABEL-ADD `status: processing`.
 
 ### A2. Branch
 **The branch may already exist** — a previous attempt at this stage. Before
-the cut, **Lookup** the spec kind of #<n> (`git fetch --prune`, then
-`git ls-remote --heads origin` matched against the template —
-`references/branch-names.md`). A match →
+the cut, **Lookup** the spec kind of #<n> (`git ls-remote --heads origin`
+matched against the template — `references/branch-names.md`). A match →
 CR-FIND (all-states form) its CR: **open** → illegal state, **STOP** (someone
 is still reviewing it; the gate label is wrong, not the branch); **closed
 unmerged, or no CR** → this is a **re-spec**, and the route is the
@@ -441,9 +440,8 @@ LABEL-ADD `status: processing`.
 
 ### C2. Branch
 **The branch may already exist** — a previous attempt at this stage. Before
-the cut, **Lookup** the fast kind of #<n> (`git fetch --prune`, then
-`git ls-remote --heads origin` matched against the template —
-`references/branch-names.md`). A match →
+the cut, **Lookup** the fast kind of #<n> (`git ls-remote --heads origin`
+matched against the template — `references/branch-names.md`). A match →
 CR-FIND (all-states form) its CR: **open** → illegal state, **STOP** (someone
 is still reviewing it; the gate label is wrong, not the branch); **closed
 unmerged, or no CR** → this is a **re-spec**, and the route is the

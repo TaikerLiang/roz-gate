@@ -13,7 +13,14 @@ ISSUE-EDIT-BODY, no ISSUE-CLOSE, no CR write, no dispatch, no git. Every
 CAPITALIZED-OP you run is a read from the forge adapter the main agent named
 in your dispatch (`references/forge-<forge>.md`). The inbox filter's two
 lists and `default_branch` are the values the main agent handed you from
-`bin/roz-config --json`; never re-derive them.
+`bin/roz-config --json`; never re-derive them. **Branch names**: the main
+agent handed you `branch_template` and **the remote's heads** (its one
+`git ls-remote --heads origin`); every `<spec-branch>` / `<feat-branch>` /
+`<qa-branch>` / `<fast-branch>` below is bound by **Lookup** over that
+list — the template rendered for the kind and issue with `{user}` and
+`{seq}` as patterns, the highest `{seq}` winning
+(`references/branch-names.md`) — never by a git call of your own, never by
+guessing. A CR-FIND takes the bound name.
 
 ## Scan
 

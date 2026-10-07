@@ -58,7 +58,12 @@ adapter path (`${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md`), and the
 local keys from `bin/roz-config --json` (`helper_model` is the dispatch's
 model, not a value the scanner reads), and the config block's
 `bot_login` list (normalized: `app/` prefix and `[bot]` suffix stripped;
-empty in user mode) so the scanner can tell a human holder from a bot. The
+empty in user mode) so the scanner can tell a human holder from a bot, the
+block's `branch_template` (absent → `{kind}/{n}`), and **the remote's
+heads** — the output of one `git ls-remote --heads origin`, run by you
+here (a query of the remote; it touches no checkout and no local ref) —
+so the scanner can bind every issue's branch names by Lookup
+(`references/branch-names.md`) without running git itself. The
 scanner is **read-only**
 and returns the table the brief defines; everything it read stays in its
 context, not yours.

@@ -92,6 +92,17 @@ class AcceptanceSuiteIsNotEditableOnSpecBranch(HookTest):
             self.assertAllowed(self.edit(bad, "Edit", ACCEPTANCE_FILE))
         with self.case("no template line: spec/<n> still denied (the 1.11–1.28 rule, unchanged)"):
             self.assertDenied(self.edit(self.repo, "Edit", ACCEPTANCE_FILE), "acceptance suite")
+        # A bullet outside the block is documentation, not config (codex, PR #82).
+        notes = self.new_repo(
+            {"CLAUDE.md": config_block(forge="github", acceptance_dir="tests/acceptance")
+             + "\n## Notes\n\n- branch_template: {user}/{type}/{n}  (an example)\n"},
+            commit=True, branch="spec/5")
+        with self.case("template: a branch_template bullet outside the block is ignored — "
+                       "spec/5 still denied"):
+            self.assertDenied(self.edit(notes, "Edit", ACCEPTANCE_FILE), "acceptance suite")
+        self.git(notes, "checkout", "-q", "-b", "pwliangc/spec/5")
+        with self.case("template: …and the example's own render is not a spec branch there"):
+            self.assertAllowed(self.edit(notes, "Edit", ACCEPTANCE_FILE))
 
     def test_other_branches(self):
         self.git(self.repo, "checkout", "-q", "-b", "qa/63")

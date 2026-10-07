@@ -56,8 +56,9 @@ and so on. The result is the bound name; the worktree is
 
 A command that did not cut a branch cannot compute its name: another
 person's `{user}` and the attempt's `{seq}` are not knowable from the
-config. So a branch is **found, never guessed**: `git fetch --prune`, then
-`git ls-remote --heads origin`, and match every `refs/heads/…` against the
+config. So a branch is **found, never guessed**:
+`git ls-remote --heads origin` (a query of the remote — no fetch, no local
+ref touched), and match every `refs/heads/…` against the
 template rendered with `{user}` → any single path segment (`[^/]+`),
 `{seq}` → any number (`[0-9]+`), and the other placeholders expanded
 exactly for the kind and issue (the `type:` label is read from the issue
@@ -74,6 +75,8 @@ each time). Under the default template this is an exact name.
   both.
 
 CR-FIND and CR-OPEN take the bound name; the adapter ops do not change.
+A reader that may not run git — patrol's scanner — is handed the
+`ls-remote` output by the main agent and matches the same way.
 
 ## Re-entry — the branch already exists
 

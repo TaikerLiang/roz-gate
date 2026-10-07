@@ -78,10 +78,15 @@ def load_config(top):
             text = f.read()
     except OSError:
         return None
-    if not re.search(r"^###\s+(Roz Gate|Gated Loop) config\s*$", text, re.M):
+    blk = re.search(r"^###\s+(?:Roz Gate|Gated Loop) config\s*$(.*?)(?=^#|\Z)", text,
+                    re.M | re.S)
+    if not blk:
         return None
-    m = re.search(r"^-\s*acceptance_dir:\s*(.+)$", text, re.M)
-    t = re.search(r"^-\s*branch_template:\s*(\S+)", text, re.M)
+    # The block only: a `- branch_template:` bullet in some later Notes
+    # section must not switch the spec-branch predicate (codex review, PR #82).
+    block = blk.group(1)
+    m = re.search(r"^-\s*acceptance_dir:\s*(.+)$", block, re.M)
+    t = re.search(r"^-\s*branch_template:\s*(\S+)", block, re.M)
     return (m.group(1).strip().strip("`") if m else DEFAULT_ACCEPTANCE_DIR,
             t.group(1).strip("`") if t else None)
 

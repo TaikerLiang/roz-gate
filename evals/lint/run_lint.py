@@ -470,7 +470,8 @@ src("C9: review-answers commits in a worktree of the CR's branch", "commands/rev
     "git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<branch> <branch>")
 src("C9: patrol's address-review dispatches work in worktrees", "commands/patrol.md",
     "git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<branch> <branch>")
-c.expect("pattern", "C9: patrol runs no git at all (its scan is forge calls)",
+c.expect("pattern", "C9: patrol runs no git that touches the checkout (its scan is forge "
+         "calls plus one ls-remote of the remote's heads)",
          re.search(r"`git (checkout|switch|reset|stash|merge|fetch) ",
                    read("commands/patrol.md")) is None)
 for _f in ("commands/next-stage.md", "commands/integrate.md", "commands/spec-answers.md",
@@ -872,6 +873,12 @@ src("L4: B5b's marker carries the bound implementation branch", "commands/next-s
     "printf 'issue=<n>\\nfeat=<feat-branch>\\n'")
 src("L4: patrol's fidelity dispatch names the same marker line", "commands/patrol.md",
     "feat=<feat-branch>")
+src("L4: patrol hands the scanner the remote's heads (the scanner may not run git — codex, PR #82)",
+    "commands/patrol.md", "`git ls-remote --heads origin`, run by you")
+src("L4: the scanner binds names by Lookup over the handed list, never a git call",
+    "references/patrol-scan.md", "never by a git call of your own")
+src("L4: Lookup is one ls-remote, no fetch", "references/branch-names.md",
+    "`git ls-remote --heads origin` (a query of the remote — no fetch, no local\nref touched)")
 src("L4: init creates the three type labels", "commands/init.md",
     "`type: feat`, `type: fix`, `type: chore`")
 src("L4: init never applies a type label", "commands/init.md",

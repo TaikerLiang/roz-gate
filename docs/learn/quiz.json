@@ -1077,7 +1077,7 @@
    "m": "M1",
    "l": "L1",
    "t": "single",
-   "q": "一個 repo 的分支命名慣例是 `{type}/{user}/{ticket}/{seq}`。issue #5 貼了 `type: fix`，`branch_user` 是 pwliangc。QA 分支叫什麼？它的名字從哪裡來？",
+   "q": "一個 repo 的分支命名慣例是 `{type}/{user}/{n}/{seq}`（`{n}` 是 issue 編號）。issue #5 貼了 `type: fix`，`branch_user` 是 pwliangc。QA 分支叫什麼？它的名字從哪裡來？",
    "o": [
     "`test/pwliangc/5/1`——來自 CLAUDE.md block 的 `branch_template`（committed，hooks 和所有人的命令都讀同一個模板）；`{type}` 對 qa 分支固定是 `test`。",
     "`qa/5`——分支名寫死在 commands 裡，慣例只管人手開的分支。",
