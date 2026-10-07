@@ -13,10 +13,15 @@ Read the `### Roz Gate config` block in the project's CLAUDE.md, then
 every CAPITALIZED-OP. Missing config → stop; tell the user to run
 `/roz-gate:init`. A legacy `### Gated Loop config` block (the plugin's
 pre-1.0 name) counts as present — use its values and flag the re-init in the
-report. **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee` are per person,
+report. **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee`,
+`helper_model`, `branch_user` are per person,
 per clone, never in the block: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`
 and use its values (`.claude/roz-gate.local.json`, defaults resolved — the
-remote's HEAD branch, empty lists). The report names the
+remote's HEAD branch, empty lists, empty strings). **Branch names**: bind `<spec-branch>`,
+`<feat-branch>`, `<qa-branch>`, `<fast-branch>` per
+`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md` (the block's
+`branch_template`, absent → `{kind}/{n}`; an existing branch is found by
+Lookup, never guessed). Nothing below spells a branch name. The report names the
 effective values of the four.
 
 **Model**: `helper_model` from `bin/roz-config --json`, when set, is the
@@ -53,7 +58,12 @@ adapter path (`${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md`), and the
 local keys from `bin/roz-config --json` (`helper_model` is the dispatch's
 model, not a value the scanner reads), and the config block's
 `bot_login` list (normalized: `app/` prefix and `[bot]` suffix stripped;
-empty in user mode) so the scanner can tell a human holder from a bot. The
+empty in user mode) so the scanner can tell a human holder from a bot, the
+block's `branch_template` (absent → `{kind}/{n}`), and **the remote's
+heads** — the output of one `git ls-remote --heads origin`, run by you
+here (a query of the remote; it touches no checkout and no local ref) —
+so the scanner can bind every issue's branch names by Lookup
+(`references/branch-names.md`) without running git itself. The
 scanner is **read-only**
 and returns the table the brief defines; everything it read stays in its
 context, not yours.
@@ -130,13 +140,13 @@ workspace).
 1. Lock: LABEL-ADD `status: processing` (so the next pass doesn't
    double-dispatch).
 2. Spec track: implementation CR threads → dispatch `implementer` on
-   `feat/<n>`; QA CR fidelity threads → dispatch `qa` on `qa/<n>` **under
-   the fidelity-dispatch procedure** (next-stage.md B5b: marker on,
-   dispatch, marker off — guard-blind denies any `src/` read or `feat/`
-   action while it runs) (it may
+   `<feat-branch>`; QA CR fidelity threads → dispatch `qa` on `<qa-branch>` **under
+   the fidelity-dispatch procedure** (next-stage.md B5b: marker on, carrying
+   `feat=<feat-branch>`, dispatch, marker off — guard-blind denies any
+   `src/` read or git action on `<feat-branch>` while it runs) (it may
    decline a finding that lacks verbatim citations) — fix and/or reply.
    Fast track: the main agent addresses its own CR's threads directly
-   (it wrote the code; `implementer` is never dispatched onto `fast/<n>`).
+   (it wrote the code; `implementer` is never dispatched onto `<fast-branch>`).
    Either way the seat never commits: commit through the **commit**
    sub-agent — one dispatch per branch, on `helper_model` when set,
    `${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the worktree
@@ -147,7 +157,7 @@ workspace).
 3. Dispatch `reviewer` to re-check the addressed threads and THREAD-RESOLVE
    those it is satisfied with; what stays open waits for the next round.
    Re-checks of QA-CR fidelity threads use a fresh implementation-blind
-   dispatch under the fidelity brief, on `qa/<n>` only — the same
+   dispatch under the fidelity brief, on `<qa-branch>` only — the same
    fidelity-dispatch procedure (marker on, dispatch, marker off).
 4. Remove the worktree(s), clear the lock. Failures follow the STOP protocol
    — the `blocked` comment's evidence folds under

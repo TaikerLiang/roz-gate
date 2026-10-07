@@ -13,17 +13,22 @@ the disposable thing: all merging and every test run happens in a linked
 worktree (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` → The main agent →
 The workspace), and the remote is untouched until a green verdict. The only
 remote writes this command ever makes: status labels, the green-verdict push
-of `spec/<n>`, and an issue comment when it stops. A local failure needs no
+of `<spec-branch>`, and an issue comment when it stops. A local failure needs no
 remote cleanup — remove the worktree and re-run.
 
 ## 0. Load config & forge adapter
 
 Read the `### Roz Gate config` block in the project's CLAUDE.md (`forge`,
 `test`, `acceptance_test`, `env_sync`, `lockfile`, `lockfile_regen`,
-`acceptance_dir`). **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee` are per person,
+`acceptance_dir`, `branch_template`). **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee`,
+`helper_model`, `branch_user` are per person,
 per clone, never in the block: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`
 and use its values (`.claude/roz-gate.local.json`, defaults resolved — the
-remote's HEAD branch, empty lists). Then
+remote's HEAD branch, empty lists, empty strings). **Branch names**: bind `<spec-branch>`,
+`<feat-branch>`, `<qa-branch>`, `<fast-branch>` per
+`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md` (the block's
+`branch_template`, absent → `{kind}/{n}`; an existing branch is found by
+Lookup, never guessed). Nothing below spells a branch name. Then
 `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the concrete CLI behind
 every CAPITALIZED-OP. Missing config → stop; tell the user to run
 `/roz-gate:init`. **Personas**: the `implementer` / `qa` fix dispatches in
@@ -39,8 +44,8 @@ mapped subagent, attaching the seat's R&R row from
   died run: report it, clear it, re-run.)
 - `status: blocked` → stop: waiting on the human — see the issue's last
   comment.
-- From issue `<n>` (`$ARGUMENTS`): the spec branch `spec/<n>`, the
-  implementation CR (head `feat/<n>`), the QA CR (head `qa/<n>`) — CR-FIND.
+- From issue `<n>` (`$ARGUMENTS`): the spec branch `<spec-branch>`, the
+  implementation CR (head `<feat-branch>`), the QA CR (head `<qa-branch>`) — CR-FIND.
   Verify the **implementation CR has no open review threads** (THREADS-LIST).
   If any are open, stop and list them — review must be clean before
   integration.
@@ -58,11 +63,11 @@ label.
 
 ## 3. Local integration (get the verdict BEFORE finalizing)
 - `git fetch`, then
-  `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n> spec/<n>`
+  `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<spec-branch> <spec-branch>`
   and work **in that worktree** for every step below (`cd` there or `git -C`).
   `git worktree add` refusing (the branch is checked out elsewhere) → STOP
-  exit. There: `git merge --no-edit origin/feat/<n>` then
-  `git merge --no-edit origin/qa/<n>` — this brings the contract + code + tests
+  exit. There: `git merge --no-edit origin/<feat-branch>` then
+  `git merge --no-edit origin/<qa-branch>` — this brings the contract + code + tests
   together for the first time.
 - One mechanical carve-out: a conflict **only in `<lockfile>`** — accept both
   sides' manifest entries, regenerate (config `lockfile_regen`), continue, note
@@ -82,9 +87,9 @@ label.
 - **GREEN** → the implementation matches the spec. Finalize — each step checks
   whether it already happened (a re-run after a partial finalize just completes
   the remainder):
-  1. Push `spec/<n>` (this completes the implementation + QA CRs into the spec
+  1. Push `<spec-branch>` (this completes the implementation + QA CRs into the spec
      branch), unless already pushed.
-  2. Bring the default branch in: on `spec/<n>`,
+  2. Bring the default branch in: on `<spec-branch>`,
      `git merge --no-edit <default_branch>` — resolve conflicts **here** so the
      spec CR's diff stays clean; if the merge changed anything, satisfy the
      **hand-back rule** (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md`) before
@@ -103,7 +108,7 @@ label.
      commit the cards were computed from — so a later (7) change can be seen
      to have outrun them. Kit comment or approved SHA missing (pre-1.10.0
      flow) → skip, note it in the report.
-  4. `git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n>`
+  4. `git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/<spec-branch>`
      then `git worktree prune` — the pushed branch is the record.
   5. LABEL-ADD `status: in-user-review`; LABEL-REMOVE `status: processing`.
   The feature now waits at **(7)**, where the user reviews the spec CR and the
@@ -112,10 +117,10 @@ label.
   SHA `<x>`"* — never "verified".
 - **RED, every failure cleanly classifiable** → route each fix, never finalize:
   - **real bug** in the implementation → dispatch `implementer` to fix on
-    `feat/<n>`,
+    `<feat-branch>`,
   - **harness issue** in the QA tests — a failure where the test **never
     reached its assertion** (import path / async / DB isolation — the known
-    cost of blind QA) → dispatch `qa` to fix on `qa/<n>`,
+    cost of blind QA) → dispatch `qa` to fix on `<qa-branch>`,
   - **contract defect** — the test reached its assertion, the assertion
     faithfully states the contract, and reality disagrees (a guaranteed
     behaviour that measurably does not hold) → **STOP exit**: the contract
@@ -130,7 +135,7 @@ label.
 
 ## 6. The STOP exit — when in doubt, hand it to the human
 1. **If this run created it**,
-   `git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n>`
+   `git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/<spec-branch>`
    then `git worktree prune` — the half-merged state lives nowhere else, and
    the user's checkout was never touched. A STOP because `worktree add`
    refused removes nothing: that worktree is another run's. There is nothing

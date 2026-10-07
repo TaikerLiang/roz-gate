@@ -410,11 +410,11 @@ for _nm, _blk in (("A2", _a2), ("C2", _c2)):
     c.expect("pattern", "C7: %s stops when the base is missing" % _nm,
              "**STOP**" in _blk)
 src("C7: A5 targets `<default_branch>`", "commands/next-stage.md",
-    "CR-OPEN from `spec/<n>` targeting `<default_branch>`")
+    "CR-OPEN from `<spec-branch>` targeting `<default_branch>`")
 src("C7: C5 targets `<default_branch>`", "commands/next-stage.md",
-    "CR-OPEN from `fast/<n>` targeting `<default_branch>`")
+    "CR-OPEN from `<fast-branch>` targeting `<default_branch>`")
 src("C7: C6 diffs against `<default_branch>`", "commands/next-stage.md",
-    "git diff <default_branch>...fast/<n>")
+    "git diff <default_branch>...<fast-branch>")
 src("C7: integrate merges `<default_branch>` in", "commands/integrate.md",
     "git merge --no-edit <default_branch>")
 for _f in ("commands/next-stage.md", "commands/integrate.md"):
@@ -448,16 +448,17 @@ for _nm, _s, _e in (("A6c", r"^### A6c\. ", r"^### A7\. "),
 src("C9: next-stage's STOP removes every worktree the run created",
     "commands/next-stage.md", "`git worktree remove --force` every\nworktree this run created")
 _ig = read("commands/integrate.md")
-c.expect("pattern", "C9: integrate merges in a spec/<n> worktree",
-         "git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n> spec/<n>" in _ig)
+c.expect("pattern", "C9: integrate merges in a <spec-branch> worktree",
+         "git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<spec-branch> "
+         "<spec-branch>" in _ig)
 c.expect("pattern", "C9: integrate removes the worktree on green and on STOP",
          _ig.count("git worktree remove --force") >= 2)
 src("C9: integrate's safety invariant: the user's checkout is untouchable",
     "commands/integrate.md", "the user's checkout is **untouchable**")
 src("C9: spec-answers folds in a worktree", "commands/spec-answers.md",
-    "git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n> spec/<n>")
+    "git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<spec-branch> <spec-branch>")
 src("C9: spec-answers' STOP removes the worktree", "commands/spec-answers.md",
-    "`git worktree remove --force` the `spec/<n>` worktree")
+    "`git worktree remove --force` the `<spec-branch>` worktree")
 _sa = read("commands/spec-answers.md")
 c.expect("pattern", "C9: spec-answers keeps the worktree through step 7's hand-back run",
          "Keep the worktree" in section(_sa, r"^## 6\. ", r"^## 6b\. ")
@@ -469,7 +470,8 @@ src("C9: review-answers commits in a worktree of the CR's branch", "commands/rev
     "git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<branch> <branch>")
 src("C9: patrol's address-review dispatches work in worktrees", "commands/patrol.md",
     "git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<branch> <branch>")
-c.expect("pattern", "C9: patrol runs no git at all (its scan is forge calls)",
+c.expect("pattern", "C9: patrol runs no git that touches the checkout (its scan is forge "
+         "calls plus one ls-remote of the remote's heads)",
          re.search(r"`git (checkout|switch|reset|stash|merge|fetch) ",
                    read("commands/patrol.md")) is None)
 for _f in ("commands/next-stage.md", "commands/integrate.md", "commands/spec-answers.md",
@@ -532,12 +534,14 @@ _ns10 = read("commands/next-stage.md")
 _a2 = section(_ns10, r"^### A2\. Branch", r"^### A3\. ")
 _c2 = section(_ns10, r"^### C2\. Branch", r"^### C3\. ")
 for _nm, _blk, _b in (("A2", _a2, "spec"), ("C2", _c2, "fast")):
-    c.expect("pattern", "C10: %s checks the remote for an existing %s/<n> first" % (_nm, _b),
-             "git ls-remote --exit-code --heads origin %s/<n>" % _b in _blk)
+    c.expect("pattern", "C10: %s looks the %s kind up on the remote first (1.29.0: Lookup, "
+             "by template — references/branch-names.md)" % (_nm, _b),
+             "**Lookup** the %s kind of #<n>" % _b in _blk
+             and "git ls-remote --heads origin" in _blk)
     c.expect("pattern", "C10: %s — an open CR on the existing branch is an illegal state" % _nm,
              "**open** → illegal state, **STOP**" in _blk)
     c.expect("pattern", "C10: %s — closed CR: STOP with the delete remedy for the human" % _nm,
-             "git push origin --delete %s/<n>" % _b in _blk and "the human\nruns this" in _blk
+             "git push origin --delete <%s-branch>" % _b in _blk and "the human\nruns this" in _blk
              and "cite it" in _blk)
 _prose = {f: read(f) for f in dir_files("commands", "references") if f.endswith(".md")}
 _bad = [f for f, t in _prose.items()
@@ -550,13 +554,12 @@ c.expect("pattern", "C10: every `push --delete` in the prose is addressed to the
          _del_lines != [] and all(any(w in ln for w in ("human", "yours", "the agent never"))
                                   for _, ln in _del_lines))
 for _b, _base in (("spec", "<default_branch>"), ("fast", "<default_branch>"),
-                  ("feat", "spec/<n>"), ("qa", "spec/<n>")):
-    src("C10: the %s/<n> cut uses -B (a stale local ref after a re-spec cannot block it)" % _b,
+                  ("feat", "<spec-branch>"), ("qa", "<spec-branch>")):
+    src("C10: the <%s-branch> cut uses -B (a stale local ref after a re-spec cannot block it)" % _b,
         "commands/next-stage.md",
-        "roz-gate/wt/%s/<n> -B %s/<n> origin/%s" % (_b, _b, _base))
+        "roz-gate/wt/<%s-branch> -B <%s-branch> origin/%s" % (_b, _b, _base))
 c.expect("pattern", "C10: no cut uses -b any more",
-         " -b spec/<n>" not in _ns10 and " -b fast/<n>" not in _ns10
-         and " -b feat/<n>" not in _ns10 and " -b qa/<n>" not in _ns10)
+         not any(" -b <%s-branch>" % _b in _ns10 for _b in ("spec", "fast", "feat", "qa")))
 src("C10: GitHub THREADS-LIST returns the thread's path and line", "references/forge-github.md",
     "id isResolved path line")
 src("C10: GitLab THREADS-LIST names the note position", "references/forge-gitlab.md",
@@ -718,12 +721,14 @@ c.expect("pattern", "E4: reviewer-to-implementer settlement is forbidden explici
 #                                                   (defect: 1.18.0-, #55)
 #      1.28.0 (#66): helper_model is the fourth key — the scanner's and the
 #      commit sub-agent's model; patrol_model (the block, patrol's seats) is
-#      retired and must survive nowhere in the prose.
+#      retired and must survive nowhere in the prose. 1.29.0 (#75):
+#      branch_user is the fifth — the {user} slot of branch_template (L4).
 _tool = read("bin/roz-config")
 _m = re.search(r'^KEYS = \((.*?)\)$', _tool, re.M)
 _tool_keys = tuple(re.findall(r'"([a-z_]+)"', _m.group(1))) if _m else ()
-c.expect("pattern", "L2: bin/roz-config accepts exactly the four local keys",
-         _tool_keys == ("default_branch", "inbox_label", "inbox_assignee", "helper_model"))
+c.expect("pattern", "L2: bin/roz-config accepts exactly the five local keys",
+         _tool_keys == ("default_branch", "inbox_label", "inbox_assignee", "helper_model",
+                        "branch_user"))
 _readers = ("commands/patrol.md", "commands/next-stage.md", "commands/integrate.md",
             "commands/spec-answers.md", "commands/review-answers.md")
 for _f in _readers:
@@ -772,8 +777,8 @@ c.expect("pattern", "L2: patrol's Model paragraph: helper_model is the scanner's
          and re.search(r"seats?\b.*runtime", _model, re.S | re.I) is not None)
 c.expect("pattern", "L2: patrol dispatches the scanner on helper_model",
          "helper_model" in section(_pm, r"^## 1\. Dispatch the scanner", r"^## 2\. "))
-c.expect("pattern", "L2: README's block has no patrol_model line; the per-clone section has four",
-         "- patrol_model" not in read("README.md") and "Four keys are **yours" in read("README.md"))
+c.expect("pattern", "L2: README's block has no patrol_model line; the per-clone section has five",
+         "- patrol_model" not in read("README.md") and "Five keys are **yours" in read("README.md"))
 c.expect("pattern", "L2: patrol_model survives nowhere in the prose or the docs",
          "patrol_model" not in dirs_text("commands", "references", "templates", "docs")
          and "patrol_model" not in read("README.md"))
@@ -826,5 +831,72 @@ src("L3: workflow.md's workspace paragraph names the commit sub-agent",
     "references/workflow.md", "made by the **commit sub-agent** (`references/commit-brief.md`)")
 src("L3: README says the commit is a sub-agent's", "README.md",
     "made by a **commit sub-agent** (`references/commit-brief.md`)")
+
+# ---------------------------------------------------------------------------
+# L4 · branch names are bound once, never spelled           (preventive, #75)
+#      1.29.0: the four loop branches are named by the block's
+#      branch_template (references/branch-names.md), default `{kind}/{n}`.
+#      A literal `spec/<n>` left in a command is a name the template cannot
+#      rename — exactly the hardcode this replaces (62 of them in next-stage
+#      alone). Lookup over Expand: another person's {user} and the attempt's
+#      {seq} are not computable from the config, so an existing branch is
+#      found on the remote, never guessed. The hooks read the same template.
+_bn = read("references/branch-names.md")
+for _lit in ("Absent → `{kind}/{n}`", "| `{kind}` |", "| `{type}` |", "| `{user}` |", "| `{n}` |",
+             "| `{seq}` |", "qa branch → `test`", "no `type:` label → `feat`", "`branch_user`",
+             "WHOAMI", "git ls-remote --heads origin", "highest `{seq}`",
+             "git push origin --delete <branch>",
+             "contains `{n}` and at least one of `{kind}`\n/ `{type}`",
+             "the human runs this; the agent\n    never does"):
+    c.expect("pattern", "L4: branch-names.md carries: %s" % _lit.replace("\n", " "), _lit in _bn)
+_LIT = re.compile(r"\b(spec|feat|qa|fast)/<n>")
+for _f in sorted(dir_files("commands", "references")):
+    _rel = os.path.relpath(_f, R)
+    if not _rel.endswith(".md") or _rel.endswith("branch-names.md"):
+        continue
+    c.expect("pattern", "L4: %s spells no branch name (bound names only)" % _rel,
+             _LIT.search(read(_rel)) is None)
+for _f in _readers:
+    src("L4: %s binds the names through branch-names.md" % _f, _f, "references/branch-names.md")
+_ns4 = read("commands/next-stage.md")
+for _nm, _s, _e in (("A2", r"^### A2\. Branch", r"^### A3\. "),
+                    ("C2", r"^### C2\. Branch", r"^### C3\. ")):
+    _blk = section(_ns4, _s, _e)
+    c.expect("pattern",
+             "L4: %s re-enters by the next sequence when the template carries {seq}" % _nm,
+             "It carries **`{seq}`**" in _blk and "next sequence" in _blk)
+    c.expect("pattern", "L4: %s STOPs with the delete remedy only without {seq}" % _nm,
+             "It carries **no\n`{seq}`**" in _blk and "git push origin --delete" in _blk)
+src("L4: B2 binds feat and qa by Lookup, else Expand", "commands/next-stage.md",
+    "Lookup — a previous B run's\nbranch is reused — else Expand")
+src("L4: B5b's marker carries the bound implementation branch", "commands/next-stage.md",
+    "printf 'issue=<n>\\nfeat=<feat-branch>\\n'")
+src("L4: patrol's fidelity dispatch names the same marker line", "commands/patrol.md",
+    "feat=<feat-branch>")
+src("L4: patrol hands the scanner the remote's heads (the scanner may not run git — codex, PR #82)",
+    "commands/patrol.md", "`git ls-remote --heads origin`, run by you")
+src("L4: the scanner binds names by Lookup over the handed list, never a git call",
+    "references/patrol-scan.md", "never by a git call of your own")
+src("L4: Lookup is one ls-remote, no fetch", "references/branch-names.md",
+    "`git ls-remote --heads origin` (a query of the remote — no fetch, no local\nref touched)")
+src("L4: init creates the three type labels", "commands/init.md",
+    "`type: feat`, `type: fix`, `type: chore`")
+src("L4: init never applies a type label", "commands/init.md",
+    "no command ever\napplies, removes or validates one")
+src("L4: init documents branch_template as optional", "commands/init.md",
+    "- `branch_template` — optional")
+for _f in ("references/forge-github.md", "references/forge-gitlab.md"):
+    src("L4: %s carries WHOAMI" % _f, _f, "| WHOAMI |")
+src("L4: guard-blind reads the marker's feat= line", "hooks/guard_blind.py",
+    'line.startswith("feat=")')
+src("L4: guard-acceptance renders the template for the spec kind", "hooks/guard_acceptance.py",
+    "def spec_branch_re(template):")
+src("L4: guard-acceptance's prefilter escalates every branch under a template",
+    "hooks/guard-acceptance.sh", "grep -qs '^- *branch_template:'")
+src("L4: hooks/README's rule E names the marker's ref", "hooks/README.md", "marker's `feat=` line")
+src("L4: README states the template", "README.md", "- branch_template:")
+src("L4: workflow.md states the names are the template's", "references/workflow.md",
+    "**The branch names.**")
+src("L4: the onboarding builder offers branch_template", "docs/onboarding.html", "branch_template")
 
 c.finish()

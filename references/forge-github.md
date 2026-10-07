@@ -48,6 +48,7 @@ Two modes, set by `agent_identity` in the Roz Gate config (key absent →
 | ISSUE-EDIT-BODY | `gh issue edit <n> --body "..."` (async intake only, at finalize — after the gate holder's gate label) |
 | ISSUE-LIST-CLOSED | `gh issue list --state closed --label "<track label>" --json number,title,labels` (patrol's close-out scan only: an issue the forge closed on merge still wears its loop labels) |
 | ISSUE-CLOSE | `gh issue close <n>` (patrol's close-out only — after the CR is merged; GitHub closes on `Closes #<n>` itself only when the CR targets the repository's default branch) |
+| WHOAMI | `gh api user --jq .login` — the login of the account running the command, the `{user}` slot of `branch_template` when `branch_user` is unset (`references/branch-names.md`); in bot mode the slot is the first `bot_login`, never a forge call |
 
 Label names use the **space form**: `track: spec`, `track: fast`,
 `status: ready-for-spec`, `status: ready-for-dev`, `status: in-spec-review`,

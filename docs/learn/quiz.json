@@ -1,6 +1,6 @@
 {
  "_meta": {
-  "version": "draft-7 (2026-09-24, blocked = abnormal halt; (7)'s STOP form is a principle, not an exception)",
+  "version": "draft-7 (2026-09-24, blocked = abnormal halt; (7)'s STOP form is a principle, not an exception); +#51 branch_template (2026-10-07)",
   "pass": {
    "overall": 0.8,
    "per_module": 0.6,
@@ -30,7 +30,7 @@
    "L3": "判斷（干擾項是真實 near-miss）"
   },
   "distribution": {
-   "M1": 8,
+   "M1": 9,
    "M2": 7,
    "M3": 6,
    "M4": 7,
@@ -1071,6 +1071,25 @@
    "why": "第一次 live sweep 的 45 個「0% compliance」是 agent 根本沒跑；D2 的 FAIL 是被擋下的 echo-mention；E2 的 5/5 是 prose 歧義。model violation 是排除法的最後一項，不是第一個假設。",
    "src": "evals/replay/README.md § Method · docs/ROADMAP.md § The measurement track",
    "bg": "你跑完一個 replay sweep，某個 case 是 0/5。roadmap 的 measurement track 列出了這個專案三週內遇到的 instrument-lying 事件（空跑 vacuous pass、全部 invalid 變 0%、quota 變 FAIL、mention ≠ use ×3、denied ≠ breach、退化的 fixture、prose 歧義）。ADMC 的 autopsy 分類是：instrument / fixture / rule-ambiguity / model-violation。"
+  },
+  {
+   "id": 51,
+   "m": "M1",
+   "l": "L1",
+   "t": "single",
+   "q": "一個 repo 的分支命名慣例是 `{type}/{user}/{n}/{seq}`（`{n}` 是 issue 編號）。issue #5 貼了 `type: fix`，`branch_user` 是 pwliangc。QA 分支叫什麼？它的名字從哪裡來？",
+   "o": [
+    "`test/pwliangc/5/1`——來自 CLAUDE.md block 的 `branch_template`（committed，hooks 和所有人的命令都讀同一個模板）；`{type}` 對 qa 分支固定是 `test`。",
+    "`qa/5`——分支名寫死在 commands 裡，慣例只管人手開的分支。",
+    "`fix/pwliangc/5/1`——`{type}` 就是 issue 的 `type:` label，四個分支都一樣。",
+    "`qa/pwliangc/5/1`——`{type}` 對 qa 分支是 `qa`，和 `{kind}` 相同。"
+   ],
+   "a": [
+    0
+   ],
+   "why": "1.29.0 起四個分支都由 `branch_template` 渲染（預設 `{kind}/{n}` 才是 `qa/<n>`）。`{type}` 對 spec 分支是 `spec`、對 qa 分支是 `test`，只有 feat / fast 分支才讀 issue 的 `type:` label；`{user}` 是本地 key `branch_user`（沒設就是你的 forge 登入名），`{seq}` 是第幾次嘗試。別人的分支靠 pattern 在 remote 上找，不會去算。",
+   "src": "references/branch-names.md · README § Branch names",
+   "bg": "issue #75：目標 repo 有 `feat/pwliangc/BDPTOOL-779/1` 這種 server 端強制的分支慣例。Roz Gate 原本把 `spec/<n>`、`feat/<n>`、`qa/<n>`、`fast/<n>` 寫死在 22 個檔案裡。"
   }
  ]
 }

@@ -10,13 +10,20 @@ follow the matched path's steps exactly and do nothing beyond them.
 ## 0. Load config & forge adapter
 
 Read the `### Roz Gate config` block in the project's CLAUDE.md (`forge`,
-`test`, `env_sync`, `lockfile`, `specs_dir`, `acceptance_dir`). **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee` are per person,
+`test`, `env_sync`, `lockfile`, `specs_dir`, `acceptance_dir`,
+`branch_template`). **Local keys** — `default_branch`, `inbox_label`,
+`inbox_assignee`, `helper_model`, `branch_user` are per person,
 per clone, never in the block: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`
 and use its values (`.claude/roz-gate.local.json`, defaults resolved — the
-remote's HEAD branch, empty lists).
-`default_branch` is the loop's **base**: `spec/<n>` and `fast/<n>` are cut from
-it and their CRs target it; `feat/<n>` and `qa/<n>` stay siblings off
-`spec/<n>`. Then read `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md`
+remote's HEAD branch, empty lists, empty strings).
+`default_branch` is the loop's **base**: `<spec-branch>` and `<fast-branch>` are cut from
+it and their CRs target it; `<feat-branch>` and `<qa-branch>` stay siblings off
+`<spec-branch>`. **Bind the branch names** — `<spec-branch>`, `<feat-branch>`,
+`<qa-branch>`, `<fast-branch>` — per
+`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md`: the block's
+`branch_template` (absent → `{kind}/{n}`), an existing branch found by
+**Lookup**, a new one rendered by **Expand**; an invalid template is a STOP
+before any cut. Nothing below spells a branch name. Then read `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md`
 and use its concrete CLI for every CAPITALIZED-OP below. Label names follow the
 adapter's scheme (GitLab uses scoped forms). If the config block is missing,
 stop and tell the user to run `/roz-gate:init`. **Personas**: every role
@@ -81,19 +88,24 @@ LABEL-ADD `status: processing`.
 
 ### A2. Branch
 **The branch may already exist** — a previous attempt at this stage. Before
-the cut, `git ls-remote --exit-code --heads origin spec/<n>`. It exists →
+the cut, **Lookup** the spec kind of #<n> (`git ls-remote --heads origin`
+matched against the template — `references/branch-names.md`). A match →
 CR-FIND (all-states form) its CR: **open** → illegal state, **STOP** (someone
 is still reviewing it; the gate label is wrong, not the branch); **closed
-unmerged, or no CR** → this is a **re-spec**, and the stale branch is the
+unmerged, or no CR** → this is a **re-spec**, and the route is the
+template's. It carries **`{seq}`** → `<spec-branch>` is the **next sequence**
+(Expand); the previous attempt stays on the remote, readable in its closed
+CR — cite it in the report — and the cut below proceeds. It carries **no
+`{seq}`** → the stale branch is the
 human's to remove: **STOP**, and the `blocked` comment and the report carry
-the remedy verbatim — `git push origin --delete spec/<n>` (and `feat/<n>` / `qa/<n>` if present) — *the human
+the remedy verbatim — `git push origin --delete <spec-branch>` (and `<feat-branch>` / `<qa-branch>` if present) — *the human
 runs this; the agent never does*: an agent never deletes or force-pushes a
 remote branch, and the previous attempt stays readable in its closed CR
 (cite it). Re-apply the gate label after deleting; the next pass cuts fresh (the cut
 uses `-B`, so the previous attempt's local ref cannot block it).
 
-Create `spec/<n>` from `<default_branch>` **in a worktree** —
-`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n> -B spec/<n> origin/<default_branch>` (`-B`, not `-b`: after a re-spec the previous attempt's **local** `spec/<n>` ref may survive its removed worktree, and `-B` resets it onto the base; a local ref is not a remote branch — the invariant is untouched; a `-B` refused because the branch is checked out elsewhere is the mutex, a STOP)
+Create `<spec-branch>` from `<default_branch>` **in a worktree** —
+`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<spec-branch> -B <spec-branch> origin/<default_branch>` (`-B`, not `-b`: after a re-spec the previous attempt's **local** `<spec-branch>` ref may survive its removed worktree, and `-B` resets it onto the base; a local ref is not a remote branch — the invariant is untouched; a `-B` refused because the branch is checked out elsewhere is the mutex, a STOP)
 — and work there from here on (`git fetch --prune` first — a stale tracking ref would pass the check for a base the forge deleted; then verify `origin/<default_branch>` exists — `git rev-parse --verify -q origin/<default_branch>` — and if it does not, **STOP**: the base the config names is not on the remote; never cut from anything else).
 
 ### A3. Spec refinement (NO implementation code)
@@ -207,14 +219,14 @@ Base everything strictly on the issue body. Per the workflow's stage (2):
 Dispatch the **commit** sub-agent (the plugin default `general-purpose`, on
 `helper_model` from `bin/roz-config --json` when set; it dispatches nothing
 itself) with, as its whole prompt,
-`${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the `spec/<n>` worktree
+`${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the `<spec-branch>` worktree
 path, the branch, the two spec docs and the commit message. It returns one
 `branch · sha · hook` row; the pre-commit output stays in its context, not
-yours. Push `spec/<n>` from the returned `sha`; a `no-verify:` row is said
+yours. Push `<spec-branch>` from the returned `sha`; a `no-verify:` row is said
 so in the report; a `failed:` row is a STOP with its excerpt in the report.
 
 ### A5. Open the CR
-CR-OPEN from `spec/<n>` targeting `<default_branch>`, title
+CR-OPEN from `<spec-branch>` targeting `<default_branch>`, title
 `Spec: #<n> <title>`, body: "Stage (2) spec refinement for #<n>. For review.
 Closes #<n>" — the (7) merge of this CR is the signature that closes the
 issue; where the forge does not close on it, patrol's close-out does.
@@ -251,8 +263,8 @@ the spec CR. This comment is the kit's permanent home — every later
 update edits it in place (COMMENT-EDIT), never posts a sibling.
 
 ### A6c. Remove the worktree
-`git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/spec/<n>`
-then `git worktree prune` — `spec/<n>` is on the remote; nothing local stays.
+`git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/<spec-branch>`
+then `git worktree prune` — `<spec-branch>` is on the remote; nothing local stays.
 
 ### A7. Flip labels — only AFTER the CR and threads are created
 LABEL-REMOVE `status: ready-for-spec` and `status: processing`;
@@ -268,8 +280,8 @@ applies `status: ready-for-dev`.
 
 ## Path B — implementation + validation (3)+(4)+(5)
 
-The spec CR (`spec/<n>`) must already exist and be approved (its Q&A threads
-resolved). If `spec/<n>` does not exist, stop and say so.
+The spec CR (`<spec-branch>`) must already exist and be approved (its Q&A threads
+resolved). If `<spec-branch>` does not exist, stop and say so.
 
 **Unverified-claim check (before anything else):**
 `grep -nE '(^|[(,])[[:space:]]*unverified' <specs_dir>/<n>/*.md` — the
@@ -291,32 +303,33 @@ clean check; zero hits in a spec written before the vocabulary existed is
 LABEL-ADD `status: processing`.
 
 ### B2. Stamp the approval + two sibling branches off the spec branch
-The gate label just applied is the human's approval of `spec/<n>` **as it
+The gate label just applied is the human's approval of `<spec-branch>` **as it
 stands**: COMMENT-EDIT the spec-gate kit to append one line —
-`approved at <spec/<n> HEAD SHA>` — the anchor for the final-gate kit's
+`approved at <<spec-branch> HEAD SHA>` — the anchor for the final-gate kit's
 since-you-approved diff. Also note in the report whether the spec changed
 after the kit's last update (the gate-produced-change signal,
 gate-kit.md § Instrumentation).
-`git fetch` first, then create both off `spec/<n>`, **each in its own
-worktree**:
-- `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/feat/<n> -B feat/<n> origin/spec/<n>`
+`git fetch` first, then create both off `<spec-branch>`, **each in its own
+worktree** (`<feat-branch>` and `<qa-branch>`: Lookup — a previous B run's
+branch is reused — else Expand):
+- `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<feat-branch> -B <feat-branch> origin/<spec-branch>`
   (implementer) and
-  `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/qa/<n> -B qa/<n> origin/spec/<n>`
-  (qa). They are **independent siblings** — `qa/<n>` must contain NO
+  `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<qa-branch> -B <qa-branch> origin/<spec-branch>`
+  (qa). They are **independent siblings** — `<qa-branch>` must contain NO
   implementation code; that is what enforces the black box. Each seat is
   dispatched **into its worktree** (its cwd); neither ever sees the user's
   checkout.
 
 ### B3. Dispatch implementer AND qa IN PARALLEL
 Launch both at once (they never see each other):
-- **implementer** on `feat/<n>`: implement per
+- **implementer** on `<feat-branch>`: implement per
   `<specs_dir>/<n>/technical-spec.md` + write **unit** tests. For a non-API
   feature, also provide the documented test **port** QA tests against.
   **A contract gap you cannot resolve from the spec docs → stop and report
   to the main agent; never decide unilaterally in code** — the same
   mid-flight route QA has, and the ambiguity takes the same backward
   transition through the spec CR.
-- **qa** on `qa/<n>`: write black-box acceptance tests in
+- **qa** on `<qa-branch>`: write black-box acceptance tests in
   `<acceptance_dir>/<feature>/` (`<feature>` = the project's layout unit —
   config `acceptance_layout`; absent → one folder per feature) from
   `spec.md` + the contract ONLY. **`test-spec.md` required shape**: its
@@ -325,7 +338,7 @@ Launch both at once (they never see each other):
   absent → qa picks one idiomatic to the language and declares it at the
   top of `test-spec.md`) — never hand-maintained; each scenario maps to
   ≥1 test or an explicit `uncovered` row with a reason. These run
-  post-integration and will NOT pass on `qa/<n>` by design — write them against
+  post-integration and will NOT pass on `<qa-branch>` by design — write them against
   the contract, do not chase green here.
   **The §5 observability map is a claim to verify, never a fact to
   inherit:** walk every scenario against the port yourself, then
@@ -350,9 +363,9 @@ Launch both at once (they never see each other):
   `branch · sha · hook` return live in the brief, nowhere else) — then push
   each from its returned `sha`. A `no-verify:` row is said so in the report;
   a `failed:` row is a STOP with its excerpt in the report.
-- CR-OPEN for `feat/<n>` targeting `spec/<n>`, title `feat: implement #<n>`;
-  CR-OPEN-DRAFT for `qa/<n>` targeting `spec/<n>`, title
-  `test: #<n> black-box (QA)`. **Both target `spec/<n>`.**
+- CR-OPEN for `<feat-branch>` targeting `<spec-branch>`, title `feat: implement #<n>`;
+  CR-OPEN-DRAFT for `<qa-branch>` targeting `<spec-branch>`, title
+  `test: #<n> black-box (QA)`. **Both target `<spec-branch>`.**
 - **The QA CR opens as a draft.** CR-READY only if `qa` reported its suite
   complete; a partial — or paused — deliverable stays draft. Draft = QA still
   working/paused; ready = complete. This is the machine-readable signal
@@ -360,7 +373,7 @@ Launch both at once (they never see each other):
 
 ### B5. Code review (5) on the implementation CR
 - Dispatch the **reviewer** agent on the CR's diff
-  (`git diff spec/<n>...feat/<n>`), **attaching
+  (`git diff <spec-branch>...<feat-branch>`), **attaching
   `<specs_dir>/<n>/spec.md` and `technical-spec.md`** — the reviewer's
   mandate is "does it do what it claims", so it receives the claim; it
   never reviews code against its own inference of intent. It wraps
@@ -381,27 +394,29 @@ Launch both at once (they never see each other):
 - Dispatch the **reviewer** seat a second time, in a **fresh context**
   (never a continuation of B5's), with
   `${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md` as its contract,
-  in the `qa/<n>` worktree — that branch contains no implementation code,
+  in the `<qa-branch>` worktree — that branch contains no implementation code,
   which is what makes this dispatch structurally implementation-blind.
 - **Blindness is hook-enforced while the dispatch runs** (guard-blind,
   rule E): immediately before the dispatch, write the marker
-  `mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`;
-  immediately after it returns, `rm -f "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`.
-  While the marker exists, every read of `src/` and every git action on a
-  `feat/` ref is denied mechanically, with the remedy in the message. The
+  `mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\nfeat=<feat-branch>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`
+  — the `feat=` line is the bound implementation branch, the ref the hook
+  denies by name; immediately after it returns, `rm -f "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`.
+  While the marker exists, every read of `src/` and every git action on
+  `<feat-branch>` (or any `feat/` ref) is denied mechanically, with the
+  remedy in the message. The
   brief's "you never read the implementation" stays in the dispatch text —
   the marker is what makes it a fact. This is **the fidelity-dispatch
-  procedure**; every implementation-blind dispatch on `qa/<n>` uses it.
+  procedure**; every implementation-blind dispatch on `<qa-branch>` uses it.
 - It audits the QA suite's fidelity to the spec (four questions:
   scenario fidelity, vacuous assertions, coverage honesty, over-assertion)
   and posts two-way-cited findings as inline threads on the **QA CR**
   plus one top-level summary comment. Its findings are evidence for the
   human, never a verdict.
-- Runs alongside B5 — it needs only `qa/<n>`, so it costs no wall-clock.
+- Runs alongside B5 — it needs only `<qa-branch>`, so it costs no wall-clock.
 
 ### B6. Remove the worktrees, flip labels + report
-- `git worktree remove --force` both `…/roz-gate/wt/feat/<n>` and
-  `…/roz-gate/wt/qa/<n>`, then `git worktree prune` — after B5b's marker is
+- `git worktree remove --force` both `…/roz-gate/wt/<feat-branch>` and
+  `…/roz-gate/wt/<qa-branch>`, then `git worktree prune` — after B5b's marker is
   gone, never while it is on.
 - LABEL-REMOVE `status: ready-for-dev` and `status: processing` (the open CRs
   are now the in-flight state).
@@ -425,19 +440,24 @@ LABEL-ADD `status: processing`.
 
 ### C2. Branch
 **The branch may already exist** — a previous attempt at this stage. Before
-the cut, `git ls-remote --exit-code --heads origin fast/<n>`. It exists →
+the cut, **Lookup** the fast kind of #<n> (`git ls-remote --heads origin`
+matched against the template — `references/branch-names.md`). A match →
 CR-FIND (all-states form) its CR: **open** → illegal state, **STOP** (someone
 is still reviewing it; the gate label is wrong, not the branch); **closed
-unmerged, or no CR** → this is a **re-spec**, and the stale branch is the
+unmerged, or no CR** → this is a **re-spec**, and the route is the
+template's. It carries **`{seq}`** → `<fast-branch>` is the **next sequence**
+(Expand); the previous attempt stays on the remote, readable in its closed
+CR — cite it in the report — and the cut below proceeds. It carries **no
+`{seq}`** → the stale branch is the
 human's to remove: **STOP**, and the `blocked` comment and the report carry
-the remedy verbatim — `git push origin --delete fast/<n>` — *the human
+the remedy verbatim — `git push origin --delete <fast-branch>` — *the human
 runs this; the agent never does*: an agent never deletes or force-pushes a
 remote branch, and the previous attempt stays readable in its closed CR
 (cite it). Re-apply the gate label after deleting; the next pass cuts fresh (the cut
 uses `-B`, so the previous attempt's local ref cannot block it).
 
-Create `fast/<n>` from `<default_branch>` **in a worktree** —
-`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/fast/<n> -B fast/<n> origin/<default_branch>` (`-B`, not `-b`: after a re-spec the previous attempt's **local** `fast/<n>` ref may survive its removed worktree, and `-B` resets it onto the base; a local ref is not a remote branch — the invariant is untouched; a `-B` refused because the branch is checked out elsewhere is the mutex, a STOP)
+Create `<fast-branch>` from `<default_branch>` **in a worktree** —
+`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<fast-branch> -B <fast-branch> origin/<default_branch>` (`-B`, not `-b`: after a re-spec the previous attempt's **local** `<fast-branch>` ref may survive its removed worktree, and `-B` resets it onto the base; a local ref is not a remote branch — the invariant is untouched; a `-B` refused because the branch is checked out elsewhere is the mutex, a STOP)
 — and work there from here on (`git fetch --prune` first — a stale tracking ref would pass the check for a base the forge deleted; then verify `origin/<default_branch>` exists — `git rev-parse --verify -q origin/<default_branch>` — and if it does not, **STOP**: the base the config names is not on the remote; never cut from anything else).
 
 ### C3. Implement — with the escalation valve armed
@@ -447,7 +467,7 @@ Create `fast/<n>` from `<default_branch>` **in a worktree** —
   decision, user-facing behaviour beyond the issue's AC, a growing diff — STOP.
   Relabel atomically: LABEL-REMOVE `track: fast`, `status: ready-for-dev`,
   `status: processing`; LABEL-ADD `track: spec`, `status: ready-for-spec`.
-  Delete `fast/<n>` if empty, and report why it escalated. The issue rejoins
+  Delete `<fast-branch>` if empty, and report why it escalated. The issue rejoins
   the loop at (2).
 
 ### C4. Verify
@@ -456,22 +476,22 @@ stay green before opening the CR.
 
 ### C5. Commit + push + open the CR (target = default branch)
 Commit through the **commit** sub-agent, on `helper_model` when set —
-`${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the `fast/<n>` worktree
+`${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the `<fast-branch>` worktree
 path, branch, files and message; it returns one `branch · sha · hook` row and
 the pre-commit output stays out of your context. Push from the returned
 `sha` (`no-verify:` → say so; `failed:` → STOP with the excerpt). Then
-CR-OPEN from `fast/<n>` targeting `<default_branch>`, title
+CR-OPEN from `<fast-branch>` targeting `<default_branch>`, title
 `fast: #<n> <title>`, body ending `Closes #<n>`.
 
 ### C6. Code review (5)
-- Dispatch the **reviewer** agent on `git diff <default_branch>...fast/<n>`,
+- Dispatch the **reviewer** agent on `git diff <default_branch>...<fast-branch>`,
   **attaching the issue body** (story + acceptance criteria — the claim the
   diff is reviewed against) — same inline-thread mechanics as B5. The main
   agent wrote this code, so the reviewer is the independent check; it is NOT
   skippable — except for **doc-only** diffs.
 
 ### C7. Remove the worktree, flip labels + report
-- `git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/fast/<n>`
+- `git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/<fast-branch>`
   then `git worktree prune`.
 - LABEL-REMOVE `status: ready-for-dev` and `status: processing`.
 - Report the CR and any review threads. **Next:** address review threads; once

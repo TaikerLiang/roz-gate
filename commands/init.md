@@ -17,11 +17,20 @@ before writing it.
 ## 2. Detect the stack, confirm the config
 Infer from the repo (lockfiles, manifests, CI config) and confirm with the
 user, one compact block, not twenty questions:
-- (not in the block) `default_branch` — the loop's base, `spec/<n>` and
-  `fast/<n>` are cut from it and their CRs target it — is per person, per
+- (not in the block) `default_branch` — the loop's base, `<spec-branch>` and
+  `<fast-branch>` are cut from it and their CRs target it — is per person, per
   clone: the remote's HEAD branch unless set with `/roz-gate:config
   default_branch <branch>` (`.claude/roz-gate.local.json`, never committed).
   Say so in the report; write nothing.
+- `branch_template` — optional: the project's branch-naming convention,
+  one template over `{kind}`, `{type}`, `{user}`, `{n}`, `{seq}`
+  (`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md`; e.g.
+  `{type}/{user}/{n}/{seq}` → `spec/pwliangc/5/1`, `fix/pwliangc/5/1`,
+  `test/pwliangc/5/1`). Absent → `{kind}/{n}`, the names every release
+  before 1.29.0 used. Write it only when the project has a convention;
+  it is committed — the hooks and every teammate's commands read it. The
+  `{user}` slot is per person: `/roz-gate:config branch_user <login>`,
+  default = the forge login. Say so in the report.
 - `test` — command that runs the full suite (e.g. `uv run pytest`, `npm test`)
 - `acceptance_dir` (default `tests/acceptance`) and `acceptance_test` — command
   for one feature's acceptance dir
@@ -62,12 +71,18 @@ user, one compact block, not twenty questions:
 LABEL-CREATE per the adapter's scheme:
 - github: `track: spec`, `track: fast`, `status: ready-for-spec`,
   `status: ready-for-dev`, `status: in-spec-review`, `status: in-user-review`,
-  `status: processing`, `status: blocked`.
+  `status: processing`, `status: blocked`; and the three **type** labels
+  `type: feat`, `type: fix`, `type: chore` (colour `#bfd4f2`, description
+  "optional, applied by you — the `{type}` of the implementation branch").
 - gitlab: scoped `track::spec`, `track::fast`, `status::ready-for-spec`,
   `status::ready-for-dev`, `status::in-spec-review`, `status::in-user-review`,
   `status::blocked` + the **plain** `processing` (the lock must coexist with a
-  phase label — never scope it).
-Skip labels that already exist.
+  phase label — never scope it); and scoped `type::feat`, `type::fix`,
+  `type::chore`.
+Skip labels that already exist. A `type:` label is informational, never a
+gate: the human applies it (or not — absent means `feat`); no command ever
+applies, removes or validates one, and `branch_template` reads it only
+through `{type}`.
 
 ## 4. Write the workflow pointer into CLAUDE.md
 The section is a **pointer + config block only** — the workflow prose lives in

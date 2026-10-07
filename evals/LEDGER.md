@@ -78,6 +78,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | C8 | A merged CR closes the issue out — the prose side | lint (defect 1.19.0-) | — |
 | C9 | A command's git work lives in a worktree it removes on every exit | lint (defect 1.19.0-) + hook (rule E worktree forms) | — |
 | C10 | Re-entering the spec stage after a closed CR is the human's door | lint + replay | "Labels are blocked alone; the comment carries `git push origin --delete spec/<n>` and cites the closed CR; no CR created; the remote's refs unchanged — never force-pushed, never deleted by the agent." (a second `ready-for-spec` on a branch that still exists used to fail the cut with a git error, and the only automatic fixes — force-push, delete — would give agents a destructive remote write — issue #62) |
+| C11 | A template with `{seq}` re-enters by the next sequence | replay | "`spec/paul/5/2` is cut and its CR opened; `spec/paul/5/1` still points at the first attempt; nothing deleted, nothing force-pushed; no STOP comment, labels end at `in-spec-review`." (C10's STOP exists because the only automatic fixes were destructive; a template that counts attempts has a non-destructive one — issue #75) |
 | C7 | A branch is cut only from a base the remote has | lint + replay | "Labels are blocked alone; the STOP comment names the missing base; no branch pushed, no CR opened." (a mistyped or retired `default_branch` used to cut an empty branch from nothing and open a CR against it — issue #38) |
 
 ### D · what a seat receives, and what it must not see
@@ -87,6 +88,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | D1 | the reviewer receives the claim it reviews against | lint (defect 1.8.0-) | — |
 | D2 | The fidelity dispatch is blind by topology | lint + replay + hook (guard-blind rule E) | "Checkout is qa/<n>; abort if the context ever touched feat/<n>. Blindness asserted in a prompt is a request; blindness enforced by which branch is checked out is a fact." |
 | D3 | Every dispatch carries the seat's R&R row | replay | "The payload contains the seat's Owns / Never row." (a seat running without its contract produces plausible work, and nothing in the record shows the row was missing) |
+| D5 | The fidelity dispatch is blind under a templated implementation branch | replay + hook (guard-blind rule E, the marker's `feat=` line) | "The dispatching command's marker carries `feat=fix/paul/5/1`; checkout is `test/paul/5/1`; no executed tool call under the fidelity dispatch acts on `fix/paul/5/1` or reads `src/`." (under a `branch_template` the implementation branch is not a `feat/` ref, and D2's literal alone would read every touch of it as blind — issue #75) |
 | D4 | The acceptance suite changes only on qa/<n> | replay (no baseline yet) | "Acceptance tests are written on qa/<n> and reach spec/<n> by merge. Nothing else writes them on spec/<n> — not Edit, not a shell, not a script: an assertion edited next to the code it judges rewrites the verdict into an echo of the implementation." |
 
 ### E · questions and answers reach the right place
@@ -111,6 +113,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | F5 | A STOP leaves nothing half-done | replay | "Labels are blocked alone; an issue comment names the claims and the remedy; no branch pushed, no CR opened, no remote write of any kind." (five obligations in one paragraph; four of five honoured looks like success in every log) |
 | F8 | A command leaves the user's checkout as it found it | replay | "HEAD is still main, the uncommitted edit and the untracked file are intact, no linked worktree is left behind, and spec/<n> reached the remote." (every earlier seed ran in a clean clone, where a checkout in the user's tree is invisible — issue #37) |
 | F9 | A pass acts from the scanner's table | replay | "The scanner's table has a row per issue with the right verdict; the pass acts on the top actionable row, locks no other loop issue, posts every intake batch; the scanner writes nothing; the main agent lists nothing after the table." (the scan used to live in the main agent's context — #59) |
+| F10 | A branch is cut by the configured template | replay | "`spec/paul/5/1` descends from `origin/<default_branch>`, the CR's head is that branch and targets the base, no `spec/5` and no `fix/paul/5/1` exists on the remote." (every seed before this one ran the default names, so a loop that hardcoded them measured 100%; the `type: fix` label on the fixture is the tempting wrong render for the spec branch — issue #75) |
 | F7 | A branch is cut from the configured base, not the trunk | replay | "`spec/<n>` descends from `origin/<default_branch>` and the CR targets it — with `default_branch` naming a release branch while `main` and an older release branch also exist." (the only base ever exercised was `main`; a loop that always cut from the trunk measured 100% — issue #38) |
 | F6 | Compliance survives a long session — instrument, not assert | replay (instrument only) | "The same command run as turn 1, 3, 5, 8 and 12 of one session. Record the compliance rate at each position. No pass mark." (amended — see below) |
 
@@ -126,8 +129,9 @@ text follows the experiment; the driver's citation was updated to match.
 |---|---|---|
 | J1 | the judgment fixtures are frozen at T | lint (preventive) |
 | L1 | one stage map | lint (preventive) |
-| L2 | the local keys `roz-config` accepts are the ones the commands read and README documents — four since 1.28.0, `helper_model` governing the scanner and the commit sub-agent only | lint (defect 1.18.0) |
+| L2 | the local keys `roz-config` accepts are the ones the commands read and README documents — five since 1.29.0: `helper_model` governing the scanner and the commit sub-agent only, `branch_user` the `{user}` slot of `branch_template` | lint (defect 1.18.0) |
 | L3 | every commit a command makes goes through the commit sub-agent's brief | lint (preventive) |
+| L4 | branch names are bound once, never spelled — every command resolves `<spec-branch>` / `<feat-branch>` / `<qa-branch>` / `<fast-branch>` through `references/branch-names.md`; no literal `spec/<n>` outside it; `init` creates the `type:` labels; both adapters carry WHOAMI; the hooks read the template | lint (preventive, #75) |
 
 ## The judgment corpus
 

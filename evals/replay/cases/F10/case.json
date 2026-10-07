@@ -1,0 +1,6 @@
+{
+  "ledger": "F10 \u00b7 A branch is cut by the configured template",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 2400
+}

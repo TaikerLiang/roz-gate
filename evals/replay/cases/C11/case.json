@@ -1,0 +1,6 @@
+{
+  "ledger": "C11 \u00b7 A template with {seq} re-enters by the next sequence",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 900
+}

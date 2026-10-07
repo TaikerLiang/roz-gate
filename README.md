@@ -215,6 +215,7 @@ thinking in its own context — it relays, posts, and publishes.
 | `status: in-user-review` | transient | main agent — work that passed the verdict, waiting on your review; the (7) conversation lives here |
 | `status: processing` | lock | any running command; coexists with the phase label (a stale pair = crash forensics) |
 | `status: blocked` | transient | a stopped command — evidence + recommendation posted as an issue comment; you decide |
+| `type: feat` / `type: fix` / `type: chore` | informational | you, optionally — only the `{type}` of a `branch_template` reads it; never a gate, never touched by a command |
 
 No `track:` label = inbox (pre-loop). No `status:` label = in flight (the open
 CRs are the state). Your merge is the close: where the forge does not close
@@ -233,8 +234,8 @@ discipline is the manners; the hook is the law.*
 | **B** | an agent applying `status: ready-for-spec` / `ready-for-dev` | a gate label is an authorization — only the human moves it | 1.5.0 |
 | **C** | a marker-carrying comment that opens with a quote block | patrol classifies by the opening token; a quote-opening agent comment reads as a human answer and the loop replies to itself | 1.14.0 |
 | **D** | a `git commit` while `technical-spec.md` still carries an open-questions section | a question outside the threaded surface resolves by silent interpretation; the prose measured 0/5 after it was made explicit | 1.15.0 |
-| **E** | inside a fidelity dispatch, any read of `src/` or git action on a `feat/<n>` ref | the blindness the integration verdict rests on — a green looks identical either way | 1.16.0 |
-| **acceptance** | editing the acceptance suite on a `spec/<n>` branch | a weakened assertion re-runs green and turns the verdict into an echo of the implementation | 1.11.0 |
+| **E** | inside a fidelity dispatch, any read of `src/` or git action on a `feat/<n>` ref — or on the implementation branch the dispatch marker names, under a `branch_template` | the blindness the integration verdict rests on — a green looks identical either way | 1.16.0 |
+| **acceptance** | editing the acceptance suite on a spec branch (`spec/<n>`, or whatever `branch_template` renders) | a weakened assertion re-runs green and turns the verdict into an echo of the implementation | 1.11.0 |
 
 Details, the fidelity-dispatch marker, and how to add a rule: `hooks/README.md`.
 
@@ -320,9 +321,10 @@ command reads it before acting:
 - agent_identity: bot            # optional — see "Agent identity"; absent = user
 - bot_login: <bot username>      # optional
 - operator: <your forge login>   # optional
+- branch_template: {type}/{user}/{n}/{seq}   # optional — your branch convention; absent = {kind}/{n}, see "Branch names"
 ```
 
-Four keys are **yours, per clone** — never in the block, never committed.
+Five keys are **yours, per clone** — never in the block, never committed.
 `/roz-gate:config` shows them and sets one from a menu; with arguments it
 skips the menu. The prompt is only the menu: the write is done by the
 plugin's `bin/roz-config`, a stdlib Python tool, never by the model.
@@ -333,6 +335,7 @@ plugin's `bin/roz-config`, a stdlib Python tool, never by the model.
 /roz-gate:config inbox_label discuss, idea        # inbox filter: any of these labels, comma-separated (default: none)
 /roz-gate:config inbox_assignee <login>           # inbox filter: any of these logins (default: none)
 /roz-gate:config helper_model <model id>          # patrol's scanner and every command's commit sub-agent (default: the runtime's; seats are never configured)
+/roz-gate:config branch_user <login>              # the {user} slot of branch_template (default: your forge login)
 /roz-gate:config inbox_label                      # no value = back to the default
 ```
 
@@ -344,6 +347,30 @@ release branches set `default_branch` to the current one and change it at
 handover; an issue already cut from the previous base is yours to move —
 retarget its CR and rebase — the loop never pins a base per issue. The other
 block keys are init-time facts, edited by hand.
+
+### Branch names
+
+The loop cuts four branches per issue — spec, feat, qa, fast — named by one
+template, `branch_template` in the block. Absent, it is `{kind}/{n}`:
+`spec/<n>`, `feat/<n>`, `qa/<n>`, `fast/<n>`, as every release before 1.29.0.
+A repo with a convention sets it once, committed, and every teammate's
+commands and the hooks render the same names:
+
+| placeholder | renders as |
+|---|---|
+| `{kind}` | `spec` / `feat` / `qa` / `fast` |
+| `{type}` | `spec` for the spec branch, `test` for the qa branch, the issue's `type:` label (`type: feat` / `fix` / `chore`, created by `init`, applied by you; absent = `feat`) for feat and fast |
+| `{user}` | your `branch_user` (`/roz-gate:config`), default your forge login |
+| `{n}` | the issue number |
+| `{seq}` | the attempt — `1`, then `2` when a closed spec CR is re-entered: the old branch stays, nothing is deleted |
+
+`{type}/{user}/{n}/{seq}` renders `spec/pwliangc/5/1`, `fix/pwliangc/5/1`,
+`test/pwliangc/5/1`. A template needs `{n}` and one of `{kind}` / `{type}`;
+anything else stops the cut. Because another person's `{user}` and an
+attempt's `{seq}` cannot be computed, a command **finds** an existing
+branch on the remote by pattern and never guesses its name. Without
+`{seq}` a re-entered spec stage still stops and hands you the delete
+command, as before. Details: `references/branch-names.md`.
 
 `init` also writes a `### Roz Gate personas` block — **fixed seats, swappable
 occupants**. The five role names (product, em, implementer, qa, reviewer) are

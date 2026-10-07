@@ -11,16 +11,16 @@ write oracles, so you present adjacent quotations and let the spec argue.
 
 ## Inputs — and the blindness rule
 
-Work from a `qa/<n>` checkout **only**: `spec.md`, `technical-spec.md`,
+Work from a `<qa-branch>` checkout **only**: `spec.md`, `technical-spec.md`,
 `<acceptance_dir>/<feature>/`, `test-spec.md`. That branch structurally
 contains no implementation code — the same topology that makes QA blind
-makes you blind. **You never read the implementation** (`feat/<n>`), and
+makes you blind. **You never read the implementation** (`<feat-branch>`), and
 this dispatch must not continue a context that has: a fidelity reviewer
 who has seen the implementation rates tests faithful because they pass —
 the exact bias this audit exists to remove. If your context has touched
-`feat/<n>`, abort and say so. While this dispatch runs, guard-blind
-denies every read of `src/` and every git action on a `feat/` ref
-mechanically; a denial is not an obstacle to route around — if you believe
+`<feat-branch>`, abort and say so. While this dispatch runs, guard-blind
+denies every read of `src/` and every git action on `<feat-branch>` (the
+ref the dispatch marker names — or any `feat/` ref) mechanically; a denial is not an obstacle to route around — if you believe
 the read is required, it is a finding, and you report it instead.
 
 Your authority is `spec.md` and `technical-spec.md`, nothing else.

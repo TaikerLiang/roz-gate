@@ -13,7 +13,14 @@ ISSUE-EDIT-BODY, no ISSUE-CLOSE, no CR write, no dispatch, no git. Every
 CAPITALIZED-OP you run is a read from the forge adapter the main agent named
 in your dispatch (`references/forge-<forge>.md`). The inbox filter's two
 lists and `default_branch` are the values the main agent handed you from
-`bin/roz-config --json`; never re-derive them.
+`bin/roz-config --json`; never re-derive them. **Branch names**: the main
+agent handed you `branch_template` and **the remote's heads** (its one
+`git ls-remote --heads origin`); every `<spec-branch>` / `<feat-branch>` /
+`<qa-branch>` / `<fast-branch>` below is bound by **Lookup** over that
+list — the template rendered for the kind and issue with `{user}` and
+`{seq}` as patterns, the highest `{seq}` winning
+(`references/branch-names.md`) — never by a git call of your own, never by
+guessing. A CR-FIND takes the bound name.
 
 ## Scan
 
@@ -37,7 +44,8 @@ suffix stripped); both non-empty, both must hold; an empty list is no
 - **Close-out scan.** For every issue wearing a `track:` label — the open
   ones above, plus ISSUE-LIST-CLOSED per track label (the forge closes an
   issue on merge where its own rule fires, and leaves the loop labels on) —
-  CR-FIND its CR (`spec/<n>` / `fast/<n>`) with the all-states form. CR
+  CR-FIND its CR (`<spec-branch>` / `<fast-branch>`, bound by Lookup —
+  `references/branch-names.md`) with the all-states form. CR
   **merged** → a close-out candidate: **legal** when the issue is at
   `status: in-user-review` or already carries a `**[patrol] · shipped**`
   comment (a close-out interrupted part-way — finish it); any other status
@@ -55,9 +63,9 @@ suffix stripped); both non-empty, both must hold; an empty list is no
 |---|---|
 | `status: ready-for-spec` / `ready-for-dev` | actionable → `/roz-gate:next-stage <n>` |
 | `status: in-spec-review` | THREADS-LIST on its spec CR. Any unresolved thread whose last comment is a human answer (does not start with `**[` / `✅ [`) → actionable → `/roz-gate:spec-answers <n>`. Otherwise → waiting on the user |
-| no `status:`, `track: spec` | in flight: CR-FIND for `feat/<n>` and `qa/<n>`. Implementation CR exists with **zero open review threads** AND QA CR exists, **is not a draft, and has zero open fidelity threads** → actionable → `/roz-gate:integrate <n>`. Either CR has **open review threads** → actionable → **address-review** (below). Otherwise → in progress, not actionable |
+| no `status:`, `track: spec` | in flight: CR-FIND for `<feat-branch>` and `<qa-branch>`. Implementation CR exists with **zero open review threads** AND QA CR exists, **is not a draft, and has zero open fidelity threads** → actionable → `/roz-gate:integrate <n>`. Either CR has **open review threads** → actionable → **address-review** (below). Otherwise → in progress, not actionable |
 | no `status:`, `track: fast` | in flight: its CR has **open review threads** → actionable → **address-review**; review-clean → verdict `hand-off: in-user-review` (the main agent applies the label — you write nothing) |
-| `status: in-user-review` | its CR (`spec/<n>` for `track: spec`, `fast/<n>` for `track: fast`) was found **merged** by the close-out scan → actionable → **close-out** (below): the human signed, the loop finishes the paperwork. Otherwise the user is reviewing — and reviewing produces comments. Its open CR (missing or closed-unmerged → report, act on nothing) is read on **all three channels**: THREADS-LIST, REVIEWS-LIST, CR-COMMENTS-LIST. Any item whose latest entry does **not** start with `**[` or `✅ [` is **unheard** → actionable → `/roz-gate:review-answers <n>`. Otherwise → waiting on the user: say which wait, from the last agent marker — `· question` (your answer) / `· addressed` (your re-review) / none since the verdict (idle, N days) |
+| `status: in-user-review` | its CR (`<spec-branch>` for `track: spec`, `<fast-branch>` for `track: fast`) was found **merged** by the close-out scan → actionable → **close-out** (below): the human signed, the loop finishes the paperwork. Otherwise the user is reviewing — and reviewing produces comments. Its open CR (missing or closed-unmerged → report, act on nothing) is read on **all three channels**: THREADS-LIST, REVIEWS-LIST, CR-COMMENTS-LIST. Any item whose latest entry does **not** start with `**[` or `✅ [` is **unheard** → actionable → `/roz-gate:review-answers <n>`. Otherwise → waiting on the user: say which wait, from the last agent marker — `· question` (your answer) / `· addressed` (your re-review) / none since the verdict (idle, N days) |
 | `status: blocked` | waiting on the user — never re-invoke anything on it |
 | no `track:` label, in the inbox filter (inbox) | actionable → **async intake** (below) when a gate label is present (finalize), the gate holder's latest comment requests a summary, or no questions batch exists yet; otherwise the discussion is the humans' — waiting on the user |
 
