@@ -2,6 +2,58 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.28.0 — helper_model: one per-clone key for the two mechanical sub-agents; patrol_model retired — 2026-10-07
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.28.0>
+
+**Behavior:** `patrol_model` is retired; `helper_model` is the fourth per-clone key (`/roz-gate:config helper_model <model id>`), and it governs the two mechanical sub-agents — patrol's scanner and the commit sub-agent in every command. Seats run on the runtime default. A block that still carries `patrol_model` is seeded once into the local file by `bin/roz-config`.
+
+### Behavior
+- **`helper_model`** (#66): set through `/roz-gate:config` (menu item 4) or `roz-config helper_model <id>`; absent → the runtime's default, shown as `(default: runtime)` and `""` in `--json`. Patrol dispatches its scanner on it; `next-stage` A4/B4/C5, `spec-answers` §6, `review-answers` §6 and patrol's address-review dispatch the commit sub-agent on it (`references/commit-brief.md` says so). The key never changes the model a command itself runs on.
+- **`patrol_model` retired**: it governed patrol's seats; seats are no longer model-configurable. The block line is gone from README and the onboarding builder (the template never carried it); `roz-config` migrates an existing block line to `helper_model` once and names the rename on stderr.
+
+### Evals
+- **L2 amended** (lint 268 → 283 with L3): the tool's KEYS tuple is the four keys; patrol's Model paragraph names `helper_model`, the scanner, the commit sub-agent and `roz-config` and says seats run on the runtime default; §1 dispatches the scanner on it; README's block has no `patrol_model` line and the per-clone section says four; `patrol_model` survives nowhere under `README.md commands references templates docs`; the onboarding builder offers `helper_model`; the tool still reads `"patrol_model"` (the migration). **L3 amended**: each of the six commit windows and the brief name `helper_model`. Three mutations, each one check red and back, recorded in the feat commit's message.
+
+### Hooks
+- **`test_roz_config.py`** (hook suite 128 → 134): `helper_model` set/show/`--json`/remove, one-value refusal, migration of a block's `patrol_model` line — into a fresh file and into an existing one, once, with a tombstone on removal (codex review); the unknown-key example is now `model`.
+
+### Docs
+- README config block (line removed) and per-clone section (fourth line, "Four keys"), command table row, onboarding builder (`helper_model` moved to "Yours — per clone", hint rewritten, header "four keys"), `hooks/README.md` test count, LEDGER L2.
+
+### Checks
+Hook tests 134/134 · lint 283/283 · red-proofs 10/10
+
+## v1.29.0 — branch names from branch_template: bound once per command, found by pattern, never spelled — 2026-10-07
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.29.0>
+
+**Behavior:** none until `branch_template` is set — the default reproduces today's names. A repo that sets it gets templated branches, `type:` labels from a re-run `init`, and (with `{seq}`) sequence-numbered re-entry after a closed spec CR.
+
+### Behavior
+- **`references/branch-names.md`**: branch names come from the block's `branch_template` (`{kind}`, `{type}`, `{user}`, `{n}`, `{seq}`; default `{kind}/{n}`). `{type}` is `spec` / `test` / the issue's `type:` label (default `feat`); `{user}` is the local key `branch_user` or WHOAMI; `{seq}` is the attempt — a re-spec cuts `…/2` instead of stopping, and the agent still never deletes or force-pushes. A template without `{seq}` keeps C10's STOP verbatim. Every command binds its four names once (`<spec-branch>` …) and finds an existing branch on the remote by pattern — another person's `{user}` and an attempt's `{seq}` are not computable. Issue #75: target repos enforce `{type}/{user}/{ticket}/{seq}`.
+- **`init`** creates `type: feat` / `type: fix` / `type: chore` (informational, never a gate; no command applies or validates one) and documents `branch_template`.
+
+### Evals
+- **L4** (lint): names bound, never spelled — no literal `spec/<n>` outside `branch-names.md`; the readers bind through it; A2/C2 carry the `{seq}` route; the marker line; the type labels; WHOAMI in both adapters; both hooks read the template.
+- **F10** (replay): a branch is cut by the configured template — `spec/paul/5/1` from the configured base, not `spec/5`, not the leaked `fix/paul/5/1`. Red-proof, 10 shapes.
+- **C11** (replay): a template with `{seq}` re-enters by the next sequence — `spec/paul/5/2` cut, `spec/paul/5/1` untouched, no delete remedy. Red-proof, 10 shapes.
+- **D5** (replay): the fidelity dispatch is blind under a templated implementation branch — the marker carries `feat=fix/paul/5/1`; the predicate is the hook's own. Red-proof, 13 shapes.
+- **L2**: five local keys; C7/C9/C10 anchors follow the bound names.
+
+### Hooks
+- **acceptance guard**: a spec branch is `spec/*`, or HEAD matching the template rendered for the spec kind; the zero-cost prefilter path is unchanged for repos without a template.
+- **rule E**: the marker's `feat=<branch>` line is denied by exact name alongside the `feat/` literal; the D2 regexes stay byte-identical.
+
+### Tooling
+- **`bin/roz-config`**: fifth key `branch_user` (default: the forge login, resolved by the command, never by the tool). **Adapters**: `WHOAMI` — `gh api user --jq .login` / `glab api user --jq .username`.
+
+### Docs
+- **README** "Branch names", the `type:` label row, the rule table; **onboarding** builder (`branch_template`, `branch_user`) and the re-entry stop shape; **index** label card; **quiz** #51; **hooks/README** rule rows and the marker snippet; **workflow.md** "The branch names".
+
+### Checks
+Hook tests 156/156 · lint 345/345 · red-proofs 13/13 (harness + 11 cases, F10/C11/D5 new) · ruff clean · naming clean · `judgment --check` frozen — on `b07096b`. L4 mutation: a `spec/<n>` literal reintroduced in next-stage.md → red (L4 + C7's anchor) → restored → green. Codex round (PR #82): the scanner is handed the remote's heads for Lookup; the acceptance hook reads `branch_template` from the config block only; quiz #51 says `{n}`.
+
 ## v1.27.0 — every commit goes through a commit sub-agent; the scanner's table carries the gate holder — 2026-10-05
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.27.0>
