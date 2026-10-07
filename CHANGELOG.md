@@ -2,6 +2,27 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.29.1 — rule E no longer denies the fidelity dispatch's own suite under src/ — 2026-10-07
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.29.1>
+
+**Behavior:** rule E no longer denies the fidelity dispatch's reads of its own acceptance suite when `<acceptance_dir>` sits under `src/` (Maven/Gradle layouts). Everything else under `src/` stays denied.
+
+### Behavior
+- **Rule E and the suite** (#81): a path under the block's `acceptance_dir` is never a read of `src/` — Bash operands blanked before the match, Read/Glob/Grep paths resolved against the toplevel. Only a suite strictly inside `src/` is exempt; `src` itself exempts nothing; a climb out of the suite (`…/acceptance/../../main/…`) and another tree's `src/test/…` stay reads. The fidelity brief, next-stage B5b, patrol step 2 and workflow.md say "outside `<acceptance_dir>`".
+
+### Evals
+- **Lint D2** amended: probes through the suite parameter; the four regexes stay byte-identical; conformance anchors in six prose surfaces. Mutation: blanking disabled → the suite probe red → restored → green. Ledger D2 row amended; CONTRIBUTING's instruments-that-lied table gains "a path is not provenance".
+
+### Hooks
+- **guard-blind**: `load_acceptance_dir` (block-scoped), `suite_under_src`, `suite_operand_re` + `suite_blanker`, `under_suite`, `tool_reads_src`; the deny message names the readable suite. Tests 156 → 194 (`RuleE_SuiteUnderSrc`: a Maven-layout repo, every tool and spelling, the near-miss sibling, the climb out, the config edges; after the Codex round: a suite operand ends at a shell control character, and every operand is resolved by `realpath` — a symlink inside the suite that points out is denied).
+
+### Docs
+- README and index rule E rows; `hooks/README.md` rule E predicate and the test-count line; quiz #21 background.
+
+### Checks
+Hook tests 194/194 · lint 355/355 · red-proofs 13/13 · ruff clean · naming clean · `judgment --check` frozen — on `2ccab62`.
+
 ## v1.28.0 — helper_model: one per-clone key for the two mechanical sub-agents; patrol_model retired — 2026-10-07
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.28.0>
