@@ -143,7 +143,8 @@ workspace).
    `<feat-branch>`; QA CR fidelity threads → dispatch `qa` on `<qa-branch>` **under
    the fidelity-dispatch procedure** (next-stage.md B5b: marker on, carrying
    `feat=<feat-branch>`, dispatch, marker off — guard-blind denies any
-   `src/` read or git action on `<feat-branch>` while it runs) (it may
+   `src/` read outside `<acceptance_dir>` or git action on `<feat-branch>`
+   while it runs) (it may
    decline a finding that lacks verbatim citations) — fix and/or reply.
    Fast track: the main agent addresses its own CR's threads directly
    (it wrote the code; `implementer` is never dispatched onto `<fast-branch>`).

@@ -401,7 +401,9 @@ Launch both at once (they never see each other):
   `mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\nfeat=<feat-branch>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`
   — the `feat=` line is the bound implementation branch, the ref the hook
   denies by name; immediately after it returns, `rm -f "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`.
-  While the marker exists, every read of `src/` and every git action on
+  While the marker exists, every read of `src/` outside
+  `<acceptance_dir>` (a suite under `src/test/…` stays readable — it is
+  what the dispatch audits) and every git action on
   `<feat-branch>` (or any `feat/` ref) is denied mechanically, with the
   remedy in the message. The
   brief's "you never read the implementation" stays in the dispatch text —

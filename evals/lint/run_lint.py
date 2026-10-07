@@ -335,6 +335,45 @@ c.expect("hook rule E (echo in command position)",
 c.expect("hook rule E", "D2 pattern: a read after an echo mention is still a read",
          _gb.violation("Bash",
                        {"command": "echo \"excluding src/\" && cat src/app.txt"}) is not None)
+# Issue #81 (1.29.1): the suite is not the implementation. A Maven layout's
+# acceptance dir sits under src/test/…; the hook exempts it (outside the
+# four regexes, which stay byte-identical above) and the prose says so.
+_SUITE, _TOP = "src/test/java/acme/acceptance", "/tmp/work"
+c.expect("hook rule E (the suite under src/ is not the implementation — #81)",
+         "D2 pattern: a read of <acceptance_dir> under src/ is NOT a read of src/",
+         _gb.violation("Bash", {"command": "cat %s/ExpiryTest.java" % _SUITE}, None, _SUITE,
+                       _TOP) is None
+         and _gb.violation("Read", {"file_path": "%s/%s/ExpiryTest.java" % (_TOP, _SUITE)},
+                           None, _SUITE, _TOP) is None
+         and _gb.violation("Grep", {"pattern": "Traces", "path": _SUITE}, None, _SUITE, _TOP)
+         is None)
+c.expect("hook rule E (#81: everything else under src/ stays denied)",
+         "D2 pattern: src/main, a mixed command, a sibling and a climb out are reads",
+         _gb.violation("Bash", {"command": "cat src/main/java/acme/App.java"}, None, _SUITE, _TOP)
+         is not None
+         and _gb.violation("Bash", {"command": "cat %s/T.java src/main/java/acme/App.java"
+                                    % _SUITE}, None, _SUITE, _TOP) is not None
+         and _gb.violation("Bash", {"command": "cat %s-old/T.java" % _SUITE}, None, _SUITE, _TOP)
+         is not None
+         and _gb.violation("Bash", {"command": "cat %s/../../../main/java/App.java" % _SUITE},
+                           None, _SUITE, _TOP) is not None
+         and _gb.violation("Read", {"file_path": "%s/%s/../../../main/java/App.java"
+                                    % (_TOP, _SUITE)}, None, _SUITE, _TOP) is not None)
+c.expect("hook rule E (#81: only a suite strictly under src/ is exempt)",
+         "D2 pattern: tests/acceptance, src and src/ yield no exemption",
+         _gb.suite_under_src("tests/acceptance") is None and _gb.suite_under_src("src") is None
+         and _gb.suite_under_src("src/") is None and _gb.suite_under_src(None) is None
+         and _gb.suite_under_src("src/test/java/acme/acceptance/") == _SUITE)
+src("D2 conformance: guard-blind reads acceptance_dir from the config block only",
+    "hooks/guard_blind.py", "def load_acceptance_dir(top):")
+for _f, _lit in (("references/fidelity-brief.md",
+                  "every read of `src/` outside `<acceptance_dir>`"),
+                 ("commands/next-stage.md", "every read of `src/` outside\n  `<acceptance_dir>`"),
+                 ("commands/patrol.md", "`src/` read outside `<acceptance_dir>`"),
+                 ("references/workflow.md", "no read of `src/` outside the suite"),
+                 ("hooks/README.md", "outside `<acceptance_dir>`"),
+                 ("README.md", "outside `<acceptance_dir>`")):
+    src("D2 conformance (#81): %s qualifies the src/ rule with the suite" % _f, _f, _lit)
 src("D2 conformance: the checker pairs denials by guard-blind's own message literal",
     "evals/replay/cases/D2/check.py", "Roz Gate: blocked — this is a fidelity dispatch")
 src("D2 conformance: guard-blind's deny message opens with that literal",

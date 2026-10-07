@@ -552,7 +552,7 @@
    ],
    "why": "qa/<n> 上的 tests 和 spec 文件都可以讀；`:!src/**` 是排除語法，只是提到 src/，不是讀它。`git diff … feat/5` 是對 feat/ ref 的 git 操作，會被擋；絕對路徑裡的 src/ 也一樣算讀取。",
    "src": "hooks/guard_blind.py · hooks/README.md rule E",
-   "bg": "Fidelity dispatch 是 reviewer（或 patrol 的 qa seat）在 `qa/<n>` 上做的 implementation-blind 工作；marker 存在時 rule E 對 Bash、Read、Glob、Grep 都會判。判斷條件沿用 D2 checker 的三個 regex：對 feat/ ref 的 git 操作、路徑中含 src/，以及比對前先把排除語法的運算元 blank 掉。"
+   "bg": "Fidelity dispatch 是 reviewer（或 patrol 的 qa seat）在 `qa/<n>` 上做的 implementation-blind 工作；marker 存在時 rule E 對 Bash、Read、Glob、Grep 都會判。判斷條件沿用 D2 checker 的三個 regex：對 feat/ ref 的 git 操作、路徑中含 src/，以及比對前先把排除語法的運算元 blank 掉。1.29.1 起多一條例外：block 的 `acceptance_dir` 若放在 `src/` 底下（Maven 的 `src/test/…`），那是 dispatch 要審的套件本身，讀它不算讀 src/；regex 不變，例外在 regex 之外。"
   },
   {
    "id": 22,
