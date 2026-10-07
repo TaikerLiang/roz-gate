@@ -762,6 +762,20 @@ c.expect("pattern", "C12: the finalize regenerates the cards wholesale on a re-v
          "On a re-verdict the cards are regenerated **wholesale**" in _flat)
 c.expect("pattern", "C12: the report names what step 3 merged",
          "*re-verdict at SHA `<x>`, nothing merged" in _flat)
+# codex review, PR #86: four holes a re-verdict opens in the first-pass prose.
+c.expect("pattern", "C12: the worktree starts at the remote's tip (ff-only), never a stale ref",
+         "`git merge --ff-only origin/<spec-branch>`" in _ig3
+         and "cannot fast-forward" in _ig3)
+c.expect("pattern", "C12: a re-verdict runs the full acceptance suite",
+         "**On a re-verdict run the full acceptance suite**"
+         in re.sub(r"\s+", " ", section(read("commands/integrate.md"), r"^## 4\. ", r"^## 5\. ")))
+c.expect("pattern", "C12: after a re-verdict RED the fix rides the spec branch or a merge-back",
+         "**After a re-verdict RED**" in _flat
+         and "**on `<spec-branch>` in the worktree**" in _flat
+         and "**merge `origin/<qa-branch>` back**" in _flat)
+c.expect("pattern", "C12: the STOP exit strips the phase label the run entered from",
+         "**and the phase label the run entered from**"
+         in re.sub(r"\s+", " ", section(read("commands/integrate.md"), r"^## 6\. ", r"^## 7\. ")))
 must_match("C12: the in-flight row reads a merged CR as present",
            r"shows as \*\*merged\*\* exists for this row", inflight)
 must_match("C12: the in-flight row routes both-merged to integrate",

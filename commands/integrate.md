@@ -78,7 +78,13 @@ label.
   `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<spec-branch> <spec-branch>`
   and work **in that worktree** for every step below (`cd` there or `git -C`).
   `git worktree add` refusing (the branch is checked out elsewhere) → STOP
-  exit. There, **merge what is open, never what is merged**: for each of the
+  exit. First, in it, `git merge --ff-only origin/<spec-branch>`: the
+  worktree starts at the **remote's** tip, never at a stale local ref an
+  earlier run left behind — the spec branch moves from elsewhere (a rebase,
+  another clone), and a re-verdict merges nothing that would catch the ref
+  up. A local ref that cannot fast-forward carries commits the remote lacks
+  → STOP exit, naming both SHAs: pushing them is the human's decision.
+  Then, **merge what is open, never what is merged**: for each of the
   two CRs, state `open` → `git merge --no-edit origin/<feat-branch>` /
   `git merge --no-edit origin/<qa-branch>` — this brings the contract + code
   + tests together for the first time; state `merged` → nothing to merge,
@@ -102,7 +108,11 @@ label.
 
 ## 4. Run the verdict
 - Run QA's black-box suite against the implementation: config
-  `acceptance_test` for the feature (`<acceptance_dir>/<feature>/`).
+  `acceptance_test` for the feature (`<acceptance_dir>/<feature>/`). **On a
+  re-verdict run the full acceptance suite**, not the feature-scoped one:
+  the spec branch moved by means a feature-scoped run cannot see (a sync
+  with concurrently merged work), and the hand-back rule wants a captured,
+  full run at the SHA that will wear the label.
   **Capture the run's output verbatim** (a local file is fine) — it is the
   evidence source for the final-gate kit's observed values.
 - Sanity-check the implementation's unit suites too (config `test`).
@@ -157,6 +167,15 @@ label.
   observed behaviour** — that rewrites the verdict into an echo of the
   implementation. Push the fix, re-run from step 3. Cap: **3** fix-and-rerun
   rounds; still red → STOP exit.
+  **After a re-verdict RED** the fixed branch's CR is merged, so step 3 would
+  skip the fix: route as (7) does (`commands/review-answers.md` §6) — a
+  **real bug** is fixed by `implementer` **on `<spec-branch>` in the
+  worktree** (the code lives there now); a **harness issue** is fixed by `qa`
+  on `<qa-branch>` as always (the acceptance guard allows no other road) and
+  you **merge `origin/<qa-branch>` back** into `<spec-branch>` in the worktree
+  after the push — its commits since the merged CR are the fix; a conflict
+  there is the STOP exit like any other. Then re-run from step 4 in the same
+  worktree.
 - **Anything else** — a failure that fits neither class, or anything
   surprising → STOP exit.
 
@@ -167,7 +186,9 @@ label.
    the user's checkout was never touched. A STOP because `worktree add`
    refused removes nothing: that worktree is another run's. There is nothing
    to clean up remotely.
-2. LABEL-REMOVE `status: processing`; LABEL-ADD `status: blocked`.
+2. LABEL-REMOVE `status: processing` **and the phase label the run entered
+   from** (`status: in-user-review` on a re-verdict) — `blocked` is worn
+   alone, never beside a phase label; LABEL-ADD `status: blocked`.
 3. ISSUE-COMMENT: what happened and your **recommended next step** as the
    must-read; the evidence (conflicting files / test output / error) folded
    under `<details><summary>Evidence</summary>`. When a CR was already
