@@ -15,6 +15,14 @@ throwaway state, the resume rule against staged result.json files.
 - RESUME — a result.json whose invalid_reason is the quota banner is not
   "done": the sweep stopped there and resumes there. Every other result,
   valid or invalid, is.
+- EXPORT — the Langfuse exporter's mapping (#80) on a staged run dir: one
+  trace per run with the case's session and verdict tag, a generation per
+  API call (events sharing a message id merged, tool results interleaved)
+  carrying its usage, a tool span ended by its matched
+  tool_result, the sub-agent event nested under its Agent span, journal
+  writes (not reads) as events, the verdict and every claim as scores, and
+  the marker rule (an exported run dir is refused, Langfuse v4 appends) —
+  with no network: `build()` is called directly.
 
 Run by evals/replay/run_redproofs.py (pre-push and CI). Stdlib only,
 Python 3.9-compatible, like the hook suite.
@@ -29,6 +37,7 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import export_langfuse as ex  # noqa: E402
 import replaylib as rl  # noqa: E402
 
 GH = os.path.join(HERE, "forge-stub", "gh")
@@ -151,8 +160,171 @@ REF_ROUTES = [
 ]
 
 
+# ---- EXPORT: a staged run dir ----------------------------------------------
+T = ["2026-10-11T01:00:%02d.000Z" % i for i in range(9)]
+TOOL_OUT = "## Development Workflow (Roz Gate)\nplain text tool output"
+TRANSCRIPT = [
+    {"type": "system", "subtype": "init", "session_id": "sess-x"},
+    {"type": "assistant", "timestamp": T[1], "message": {
+        "id": "m1", "model": "claude-test", "stop_reason": "tool_use",
+        "usage": {"input_tokens": 2, "output_tokens": 9, "cache_read_input_tokens": 100,
+                  "cache_creation_input_tokens": 50},
+        "content": [{"type": "thinking", "thinking": "look first"},
+                    {"type": "tool_use", "id": "tu-bash", "name": "Bash",
+                     "input": {"command": "cat CLAUDE.md"}}]}},
+    {"type": "user", "timestamp": T[2], "message": {"role": "user", "content": [
+        {"type": "tool_result", "tool_use_id": "tu-bash", "content": TOOL_OUT}]}},
+    {"type": "assistant", "timestamp": T[3], "message": {
+        "id": "m2", "model": "claude-test", "stop_reason": "tool_use",
+        "usage": {"input_tokens": 1, "output_tokens": 4, "cache_read_input_tokens": 150,
+                  "cache_creation_input_tokens": 0},
+        "content": [{"type": "tool_use", "id": "tu-agent", "name": "Agent",
+                     "input": {"prompt": "do the sub-task"}}]}},
+    {"type": "assistant", "timestamp": T[4], "parent_tool_use_id": "tu-agent", "message": {
+        "id": "m3", "model": "claude-test", "stop_reason": "end_turn",
+        "usage": {"input_tokens": 3, "output_tokens": 2, "cache_read_input_tokens": 0,
+                  "cache_creation_input_tokens": 10},
+        "content": [{"type": "text", "text": "sub-agent says hi"}]}},
+    {"type": "user", "timestamp": T[5], "message": {"role": "user", "content": [
+        {"type": "tool_result", "tool_use_id": "tu-agent", "content": "sub-agent says hi"}]}},
+    # the stream really arrives one event per content block, all sharing the
+    # message id, with tool results interleaved: m2's second block lands
+    # after the Agent's result, and m4 streams as two events
+    {"type": "assistant", "timestamp": T[6], "message": {
+        "id": "m2", "model": "claude-test", "stop_reason": None,
+        "usage": {"input_tokens": 1, "output_tokens": 4, "cache_read_input_tokens": 150,
+                  "cache_creation_input_tokens": 0},
+        "content": [{"type": "text", "text": "after the agent"}]}},
+    {"type": "assistant", "timestamp": T[7], "message": {
+        "id": "m4", "model": "claude-test", "stop_reason": None,
+        "usage": {"input_tokens": 1, "output_tokens": 1, "cache_read_input_tokens": 160,
+                  "cache_creation_input_tokens": 0},
+        "content": [{"type": "thinking", "thinking": "wrap up"}]}},
+    {"type": "assistant", "timestamp": T[8], "message": {
+        "id": "m4", "model": "claude-test", "stop_reason": None,
+        "usage": {"input_tokens": 1, "output_tokens": 1, "cache_read_input_tokens": 160,
+                  "cache_creation_input_tokens": 0},
+        "content": [{"type": "text", "text": "done"}]}},
+    {"type": "result", "subtype": "success", "session_id": "sess-x", "duration_ms": 6000,
+     "num_turns": 4, "total_cost_usd": 0.5, "result": "done"},
+]
+JOURNAL = [{"route": "issue-view", "write": False, "argv": ["issue", "view", "5"]},
+           {"route": "issue-comment", "write": True, "argv": ["issue", "comment", "5"],
+            "body": "**[gate] hello"}]
+CHECK_LOG = "ok   a claim that held\nFAIL a claim that did not  [source: ledger X]\n"
+RESULT = {"valid": True, "pass": False, "tokens": {"in": 7, "out": 16}, "cost": {"usd": 0.5}}
+
+
+def stage_run():
+    d = tempfile.mkdtemp()
+    rdir = os.path.join(d, "report", "sut", "X", "run-1")
+    os.makedirs(os.path.join(rdir, "forge"))
+    with open(os.path.join(rdir, "transcript.jsonl"), "w") as f:
+        f.write("".join(json.dumps(e) + "\n" for e in TRANSCRIPT))
+    with open(os.path.join(rdir, "forge", "journal.jsonl"), "w") as f:
+        f.write("".join(json.dumps(e) + "\n" for e in JOURNAL))
+    with open(os.path.join(rdir, "check.log"), "w") as f:
+        f.write(CHECK_LOG)
+    with open(os.path.join(rdir, "result.json"), "w") as f:
+        json.dump(RESULT, f)
+    return d, rdir
+
+
+def _marker_refused():
+    d, rdir = stage_run()
+    try:
+        with open(os.path.join(rdir, ex.MARKER), "w") as f:
+            json.dump({"trace_id": "x", "url": "http://nowhere"}, f)
+        cfg = {"LANGFUSE_HOST": "http://127.0.0.1:9", "LANGFUSE_PUBLIC_KEY": "pk",
+               "LANGFUSE_SECRET_KEY": "sk"}   # a dead port: any send would fail loudly
+        try:
+            ex.export_run(rdir, "X", "sut", "1", "p", cfg)
+            return False
+        except ex.AlreadyExported:
+            return True
+        except ex.ExportError:
+            return False
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def export_checks():
+    """(name, ok) over the staged run's build() output."""
+    d, rdir = stage_run()
+    try:
+        spans, scores, summary = ex.build(rdir, "X", "sut", "1", "the prompt")
+        again = ex.build(rdir, "X", "sut", "1", "the prompt")[0]
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+    def attrs(s):
+        out = {}
+        for a in s["attributes"]:
+            v = a["value"]
+            out[a["key"]] = (v.get("stringValue") if "stringValue" in v else
+                             [x.get("stringValue") for x in v["arrayValue"]["values"]]
+                             if "arrayValue" in v else v.get("intValue", v.get("boolValue")))
+        return out
+    by_type = {}
+    for s in spans:
+        by_type.setdefault(attrs(s).get("langfuse.observation.type"), []).append(s)
+    root = spans[0]
+    ra = attrs(root)
+    gens = by_type.get("generation", [])
+    tools = {attrs(s)["langfuse.observation.metadata.tool_use_id"]: s
+             for s in by_type.get("tool", [])}
+    bash, agent = tools.get("tu-bash"), tools.get("tu-agent")
+    sub = [g for g in gens if attrs(g).get("langfuse.observation.metadata.message_id") == "m3"]
+    m4 = [g for g in gens if attrs(g).get("langfuse.observation.metadata.message_id") == "m4"]
+    m2 = [g for g in gens if attrs(g).get("langfuse.observation.metadata.message_id") == "m2"]
+    usage_ok = all(set(json.loads(attrs(g)["langfuse.observation.usage_details"]))
+                   >= {"input", "output", "cache_read_input_tokens",
+                       "cache_creation_input_tokens"} for g in gens)
+    names = [sc["name"] for sc in scores]
+    return [
+        ("one root span named after the run, in the case's session, tagged with the verdict",
+         root["name"] == "X/run-1" and "parentSpanId" not in root
+         and ra.get("langfuse.session.id") == "sut/X"
+         and ra.get("langfuse.trace.tags") == ["X", "sut", "fail"]
+         and ra.get("langfuse.trace.input") == "the prompt"
+         and ra.get("langfuse.trace.output") == "done"),
+        ("a generation per API call (the sub-agent's too), each carrying usage with the "
+         "cache keys",
+         len(gens) == 4 and usage_ok and summary["generations"] == 4),
+        ("two events sharing a message id are one generation: both blocks, the later end",
+         len(m4) == 1 and attrs(m4[0]).get("langfuse.observation.output")
+         == json.dumps([{"type": "thinking", "thinking": "wrap up"},
+                        {"type": "text", "text": "done"}], ensure_ascii=False)
+         and m4[0]["endTimeUnixNano"] == str(ex.ts_ns(T[8]))),
+        ("a block arriving after an interleaved tool result still joins its API call",
+         len(m2) == 1 and "after the agent" in attrs(m2[0]).get("langfuse.observation.output", "")
+         and m2[0]["endTimeUnixNano"] == str(ex.ts_ns(T[6]))),
+        ("a run dir already exported is refused before any network, unless forced",
+         _marker_refused()),
+        ("the Bash span's output is its tool_result and it ends at that user message",
+         bash is not None and attrs(bash).get("langfuse.observation.output") == TOOL_OUT
+         and bash["endTimeUnixNano"] == str(ex.ts_ns(T[2]))),
+        ("the sub-agent's generation nests under the Agent span",
+         agent is not None and len(sub) == 1 and sub[0].get("parentSpanId") == agent["spanId"]),
+        ("every span starts no later than it ends",
+         all(int(s["startTimeUnixNano"]) <= int(s["endTimeUnixNano"]) for s in spans)),
+        ("journal writes are events, reads are not",
+         len(by_type.get("event", [])) == 1
+         and by_type["event"][0]["name"] == "journal:issue-comment"),
+        ("scores: pass, valid, cost_usd and one per claim, with the FAIL's source",
+         names == ["pass", "valid", "cost_usd", "a claim that held", "a claim that did not"]
+         and [sc["value"] for sc in scores] == [0, 1, 0.5, 1, 0]
+         and scores[-1]["comment"] == "source: ledger X"),
+        ("ids are deterministic — a second build is byte-identical",
+         json.dumps(again) == json.dumps(spans)),
+    ]
+
+
 def main():
     passed = failed = 0
+    for name, ok in export_checks():
+        print("%s export: %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
     tmp, work = git_sandbox()
     try:
         head = subprocess.check_output(["git", "-C", work, "rev-parse", "spec/5"],

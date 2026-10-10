@@ -10,7 +10,8 @@ message cannot be re-run; one here can, and goes red the moment a checker
 or seed change breaks what it proved.
 
 The harness has one too — `redproof.py` beside this runner: the forge
-stub's routes and the runners' resume rule, which no case exercises.
+stub's routes, the runners' resume rule and the Langfuse exporter's
+mapping, which no case exercises.
 
 Every case must ship one. The cases below predate the rule — red-proofed in
 their commit messages — and are the only exemptions; the list only
