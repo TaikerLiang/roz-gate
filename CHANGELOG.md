@@ -2,6 +2,24 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.31.1 — 2026-10-10
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.31.1>
+
+**Behavior:** integrate's green finalize merges `origin/<default_branch>` and the fast-track reviewer diffs against it — the loop's git references to the base branch are the remote's tip, never the local ref it never moves.
+
+### Behavior
+- **`origin/<default_branch>` at every git site** (#90): integrate step 5.2 fetches and merges the remote tip before the hand-back run; next-stage C6 diffs `origin/<default_branch>...<fast-branch>`. In a dedicated clone (the #76 setup) the local default branch never moves, so the old forms merged an ever-older trunk into a green verdict and widened the fast reviewer's diff. The bare name remains the CR target only.
+
+### Evals
+- **C15** (new, lint): anchors both `origin/` forms and the workflow sentence; `must_not_match` on the bare forms in every command. **C7** amended: its two anchors required the bare forms byte-for-byte — recorded in the ledger row and in `evals/CONTRIBUTING.md`'s lied table. Lint count refreshed in `evals/README.md`.
+
+### Docs
+- `references/workflow.md` **The base branch**: the rule in one sentence.
+
+### Checks
+Hook tests 194/194 · lint 400/400 · red-proofs 15/15
+
 ## v1.31.0 — fix_rounds: the fix-and-rerun cap is yours to set; the cap STOP lists every round and your three doors — 2026-10-07
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.31.0>
