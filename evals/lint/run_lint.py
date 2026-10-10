@@ -854,9 +854,12 @@ _ig = read("commands/integrate.md")
 _ns = read("commands/next-stage.md")
 _ig5 = re.sub(r"\s+", " ", section(_ig, r"^## 5\. ", r"^## 6\. "))
 _c6 = re.sub(r"\s+", " ", section(_ns, r"^### C6\. ", r"^### C7\. "))
-c.expect("pattern", "C15: integrate 5.2 merges the remote tip, and says why",
-         "`git merge --no-edit origin/<default_branch>` — the remote's tip: this command never "
-         "moves the local ref, and in a dedicated clone nobody does" in _ig5)
+# codex review, PR #91: fix rounds run long — the step-3 fetch is stale by then.
+c.expect("pattern", "C15: integrate 5.2 fetches, merges the remote tip, and says why",
+         "`git fetch`, then `git merge --no-edit origin/<default_branch>` — the remote's tip as "
+         "of now, not as of step 3" in _ig5
+         and "this command never moves the local ref, and in a dedicated clone nobody does"
+         in _ig5)
 c.expect("pattern", "C15: the fast-track reviewer diffs against the remote tip",
          "git diff origin/<default_branch>...<fast-branch>" in _c6)
 for _f in sorted(dir_files("commands")):
