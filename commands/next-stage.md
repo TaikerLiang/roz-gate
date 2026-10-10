@@ -486,7 +486,7 @@ CR-OPEN from `<fast-branch>` targeting `<default_branch>`, title
 `fast: #<n> <title>`, body ending `Closes #<n>`.
 
 ### C6. Code review (5)
-- Dispatch the **reviewer** agent on `git diff <default_branch>...<fast-branch>`,
+- Dispatch the **reviewer** agent on `git diff origin/<default_branch>...<fast-branch>`,
   **attaching the issue body** (story + acceptance criteria — the claim the
   diff is reviewed against) — same inline-thread mechanics as B5. The main
   agent wrote this code, so the reviewer is the independent check; it is NOT
