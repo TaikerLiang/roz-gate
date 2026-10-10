@@ -454,10 +454,11 @@ src("C7: A5 targets `<default_branch>`", "commands/next-stage.md",
     "CR-OPEN from `<spec-branch>` targeting `<default_branch>`")
 src("C7: C5 targets `<default_branch>`", "commands/next-stage.md",
     "CR-OPEN from `<fast-branch>` targeting `<default_branch>`")
-src("C7: C6 diffs against `<default_branch>`", "commands/next-stage.md",
-    "git diff <default_branch>...<fast-branch>")
-src("C7: integrate merges `<default_branch>` in", "commands/integrate.md",
-    "git merge --no-edit <default_branch>")
+# #90: both read the remote's tip — these anchors pinned the local ref until then.
+src("C7: C6 diffs against `origin/<default_branch>`", "commands/next-stage.md",
+    "git diff origin/<default_branch>...<fast-branch>")
+src("C7: integrate merges `origin/<default_branch>` in", "commands/integrate.md",
+    "git merge --no-edit origin/<default_branch>")
 for _f in ("commands/next-stage.md", "commands/integrate.md"):
     c.expect("pattern", "C7: %s names no literal trunk as a base" % _f,
              re.search(r"from `(main|master)`|--base (main|master)\b|targeting `(main|master)`",
@@ -839,6 +840,35 @@ src("C14: README's block carries `fix_rounds`", "README.md",
     "hand-back; absent = 3, 0 = every red stops")
 src("C14: the onboarding builder offers `fix_rounds`", "docs/onboarding.html",
     "['fix_rounds',      () => $('f_rounds').value.trim()],")
+
+# ---------------------------------------------------------------------------
+# C15 · the default branch is read from the remote at every git site
+#                                                            (defect: 1.31.0-, #90)
+#       integrate 5.2 merged the local `<default_branch>` and the fast-track
+#       reviewer diffed against it. The loop never moves that ref, and in a
+#       dedicated clone (#76) nobody does: a green verdict merged an
+#       ever-older trunk, and the reviewer saw the trunk's own commits as the
+#       change. Every replay seed has local = remote main, so only the source
+#       shows it — and C7's anchors pinned the local-ref spelling.
+_ig = read("commands/integrate.md")
+_ns = read("commands/next-stage.md")
+_ig5 = re.sub(r"\s+", " ", section(_ig, r"^## 5\. ", r"^## 6\. "))
+_c6 = re.sub(r"\s+", " ", section(_ns, r"^### C6\. ", r"^### C7\. "))
+# codex review, PR #91: fix rounds run long — the step-3 fetch is stale by then.
+c.expect("pattern", "C15: integrate 5.2 fetches, merges the remote tip, and says why",
+         "`git fetch`, then `git merge --no-edit origin/<default_branch>` — the remote's tip as "
+         "of now, not as of step 3" in _ig5
+         and "this command never moves the local ref, and in a dedicated clone nobody does"
+         in _ig5)
+c.expect("pattern", "C15: the fast-track reviewer diffs against the remote tip",
+         "git diff origin/<default_branch>...<fast-branch>" in _c6)
+for _f in sorted(dir_files("commands")):
+    must_not_match("C15: %s never merges or diffs the local default branch"
+                   % os.path.relpath(_f, R),
+                   r"merge --no-edit <default_branch>|(?<!origin/)<default_branch>\.\.\.",
+                   read(_f))
+src("C15: the workflow states the rule once", "references/workflow.md",
+    "A command's git reference to it is always `origin/<default_branch>`")
 
 # ---------------------------------------------------------------------------
 # D1 · the reviewer receives the claim it reviews against   (defect: 1.8.0-)

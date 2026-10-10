@@ -192,7 +192,10 @@ from — the trunk, or on a sprint cadence the current release branch
 (`release/20261006`), changed at handover with `/roz-gate:config`. The
 commands always read the current value: an issue cut from the previous base
 is the human's to move (retarget its CR, rebase); nothing in the loop pins or
-detects it. A base the remote does not have stops the cut (`blocked`).
+detects it. A command's git reference to it is always `origin/<default_branch>`
+— the loop never moves the local ref, and in a dedicated clone nobody does; the
+bare name is a CR target only. A base the remote does not have stops the cut
+(`blocked`).
 
 **The branch names.** `spec/{n}`, `feat/{n}`, `qa/{n}`, `fast/{n}` are the
 **default** names — the block's `branch_template` renders them for a repo

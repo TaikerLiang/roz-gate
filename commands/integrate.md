@@ -126,10 +126,12 @@ label.
   the remainder):
   1. Push `<spec-branch>` (this completes the implementation + QA CRs into the spec
      branch), unless already pushed.
-  2. Bring the default branch in: on `<spec-branch>`,
-     `git merge --no-edit <default_branch>` — resolve conflicts **here** so the
-     spec CR's diff stays clean; if the merge changed anything, satisfy the
-     **hand-back rule** (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md`) before
+  2. Bring the default branch in: on `<spec-branch>`, `git fetch`, then
+     `git merge --no-edit origin/<default_branch>` — the remote's tip as of
+     now, not as of step 3 (fix rounds run long): this command never moves
+     the local ref, and in a dedicated clone nobody does — resolve conflicts
+     **here** so the spec CR's diff stays clean; if the merge changed
+     anything, satisfy the **hand-back rule** (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md`) before
      pushing: the **full** acceptance suite and config `test`, captured, at the
      SHA that will wear the label. Feature-scoped is not enough here — the
      merge imported exactly the code a feature-scoped run cannot see. Skip if
