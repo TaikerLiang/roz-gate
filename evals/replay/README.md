@@ -39,6 +39,50 @@ uv run evals/replay/run_replay.py [--sut NAME] [--k N] [case ...]   # from the r
   costs (fable): a quiet patrol pass ≈ 209k in / 2.7k out; a review-turn
   pass ≈ 114k in.
 
+## Exporting runs to Langfuse
+
+A run dir already holds the whole model interaction; Langfuse is the viewer
+(issue #80). The instance is local and ships in the repo:
+
+```sh
+cd evals/langfuse
+cp .env.example .env     # dev-only secrets; first boot creates org/project "roz-gate" and its keys
+docker compose up -d     # web UI on http://localhost:3000 (login in .env); nothing else published
+set -a; . ./.env; set +a # LANGFUSE_HOST / LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY for the exporter
+```
+
+With the three variables set, `run_replay.py` exports every iteration
+right after its `result.json`; a failed export is one stderr line and
+never changes a verdict. Unset → nothing happens. Existing run dirs:
+
+```sh
+python3 evals/replay/export_langfuse.py report/opus/C12/run-*            # backfill a sweep
+python3 evals/replay/export_langfuse.py --dry-run report/opus/A1/run-1   # the payload, no network
+```
+
+| in Langfuse | from the run dir |
+|---|---|
+| session `<sut>/<case>`, trace `<case>/run-<i>`, tags case / sut / pass, fail or invalid | the path, `result.json` |
+| trace input / output | the case prompt, the result event's text |
+| **generation** — model, usage incl. cache tokens, thinking + text + tool_use | each API call (the stream emits one assistant event per content block, all sharing the message id, tool results interleaved — merged by id); input = the user message it answered; start = the previous message's timestamp |
+| **tool** span — arguments in, result out, latency | each tool_use, ended by the user message carrying its tool_result; `is_error` → ERROR |
+| nested under the `Agent` span | events tagged `parent_tool_use_id` |
+| **event** `journal:<route>` | each journal write (reads are not exported); journal order — the journal has no clock |
+| scores `pass`, `valid`, `cost_usd`, one per claim | `result.json`, `check.log` (comment = the claim's source) |
+
+Not captured: the system prompt and tool definitions (not in the transcript;
+only an API proxy sees them); F6 driver runs (no `transcript.jsonl` —
+skipped, said so). Wire: OTLP/HTTP JSON at `/api/public/otel/v1/traces`
+plus `POST /api/public/scores`, stdlib `urllib`. Langfuse v4 stores
+observations as immutable events — a re-export **appends copies**, it does
+not replace — so an export leaves `langfuse.json` (trace id, link, time) in
+the run dir and that run dir is skipped from then on unless `--force`. The
+harness red-proof
+(`redproof.py` § EXPORT) asserts the mapping on every push. The compose is
+vendored (`evals/langfuse/docker-compose.yml`, header names the upstream
+commit — re-vendor to update); `docker-compose.override.yml` is ours and
+unpublishes every port but 3000.
+
 ## Language boundary
 
 The eval suite is Python end to end (evals/README.md § Language — an
