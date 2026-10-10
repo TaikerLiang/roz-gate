@@ -1,10 +1,15 @@
 # Ours, merged by `docker compose` on top of the vendored docker-compose.yml:
-# publish nothing but the web UI. The upstream file binds postgres, redis,
-# clickhouse and minio to host ports (127.0.0.1:5432, :6379, :8123/:9000,
-# :9090/:9091) that collide with whatever else runs on a dev machine; the
-# exporter only needs :3000, and the services reach each other on the
+# publish nothing but the web UI, and that on loopback only. The upstream
+# file binds postgres, redis, clickhouse and minio to host ports
+# (127.0.0.1:5432, :6379, :8123/:9000, :9090/:9091) that collide with
+# whatever else runs on a dev machine, and publishes the UI as 3000:3000 on
+# every interface — with .env.example's known login and API keys that would
+# hand the instance to anyone on the LAN (codex review, PR #93). The
+# exporter only needs 127.0.0.1:3000; the services reach each other on the
 # compose network.
 services:
+  langfuse-web:
+    ports: !override ["127.0.0.1:3000:3000"]
   langfuse-worker:
     ports: !override []
   clickhouse:

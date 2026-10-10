@@ -254,6 +254,7 @@ def export_checks():
     try:
         spans, scores, summary = ex.build(rdir, "X", "sut", "1", "the prompt")
         again = ex.build(rdir, "X", "sut", "1", "the prompt")[0]
+        backfilled_root = ex.build(rdir, "X", "sut", "1", "the prompt", backfilled=True)[0][0]
     finally:
         shutil.rmtree(d, ignore_errors=True)
 
@@ -277,6 +278,7 @@ def export_checks():
     sub = [g for g in gens if attrs(g).get("langfuse.observation.metadata.message_id") == "m3"]
     m4 = [g for g in gens if attrs(g).get("langfuse.observation.metadata.message_id") == "m4"]
     m2 = [g for g in gens if attrs(g).get("langfuse.observation.metadata.message_id") == "m2"]
+    m1 = [g for g in gens if attrs(g).get("langfuse.observation.metadata.message_id") == "m1"]
     usage_ok = all(set(json.loads(attrs(g)["langfuse.observation.usage_details"]))
                    >= {"input", "output", "cache_read_input_tokens",
                        "cache_creation_input_tokens"} for g in gens)
@@ -301,6 +303,14 @@ def export_checks():
          and m2[0]["endTimeUnixNano"] == str(ex.ts_ns(T[6]))),
         ("a run dir already exported is refused before any network, unless forced",
          _marker_refused()),
+        ("the first call's input is the case prompt; a sub-agent's first call's input is "
+         "its Agent tool's input",
+         len(m1) == 1 and attrs(m1[0]).get("langfuse.observation.input") == "the prompt"
+         and len(sub) == 1 and attrs(sub[0]).get("langfuse.observation.input")
+         == json.dumps({"prompt": "do the sub-task"}, ensure_ascii=False)),
+        ("a backfill carries no plugin_sha (the revision the run executed under is unknown)",
+         "langfuse.trace.metadata.plugin_sha" not in attrs(backfilled_root)
+         and attrs(backfilled_root).get("langfuse.trace.metadata.backfilled") is True),
         ("the Bash span's output is its tool_result and it ends at that user message",
          bash is not None and attrs(bash).get("langfuse.observation.output") == TOOL_OUT
          and bash["endTimeUnixNano"] == str(ex.ts_ns(T[2]))),

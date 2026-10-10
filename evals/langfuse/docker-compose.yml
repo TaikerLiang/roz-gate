@@ -3,7 +3,9 @@
 # VENDORED VERBATIM from https://github.com/langfuse/langfuse/blob/main/docker-compose.yml
 #   upstream commit 3fed0dadc5d4 (2026-10-06), fetched 2026-10-11.
 #   Update by re-vendoring (replace everything below this header); never edit
-#   the body by hand. Local adjustments live in docker-compose.override.yml.
+#   the body by hand. Local adjustments live in docker-compose.override.yml
+#   (only 127.0.0.1:3000 is published — the login and keys in .env.example are
+#   public knowledge).
 #
 # Usage, from this directory:
 #   cp .env.example .env            # dev-only secrets + the roz-gate project's keys

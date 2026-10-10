@@ -47,7 +47,7 @@ A run dir already holds the whole model interaction; Langfuse is the viewer
 ```sh
 cd evals/langfuse
 cp .env.example .env     # dev-only secrets; first boot creates org/project "roz-gate" and its keys
-docker compose up -d     # web UI on http://localhost:3000 (login in .env); nothing else published
+docker compose up -d     # web UI on 127.0.0.1:3000 only (login in .env); nothing else published
 set -a; . ./.env; set +a # LANGFUSE_HOST / LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY for the exporter
 ```
 
@@ -64,7 +64,7 @@ python3 evals/replay/export_langfuse.py --dry-run report/opus/A1/run-1   # the p
 |---|---|
 | session `<sut>/<case>`, trace `<case>/run-<i>`, tags case / sut / pass, fail or invalid | the path, `result.json` |
 | trace input / output | the case prompt, the result event's text |
-| **generation** — model, usage incl. cache tokens, thinking + text + tool_use | each API call (the stream emits one assistant event per content block, all sharing the message id, tool results interleaved — merged by id); input = the user message it answered; start = the previous message's timestamp |
+| **generation** — model, usage incl. cache tokens, thinking + text + tool_use | each API call (the stream emits one assistant event per content block, all sharing the message id, tool results interleaved — merged by id); input = what it answered — the user message with the tool results, or for the first call the case prompt (in a sub-agent, its `Agent` tool's input); start = the previous message's timestamp |
 | **tool** span — arguments in, result out, latency | each tool_use, ended by the user message carrying its tool_result; `is_error` → ERROR |
 | nested under the `Agent` span | events tagged `parent_tool_use_id` |
 | **event** `journal:<route>` | each journal write (reads are not exported); journal order — the journal has no clock |
@@ -80,8 +80,9 @@ the run dir and that run dir is skipped from then on unless `--force`. The
 harness red-proof
 (`redproof.py` § EXPORT) asserts the mapping on every push. The compose is
 vendored (`evals/langfuse/docker-compose.yml`, header names the upstream
-commit — re-vendor to update); `docker-compose.override.yml` is ours and
-unpublishes every port but 3000.
+commit — re-vendor to update); `docker-compose.override.yml` is ours: the
+UI on loopback only, every other port unpublished — the example's login
+and keys are public knowledge.
 
 ## Language boundary
 

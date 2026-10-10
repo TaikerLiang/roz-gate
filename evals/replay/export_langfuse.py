@@ -10,9 +10,14 @@ re-shapes it (issue #80):
 - the trace is the run: root span `<case>/run-<i>`, Langfuse session
   `<sut>/<case>` (so a case's k runs sit together), tags case / sut /
   verdict, input = the case prompt, output = the result event's text;
+  metadata `plugin_sha` only when the runner exports as it goes (a backfill
+  cannot know the revision the run executed under, so it carries none and
+  `backfilled: true`);
 - a **generation** per API call — model, usage (incl. cache tokens), the
-  thinking / text / tool_use blocks as output, the user message it answered
-  as input, start = the previous message's timestamp. The stream emits one
+  thinking / text / tool_use blocks as output, what it answered as input
+  (the user message carrying the tool results; for the first call, the
+  case prompt — or in a sub-agent, its Agent tool's input), start = the
+  previous message's timestamp. The stream emits one
   assistant event per content block, all sharing the message id — tool
   results interleave between them — and they are merged by that id (A1
   run-1: 30 events, 14 calls);
@@ -239,7 +244,9 @@ def build(rdir, case, sut, run, prompt, backfilled=False):
     valid = bool(result.get("valid"))
     verdict = "invalid" if not valid else ("pass" if result.get("pass") else "fail")
     model = ""
-    spans, tool_spans, last_user = [], {}, {}
+    spans, tool_spans = [], {}
+    last_user = {"": prompt or ""}   # per context: what the next call answers —
+    # the main prompt at the root, the Agent tool's input in each sub-agent
     gens = tools = 0
     prev = t0
     gen_by_id = {}    # message id → (span, merged content) — the API call being streamed
@@ -299,6 +306,7 @@ def build(rdir, case, sut, run, prompt, backfilled=False):
                     t["_open"] = True
                     tool_spans[b["id"]] = t
                     spans.append(t)
+                    last_user[b["id"]] = b.get("input")
         else:
             last_user[parent_tool] = content
             for b in content if isinstance(content, list) else []:
@@ -338,8 +346,11 @@ def build(rdir, case, sut, run, prompt, backfilled=False):
 
     cost = result.get("cost") or {}
     usd = cost.get("usd") if isinstance(cost, dict) else None
+    # plugin_sha is the checkout the run executed under: known only when the
+    # runner exports in the same breath; a backfill from a later checkout
+    # would mislabel the run (codex review, PR #93), so it carries none.
     meta = [("sut", sut), ("case", case), ("run", str(run)), ("model", model),
-            ("plugin_sha", plugin_sha()), ("backfilled", backfilled),
+            ("plugin_sha", None if backfilled else plugin_sha()), ("backfilled", backfilled),
             ("session_id", session_id), ("verdict", verdict),
             ("invalid_reason", result.get("invalid_reason")),
             ("duration_ms", (res_ev or {}).get("duration_ms")),
