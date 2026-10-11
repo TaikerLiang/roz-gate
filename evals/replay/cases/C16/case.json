@@ -1,0 +1,6 @@
+{
+  "ledger": "C16 \u00b7 A QA CR without a fidelity audit on record never integrates",
+  "prompt": "/roz-gate:integrate 5",
+  "k": 5,
+  "timeout": 1800
+}

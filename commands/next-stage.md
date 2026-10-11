@@ -412,8 +412,10 @@ Launch both at once (they never see each other):
 - It audits the QA suite's fidelity to the spec (four questions:
   scenario fidelity, vacuous assertions, coverage honesty, over-assertion)
   and posts two-way-cited findings as inline threads on the **QA CR**
-  plus one top-level summary comment. Its findings are evidence for the
-  human, never a verdict.
+  plus one top-level summary comment opening with `**[reviewer] · fidelity**`
+  — the record that the audit ran, which integrate requires and patrol's
+  `fidelity-audit` action produces when B5b never did. Its findings are
+  evidence for the human, never a verdict.
 - Runs alongside B5 — it needs only `<qa-branch>`, so it costs no wall-clock.
 
 ### B6. Remove the worktrees, flip labels + report
@@ -427,7 +429,8 @@ Launch both at once (they never see each other):
   addresses the QA CR's fidelity threads, and a **fresh implementation-blind
   reviewer dispatch re-checks and resolves** what it is satisfied with
   (patrol's address-review engine — the audited party never closes the
-  audit's findings). All resolved on both → `/roz-gate:integrate <n>`.
+  audit's findings). All resolved on both → `/roz-gate:integrate <n>`. A
+  QA CR with no `**[reviewer] · fidelity**` record is patrol's `fidelity-audit`.
 
 ---
 
