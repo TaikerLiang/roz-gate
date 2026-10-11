@@ -398,10 +398,15 @@ Launch both at once (they never see each other):
   `status: in-spec-review` (the backward transition), and **do not
   dispatch**; the paused side resumes through (2a). Otherwise assemble the
   **amendment list** — every amendment agreed in spec-CR threads and issue
-  comments since `technical-spec.md`'s last commit, each `folded at <ID>`
-  or `unfolded` — and put it in the dispatch text: the reviewer verifies it
-  against the contract and never opens the implementation CR (its threads
-  quote the code the reviewer must not see).
+  comments since `technical-spec.md`'s last commit — and put it in the
+  dispatch text **in this shape**: the heading `Amendment list:`, then one
+  line per amendment, `<what> — folded at <ID>` or `<what> — unfolded`; or
+  the single line `Amendment list: none since <sha>` when there is none. A
+  mention is not a list — the reviewer aborts on anything else. The
+  reviewer verifies it against the contract and never opens the
+  implementation CR (its threads quote the code the reviewer must not see).
+  The listing is **yours**, in your own context — the scanner's read of the
+  CRs while classifying is not this check.
 - Dispatch the **reviewer** seat a second time, in a **fresh context**
   (never a continuation of B5's), with
   `${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md` as its contract,

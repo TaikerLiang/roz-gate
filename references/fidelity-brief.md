@@ -33,9 +33,10 @@ Anything beyond that is you writing tests by proxy.
 ## Step zero — contract currency
 
 Before reading a single test: the dispatch hands you the **amendment
-list** — every amendment agreed in spec-CR threads and issue comments
-**since `technical-spec.md`'s last commit**, each marked `folded at <ID>`
-or `unfolded` — assembled by the main agent, who is not blind. Verify each
+list** under the heading `Amendment list:` — every amendment agreed in
+spec-CR threads and issue comments **since `technical-spec.md`'s last
+commit**, each marked `folded at <ID>` or `unfolded`, or the one line
+`none since <sha>` — assembled by the main agent, who is not blind. Verify each
 folded entry against the contract text yourself (spec-CR threads and issue
 comments are yours to read: they carry no code); an unfolded amendment is
 a **blocking finding routed to the main agent** (the contract's owner),
