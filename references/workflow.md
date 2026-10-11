@@ -232,7 +232,12 @@ one sentence and never more: *"green against the pre-rework spec, at SHA
 fail on behaviour the spec described. Rework that *adds* behaviour no scenario
 describes ships green and unverified — nothing in the loop can verify it,
 because verification needs a spec and by construction there is not one. That is
-what the other door is for, and why it stays visible.
+what the other door is for, and why it stays visible. One re-application
+carries no run: the post-integration re-entry of a fold that **changed
+behaviour** (`spec-answers` step 7) — the suite at that head derives from the
+previous text, so a run there verifies the previous contract; the kit stays
+stale, its banner says so, until the (7) conversation's catch-up (implementer,
+QA re-derivation, fidelity re-check) restores the pair.
 
 ## The fast track (`track: fast`)
 

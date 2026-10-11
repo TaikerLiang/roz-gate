@@ -182,14 +182,30 @@ depends on where the issue is — decided by CR-FIND for `<feat-branch>` /
 - **Post-integration re-entry** — `<feat-branch>` / `<qa-branch>` exist but are
   **merged** (the issue came back from (7): the user's review raised something
   that changed what a rule means). The work is built, so this never returns to
-  implementation. Fold, then: if the amendment changed behaviour, honour the
-  **hand-back rule** — re-run config `acceptance_test` and config `test` on
-  `<spec-branch>`, capture the output, regenerate the gate kit's evidence cards
-  wholesale and re-stamp `cards-sha`. A red here is the stage-(6) taxonomy
-  (`commands/integrate.md` step 5), never an assertion edited to match. Then
-  LABEL-REMOVE both `status: in-spec-review` and `status: processing`,
+  implementation. Fold, then one of two cases:
+  - **The fold changed no behaviour** (wording, a resolved question that moved
+    no rule): honour the **hand-back rule** — re-run config `acceptance_test`
+    and config `test` on `<spec-branch>`, capture the output, regenerate the
+    gate kit's evidence cards wholesale and re-stamp `cards-sha`. A red here
+    is the stage-(6) taxonomy (`commands/integrate.md` step 5), never an
+    assertion edited to match.
+  - **The fold changed behaviour**: the implementation and the suite at
+    `<spec-branch>`'s head still implement the previous text, so a run there
+    is green against the previous contract and licenses nothing about the
+    amended rule — **do not run it as evidence, do not regenerate the cards,
+    do not re-stamp `cards-sha`**. The kit's staleness banner (`cards-sha` ≠
+    head) is the honest state until the pair is restored, and a green taken
+    here would launder the old behaviour into fresh cards.
+  Then LABEL-REMOVE both `status: in-spec-review` and `status: processing`,
   LABEL-ADD `status: in-user-review` — the conversation resumes at (7) where
-  it paused. Report the amendment and the re-run's result.
+  it paused — and ISSUE-COMMENT the return, must-read first:
+  `**[spec-answers] · amended**` — the amendment and where it folded
+  (`<IDs>`). For a behaviour change, in these words: *the implementation and
+  the suite still implement the previous text*, then the three moves the (7)
+  readback offers — `implementer` catch-up on `<spec-branch>` (then the
+  hand-back rule), `qa` re-derivation on `<qa-branch>` merged back, a fresh
+  implementation-blind fidelity re-check before the cards are regenerated.
+  Report the amendment and which case ran.
 
 If threads remain open: LABEL-REMOVE `status: processing` and list which
 questions are still waiting.
