@@ -10,7 +10,7 @@ lean. Follow these steps; do nothing beyond them.
 
 ## 0. Load config & forge adapter
 
-Read the `### Roz Gate config` block in the project's CLAUDE.md, then
+Read the `### Roz Gate config` block in the project's CLAUDE.md (or CLAUDE.local.md), then
 `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the CAPITALIZED-OPs.
 Missing config → stop; tell the user to run `/roz-gate:init`. Also read
 `${CLAUDE_PLUGIN_ROOT}/references/intake-brief.md` — it is the dispatch brief

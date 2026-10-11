@@ -18,6 +18,9 @@ form of existing protocol text:
   the human has already been told the work is verified, so a weakened
   assertion re-runs green and the evidence cards regenerate clean.
 
+The config block is read from ``CLAUDE.md``, else ``CLAUDE.local.md``, in
+the checkout or the main worktree (``hooks/config_block.py``, #94).
+
 The guard is deliberately branch-and-path only: no stage detection, no
 label lookup, no dispatch-identity check, no exemption list. That is what
 makes it bind the main agent and every seat identically — at (7) the main
@@ -34,6 +37,12 @@ import os
 import re
 import subprocess
 import sys
+
+# The hook's own directory: guard-*.sh runs the file by path (sys.path[0] is
+# this dir already); the lint tier and the D5 checker load it by
+# spec_from_file_location, from elsewhere — the reader must still import.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from config_block import find_block  # noqa: E402
 
 DEFAULT_ACCEPTANCE_DIR = "tests/acceptance"
 
@@ -65,26 +74,21 @@ def git(*args):
 
 
 def load_config(top):
-    """(`acceptance_dir`, `branch_template`) from the project's CLAUDE.md
-    Roz Gate config block.
+    """(`acceptance_dir`, `branch_template`) from the project's Roz Gate
+    config block — `CLAUDE.md`, else `CLAUDE.local.md`, here or in the main
+    checkout (config_block.py).
 
-    None → not a roz-gate project (no config block): nothing to enforce.
-    Config block present but `acceptance_dir` absent → the documented
-    default, the same fallback /roz-gate:init writes. `branch_template`
-    absent → None: the spec branch is `spec/*`, the prefilter's own test.
+    None → not a roz-gate project (no config block anywhere): nothing to
+    enforce. Config block present but `acceptance_dir` absent → the
+    documented default, the same fallback /roz-gate:init writes.
+    `branch_template` absent → None: the spec branch is `spec/*`, the
+    prefilter's own test.
     """
-    try:
-        with open(os.path.join(top, "CLAUDE.md"), encoding="utf-8") as f:
-            text = f.read()
-    except OSError:
-        return None
-    blk = re.search(r"^###\s+(?:Roz Gate|Gated Loop) config\s*$(.*?)(?=^#|\Z)", text,
-                    re.M | re.S)
-    if not blk:
+    block = find_block(top)
+    if block is None:
         return None
     # The block only: a `- branch_template:` bullet in some later Notes
     # section must not switch the spec-branch predicate (codex review, PR #82).
-    block = blk.group(1)
     m = re.search(r"^-\s*acceptance_dir:\s*(.+)$", block, re.M)
     t = re.search(r"^-\s*branch_template:\s*(\S+)", block, re.M)
     return (m.group(1).strip().strip("`") if m else DEFAULT_ACCEPTANCE_DIR,

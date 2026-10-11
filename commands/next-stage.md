@@ -9,7 +9,7 @@ follow the matched path's steps exactly and do nothing beyond them.
 
 ## 0. Load config & forge adapter
 
-Read the `### Roz Gate config` block in the project's CLAUDE.md (`forge`,
+Read the `### Roz Gate config` block in the project's CLAUDE.md (or CLAUDE.local.md) (`forge`,
 `test`, `env_sync`, `lockfile`, `specs_dir`, `acceptance_dir`,
 `branch_template`). **Local keys** — `default_branch`, `inbox_label`,
 `inbox_assignee`, `helper_model`, `branch_user` are per person,

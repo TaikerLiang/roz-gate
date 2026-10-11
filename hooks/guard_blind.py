@@ -63,6 +63,12 @@ import re
 import subprocess
 import sys
 
+# The hook's own directory: guard-*.sh runs the file by path (sys.path[0] is
+# this dir already); the lint tier and the D5 checker load it by
+# spec_from_file_location, from elsewhere — the reader must still import.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from config_block import find_block  # noqa: E402
+
 MARKER_REL = "roz-gate/fidelity-dispatch"
 
 # ---- the D2 predicate, verbatim (evals/replay/cases/D2/check.py) --------
@@ -108,9 +114,12 @@ def bash_reads_src(cmd, suite=None, top=None):
 # the implementation, and the fidelity dispatch could not read the very
 # suite it audits. The block's `acceptance_dir` is where the suite is —
 # "what you need is on qa/<n>" — so an operand or a tool path under it is
-# never a read of src/. Only a suite STRICTLY under src/ gets an exemption
-# (`tests/acceptance` has nothing to exempt; `src` itself would swallow the
-# rule and exempts nothing). A Bash operand that climbs out of the suite
+# never a read of src/. Only a suite under a `src/` segment gets an
+# exemption — `src/test/…`, or a multi-module `<module>/src/test/…` (#94:
+# the first cut required `src` to be the FIRST segment, and every Maven
+# multi-module layout was denied its own suite); `tests/acceptance` has
+# nothing to exempt, and `src` or `<module>/src` itself would swallow the
+# rule and exempts nothing. A Bash operand that climbs out of the suite
 # (`…/acceptance/../../main/java/App.java`) is not blanked; a tool path is
 # normalized before the containment test, so the climb lands where it
 # really points. The four regexes above are untouched (lint D2 holds them
@@ -119,31 +128,25 @@ DEFAULT_ACCEPTANCE_DIR = "tests/acceptance"
 
 
 def load_acceptance_dir(top):
-    """`acceptance_dir` from the project's CLAUDE.md Roz Gate config block —
+    """`acceptance_dir` from the project's Roz Gate config block — `CLAUDE.md`,
+    else `CLAUDE.local.md`, here or in the main checkout (config_block.py);
     the block only, as guard_acceptance reads it. None → not a roz-gate
     project, or no toplevel."""
-    if not top:
+    blk = find_block(top)
+    if blk is None:
         return None
-    try:
-        with open(os.path.join(top, "CLAUDE.md"), encoding="utf-8") as f:
-            text = f.read()
-    except OSError:
-        return None
-    blk = re.search(r"^###\s+(?:Roz Gate|Gated Loop) config\s*$(.*?)(?=^#|\Z)", text,
-                    re.M | re.S)
-    if not blk:
-        return None
-    m = re.search(r"^-\s*acceptance_dir:\s*(.+)$", blk.group(1), re.M)
+    m = re.search(r"^-\s*acceptance_dir:\s*(.+)$", blk, re.M)
     return m.group(1).strip().strip("`") if m else DEFAULT_ACCEPTANCE_DIR
 
 
 def suite_under_src(acceptance_dir):
-    """The suite's repo-relative path when it sits strictly under src/, else None."""
+    """The suite's repo-relative path when it sits under a `src/` segment —
+    `src/test/…` or `<module>/src/test/…` — else None."""
     if not acceptance_dir:
         return None
     segs = [x for x in os.path.normpath(acceptance_dir).replace(os.sep, "/").split("/")
             if x not in (".", "")]
-    if len(segs) < 2 or segs[0] != "src" or ".." in segs:
+    if ".." in segs or "src" not in segs or segs.index("src") == len(segs) - 1:
         return None
     return "/".join(segs)
 

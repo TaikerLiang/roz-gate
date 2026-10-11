@@ -195,3 +195,4 @@ instrument lies first.
 | C7 | its anchors required `git merge --no-edit <default_branch>` and `git diff <default_branch>...` byte-for-byte — the local ref — so the lint asserted the defect's own text (#90) | an anchor on a spelling protects every mistake inside it |
 | judgment F-54 | headless `claude -p` killed background seats after 600 s; the session still ended on a result event and scored recall 0 from an empty surface | a session cut short, read as finished |
 | D2 / rule E | a Maven layout's acceptance suite under `src/test/…` read as a read of the implementation; the fidelity dispatch could not read what it audits (#81) | a path is not provenance — the block says where the suite is |
+| every hook | four loaders opened `CLAUDE.md` only; a block kept in `CLAUDE.local.md` made the repo "not a roz-gate project" to the hooks while the commands ran it (#94) | a location is not presence — read every home the prose reads |

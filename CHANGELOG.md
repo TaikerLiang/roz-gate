@@ -2,6 +2,26 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.31.2 — the config block's two homes; rule E exempts a multi-module suite; rule B's fallback judges the add value — 2026-10-11
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.31.2>
+
+**Behavior:** the hooks find the `### Roz Gate config` block in `CLAUDE.md` or `CLAUDE.local.md`, in the checkout or the main worktree; rule E exempts a multi-module suite (`<module>/src/test/…`); rule B no longer denies the STOP protocol's label swap when the same command carries an unparseable heredoc.
+
+### Behavior
+- **Config block, two homes** (#94): every hook reads `CLAUDE.md` first, then `CLAUDE.local.md`, each in the toplevel and in the main checkout (`core.worktree` when set, else the common git dir's parent) — the first block wins, whole. Before, a block kept in `CLAUDE.local.md` left guard-acceptance and rule D off, rule A in user mode and rule E without its suite exemption, while the commands ran. The seven commands' step 0, `config`'s hard rule and README name both homes.
+- **Rule E, multi-module suite** (#94): `acceptance_dir` under any `src/` segment is the dispatch's own suite; `<module>/src/main/…` stays denied.
+- **Rule B, untokenizable commands** (#94): the fallback judges the add-label value — after `=`, whitespace or a `\`-newline continuation — not the whole command.
+
+### Evals
+- **L5** (new): the two homes agree across the hooks' reader, the acceptance prefilter, the seven commands and the docs. **D2** amended: the multi-module probe. Lint 400 → 427 checks, 26 → 27 cases; mutations in the commit message.
+
+### Hooks
+- `hooks/config_block.py` (the shared reader); `guard_blind.suite_under_src`; `guard_gate.check_gate_label_add`'s fallback; `guard-acceptance.sh`'s prefilter. Tests 194 → 228: `test_config_homes` (block only in `CLAUDE.local.md`, both files, the worktree cwd, the templated spec branch, a separate git dir with and without `core.worktree`), `RuleE_MultiModuleSuite`, rule B's heredoc cases (an apostrophe, a `\`-newline continuation, a tab), bot mode and rule D under `.local`. Red-proof: 16 of the 30 cases in the first commit fail against the 1.31.1 hooks, the three Codex-round cases against `5699ac4`; the rest guard what the widening must not uncover.
+
+### Docs
+- README § Per-project configuration; `hooks/README.md` rules B and E, the file table, § Instrument blindness; onboarding config paragraph; judgment overlay note; LEDGER (L5, D2), CONTRIBUTING ("a location is not presence"), evals README.
+
 ## v1.31.1 — 2026-10-10
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.31.1>
