@@ -42,6 +42,23 @@ c.expect("spec-answers.md step 7 (the fold changed behaviour: no run as evidence
          "the acceptance suite was not run",
          not any(ACCEPT in (b.get("input") or {}).get("command", "")
                  for b in r.tool_uses(("Bash",))))
+# The gate kit on the spec CR (comment 9501, stamped cards-sha 1111111) is
+# untouched: no regenerated cards, no re-stamp (codex review, PR #103).
+KIT_ID = 9501
+
+
+def kit_body():
+    for cm in r.state()["prs"]["101"].get("comments", []):
+        if cm.get("id") == KIT_ID:
+            return cm.get("body", "")
+    return ""
+
+
+c.expect("spec-answers.md step 7 (no regeneration, no re-stamp)",
+         "the gate kit's cards-sha is still 1111111 and no comment-edit touched the kit",
+         "cards-sha: 1111111" in kit_body()
+         and not any(e.get("write") and e.get("route") == "comment-edit"
+                     and str(e.get("comment")) == str(KIT_ID) for e in r.journal()))
 returns = [b for b in r.issue_comment_bodies("5") if b.startswith(MARK)]
 c.expect("spec-answers.md step 7 (the return comment)",
          "one `**[spec-answers] · amended**` issue comment", len(returns) == 1)

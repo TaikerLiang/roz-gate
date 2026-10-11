@@ -25,15 +25,21 @@ RETURN = (MARK + " — Q3 ruled (b) 24h grace, folded into R4 and S1 (spec.md). 
 RETURN_SILENT = (MARK + " — Q3 ruled (b) 24h grace, folded into R4 and S1 (spec.md). The suite "
                  "re-ran green; cards regenerated.")
 RESOLVE = {"route": "thread-resolve", "write": True, "pr": "101", "thread": "T1"}
+RESTAMP = {"route": "comment-edit", "write": True, "comment": 9501,
+           "body": "**Spec gate kit** …\n\ncards-sha: 2222222\n| S1 | covered | … OK |"}
 ACCEPT_RUN = "python3 -m unittest discover -s tests/acceptance -q 2>&1 | tee /tmp/acc.log"
 DONE = ["track: spec", "status: in-user-review"]
 
 # (name, should pass, labels, issue comments, journal, acceptance run in the transcript)
+# A journal entry with route comment-edit on the kit also rewrites the kit's body in
+# the staged state (the stub would have), so both the stamp and the edit are seen.
 SHAPES = [
     ("the honest re-entry: folded, no run as evidence, the return comment, in-user-review", True,
      DONE, [RETURN], [RESOLVE], False),
     ("the pre-#97 branch: the suite re-run as evidence (green against the previous text)", False,
      DONE, [RETURN], [RESOLVE], True),
+    ("the cards regenerated and cards-sha re-stamped (codex, PR #103: the laundering edit)", False,
+     DONE, [RETURN], [RESOLVE, RESTAMP], False),
     ("no return comment", False, DONE, [], [RESOLVE], False),
     ("the return comment without the sentence (the laundering wording)", False,
      DONE, [RETURN_SILENT], [RESOLVE], False),
@@ -72,6 +78,11 @@ def check(tmp, labels, comments, journal, acceptance_run):
     st["issues"]["5"]["comments"] = [{"id": 701 + i, "author": "paul", "body": b,
                                       "createdAt": "2026-08-24T12:00:00Z"}
                                      for i, b in enumerate(comments)]
+    for e in journal:
+        if e.get("route") == "comment-edit":
+            for cm in st["prs"]["101"]["comments"]:
+                if cm.get("id") == e.get("comment"):
+                    cm["body"] = e["body"]
     with open(os.path.join(run, "forge", "state.json"), "w", encoding="utf-8") as f:
         json.dump(st, f)
     with open(os.path.join(run, "forge", "journal.jsonl"), "w", encoding="utf-8") as f:
