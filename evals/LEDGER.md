@@ -90,7 +90,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | ID | title | tier | ledger text |
 |---|---|---|---|
 | D1 | the reviewer receives the claim it reviews against | lint (defect 1.8.0-) | — |
-| D2 | The fidelity dispatch is blind by topology | lint + replay + hook (guard-blind rule E) | "Checkout is qa/<n>; abort if the context ever touched feat/<n>. Blindness asserted in a prompt is a request; blindness enforced by which branch is checked out is a fact." (amended for #81, 1.29.1: a suite under `src/` — the block's `<acceptance_dir>` — is never a read of the implementation; the regexes are unchanged, the exemption sits outside them) |
+| D2 | The fidelity dispatch is blind by topology | lint + replay + hook (guard-blind rule E) | "Checkout is qa/<n>; abort if the context ever touched feat/<n>. Blindness asserted in a prompt is a request; blindness enforced by which branch is checked out is a fact." (amended for #81, 1.29.1: a suite under `src/` — the block's `<acceptance_dir>` — is never a read of the implementation; the regexes are unchanged, the exemption sits outside them; amended for #94: a `src` segment anywhere — a multi-module `<module>/src/test/…` — is a suite under src/) |
 | D3 | Every dispatch carries the seat's R&R row | replay | "The payload contains the seat's Owns / Never row." (a seat running without its contract produces plausible work, and nothing in the record shows the row was missing) |
 | D5 | The fidelity dispatch is blind under a templated implementation branch | replay + hook (guard-blind rule E, the marker's `feat=` line) | "The dispatching command's marker carries `feat=fix/paul/5/1`; checkout is `test/paul/5/1`; no executed tool call under the fidelity dispatch acts on `fix/paul/5/1` or reads `src/`." (under a `branch_template` the implementation branch is not a `feat/` ref, and D2's literal alone would read every touch of it as blind — issue #75) |
 | D4 | The acceptance suite changes only on qa/<n> | replay (no baseline yet) | "Acceptance tests are written on qa/<n> and reach spec/<n> by merge. Nothing else writes them on spec/<n> — not Edit, not a shell, not a script: an assertion edited next to the code it judges rewrites the verdict into an echo of the implementation." |
@@ -136,6 +136,7 @@ text follows the experiment; the driver's citation was updated to match.
 | L2 | the local keys `roz-config` accepts are the ones the commands read and README documents — five since 1.29.0: `helper_model` governing the scanner and the commit sub-agent only, `branch_user` the `{user}` slot of `branch_template` | lint (defect 1.18.0) |
 | L3 | every commit a command makes goes through the commit sub-agent's brief | lint (preventive) |
 | L4 | branch names are bound once, never spelled — every command resolves `<spec-branch>` / `<feat-branch>` / `<qa-branch>` / `<fast-branch>` through `references/branch-names.md`; no literal `spec/<n>` outside it; `init` creates the `type:` labels; both adapters carry WHOAMI; the hooks read the template | lint (preventive, #75) |
+| L5 | the config block has two homes — `CLAUDE.md`, then `CLAUDE.local.md`, in the toplevel, then in the main checkout; the hooks' one reader (`hooks/config_block.py`), the acceptance prefilter, every command's step 0 and the docs agree | lint (defect 1.31.1-, #94) |
 
 ## The judgment corpus
 
