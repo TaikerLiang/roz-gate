@@ -30,7 +30,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # Predate the rule (2026-09-26). Port one, delete its line — never add one.
-LEGACY = {"A1", "A2", "A3", "A4", "A5", "C1", "C2", "C5", "D2", "D3",
+LEGACY = {"A1", "A2", "A3", "A4", "A5", "C1", "C2", "D2", "D3",
           "E2", "E5", "F1", "F2", "F3", "F4", "F5", "F6"}
 
 
