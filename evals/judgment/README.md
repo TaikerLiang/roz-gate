@@ -56,8 +56,8 @@ Every comment after T contains the answer. So:
   reflog dropped so nothing after T is reachable by name, then one overlay
   commit. Never network.
 - **The overlay** restores the Roz Gate config block to `CLAUDE.md`
-  (ADMC's PR #62 moved it to an untracked `CLAUDE.local.md`; the hooks and
-  commands read `CLAUDE.md`), from the last commit that carried it in git,
+  (ADMC's PR #62 moved it to an untracked `CLAUDE.local.md`; the pinned
+  hooks — pre-1.31.2 — read `CLAUDE.md` only), from the last commit that carried it in git,
   restamped with the current template stamp; F-63/F-67 add the two
   identity lines because those dates were already in bot mode. The overlay
   SHA is recorded in every `result.json`.

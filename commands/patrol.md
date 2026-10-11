@@ -8,7 +8,7 @@ scanner sub-agent reads state into one table; you act once from it, report. Foll
 
 ## 0. Load config & forge adapter
 
-Read the `### Roz Gate config` block in the project's CLAUDE.md, then
+Read the `### Roz Gate config` block in the project's CLAUDE.md (or CLAUDE.local.md), then
 `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the concrete CLI behind
 every CAPITALIZED-OP. Missing config → stop; tell the user to run
 `/roz-gate:init`. A legacy `### Gated Loop config` block (the plugin's
