@@ -44,7 +44,7 @@
       "baseRefName": "spec/5",
       "threads": [],
       "reviews": [],
-      "comments": []
+      "comments": [{"id": 9301, "author": "paul", "body": "**[reviewer] · fidelity** — 1/1 faithful. S1's test asserts the exclusion the scenario states; coverage map matches test-spec.md.", "created_at": "2026-08-24T11:00:00Z"}]
     }
   }
 }
