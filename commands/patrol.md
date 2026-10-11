@@ -159,7 +159,8 @@ workspace).
    those it is satisfied with; what stays open waits for the next round.
    Re-checks of QA-CR fidelity threads use a fresh implementation-blind
    dispatch under the fidelity brief, on `<qa-branch>` only — the same
-   fidelity-dispatch procedure (marker on, dispatch, marker off). A re-check
+   fidelity-dispatch procedure (contract currency by you, marker on,
+   dispatch, marker off). A re-check
    posts no second summary — the first audit's `**[reviewer] · fidelity**`
    comment stays the record.
 4. Remove the worktree(s), clear the lock. Failures follow the STOP protocol
@@ -175,8 +176,10 @@ an audited one. Patrol runs the audit alone — nothing else of B5b.
 2. `git fetch`, then
    `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<qa-branch> <qa-branch>`
    — a refusal (the branch is checked out elsewhere) → the STOP exit.
-3. **The fidelity-dispatch procedure** (next-stage.md B5b, verbatim): write
-   the marker —
+3. **The fidelity-dispatch procedure** (next-stage.md B5b, verbatim):
+   contract currency by you first — THREADS-LIST on both CRs, the
+   amendment list into the dispatch text, no dispatch on a (5) breach —
+   then write the marker —
    `mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\nfeat=<feat-branch>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`
    — then dispatch the **reviewer** seat in a **fresh context** with
    `${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md` as its contract, in
