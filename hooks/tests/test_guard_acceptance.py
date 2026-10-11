@@ -104,6 +104,57 @@ class AcceptanceSuiteIsNotEditableOnSpecBranch(HookTest):
         with self.case("template: …and the example's own render is not a spec branch there"):
             self.assertAllowed(self.edit(notes, "Edit", ACCEPTANCE_FILE))
 
+    # The block's two homes (#94): CLAUDE.md, else CLAUDE.local.md, here or in
+    # the main checkout. ADMC kept its block in an untracked CLAUDE.local.md and
+    # this guard was silently OFF on every spec branch.
+    def test_config_homes(self):
+        block = config_block(forge="github", acceptance_dir="tests/acceptance")
+        local = self.new_repo({"CLAUDE.local.md": block, "CLAUDE.md": "# Project\n"},
+                              commit=True, branch="spec/63")
+        with self.case("homes: block only in CLAUDE.local.md — acceptance edit denied"):
+            self.assertDenied(self.edit(local, "Edit", ACCEPTANCE_FILE), "acceptance suite")
+        both = self.new_repo(
+            {"CLAUDE.md": config_block(forge="github", acceptance_dir="tests/acceptance"),
+             "CLAUDE.local.md": config_block(forge="github", acceptance_dir="qa/suite")},
+            commit=True, branch="spec/63")
+        with self.case("homes: both files carry a block — CLAUDE.md wins (its dir denied)"):
+            self.assertDenied(self.edit(both, "Edit", ACCEPTANCE_FILE), "acceptance suite")
+        with self.case("homes: both files carry a block — CLAUDE.local.md's dir is not the suite"):
+            self.assertAllowed(self.edit(both, "Edit", "qa/suite/test_x.py"))
+        # A linked worktree has no CLAUDE.local.md (untracked): the hook falls
+        # back to the main checkout, the parent of the common git dir.
+        main = self.new_repo({"CLAUDE.md": "# Project\n"}, commit=True)
+        self.write(main / "CLAUDE.local.md", block)
+        wt = self.new_dir() / "wt"
+        self.git(main, "worktree", "add", "-q", "-b", "spec/7", str(wt))
+        with self.case("homes: worktree cwd, block only in the main checkout's CLAUDE.local.md "
+                       "— denied"):
+            self.assertDenied(self.edit(wt, "Edit", ACCEPTANCE_FILE), "acceptance suite")
+        with self.case("homes: the same worktree, a file outside the suite allowed"):
+            self.assertAllowed(self.edit(wt, "Edit", "src/offers/repo.py"))
+        # The prefilter's branch_template escalation reads both homes too.
+        tpl_local = self.new_repo(
+            {"CLAUDE.md": "# Project\n",
+             "CLAUDE.local.md": config_block(forge="github", acceptance_dir="tests/acceptance",
+                                            branch_template="{type}/{user}/{n}/{seq}")},
+            commit=True, branch="spec/pwliangc/63/1")
+        with self.case("homes: branch_template only in CLAUDE.local.md — templated spec branch "
+                       "denied"):
+            self.assertDenied(self.edit(tpl_local, "Edit", ACCEPTANCE_FILE), "acceptance suite")
+        tpl_wt_main = self.new_repo({"CLAUDE.md": "# Project\n"}, commit=True)
+        self.write(tpl_wt_main / "CLAUDE.local.md",
+                   config_block(forge="github", acceptance_dir="tests/acceptance",
+                                branch_template="{type}/{user}/{n}/{seq}"))
+        tpl_wt = self.new_dir() / "wt"
+        self.git(tpl_wt_main, "worktree", "add", "-q", "-b", "spec/pwliangc/9/1", str(tpl_wt))
+        with self.case("homes: worktree cwd, branch_template only in the main checkout's "
+                       "CLAUDE.local.md — denied"):
+            self.assertDenied(self.edit(tpl_wt, "Edit", ACCEPTANCE_FILE), "acceptance suite")
+        with self.case("homes: no block in either file, either place — nothing to enforce"):
+            bare = self.new_repo({"CLAUDE.md": "# Project\n", "CLAUDE.local.md": "# notes\n"},
+                                 commit=True, branch="spec/1")
+            self.assertAllowed(self.edit(bare, "Edit", ACCEPTANCE_FILE))
+
     def test_other_branches(self):
         self.git(self.repo, "checkout", "-q", "-b", "qa/63")
         with self.case("same file on qa/<n> allowed — that is the road"):

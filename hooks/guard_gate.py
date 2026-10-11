@@ -33,7 +33,8 @@ Exit 0 allows the tool call; exit 2 blocks it and feeds stderr to the
 model. Forge API failures fail closed, with a message that says it is an
 API failure to retry, not a protocol block.
 
-Identity modes (1.7.0): when the project's CLAUDE.md config block says
+Identity modes (1.7.0): when the project's config block (``CLAUDE.md``,
+else ``CLAUDE.local.md`` — hooks/config_block.py, #94) says
 ``agent_identity: bot``, ``bot_login`` names the agent's forge identity
 (comma-separated for multiple bots). A bot is never a gate holder, and
 "a summary was already posted" additionally requires the poster to BE the
@@ -45,12 +46,27 @@ depending on the API path.
 """
 
 import json
+import os
 import re
 import shlex
 import subprocess
 import sys
 
+# The hook's own directory: guard-*.sh runs the file by path (sys.path[0] is
+# this dir already); the lint tier and the D5 checker load it by
+# spec_from_file_location, from elsewhere — the reader must still import.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from config_block import find_block  # noqa: E402
+
 GATE = re.compile(r"ready-for-(spec|dev)")
+# Rule B's fallback for a command shlex cannot tokenize: the value right
+# after the add flag — quoted to its closing quote, or bare to whitespace —
+# names a gate label. A gate word anywhere else (the label being removed, a
+# comment body) is not an add.
+GATE_ADD_FALLBACK = re.compile(
+    r"""--add-label[= ]+(?:"[^"]*|'[^']*|[^\s"']*)ready-for-(?:spec|dev)""")
+GLAB_ADD_FALLBACK = re.compile(
+    r"""(?:--label|-l)[= ]+(?:"[^"]*|'[^']*|[^\s"']*)ready-for-(?:spec|dev)""")
 # Rule D's predicate — the same literal the E2 replay checker asserts
 # (evals/replay/cases/E2/check.py) and the lint tier proves; the three
 # are held byte-identical by lint E2's conformance layer.
@@ -139,7 +155,8 @@ def normalize_login(login):
 
 
 def load_bot_logins():
-    """Bot identities from the project's CLAUDE.md Roz Gate config block.
+    """Bot identities from the project's Roz Gate config block (`CLAUDE.md`,
+    else `CLAUDE.local.md` — config_block.py; the block only).
 
     Empty set → user mode (pre-1.7.0 behavior). Comma-separated
     `bot_login` values are supported so a multi-bot future is a config
@@ -151,11 +168,12 @@ def load_bot_logins():
             ["git", "rev-parse", "--show-toplevel"],
             capture_output=True, text=True, timeout=5,
         )
-        if top.returncode != 0:
-            return set()
-        with open(top.stdout.strip() + "/CLAUDE.md", encoding="utf-8") as f:
-            text = f.read()
     except (OSError, subprocess.TimeoutExpired):
+        return set()
+    if top.returncode != 0:
+        return set()
+    text = find_block(top.stdout.strip())
+    if text is None:
         return set()
     if not re.search(r"^-\s*agent_identity:\s*bot\s*$", text, re.M):
         return set()
@@ -184,16 +202,13 @@ def git_out(*args):
 
 
 def load_specs_dir(top):
-    """`specs_dir` from the project's CLAUDE.md Roz Gate config block.
-    None → not a roz-gate project (no config block): nothing to enforce.
-    Block present but the key absent → the documented default, the same
-    fallback /roz-gate:init writes (mirrors guard-acceptance)."""
-    try:
-        with open(top.rstrip("/") + "/CLAUDE.md", encoding="utf-8") as f:
-            text = f.read()
-    except OSError:
-        return None
-    if not re.search(r"^###\s+(Roz Gate|Gated Loop) config\s*$", text, re.M):
+    """`specs_dir` from the project's Roz Gate config block (`CLAUDE.md`, else
+    `CLAUDE.local.md` — config_block.py). None → not a roz-gate project (no
+    config block anywhere): nothing to enforce. Block present but the key
+    absent → the documented default, the same fallback /roz-gate:init
+    writes (mirrors guard-acceptance)."""
+    text = find_block(top)
+    if text is None:
         return None
     m = re.search(r"^-\s*specs_dir:\s*(.+)$", text, re.M)
     return (m.group(1).strip().strip("`") if m else DEFAULT_SPECS_DIR)
@@ -269,8 +284,14 @@ def forge_json(argv):
 def check_gate_label_add(cmd, toks):
     """Rule B: block label-add flags whose value names a gate label."""
     if toks is None:
-        # Shell we couldn't tokenize; conservative when both halves appear.
-        if re.search(r"--(add-)?label", cmd) and GATE.search(cmd):
+        # Shell we couldn't tokenize (an apostrophe in a heredoc body, say):
+        # judge the add-label VALUE, not the whole command — "both halves
+        # anywhere" denied the STOP protocol's own swap, `--remove-label
+        # ready-for-dev --add-label "status: blocked"` beside a comment
+        # body that said "didn't" (#94).
+        if GATE_ADD_FALLBACK.search(cmd) or (
+            "glab" in cmd and "update" in cmd and GLAB_ADD_FALLBACK.search(cmd)
+        ):
             deny(RULE_B_MSG)
         return
 

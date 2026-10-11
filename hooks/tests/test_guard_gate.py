@@ -48,6 +48,15 @@ class RuleB_GateLabelsAreHumanOnly(HookTest):
          'gh issue edit 5 --add-label="status: ready-for-dev"', "gate labels"),
         ("gate label add blocked (glab)",
          'glab issue update 5 --label "status::ready-for-dev"', "gate labels"),
+        ("untokenizable: adding a gate label is still denied",
+         'gh issue edit 73 --add-label "status: ready-for-dev" && '
+         "gh issue comment 73 --body-file - <<'EOF'\nDon't wait.\nEOF", "gate labels"),
+        ("untokenizable: the =form is still denied",
+         'gh issue edit 73 --add-label="ready-for-spec" && '
+         "gh issue comment 73 --body-file - <<'EOF'\nDon't wait.\nEOF", "gate labels"),
+        ("untokenizable: glab update --label is still denied",
+         'glab issue update 73 --label "status::ready-for-dev" && '
+         'glab issue note 73 --message "x" <<\'EOF\'\nDon\'t wait.\nEOF', "gate labels"),
     ]
     ALLOWED = [
         ("gate label remove allowed",
@@ -58,6 +67,17 @@ class RuleB_GateLabelsAreHumanOnly(HookTest):
          'gh issue list --label "status: ready-for-spec" --json number'),
         ("label create allowed (init)",
          'gh label create "status: ready-for-spec" --color 0e8a16 --description "gate"'),
+        # #94: an untokenizable command (an apostrophe in a heredoc body) used
+        # to be judged on "both halves anywhere" — the STOP protocol's own swap
+        # beside its comment was denied. The fallback judges the add value.
+        ("untokenizable: the STOP swap + a heredoc body with an apostrophe allowed",
+         'gh issue edit 73 --remove-label "status: ready-for-dev" --add-label "status: blocked" && '
+         "gh issue comment 73 --body-file - <<'EOF'\n**[next-stage] · blocked**\n"
+         "B5b didn't finish; the reviewer stopped.\nEOF"),
+        ("untokenizable: a remedy text naming the gate label is not an add",
+         'gh issue edit 73 --add-label "status: blocked" && '
+         "gh issue comment 73 --body-file - <<'EOF'\n**[next-stage] · blocked**\n"
+         "Don't re-apply ready-for-dev; swap blocked→in-spec-review.\nEOF"),
     ]
 
     def test_denied(self):
@@ -238,6 +258,16 @@ class RuleD_OpenQuestionsHaveOneHome(HookTest):
                               "delete it here")
         with self.case("rule D: judged from a subdirectory"):
             self.assertDenied(self.bash("git commit -am x", repo / "sub"), "open-questions section")
+        # The block's two homes (#94): specs_dir read from CLAUDE.local.md too.
+        local = self.new_repo({"CLAUDE.md": "# Project\n",
+                               "CLAUDE.local.md": config_block(forge="github",
+                                                               specs_dir="docs/specs")})
+        self.write(local / "docs/specs/5/technical-spec.md", TS_WITH_SECTION)
+        self.write(local / "docs/specs/5/spec.md", SPEC_MD)
+        self.git(local, "add", "-A")
+        with self.case("rule D: block only in CLAUDE.local.md — §9 section still denied"):
+            self.assertDenied(self.bash('git commit -m "spec: #5 refinement"', local),
+                              "open-questions section")
         with self.case("rule D: compound line (cd && git commit) denied"):
             self.assertDenied(self.bash("git add -A && git -c user.name=t commit -m x", repo),
                               "open-questions section")
@@ -339,6 +369,12 @@ class RuleA_IntakeSummaryTrigger(HookTest):
         for name, fx, cwd, says in cases:
             with self.case(name), self.fixture(gh=fx):
                 self.check(self.bash(SUMMARY_CMD, cwd), says)
+        # The block's two homes (#94): ADMC runs in bot mode with its block in
+        # CLAUDE.local.md — rule A silently ran in user mode there.
+        local = self.new_repo({"CLAUDE.md": "# Project\n", "CLAUDE.local.md": config})
+        with self.case("bot mode: block only in CLAUDE.local.md — bot-authored unassigned issue "
+                       "denied"), self.fixture(gh="gh_bot_orphan.json"):
+            self.check(self.bash(SUMMARY_CMD, local), "no human gate holder")
 
     def test_gitlab(self):
         with self.case("glab summary after 'summary' allowed"):
