@@ -140,6 +140,14 @@ by change class:
   rounds spent and the pattern (*N rounds · class · file*).
   On `track: fast`, a code change re-dispatches `reviewer` on the new commits —
   it is the whole guard that track has.
+  A code change that **implements an amended rule** — one the post-integration
+  re-entry folded (`spec-answers` step 7), or one this readback approved —
+  does not stop at the suite re-run: `qa` re-derives the affected tests on
+  `<qa-branch>` from the amended text (merged back), a fresh
+  implementation-blind fidelity re-check runs (next-stage B5b's
+  fidelity-dispatch procedure), and only then does the hand-back run
+  regenerate the cards. A suite that still asserts the previous rule turns
+  green against the wrong contract.
 - **Spec semantics** — the change alters what a rule or scenario means → do
   **not** fold it here. LABEL-REMOVE `status: in-user-review`, LABEL-ADD
   `status: in-spec-review`, post the question as a spec-CR thread, and let
