@@ -152,7 +152,9 @@ both CRs targeting the spec CR:
   `feat/{n}`), audits the QA
   suite's fidelity to the spec — the suite the verdict is computed from
   is otherwise the loop's only unaudited artifact. Findings are two-way
-  cited threads on the QA CR; both CRs must be thread-clean before (6).
+  cited threads on the QA CR, and its summary comment — `**[reviewer] · fidelity**`
+  — is the record that the audit ran: (6) requires it, and patrol runs the
+  audit on a QA CR that lacks it; both CRs must be thread-clean before (6).
 
 If **QA or the implementer** hits a contract ambiguity mid-flight, it stops
 and reports to the main agent — it never interprets, and it never decides
