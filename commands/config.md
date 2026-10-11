@@ -45,5 +45,5 @@ default). An unknown key is the tool's error to print.
    print its output line verbatim. That line is the report; the next
    command run reads the new value.
 
-Hard rules: never edit `.claude/roz-gate.local.json` or `CLAUDE.md`
+Hard rules: never edit `.claude/roz-gate.local.json`, `CLAUDE.md` or `CLAUDE.local.md`
 yourself; never apply a gate label; never create forge labels.

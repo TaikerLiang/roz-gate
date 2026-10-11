@@ -4,8 +4,9 @@ Bundled `PreToolUse` hooks (`hooks.json`) run before a tool call in every
 repo where the plugin is enabled. Exit 0 allows the call; **exit 2 blocks it
 and feeds stderr to the model** — every deny message states the remedy, not
 just the reason, because the agent is the reader. A repo with no Roz Gate
-config block in `CLAUDE.md` is not a roz-gate project: the guards allow
-everything there.
+config block in `CLAUDE.md` or `CLAUDE.local.md` — in the checkout or in the
+main worktree; `config_block.py` is the one reader every guard uses — is not
+a roz-gate project: the guards allow everything there.
 
 Each hook is two layers: a shell prefilter that costs nothing on the
 overwhelming majority of calls (a grep of the raw input, one git call, one
@@ -29,6 +30,7 @@ The files:
 | `guard-gate.sh` · `guard_gate.py` | Bash commands — rules A–D |
 | `guard-blind.sh` · `guard_blind.py` | Bash / Read / Glob / Grep during a fidelity dispatch — rule E |
 | `guard-acceptance.sh` · `guard_acceptance.py` | Edit / Write / MultiEdit on a spec branch (`spec/<n>`, or whatever `branch_template` renders) — the acceptance rule |
+| `config_block.py` | the config block's reader: `CLAUDE.md`, then `CLAUDE.local.md`, in the toplevel, then in the main checkout (`core.worktree` when set, else the common git dir's parent — a separate git dir without `core.worktree` is unreachable from a linked worktree: keep the block in the tracked `CLAUDE.md` there) — the first block wins, whole |
 | `tests/test_guard_*.py` | the cases, one file per guard, one class per rule: synthetic hook input in, exit code and stderr asserted |
 | `tests/test_fixtures.py` | every fixture carries the fields the guard reads |
 | `tests/hooktest.py` | `HookTest`: runs a guard's `.sh`, builds throwaway repos, swaps fixtures |
@@ -52,10 +54,10 @@ Any "no" → a replay case, not a hook, and never prose alone.
 | rule | file · matcher | predicate | deny says | fail direction |
 |---|---|---|---|---|
 | **A** intake-summary trigger | `guard-gate` · Bash | an `**[intake] · summary**` write is allowed only if the gate holder's latest comment requests `summary` (first or last line) or a gate label is present, and no summary was posted after that request | wait for the gate holder; do not retry or work around | forge API failure fails **closed**, with a message that says it is an API failure, not a protocol block |
-| **B** human-only gate labels | `guard-gate` · Bash | `--add-label` (gh) / `issue update --label` (glab) naming `ready-for-spec` or `ready-for-dev` | the gate holder applies the label themselves | static, no API |
+| **B** human-only gate labels | `guard-gate` · Bash | `--add-label` (gh) / `issue update --label` (glab) naming `ready-for-spec` or `ready-for-dev`; a command shlex cannot tokenize is judged on the add flag's value alone — after `=`, whitespace or a `\`-newline continuation — never on a gate word elsewhere in it | the gate holder applies the label themselves | static, no API |
 | **C** quote-open guard | `guard-gate` · Bash | a comment-shaped forge write whose body carries a roz-gate marker and opens with `>` (per shell segment; `--body-file` read back, heredoc parsed) | put the marker on line one | an unreadable marker-carrying `--body-file` fails **closed** |
 | **D** open questions have one home | `guard-gate` · Bash | a `git commit` while any `<specs_dir>/*/technical-spec.md` — working tree **or** index — carries a heading matching `^#+ .*open questions` | move it to `spec.md`'s Open Questions, delete it here, `git add`, commit | index checked too: a fixed file never re-staged would commit the stale section |
-| **E** fidelity dispatch is blind | `guard-blind` · Bash, Read, Glob, Grep | while the marker exists: a Read/Glob/Grep path under `src/`; in Bash, a git checkout/switch/diff/show/log/merge/restore/worktree on a `feat/` ref or on the ref the marker's `feat=` line names (the bound implementation branch, `references/branch-names.md`), or a read of `src/` outside `<acceptance_dir>` after blanking exclusion operands (`grep -v`, `:!`, `--exclude`, `-not -path`), echo/printf operands, comments, and operands under the suite (a suite strictly under `src/` — Maven's `src/test/…` — is what the dispatch audits; `src` itself exempts nothing, a climb out of the suite is not blanked) | what you need is on `qa/<n>`; a required read is a **finding**, not an action | a **stale marker keeps the rule ON** — over-blocking is visible, under-blocking is not |
+| **E** fidelity dispatch is blind | `guard-blind` · Bash, Read, Glob, Grep | while the marker exists: a Read/Glob/Grep path under `src/`; in Bash, a git checkout/switch/diff/show/log/merge/restore/worktree on a `feat/` ref or on the ref the marker's `feat=` line names (the bound implementation branch, `references/branch-names.md`), or a read of `src/` outside `<acceptance_dir>` after blanking exclusion operands (`grep -v`, `:!`, `--exclude`, `-not -path`), echo/printf operands, comments, and operands under the suite (a suite under a `src/` segment — Maven's `src/test/…`, a multi-module `<module>/src/test/…` — is what the dispatch audits; `src` or `<module>/src` itself exempts nothing, a climb out of the suite is not blanked) | what you need is on `qa/<n>`; a required read is a **finding**, not an action | a **stale marker keeps the rule ON** — over-blocking is visible, under-blocking is not |
 | **acceptance** | `guard-acceptance` · Edit, Write, MultiEdit | on a spec branch — `spec/*`, or HEAD matching the block's `branch_template` rendered for the spec kind — a write under `<acceptance_dir>` | make the change on `qa/<n>`, merge it in | branch-and-path only; no exemption list |
 
 ## The fidelity-dispatch marker (rule E)
@@ -197,7 +199,7 @@ row to the table above.
 
 ## Instrument blindness — the cautionary list
 
-Three times the instrument (hook or checker) was blind to a form the agent
+Four times the instrument (hook or checker) was blind to a form the agent
 actually used. Audit every new predicate for the class, not the instance:
 
 - **Body by reference** (1.14.0 review, then the replay stub): a comment
@@ -212,3 +214,10 @@ actually used. Audit every new predicate for the class, not the instance:
   segment, so `grep echo src/app.txt` passed. A word is a command only in
   command position. The under-block was silent; the over-block had been
   visible. When in doubt, fail toward the visible direction.
+- **Block by location** (#94): every loader opened `CLAUDE.md`. A project
+  that kept its block in `CLAUDE.local.md` was "not a roz-gate project" to
+  four rules — acceptance and D off, A in user mode, E without its suite
+  exemption — while the commands, reading the block from Claude Code's
+  context where both files land, ran the loop. Read every home the prose
+  reads, through one reader (`config_block.py`), and look where the prose
+  looks: the main checkout, not only the worktree the hook fired in.

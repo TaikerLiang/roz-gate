@@ -255,7 +255,7 @@ def redproof(report, rejudge=False):
 def overlay(work, fx, admc):
     """The Roz Gate config block, restored from the last commit that
     carried it in git (ADMC's PR #62 moved it to an untracked
-    CLAUDE.local.md; the hooks and commands read CLAUDE.md), restamped
+    CLAUDE.local.md; the pinned hooks, pre-1.31.2, read CLAUDE.md only), restamped
     with the current template stamp as seed-common does, identity lines
     added for the fixtures whose dates were already in bot mode."""
     src = git(admc, "show", "%s:CLAUDE.md" % CONFIG_SOURCE)

@@ -142,6 +142,89 @@ class RuleE_FidelityDispatchIsBlind(HookTest):
             self.assertAllowed(self.run_bash(RUN4, self.new_dir()))
 
 
+class RuleE_MultiModuleSuite(HookTest):
+    """#94: a multi-module Maven/Gradle layout keeps the suite under
+    `<module>/src/test/…`; the first cut of the exemption required `src` to be
+    the FIRST segment, so every such repo was denied its own suite. The deny
+    side needs nothing: `<module>/src/main/…` is a read of src/ either way.
+    The block lives in CLAUDE.local.md here — the two homes (#94), as ADMC
+    keeps it."""
+
+    guard = "guard-blind"
+    SUITE = "dlh-api/console/src/test/java/acme/acceptance"
+
+    def setUp(self):
+        super().setUp()
+        self.repo = self.new_repo(
+            {"CLAUDE.md": "# Project\n",
+             "CLAUDE.local.md": config_block(forge="github", acceptance_dir=self.SUITE),
+             "dlh-api/console/src/main/java/acme/App.java": "class App {}\n",
+             "dlh-api/console/src/test/java/acme/acceptance/ExpiryTest.java":
+                 "// @Traces(5, S1)\n",
+             "dlh-api/console/src/test/java/acme/unit/UnitTest.java": "// unit\n",
+             "dlh-api/other/src/main/java/acme/Other.java": "class Other {}\n"},
+            commit=True, branch="qa/5")
+        self.write(self.repo / ".git/roz-gate/fidelity-dispatch", "issue=5\n")
+
+    def tool(self, tool, cwd=None, **tool_input):
+        return self.call(tool, tool_input, cwd or self.repo, agent_type="roz-gate:reviewer")
+
+    def run_bash(self, command, cwd=None):
+        return self.tool("Bash", cwd, command=command)
+
+    def test_suite_is_readable(self):
+        repo, suite = self.repo, self.SUITE
+        for name, cmd in [
+            ("multi-module: cat of a suite file allowed (block in CLAUDE.local.md)",
+             "cat %s/ExpiryTest.java" % suite),
+            ("multi-module: grep over the suite dir allowed", "grep -n Traces %s/" % suite),
+            ("multi-module: ./-prefixed suite path allowed", "cat ./%s/ExpiryTest.java" % suite),
+            ("multi-module: absolute suite path allowed",
+             "cat %s/%s/ExpiryTest.java" % (repo, suite)),
+            ("multi-module: $(git rev-parse --show-toplevel)/<suite> allowed",
+             "cat $(git rev-parse --show-toplevel)/%s/ExpiryTest.java" % suite),
+        ]:
+            with self.case(name):
+                self.assertAllowed(self.run_bash(cmd))
+        with self.case("multi-module: Read of the absolute suite file allowed"):
+            self.assertAllowed(self.tool("Read", file_path=str(repo / suite / "ExpiryTest.java")))
+        with self.case("multi-module: Grep with the suite as path allowed"):
+            self.assertAllowed(self.tool("Grep", pattern="Traces", path=suite))
+
+    def test_implementation_stays_denied(self):
+        repo, suite = self.repo, self.SUITE
+        for name, cmd in [
+            ("multi-module: the same module's src/main denied",
+             "cat dlh-api/console/src/main/java/acme/App.java"),
+            ("multi-module: a sibling module's src/main denied",
+             "cat dlh-api/other/src/main/java/acme/Other.java"),
+            ("multi-module: the same module's unit tests (not the suite) denied",
+             "cat dlh-api/console/src/test/java/acme/unit/UnitTest.java"),
+            ("multi-module: a suite file AND a src/main file in one command denied",
+             "cat %s/ExpiryTest.java dlh-api/other/src/main/java/acme/Other.java" % suite),
+            ("multi-module: a climb out of the suite denied",
+             "cat %s/../../../../main/java/acme/App.java" % suite),
+        ]:
+            with self.case(name):
+                self.assertDenied(self.run_bash(cmd), "read of src/")
+        with self.case("multi-module: Read of the same module's src/main denied"):
+            self.assertDenied(self.tool("Read", file_path=str(
+                repo / "dlh-api/console/src/main/java/acme/App.java")), "Read under src/")
+        with self.case("multi-module: the deny message names the readable suite"):
+            self.assertDenied(self.run_bash("cat dlh-api/other/src/main/java/acme/Other.java"),
+                              "`%s` is readable here" % suite)
+
+    def test_module_src_exempts_nothing(self):
+        bare = self.new_repo(
+            {"CLAUDE.local.md": config_block(forge="github", acceptance_dir="dlh-api/console/src"),
+             "dlh-api/console/src/main/java/acme/App.java": "class App {}\n"},
+            commit=True, branch="qa/5")
+        self.write(bare / ".git/roz-gate/fidelity-dispatch", "issue=5\n")
+        with self.case("multi-module: acceptance_dir <module>/src exempts nothing"):
+            self.assertDenied(self.run_bash("cat dlh-api/console/src/main/java/acme/App.java",
+                                            bare), "read of src/")
+
+
 class RuleE_SuiteUnderSrc(HookTest):
     """Issue #81 (1.29.1): a Maven/Gradle layout keeps the acceptance suite
     under src/test/…; the suite is what the fidelity dispatch audits and is

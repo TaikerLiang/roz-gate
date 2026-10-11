@@ -10,7 +10,7 @@ confirm. Follow these steps; do nothing beyond them.
 
 ## 0. Load config & forge adapter
 
-Read the `### Roz Gate config` block in the project's CLAUDE.md (`forge`,
+Read the `### Roz Gate config` block in the project's CLAUDE.md (or CLAUDE.local.md) (`forge`,
 `test`, `acceptance_test`, `env_sync`, `specs_dir`, `acceptance_dir`,
 `branch_template`, `fix_rounds`). `fix_rounds` is optional — a non-negative integer, the fix-and-rerun
 budget; **absent → 3; any other value → stop here, before the lock**, a

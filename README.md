@@ -305,7 +305,10 @@ no helper.
 ## Per-project configuration
 
 `init` writes a `### Roz Gate config` block into your `CLAUDE.md`; every
-command reads it before acting:
+command reads it before acting. The block may live in `CLAUDE.local.md`
+instead (untracked, per clone — a shared `CLAUDE.md` it must not touch): the
+hooks and the commands read `CLAUDE.md` first, then `CLAUDE.local.md`, in the
+checkout and in the main worktree:
 
 ```
 - forge: github | gitlab
