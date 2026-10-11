@@ -568,8 +568,9 @@ src("A8: the holder falls back to the author, never a bot", "references/patrol-s
     "else its `author` when that is not a bot")
 src("A8: intake reads the gate holder from the row, never re-lists (F9 run-3)",
     "commands/patrol.md", "read from the table, never re-listed")
-for _v in ("actionable: review-answers", "close-out", "hand-off: in-user-review",
-           "intake: questions", "waiting on user", "illegal state", "locked:"):
+for _v in ("actionable: review-answers", "actionable: fidelity-audit", "close-out",
+           "hand-off: in-user-review", "intake: questions", "waiting on user", "illegal state",
+           "locked:"):
     src("A8: the verdict vocabulary carries `%s`" % _v, "references/patrol-scan.md", "`%s" % _v)
 src("A8: the inbox filter lives in the brief", "references/patrol-scan.md",
     "**subject to the inbox filter**")
@@ -907,6 +908,120 @@ c.expect("pattern", "E4: a contract-ambiguity finding routes to the spec CR",
          "contract ambiguity routes to a spec-CR" in b5)
 c.expect("pattern", "E4: reviewer-to-implementer settlement is forbidden explicitly",
          "never settled" in b5)
+
+# ---------------------------------------------------------------------------
+# C5 · the post-integration re-entry is honest about what it verified (defect 1.11.0-, #97)
+# A (7) amendment that changed what a rule means was folded, the suite re-run
+# — green against the PREVIOUS text, which code and suite still implement —
+# and the cards regenerated from that green: laundering, the thing the
+# fidelity audit exists for. The re-entry now has two cases; the behaviour
+# change takes no run as evidence, regenerates nothing, and says so in the
+# return comment; review-answers closes the loop when the code catches up;
+# the hand-back rule names the exception. Replay C5 proves the behaviour.
+src("C5: the re-entry has a no-behaviour case", "commands/spec-answers.md",
+    "**The fold changed no behaviour**")
+src("C5: the behaviour case takes no run as evidence", "commands/spec-answers.md",
+    "**do not run it as evidence, do not regenerate the cards,\n    do not re-stamp `cards-sha`**")
+src("C5: the return comment opens with its marker", "commands/spec-answers.md",
+    "`**[spec-answers] · amended**`")
+src("C5: the return comment says what still implements the previous text",
+    "commands/spec-answers.md",
+    "*the implementation and\n  the suite still implement the previous text*")
+src("C5: the return comment names the three catch-up moves", "commands/spec-answers.md",
+    "`implementer` catch-up on `<spec-branch>`")
+must_not_match("C5: the retired single-case paragraph is gone",
+               r"if the amendment changed behaviour, honour the\n  \*\*hand-back rule\*\*",
+               read("commands/spec-answers.md"))
+src("C5: review-answers re-derives and re-checks when the code implements an amended rule",
+    "commands/review-answers.md", "A code change that **implements an amended rule**")
+src("C5: review-answers orders the re-check before the cards", "commands/review-answers.md",
+    "and only then does the hand-back run\n  regenerate the cards")
+src("C5: the hand-back rule names the exception", "references/workflow.md",
+    "One re-application\ncarries no run")
+src("C5: the gate kit calls the staleness by design", "references/gate-kit.md",
+    "leaves them stale **by design**")
+# C16 · a QA CR without a fidelity audit on record never integrates (defect 1.9.0-, #95)
+# integrate's precondition was "zero open fidelity threads" — satisfied by an
+# audit that found nothing AND by an audit that never ran (B5b stopped before
+# the reviewer posted; ADMC #73). The brief's summary comment now opens with
+# `**[reviewer] · fidelity**` — the record that the audit ran — and the record
+# is required where the threads were: integrate step 1, the scan's in-flight
+# row (which routes a QA CR without it to patrol's new fidelity-audit action),
+# next-stage B5b, workflow (5q). Replay C16/C17 prove the two behaviours.
+_MARK = "**[reviewer] · fidelity**"
+src("C16: the brief's summary comment opens with the marker", "references/fidelity-brief.md",
+    "opening with `%s`" % _MARK)
+src("C16: the brief calls the comment the record", "references/fidelity-brief.md",
+    "That comment is the record that the audit ran")
+src("C16: the record is the dispatch's last write (codex review, PR #102)",
+    "references/fidelity-brief.md", "**Post it\n  last**: every finding thread first")
+src("C16: integrate step 1 requires the record", "commands/integrate.md",
+    "Verify the **QA CR carries a `%s` comment**" % _MARK)
+src("C16: integrate's stop names patrol as the road", "commands/integrate.md",
+    "no fidelity audit on\n  record — patrol runs it")
+src("C16: the scan row routes a QA CR without the record to fidelity-audit",
+    "references/patrol-scan.md",
+    "carries **no** `%s` comment (CR-COMMENTS-LIST on it" % _MARK)
+src("C16: the scan row's integrate clause carries the record", "references/patrol-scan.md",
+    "carries the `%s` record and has zero open fidelity threads**" % _MARK)
+must_not_match("C16: the scan row's integrate clause never stands without the record",
+               r"is not a draft, and has zero open fidelity threads\*\* → actionable → "
+               r"`/roz-gate:integrate",
+               read("references/patrol-scan.md"))
+src("C16: patrol ranks fidelity-audit after address-review", "commands/patrol.md",
+    "address-review >\nfidelity-audit > `/roz-gate:spec-answers`")
+src("C16: patrol has the fidelity-audit action", "commands/patrol.md",
+    "### The fidelity-audit action — the audit that never ran")
+src("C16: the action is B5b's dispatch procedure, marker with the bound ref", "commands/patrol.md",
+    "**The fidelity-dispatch procedure** (next-stage.md B5b, verbatim)")
+src("C16: a re-check posts no second record", "commands/patrol.md",
+    "A re-check\n   posts no second summary")
+src("C16: next-stage B5b names the marker", "commands/next-stage.md",
+    "plus one top-level summary comment opening with `%s`" % _MARK)
+src("C16: next-stage B6 routes the unrecorded QA CR to patrol", "commands/next-stage.md",
+    "record is patrol's `fidelity-audit`")
+src("C16: workflow (5q) calls the summary the record", "references/workflow.md",
+    "is the record that the audit ran: (6) requires it")
+src("C16: the index (5q) card names the record", "docs/index.html",
+    "summary is the record that the audit ran")
+
+# ---------------------------------------------------------------------------
+# D6 · the blind dispatch never opens the implementation CR (defect 1.9.0-, #96)
+# The brief's step zero sent the implementation-blind reviewer to
+# "implementation-CR threads" — inline threads anchored at src/…:line whose
+# comments quote the code. A THREADS-LIST names no src/, so rule E cannot
+# see it. The dispatcher (the main agent, not blind) now checks contract
+# currency first and hands the reviewer a code-free amendment list; the
+# reviewer verifies it and never opens the implementation CR.
+src("D6: the brief's step zero receives the list", "references/fidelity-brief.md",
+    "the dispatch hands you the **amendment\nlist**")
+src("D6: the brief aborts without the list", "references/fidelity-brief.md",
+    "**No\nlist in the dispatch → abort and say so.**")
+src("D6: the brief names implementation-CR threads as never the reviewer's",
+    "references/fidelity-brief.md", "Implementation-CR threads are\nnever yours")
+must_not_match("D6: the retired step-zero instruction is gone",
+               r"spec-CR threads, implementation-CR threads, and issue comments",
+               read("references/fidelity-brief.md"))
+src("D6: B5b's procedure opens with contract currency by the dispatcher",
+    "commands/next-stage.md", "**Contract currency, by you — not blind.**")
+src("D6: B5b refuses to dispatch on a (5) breach", "commands/next-stage.md",
+    "and **do not\n  dispatch**")
+src("D6: B5b gives the list its shape (codex review, PR #104)", "commands/next-stage.md",
+    "the heading `Amendment list:`, then one\n  line per amendment")
+src("D6: B5b names the empty declaration", "commands/next-stage.md",
+    "`Amendment list: none since <sha>`")
+src("D6: B5b says the scanner's read is not the check", "commands/next-stage.md",
+    "the scanner's read of the\n  CRs while classifying is not this check")
+src("D6: the brief names the heading", "references/fidelity-brief.md",
+    "under the heading `Amendment list:`")
+src("D6: the procedure's four steps are named", "commands/next-stage.md",
+    "the contract-currency step, the marker, the dispatch, the\n  marker off")
+src("D6: patrol's re-check carries the step", "commands/patrol.md",
+    "contract currency by you, marker on,\n   dispatch, marker off")
+src("D6: patrol's fidelity-audit carries the step", "commands/patrol.md",
+    "contract currency by you first")
+src("D6: hooks/README records rule E's cannot-see", "hooks/README.md",
+    "cannot see a forge read of the implementation CR")
 
 # ---------------------------------------------------------------------------
 # L2 · the local keys roz-config accepts are the ones the commands read and

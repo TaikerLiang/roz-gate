@@ -71,6 +71,12 @@ mapped subagent, attaching the seat's R&R row from
   symmetric precondition: a verdict computed from a suite with known-open
   fidelity findings is the same silently weakened verdict. If any are open,
   stop and list them.
+- Verify the **QA CR carries a `**[reviewer] · fidelity**` comment**
+  (CR-COMMENTS-LIST) — the record that the fidelity audit ran. Zero open
+  threads because nobody audited is not zero findings: a B5b that stopped
+  before the reviewer posted leaves a thread-clean, unaudited suite, and a
+  verdict on it is the forgeable one. Missing → stop: no fidelity audit on
+  record — patrol runs it (the `fidelity-audit` action).
 
 ## 2. Lock
 LABEL-ADD `status: processing`. Every exit — green or STOP — removes this

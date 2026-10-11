@@ -32,13 +32,20 @@ Anything beyond that is you writing tests by proxy.
 
 ## Step zero — contract currency
 
-Before reading a single test: enumerate every amendment agreed in
-spec-CR threads, implementation-CR threads, and issue comments **since
-`technical-spec.md`'s last commit**, and confirm each is folded into the
-contract text. An unfolded amendment is a **blocking finding routed to
-the main agent** (the contract's owner), and the review stops there — a
-fidelity review against a stale contract is worse than none, because it
-launders the staleness as verified.
+Before reading a single test: the dispatch hands you the **amendment
+list** under the heading `Amendment list:` — every amendment agreed in
+spec-CR threads and issue comments **since `technical-spec.md`'s last
+commit**, each marked `folded at <ID>` or `unfolded`, or the one line
+`none since <sha>` — assembled by the main agent, who is not blind. Verify each
+folded entry against the contract text yourself (spec-CR threads and issue
+comments are yours to read: they carry no code); an unfolded amendment is
+a **blocking finding routed to the main agent** (the contract's owner),
+and the review stops there — a fidelity review against a stale contract
+is worse than none, because it launders the staleness as verified. **No
+list in the dispatch → abort and say so.** Implementation-CR threads are
+never yours: their comments quote the code you must not see, and a
+contract question settled there is a (5) breach the main agent routes
+through (2a) before dispatching you.
 
 ## The four questions
 
@@ -104,9 +111,16 @@ actual-behaviour oracle, the exact failure mode of generated tests.
   construction — QA declines it.
 - Post findings as inline threads on the **QA CR** (THREAD-POST-INLINE,
   body starts `**[reviewer] · blocking|should-fix|nit|question**`,
-  anchored to the test file:line), plus **one top-level summary comment**:
-  fidelity as a count ("29/32 faithful — look at these 3, here's why"),
-  coverage defects itemized separately. **Never post into an existing
+  anchored to the test file:line), plus **one top-level summary comment**,
+  opening with `**[reviewer] · fidelity**`: fidelity as a count ("29/32 faithful
+  — look at these 3, here's why"), coverage defects itemized separately.
+  That comment is the record that the audit ran — integrate requires it,
+  and patrol's `fidelity-audit` action runs the audit on a QA CR that lacks
+  it (zero threads because nobody audited is not zero findings). **Post it
+  last**: every finding thread first, the marked summary as the dispatch's
+  final write — a record posted before the findings proves nothing if the
+  dispatch dies between them, and the next integrate would read the
+  half-posted audit as complete (codex review, PR #102). **Never post into an existing
   unresolved thread** — patrol classifies threads by their last comment,
   and an agent comment there flips the issue to waiting-on-user.
 - Judgment calls go out at `question` severity, not `blocking`.

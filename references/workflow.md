@@ -152,7 +152,9 @@ both CRs targeting the spec CR:
   `feat/{n}`), audits the QA
   suite's fidelity to the spec — the suite the verdict is computed from
   is otherwise the loop's only unaudited artifact. Findings are two-way
-  cited threads on the QA CR; both CRs must be thread-clean before (6).
+  cited threads on the QA CR, and its summary comment — `**[reviewer] · fidelity**`
+  — is the record that the audit ran: (6) requires it, and patrol runs the
+  audit on a QA CR that lacks it; both CRs must be thread-clean before (6).
 
 If **QA or the implementer** hits a contract ambiguity mid-flight, it stops
 and reports to the main agent — it never interprets, and it never decides
@@ -230,7 +232,12 @@ one sentence and never more: *"green against the pre-rework spec, at SHA
 fail on behaviour the spec described. Rework that *adds* behaviour no scenario
 describes ships green and unverified — nothing in the loop can verify it,
 because verification needs a spec and by construction there is not one. That is
-what the other door is for, and why it stays visible.
+what the other door is for, and why it stays visible. One re-application
+carries no run: the post-integration re-entry of a fold that **changed
+behaviour** (`spec-answers` step 7) — the suite at that head derives from the
+previous text, so a run there verifies the previous contract; the kit stays
+stale, its banner says so, until the (7) conversation's catch-up (implementer,
+QA re-derivation, fidelity re-check) restores the pair.
 
 ## The fast track (`track: fast`)
 

@@ -2,6 +2,29 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.33.2 — the fidelity audit leaves a record; the blind reviewer never opens the implementation CR; the post-integration re-entry is honest (#95 #96 #97) — 2026-10-11
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.33.2>
+
+**Behavior:** three prose gaps from the ADMC #73/#63 report, shipped as one release (1.33.0–1.33.2 land together): the fidelity audit leaves a record integrate requires and patrol runs the audit that never ran (#95); the implementation-blind reviewer never opens the implementation CR — the dispatcher checks contract currency first (#96); the post-integration re-entry no longer launders a green against the previous contract into fresh evidence cards (#97).
+
+### Behavior
+- **The fidelity record** (#95): the brief's summary comment opens with `**[reviewer] · fidelity**` and is the dispatch's **last** write. `integrate` step 1 stops without it ("no fidelity audit on record — patrol runs it"); the scan's in-flight row routes to `integrate` only when the QA CR carries it, and to the new **`fidelity-audit`** action — the B5b dispatch procedure, run alone — when it does not. Before, a B5b that never ran satisfied "zero open fidelity threads" and the unaudited suite integrated.
+- **The blind reviewer never opens the implementation CR** (#96): the fidelity brief's step zero sent it to implementation-CR threads — comments that quote the code it must not see. The dispatcher (the main agent, not blind) now checks contract currency first: a contract question settled on the implementation CR is routed through (2a) and the dispatch waits; otherwise the reviewer receives the amendment list — `Amendment list:` with `folded at <ID>` / `unfolded` dispositions, or `none since <sha>` — and verifies it against the contract text. No list → the dispatch aborts.
+- **The post-integration re-entry is honest about what it verified** (#97): when a (7) amendment changed what a rule means, `spec-answers` no longer re-runs the suite as evidence or regenerates the gate kit's cards — the implementation and the suite still implement the previous text. The kit stays stale (its banner says so) and the return comment `**[spec-answers] · amended**` names the fold and the three catch-up moves: implementer on `<spec-branch>`, QA re-derivation on `<qa-branch>`, a fresh blind fidelity re-check. `review-answers` § 6: a code change that implements an amended rule triggers that re-derivation and re-check before the cards are regenerated. The hand-back rule names the exception.
+
+### Evals
+- **C16** (lint + replay): integrate refuses without the record; **C17** (replay): patrol routes to and runs the audit — marker on → one dispatch → marker off, the record posted after every finding. Seeds **C12, C13, F4, D2, D5** amended: their QA CR carries the record.
+- **D6** (lint + replay): the root agent lists both CRs before the dispatch, the dispatch text carries the list in shape, nothing under the dispatch names the implementation CR. D2's row records rule E's cannot-see (a forge read).
+- **C5** amended (lint + replay): no run as evidence, the stamped gate kit untouched, the return comment; it gains its red-proof.
+- Lint 27 → 30 cases (454 → 468 checks); replay 31 → 34 cases. Baselines for C16, C17, D6 and the amended C5 are pending.
+
+### Docs
+- index (5q) card and stage tip; quiz #18 background; workflow (5q) and the hand-back rule's exception; gate-kit (stale by design); `hooks/README.md` rule E's cannot-see; LEDGER, CONTRIBUTING (three lied-table rows), evals README.
+
+### Checks
+Hook tests 228/228 · lint 468/468 · red-proofs 19/19 · ruff clean · naming clean · `judgment --check` frozen — on `efd1ccf` (merge `630ac54`). PRs #102, #103, #104; each carried its own bump (1.33.0, 1.33.1, 1.33.2) because the pre-push gate wants one per behaviour-prose PR.
+
 ## v1.31.2 — the config block's two homes; rule E exempts a multi-module suite; rule B's fallback judges the add value — 2026-10-11
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.31.2>

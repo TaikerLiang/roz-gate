@@ -100,7 +100,10 @@ computed from — and carries a second blind-spot line, distinct from rule
 While `cards-sha` is not the branch head, the block opens with a staleness
 banner instead — *"the cards below describe `<cards-sha>`; the branch is
 now `<head>`"* — and **no card is readable as evidence** until a run
-restores the equality. Cards are then regenerated **wholesale from that
+restores the equality — and a behaviour-changing amendment folded after
+integration (`spec-answers` step 7) leaves them stale **by design**: the
+banner is the evidence that there is none until the (7) catch-up restores
+the pair. Cards are then regenerated **wholesale from that
 one run's captured output, or not at all**: a block whose rows come from
 two different runs asserts observed values nobody observed in either.
 

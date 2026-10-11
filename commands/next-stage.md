@@ -391,6 +391,22 @@ Launch both at once (they never see each other):
   scenario-meaning disputes this way; the same rule applies here.)
 
 ### B5b. QA fidelity review (5q) on the QA CR
+- **Contract currency, by you — not blind.** Before the dispatch:
+  THREADS-LIST on the implementation CR and on the spec CR. A thread that
+  settled a contract question on the implementation CR is the (5) breach —
+  route it to a spec-CR thread through you, LABEL-ADD
+  `status: in-spec-review` (the backward transition), and **do not
+  dispatch**; the paused side resumes through (2a). Otherwise assemble the
+  **amendment list** — every amendment agreed in spec-CR threads and issue
+  comments since `technical-spec.md`'s last commit — and put it in the
+  dispatch text **in this shape**: the heading `Amendment list:`, then one
+  line per amendment, `<what> — folded at <ID>` or `<what> — unfolded`; or
+  the single line `Amendment list: none since <sha>` when there is none. A
+  mention is not a list — the reviewer aborts on anything else. The
+  reviewer verifies it against the contract and never opens the
+  implementation CR (its threads quote the code the reviewer must not see).
+  The listing is **yours**, in your own context — the scanner's read of the
+  CRs while classifying is not this check.
 - Dispatch the **reviewer** seat a second time, in a **fresh context**
   (never a continuation of B5's), with
   `${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md` as its contract,
@@ -408,12 +424,15 @@ Launch both at once (they never see each other):
   remedy in the message. The
   brief's "you never read the implementation" stays in the dispatch text —
   the marker is what makes it a fact. This is **the fidelity-dispatch
-  procedure**; every implementation-blind dispatch on `<qa-branch>` uses it.
+  procedure** — the contract-currency step, the marker, the dispatch, the
+  marker off; every implementation-blind dispatch on `<qa-branch>` uses it.
 - It audits the QA suite's fidelity to the spec (four questions:
   scenario fidelity, vacuous assertions, coverage honesty, over-assertion)
   and posts two-way-cited findings as inline threads on the **QA CR**
-  plus one top-level summary comment. Its findings are evidence for the
-  human, never a verdict.
+  plus one top-level summary comment opening with `**[reviewer] · fidelity**`
+  — the record that the audit ran, which integrate requires and patrol's
+  `fidelity-audit` action produces when B5b never did. Its findings are
+  evidence for the human, never a verdict.
 - Runs alongside B5 — it needs only `<qa-branch>`, so it costs no wall-clock.
 
 ### B6. Remove the worktrees, flip labels + report
@@ -427,7 +446,8 @@ Launch both at once (they never see each other):
   addresses the QA CR's fidelity threads, and a **fresh implementation-blind
   reviewer dispatch re-checks and resolves** what it is satisfied with
   (patrol's address-review engine — the audited party never closes the
-  audit's findings). All resolved on both → `/roz-gate:integrate <n>`.
+  audit's findings). All resolved on both → `/roz-gate:integrate <n>`. A
+  QA CR with no `**[reviewer] · fidelity**` record is patrol's `fidelity-audit`.
 
 ---
 
