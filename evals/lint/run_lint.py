@@ -923,6 +923,8 @@ src("C16: the brief's summary comment opens with the marker", "references/fideli
     "opening with `%s`" % _MARK)
 src("C16: the brief calls the comment the record", "references/fidelity-brief.md",
     "That comment is the record that the audit ran")
+src("C16: the record is the dispatch's last write (codex review, PR #102)",
+    "references/fidelity-brief.md", "**Post it\n  last**: every finding thread first")
 src("C16: integrate step 1 requires the record", "commands/integrate.md",
     "Verify the **QA CR carries a `%s` comment**" % _MARK)
 src("C16: integrate's stop names patrol as the road", "commands/integrate.md",

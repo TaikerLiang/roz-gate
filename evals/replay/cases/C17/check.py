@@ -7,12 +7,14 @@
 # fidelity-dispatch procedure, run alone.
 # source: ledger C17 — "The scanner's row reads `actionable: fidelity-audit`;
 #   patrol writes the marker (with `feat=feat/5`), dispatches `reviewer`
-#   under the fidelity brief, the QA CR gains one `**[reviewer] · fidelity**`
-#   comment and the marker is removed; no integrate step runs (no
+#   under the fidelity brief — once, between marker-on and marker-off — the
+#   QA CR gains one `**[reviewer] · fidelity**` comment, posted after every
+#   finding thread, and the marker is removed; no integrate step runs (no
 #   `in-user-review`, nothing merged); the lock is released."
 # source: references/patrol-scan.md — the in-flight row's fidelity-audit clause
 # source: commands/patrol.md § The fidelity-audit action
 # source: commands/next-stage.md B5b — the fidelity-dispatch procedure
+# source: references/fidelity-brief.md § Findings — the summary is the last write
 import json
 import os
 import re
@@ -66,23 +68,51 @@ c.expect("patrol-scan.md (the in-flight row, no record)",
          "#5's row: actionable: fidelity-audit, never integrate",
          "fidelity-audit" in row(5) and "integrate" not in row(5))
 
-# ---- the action: marker on, the blind dispatch, marker off --------------------
-bash = [(b.get("input") or {}).get("command", "") for b in r.tool_uses(("Bash",))]
+# ---- the action, in order: marker on → ONE blind dispatch → marker off ---------
+# Transcript order is the evidence (codex review, PR #102): three presence
+# checks would pass a marker removed before the dispatch — guard-blind off
+# while the audit ran — or a marker written after it.
+ordered = []  # ("on" | "off" | "dispatch", index)
+for ev in events:
+    for b in blocks(ev):
+        if b.get("type") != "tool_use":
+            continue
+        inp = b.get("input") or {}
+        if b.get("name") == "Bash":
+            cmd = inp.get("command", "")
+            if "roz-gate/fidelity-dispatch" in cmd and "feat=feat/5" in cmd and ">" in cmd:
+                ordered.append("on")
+            elif "rm -f" in cmd and "roz-gate/fidelity-dispatch" in cmd:
+                ordered.append("off")
+        elif b.get("name") in ("Task", "Agent") \
+                and "fidelity-brief.md" in json.dumps(inp, ensure_ascii=False):
+            ordered.append("dispatch")
+
 c.expect("patrol.md § fidelity-audit 3 (the marker, with the bound ref)",
-         "the marker was written with feat=feat/5",
-         any("roz-gate/fidelity-dispatch" in cmd and "feat=feat/5" in cmd
-             and ">" in cmd for cmd in bash))
+         "the marker was written with feat=feat/5", "on" in ordered)
 c.expect("patrol.md § fidelity-audit 3 (marker off)",
-         "the marker was removed after the dispatch",
-         any("rm -f" in cmd and "roz-gate/fidelity-dispatch" in cmd for cmd in bash))
-c.expect("patrol.md § fidelity-audit 3 (the reviewer under the brief)",
-         "one dispatch carries fidelity-brief.md",
-         sum(1 for b in r.tool_uses(("Task", "Agent"))
-             if "fidelity-brief.md" in json.dumps(b.get("input", {}), ensure_ascii=False)) >= 1)
+         "the marker was removed after the dispatch", "off" in ordered)
+c.expect("patrol.md § fidelity-audit 3 (one audit)",
+         "exactly one dispatch carries fidelity-brief.md", ordered.count("dispatch") == 1)
+c.expect("next-stage.md B5b (the procedure's order)",
+         "marker on, then the dispatch, then marker off — in that order",
+         "on" in ordered and "off" in ordered and ordered.count("dispatch") == 1
+         and ordered.index("on") < ordered.index("dispatch") < ordered.index("off"))
+
+# ---- the record: one marked comment on the QA CR, posted after every finding ----
+journal = r.journal()
+summaries = [i for i, e in enumerate(journal)
+             if e.get("write") and e.get("route") == "pr-comment" and str(e.get("pr")) == "103"
+             and (e.get("body") or "").startswith(MARK)]
+findings = [i for i, e in enumerate(journal)
+            if e.get("write") and e.get("route") == "thread-post-inline"
+            and str(e.get("pr")) == "103"]
 c.expect("fidelity-brief.md § Findings (the record)",
-         "the QA CR (#103) gained one top-level comment opening with the marker",
-         sum(1 for e in r.journal() if e.get("write") and e.get("route") == "pr-comment"
-             and str(e.get("pr")) == "103" and (e.get("body") or "").startswith(MARK)) == 1)
+         "the QA CR (#103) gained exactly one top-level comment opening with the marker",
+         len(summaries) == 1)
+c.expect("fidelity-brief.md § Findings (the record is the last write)",
+         "the marked summary was posted after every finding thread on #103",
+         len(summaries) == 1 and all(i < summaries[0] for i in findings))
 
 # ---- nothing else: no integrate, no commit, lock released ----------------------
 c.expect("patrol.md § fidelity-audit (nothing else of B5b, no integrate)",
