@@ -37,6 +37,7 @@ from lib.checkkit import has_citation  # noqa: E402
 
 sys.path.insert(0, S)
 import replaylib as rl  # noqa: E402
+from export_langfuse import maybe_export  # noqa: E402
 from replaylib import has_result_event, session_error  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(S))
@@ -165,6 +166,16 @@ def run_one(sut, cdir, rdir, prompt, timeout):
     nothing and writes junk). Validity ≠ red: an empty session or an
     unrouted forge call is a harness/fixture failure, not the model's —
     an empty run must never vacuously pass a zero-writes case."""
+    rc = _run_one(sut, cdir, rdir, prompt, timeout)
+    # The iteration is on disk; export it to Langfuse when the env says so
+    # (#80). maybe_export never raises and nothing here reads its answer —
+    # a failed export is a stderr line, never a changed verdict.
+    maybe_export(rdir, os.path.basename(cdir), sut["name"],
+                 os.path.basename(rdir).replace("run-", ""), prompt)
+    return rc
+
+
+def _run_one(sut, cdir, rdir, prompt, timeout):
     os.makedirs(os.path.join(rdir, "forge"), exist_ok=True)
     sbx, work, bare = build_sandbox(cdir)
     if not sbx:
