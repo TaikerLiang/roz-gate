@@ -2,6 +2,26 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.34.0 — replay runs export to Langfuse; the local Langfuse ships in evals/langfuse (#80) — 2026-10-11
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.34.0>
+
+**Tooling:** every replay run can now be read as a Langfuse trace — each API call with its usage and thinking, each tool call with its result and latency, the sub-agent tree, the forge writes, and the verdict and every claim as scores; stdlib, OTLP/HTTP, opt-in by env; the local Langfuse ships in the repo.
+
+### Tooling
+- **`evals/replay/export_langfuse.py`** (#80): one run dir → one trace (`langfuse.session.id` = `<sut>/<case>`, tags case / sut / verdict, the case prompt and result text); a **generation per API call** with `usage_details` incl. cache tokens — the stream emits one assistant event per content block, all sharing the message id with tool results interleaved, merged by id (A1 run-1: 30 events, 14 calls); **tool spans** matched by `tool_use_id`, timed from the transcript; sub-agents nested by `parent_tool_use_id`; journal writes as events; scores `pass` / `valid` / `cost_usd` / one per `check.log` claim. OTLP/HTTP JSON at `/api/public/otel/v1/traces` + `POST /api/public/scores`, `urllib` only. Langfuse v4 stores observations as immutable events (a re-export appends copies), so an export leaves `langfuse.json` in the run dir and that dir is refused unless `--force`; `--dry-run` prints the payload.
+- **`run_replay.py`** exports each iteration when `LANGFUSE_HOST` / `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` are set; a failed export is a stderr line, never a changed verdict.
+- **`evals/langfuse/`**: Langfuse's compose vendored verbatim (upstream `3fed0dadc5d4`, 2026-10-06) under a header; an override that publishes only `127.0.0.1:3000` (upstream binds postgres/redis/clickhouse/minio to host ports that collide with other dev containers); `.env.example` with dev-only secrets and `LANGFUSE_INIT_*` that create org/project **`roz-gate`** and fixed API keys on first boot. `cp .env.example .env && docker compose up -d && set -a; . ./.env; set +a` and the exporter works.
+
+### Evals
+- **Harness red-proof** (`evals/replay/redproof.py` § EXPORT, 10 checks on a staged run dir): the trace, generations merged by message id across interleaved tool results, the tool span's matched output and end time, sub-agent nesting, journal writes only, scores, deterministic ids, the marker rule. Runs on every push with `run_redproofs.py`.
+
+### Docs
+- `evals/replay/README.md` **Exporting runs to Langfuse** (setup, mapping table, what is not captured); `evals/README.md` names the exporter beside the dashboard prototype; `.gitignore` ignores `evals/langfuse/.env`.
+
+### Checks
+Hook tests 228/228 · lint 468/468 · red-proofs 19/19 (harness red-proof 50 checks incl. EXPORT) — on `1ae7f3f`, main (v1.33.2) merged in
+
 ## v1.33.2 — the fidelity audit leaves a record; the blind reviewer never opens the implementation CR; the post-integration re-entry is honest (#95 #96 #97) — 2026-10-11
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.33.2>
