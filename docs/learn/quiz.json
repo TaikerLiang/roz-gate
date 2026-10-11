@@ -496,7 +496,7 @@
    "a": 3,
    "why": "(5q) fidelity review 是 (5) code review 之外的另一次 reviewer dispatch，必須是 fresh context——看過實作的 reviewer 知道測試會過，就容易判它忠實——這正是這次審查要排除的偏差。",
    "src": "commands/next-stage.md B5b · references/fidelity-brief.md",
-   "bg": "Stage (5) code review 是 reviewer 審 implementation code；1.9.0 加了 stage (5q) fidelity review：QA suite 本身也要被審，因為 integration verdict 是從 QA suite 算出來的，不審它，它就是 loop 裡唯一沒被檢查的環節。fidelity-brief.md 是這次 dispatch 的契約，它對「誰、在哪個 checkout、產出什麼」有明確要求。"
+   "bg": "Stage (5) code review 是 reviewer 審 implementation code；1.9.0 加了 stage (5q) fidelity review：QA suite 本身也要被審，因為 integration verdict 是從 QA suite 算出來的，不審它，它就是 loop 裡唯一沒被檢查的環節。fidelity-brief.md 是這次 dispatch 的契約，它對「誰、在哪個 checkout、產出什麼」有明確要求。產出裡的 summary comment 以 `**[reviewer] · fidelity**` 開頭，是審計跑過的紀錄：1.33.0 起 integrate 要求它，沒有它 patrol 會補跑審計（#95）。"
   },
   {
    "id": 19,
