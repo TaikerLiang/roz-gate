@@ -182,7 +182,10 @@ inflates the same number through its mmap'd disk image regardless of its
 memory limit. None of that is real pressure; the runner is resumable
 either way. A live dashboard (`~/Desktop/eval-dashboard.html`,
 regenerated every 60 s by a detached watcher, zero model tokens) is the
-prototype for `evals/status.py`.
+prototype for `evals/status.py`. Per run, the view is Langfuse:
+`evals/replay/export_langfuse.py` turns a run dir into one trace
+(`evals/replay/README.md` § Exporting runs to Langfuse); the local instance
+ships in `evals/langfuse/`.
 
 ## The gate
 
