@@ -1,0 +1,56 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, expired offers never apply.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec"],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer expiry enforcement",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [],
+      "reviews": [],
+      "comments": []
+    },
+    "102": {
+      "number": 102,
+      "title": "feat: implement #5",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "feat/5",
+      "baseRefName": "spec/5",
+      "threads": [{"id": "T7", "isResolved": true, "path": "src/pricing.py", "line": 1, "comments": [{"databaseId": 9201, "author": "paul", "body": "**[reviewer] \u00b7 should-fix \u00b7 boundary**\n\n`return sum(i.cost for i in cart if not i.offer or i.offer.expires_at >= now)` \u2014 an offer expiring exactly now is still applied; spec R4 says past `expires_at` is excluded, so `>=` is right \u2014 name the boundary.", "createdAt": "2026-08-23T07:00:00Z"}, {"databaseId": 9202, "author": "paul", "body": "\u2705 [implementer] addressed \u2014 boundary named in the docstring; no behaviour change.", "createdAt": "2026-08-23T07:30:00Z"}]}],
+      "reviews": [],
+      "comments": []
+    },
+    "103": {
+      "number": 103,
+      "title": "test: #5 black-box (QA)",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "qa/5",
+      "baseRefName": "spec/5",
+      "threads": [
+        {"id": "T9", "isResolved": false,
+         "comments": [
+           {"databaseId": 9101, "author": "paul", "body": "**[reviewer] · should-fix · vacuous assertion**\n\nS1's test asserts the response is 200 but never checks the offer was excluded — the scenario's Then clause (spec.md S1) is unasserted.\n\nEvidence: tests/acceptance/offers/test_expiry.py, `test_expired_offer`; spec.md S1 \"the offer is not applied\".", "createdAt": "2026-08-23T08:00:00Z"},
+           {"databaseId": 9102, "author": "paul", "body": "同意,請 QA 補上斷言。", "createdAt": "2026-08-23T09:00:00Z"}
+         ]}
+      ],
+      "reviews": [],
+      "comments": [{"id": 9301, "author": "paul", "body": "**[reviewer] · fidelity** — 1/1 faithful. S1's test asserts the exclusion the scenario states; coverage map matches test-spec.md.", "created_at": "2026-08-24T11:00:00Z"}]
+    }
+  }
+}

@@ -32,13 +32,20 @@ Anything beyond that is you writing tests by proxy.
 
 ## Step zero — contract currency
 
-Before reading a single test: enumerate every amendment agreed in
-spec-CR threads, implementation-CR threads, and issue comments **since
-`technical-spec.md`'s last commit**, and confirm each is folded into the
-contract text. An unfolded amendment is a **blocking finding routed to
-the main agent** (the contract's owner), and the review stops there — a
-fidelity review against a stale contract is worse than none, because it
-launders the staleness as verified.
+Before reading a single test: the dispatch hands you the **amendment
+list** under the heading `Amendment list:` — every amendment agreed in
+spec-CR threads and issue comments **since `technical-spec.md`'s last
+commit**, each marked `folded at <ID>` or `unfolded`, or the one line
+`none since <sha>` — assembled by the main agent, who is not blind. Verify each
+folded entry against the contract text yourself (spec-CR threads and issue
+comments are yours to read: they carry no code); an unfolded amendment is
+a **blocking finding routed to the main agent** (the contract's owner),
+and the review stops there — a fidelity review against a stale contract
+is worse than none, because it launders the staleness as verified. **No
+list in the dispatch → abort and say so.** Implementation-CR threads are
+never yours: their comments quote the code you must not see, and a
+contract question settled there is a (5) breach the main agent routes
+through (2a) before dispatching you.
 
 ## The four questions
 
