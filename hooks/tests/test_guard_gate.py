@@ -54,6 +54,13 @@ class RuleB_GateLabelsAreHumanOnly(HookTest):
         ("untokenizable: the =form is still denied",
          'gh issue edit 73 --add-label="ready-for-spec" && '
          "gh issue comment 73 --body-file - <<'EOF'\nDon't wait.\nEOF", "gate labels"),
+        ("untokenizable: a \\-newline continuation before the value is still denied "
+         "(codex, PR #100)",
+         'gh issue edit 73 --add-label \\\n   "status: ready-for-dev" && '
+         "gh issue comment 73 --body-file - <<'EOF'\nDon't wait.\nEOF", "gate labels"),
+        ("untokenizable: a tab before the value is still denied",
+         'gh issue edit 73 --add-label\t"status: ready-for-dev" && '
+         "gh issue comment 73 --body-file - <<'EOF'\nDon't wait.\nEOF", "gate labels"),
         ("untokenizable: glab update --label is still denied",
          'glab issue update 73 --label "status::ready-for-dev" && '
          'glab issue note 73 --message "x" <<\'EOF\'\nDon\'t wait.\nEOF', "gate labels"),

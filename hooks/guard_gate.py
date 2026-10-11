@@ -60,13 +60,14 @@ from config_block import find_block  # noqa: E402
 
 GATE = re.compile(r"ready-for-(spec|dev)")
 # Rule B's fallback for a command shlex cannot tokenize: the value right
-# after the add flag — quoted to its closing quote, or bare to whitespace —
-# names a gate label. A gate word anywhere else (the label being removed, a
-# comment body) is not an add.
+# after the add flag — `=`, or any run of shell whitespace and `\`-newline
+# continuations (codex review, PR #100) — quoted to its closing quote, or
+# bare to whitespace — names a gate label. A gate word anywhere else (the
+# label being removed, a comment body) is not an add.
 GATE_ADD_FALLBACK = re.compile(
-    r"""--add-label[= ]+(?:"[^"]*|'[^']*|[^\s"']*)ready-for-(?:spec|dev)""")
+    r"""--add-label(?:=|[\s\\]+)(?:"[^"]*|'[^']*|[^\s"']*)ready-for-(?:spec|dev)""")
 GLAB_ADD_FALLBACK = re.compile(
-    r"""(?:--label|-l)[= ]+(?:"[^"]*|'[^']*|[^\s"']*)ready-for-(?:spec|dev)""")
+    r"""(?:--label|-l)(?:=|[\s\\]+)(?:"[^"]*|'[^']*|[^\s"']*)ready-for-(?:spec|dev)""")
 # Rule D's predicate — the same literal the E2 replay checker asserts
 # (evals/replay/cases/E2/check.py) and the lint tier proves; the three
 # are held byte-identical by lint E2's conformance layer.

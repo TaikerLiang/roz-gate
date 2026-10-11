@@ -1,6 +1,8 @@
 """guard-acceptance (Edit, Write, MultiEdit): the acceptance suite is not
 editable on a spec branch -- it changes on qa/<n> and merges in."""
 
+import subprocess
+
 from hooktest import HookTest, config_block
 
 ACCEPTANCE_FILE = "tests/acceptance/offers/test_expiry.py"
@@ -150,6 +152,24 @@ class AcceptanceSuiteIsNotEditableOnSpecBranch(HookTest):
         with self.case("homes: worktree cwd, branch_template only in the main checkout's "
                        "CLAUDE.local.md — denied"):
             self.assertDenied(self.edit(tpl_wt, "Edit", ACCEPTANCE_FILE), "acceptance suite")
+        # A separate git dir (codex, PR #100): git records the main work tree
+        # nowhere a linked worktree can read — `core.worktree` is the one hint.
+        sgd_main, sgd_git = self.new_dir() / "repo", self.new_dir() / "gitdir"
+        subprocess.run(["git", "init", "-q", "-b", "main", "--separate-git-dir", str(sgd_git),
+                        str(sgd_main)], check=True, capture_output=True)
+        self.write(sgd_main / "CLAUDE.md", "# Project\n")
+        self.git(sgd_main, "add", "-A")
+        self.git(sgd_main, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "i")
+        self.write(sgd_main / "CLAUDE.local.md", block)  # untracked, as in life
+        sgd_wt = self.new_dir() / "wt"
+        self.git(sgd_main, "worktree", "add", "-q", "-b", "spec/8", str(sgd_wt))
+        with self.case("homes: separate git dir, no core.worktree — the main checkout is "
+                       "unreachable from the worktree (documented: keep the block in CLAUDE.md)"):
+            self.assertAllowed(self.edit(sgd_wt, "Edit", ACCEPTANCE_FILE))
+        self.git(sgd_main, "config", "core.worktree", str(sgd_main))
+        with self.case("homes: separate git dir + core.worktree — worktree cwd, block only in "
+                       "the main checkout's CLAUDE.local.md — denied"):
+            self.assertDenied(self.edit(sgd_wt, "Edit", ACCEPTANCE_FILE), "acceptance suite")
         with self.case("homes: no block in either file, either place — nothing to enforce"):
             bare = self.new_repo({"CLAUDE.md": "# Project\n", "CLAUDE.local.md": "# notes\n"},
                                  commit=True, branch="spec/1")

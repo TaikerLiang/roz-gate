@@ -10,8 +10,8 @@ beyond them.
 
 ## 0. Load config & forge adapter
 
-Read the `### Roz Gate config` block in the project's CLAUDE.md (a legacy
-`### Gated Loop config` block counts), then
+Read the `### Roz Gate config` block in the project's CLAUDE.md (or CLAUDE.local.md)
+— a legacy `### Gated Loop config` block counts — then
 `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the CAPITALIZED-OPs.
 No config block → still proceed: steps 2–3 clean whatever is present.
 
@@ -29,9 +29,10 @@ Retirement happens at a quiet point, never mid-flight.
 ## 2. Remove the scaffolding
 
 Each with the change shown first:
-- **CLAUDE.md**: delete the whole `## Development Workflow (Roz Gate)`
-  section (or the legacy `## Development Workflow (Gated Loop)` one) —
-  heading, pointer, config block. Touch nothing else in the file.
+- **CLAUDE.md** — or **CLAUDE.local.md**, whichever carries it: delete the
+  whole `## Development Workflow (Roz Gate)` section (or the legacy
+  `## Development Workflow (Gated Loop)` one) — heading, pointer, config
+  block. Touch nothing else in the file.
 - **`.claude/agents/implementer.md`**: it carries hand-tuned stack knowledge —
   confirm before deleting; the user may keep it as a plain project agent.
 - **Idea issue template** at the adapter's ISSUE-TEMPLATE-PATH: delete if it

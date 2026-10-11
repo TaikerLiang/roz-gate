@@ -1117,11 +1117,17 @@ _pre = read("hooks/guard-acceptance.sh")
 must_match("L5: guard-acceptance's prefilter greps CLAUDE.local.md beside CLAUDE.md",
            r'"\$top/CLAUDE\.md" "\$top/CLAUDE\.local\.md"', _pre)
 must_match("L5: guard-acceptance's prefilter reaches the main checkout's two homes",
-           r'"\$main/\.\./CLAUDE\.md" "\$main/\.\./CLAUDE\.local\.md"', _pre)
+           r'"\$main/CLAUDE\.md" "\$main/CLAUDE\.local\.md"', _pre)
+src("L5: the prefilter honours core.worktree, as the reader does (codex, PR #100)",
+    "hooks/guard-acceptance.sh", 'core.worktree')
+src("L5: the reader honours core.worktree", "hooks/config_block.py", '"core.worktree"')
 for _f in ("commands/integrate.md", "commands/next-stage.md", "commands/patrol.md",
-           "commands/review-answers.md", "commands/spec-answers.md", "commands/to-issues.md"):
+           "commands/review-answers.md", "commands/spec-answers.md", "commands/to-issues.md",
+           "commands/uninit.md"):
     src("L5: %s step 0 names both homes" % _f, _f,
         "block in the project's CLAUDE.md (or CLAUDE.local.md)")
+src("L5: uninit removes the section from whichever file carries it (codex, PR #100)",
+    "commands/uninit.md", "**CLAUDE.md** — or **CLAUDE.local.md**, whichever carries it")
 src("L5: config's hard rule covers both homes", "commands/config.md",
     "`CLAUDE.md` or `CLAUDE.local.md`\nyourself")
 src("L5: README names the second home", "README.md",
