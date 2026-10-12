@@ -209,6 +209,207 @@ see **[R4]** below"'''),
             self.assertAllowed(self.bash("gh pr comment 12 --body-file %s" % marker_first))
 
 
+class RuleF_QuestionOptionsAreBullets(HookTest):
+    """Static rule, no API. Issue #109: a (2a) thread wrote its options as
+    prose; the forge renders consecutive lines as one paragraph, so the
+    holder's phone showed one run-together sentence with nothing for `3a`
+    to point at."""
+
+    guard = "guard-gate"
+
+    # The #109 thread body, verbatim.
+    PROSE = """[em] · Q3 · Sort parameter semantics
+
+The standard sort query param is accepted without error but has zero effect — WorkspaceActionLogRepoImpl hardcodes ORDER BY createdAt DESC, id DESC regardless of pageable.getSort() (same as the UserActionLogController/Repo sibling) — acceptable for this story, or does AC-6 require sort to actually work?
+
+(a) Accept the no-op sort as consistent with existing convention; document as a known limitation, no code change this story. ← ✅ recommended (b) Extend WorkspaceActionLogRepoImpl to honor pageable.getSort(), expanding scope beyond "expose an endpoint over an existing service.\""""  # noqa: E501 — verbatim
+    GOOD = """**[em] · Q3 · Sort parameter semantics**
+
+Does AC-6 require `sort` to work, or is the no-op acceptable for this story?
+
+- (a) Accept the no-op sort; document it as a known limitation. ← ✅ recommended
+- (b) Honor `pageable.getSort()` — scope beyond "expose an endpoint".
+
+*The sibling endpoint has the same no-op; (b) is a new feature.*"""
+
+    DENIED = [
+        ("#109's thread body verbatim — options as prose — denied",
+         'gh api -X POST "repos/o/r/pulls/12/comments" -f body=\'%s\' -f commit_id=abc '
+         '-f path=docs/specs/5/spec.md -F line=40 -f side=RIGHT' % PROSE.replace("'", "'\\''"),
+         "Q3 has none"),
+        ("options on consecutive bare lines (the forge joins them) denied",
+         '''gh pr comment 12 --body "**[em] · Q3 · Sort parameter semantics**
+
+Does AC-6 require sort to work?
+
+(a) Accept the no-op sort. ← ✅ recommended
+(b) Honor the sort parameter.
+
+*why*"''', "Q3 has none"),
+        ("a single option bullet is not a list — denied",
+         '''gh pr comment 12 --body "**[em] · Q1 · lock strategy**
+
+Row or table lock?
+
+- (a) row lock ← ✅ recommended, (b) table lock
+
+*Bounds contention.*"''', "Q1 has none"),
+        ("intake batch: the second question without bullets — names it",
+         r'''gh issue comment 5 --body "**[intake]** 2 questions — discuss below (\`1a 2b\` shorthand welcome).
+
+**Q1 · Scope**
+
+- (a) the endpoint only ← ✅ recommended
+- (b) the endpoint and the export
+
+*The export is its own story.*
+
+**Q2 · Driver**
+
+(a) cron ← ✅ recommended (b) webhook
+
+*Cron exists already.*"''', "Q2 has none"),  # noqa: E501
+        ("a story-level title is a question — denied",
+         '''gh pr comment 12 --body "**[product] · Q2 · Export scope (story-level)**
+
+Is the export part of this story?
+
+(a) no ← ✅ recommended (b) yes
+
+*why*"''', "Q2 has none"),
+        ("a list-item title with prose options denied",
+         '''gh pr comment 12 --body "- **[em] · Q1 · lock strategy**
+  Row or table lock? (a) row ← ✅ recommended (b) table. *why*"''', "Q1 has none"),
+        ("glab discussions form denied",
+         '''glab api -X POST "projects/:id/merge_requests/7/discussions" -f body="**[em] · Q1 · lock strategy**
+
+Row or table lock?
+
+(a) row lock ← ✅ recommended (b) table lock
+
+*why*" -f "position[position_type]=text"''', "Q1 has none"),  # noqa: E501
+        ("body-file heredoc parsed and denied", '''gh pr comment 12 --body-file - <<EOF
+**[em] · Q1 · lock strategy**
+
+Row or table lock?
+
+(a) row lock ← ✅ recommended (b) table lock
+EOF''', "Q1 has none"),
+        ("ANSI-C quoted body denied",
+         r"gh pr comment 12 --body $'**[em] · Q1 · lock strategy**\n\nRow or table?\n\n"
+         r"(a) row ← ✅ recommended (b) table'", "Q1 has none"),
+        # The label is free text (codex review, PR #112): punctuation in it
+        # does not turn a question into a non-question.
+        ("a label with a colon is still a question — denied",
+         '''gh pr comment 12 --body "**[em] · Q1 · Scope: exports**
+
+Is the export in?
+
+(a) no ← ✅ recommended (b) yes"''', "Q1 has none"),
+        ("a label with a parenthetical is still a question — denied",
+         '''gh pr comment 12 --body "**[em] · Q1 · Sort (pagination)**
+
+Does sort apply?
+
+(a) no ← ✅ recommended (b) yes"''', "Q1 has none"),
+        ("an unbolded label with a colon is still a question — denied",
+         '''gh pr comment 12 --body "[em] · Q1 · Scope: exports
+
+Is the export in?
+
+(a) no ← ✅ recommended (b) yes"''', "Q1 has none"),
+    ]
+    ALLOWED = [
+        ("the prescribed shape allowed", 'gh pr comment 12 --body "%s"' % GOOD),
+        ("asterisk and numbered list markers allowed",
+         '''gh pr comment 12 --body "**[em] · Q1 · lock strategy**
+
+Row or table lock?
+
+* (a) row lock ← ✅ recommended
+* (b) table lock
+
+**Q2 · Driver**
+
+1. (a) cron ← ✅ recommended
+2. (b) webhook"'''),
+        ("option bullets with detail sub-bullets allowed",
+         '''gh pr comment 12 --body "**[em] · Q1 · lock strategy**
+
+- (a) row lock ← ✅ recommended
+  - bounds contention
+- (b) table lock"'''),
+        ("a batch where every question has bullets allowed",
+         '''gh issue comment 5 --body "**[intake]** 2 questions.
+
+**Q1 · Scope**
+
+- (a) the endpoint only ← ✅ recommended
+- (b) both
+
+**Q2 · Driver**
+
+- (a) cron ← ✅ recommended
+- (b) webhook"'''),
+        ("a resolved item — the title shares its line — allowed",
+         '''gh pr comment 12 --body "**[spec-answers] · folded**
+
+**[em] · Q1 · lock strategy** — resolved.
+**Resolved:** (a) row lock — paul. Folded into R4."'''),
+        ("a bolded ruling line allowed",
+         '''gh issue comment 5 --body "**[intake] · note**
+
+**Q1 · Scope → (a)**
+**Q2 · Driver → (b)**"'''),
+        ("an unbolded resolved item allowed",
+         '''gh pr comment 12 --body "[em] · Q1 · lock strategy — resolved.
+**Resolved:** (a) row lock — paul."'''),
+        ("text after the closing bold is not a title — allowed",
+         '''gh pr comment 12 --body "**Q1 · Scope** — the holder's call, see the thread."'''),
+        ("a rulings list — each title shares its line — allowed",
+         '''gh issue comment 5 --body "**[intake] · note** rulings so far:
+
+**Q1 · Scope** → (a)
+**Q2 · Driver** → (b)"'''),
+        ("an answer that mentions options allowed",
+         '''gh api -X POST "repos/o/r/pulls/12/comments/9/replies" -f body="**[review] · answer**
+
+(a) it is — see R4; (b) was never on the table."'''),
+        ("a question-shaped CR body allowed (comments only)",
+         '''gh pr create --title t --body "**[em] · Q1 · lock strategy**
+
+(a) row (b) table"'''),
+    ]
+
+    def test_denied(self):
+        for name, cmd, says in self.DENIED:
+            with self.case(name):
+                self.assertDenied(self.bash(cmd), says)
+
+    def test_allowed(self):
+        for name, cmd in self.ALLOWED:
+            with self.case(name):
+                self.assertAllowed(self.bash(cmd))
+
+    def test_only_forge_writes_and_no_api(self):
+        with self.case("non-forge command carrying a prose question allowed (gh/glab only)"):
+            self.assertAllowed(self.bash(
+                'git commit -m "**[em] · Q3 · label** (a) row (b) table"'))
+        with self.case("rule F made no API call"):
+            self.assertEqual(self.api_calls(), [])
+
+    def test_body_file_read_back(self):
+        prose = self.tmp / "q-prose.md"
+        prose.write_text(self.PROSE + "\n")
+        good = self.tmp / "q-good.md"
+        good.write_text(self.GOOD + "\n")
+        with self.case("body-file read back and denied"):
+            self.assertDenied(self.bash("gh pr comment 12 --body-file %s" % prose),
+                              "Q3 has none")
+        with self.case("body-file with the prescribed shape allowed"):
+            self.assertAllowed(self.bash("gh pr comment 12 --body-file %s" % good))
+
+
 # The E2 fixture's exact technical-spec.md (the scripted double's output).
 TS_WITH_SECTION = """# Technical spec #5
 

@@ -107,6 +107,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | E3 | the implementer can stop and ask at stage (3) | lint (defect 1.12.0-) | — |
 | E4 | the stage-(5) reviewer has the same route | lint (defect 1.12.0-) | — |
 | E6 | A thread the human opens is an amendment, folded like an answer | replay | "`spec.md` on the remote carries the amendment; a `✅ [<role>] amended` reply; the thread resolved." (a human-opened thread has one comment and no `[role]` tag, so the answered-thread rule skipped it while patrol classified it actionable — every pass reported "no new answers" — issue #62) |
+| E7 | A question's options reach the holder as a list | hook (guard-gate rule F) + lint | "Each question block carries at least two option bullets — `- (a) …`, `- (b) …`; a comment without them is denied before it posts." (a (2a) thread wrote the options as prose; the forge rendered them as one paragraph on the holder's phone, with nothing for the `3a` shorthand to point at — issue #109) |
 | E5 | An answer folds into the document that owns it | replay | "technical-spec.md is modified. The spec.md entry records the resolution and points at the clause." (folded as prose beside the question instead, the contract never changes, QA derives from the unchanged contract, and the defect ships with a resolved thread pointing at it) |
 
 ### F · the loop end to end
