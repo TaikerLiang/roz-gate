@@ -212,7 +212,9 @@ Base everything strictly on the issue body. Per the workflow's stage (2):
   - Blank line, then the question as **one sentence**.
   - The options as **(a)/(b) bullets** — mark the recommended one
     `← ✅ recommended`; an option needing detail says so inline
-    ("(b) a subset → say which").
+    ("(b) a subset → say which"). One bullet per option, never prose: the
+    forge renders consecutive lines as one paragraph, and guard-gate
+    denies a question comment without them (rule F, #109).
   - The why as **one italic line**.
 
 ### A4. Commit + push

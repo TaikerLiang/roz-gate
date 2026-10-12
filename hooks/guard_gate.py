@@ -2,7 +2,7 @@
 """Roz Gate enforcement — layer 2: trigger validation.
 
 Invoked by guard-gate.sh only when a Bash command mentions a guarded
-pattern. Four rules, each the mechanical form of existing protocol text:
+pattern. Five rules, each the mechanical form of existing protocol text:
 
   A. An ``**[intake] · summary**`` comment may be posted only when the
      async-intake trigger holds (commands/patrol.md step 2): a gate label
@@ -28,6 +28,17 @@ pattern. Four rules, each the mechanical form of existing protocol text:
      deny lands at the moment the agent can still act on it, and its
      message is the remedy. Working tree AND index are checked: a fixed
      file that was never re-staged would commit the stale section.
+  F. A question comment lists its options as bullets (commands/next-stage.md
+     A3, references/intake-brief.md: "the options as (a)/(b) bullets").
+     Issue #109: a (2a) thread wrote them as prose — and the forge renders
+     consecutive lines as one paragraph, so even options written one per
+     line reach the gate holder's phone run together, with nothing for the
+     ``3a`` shorthand to point at. Per question block (a stand-alone title
+     line, ``**[<role>] · Q<k> · <label>**`` or ``**Q<n> · <label>**``, up
+     to the next), fewer than two option bullets (``- (a) …``, any list
+     marker) is a deny; a title sharing its line with anything else
+     (``— resolved.``, ``→ (a)``) is not a question — answers, folds and
+     ledgers are out of scope by construction.
 
 Exit 0 allows the tool call; exit 2 blocks it and feeds stderr to the
 model. Forge API failures fail closed, with a message that says it is an
@@ -110,6 +121,24 @@ QUOTE_OPEN_MSG = (
     "the text back to the human to post themselves. Why: patrol classifies "
     "a comment by its opening token — a quote-opening agent comment reads "
     "as a human answer, and the loop replies to itself once per pass."
+)
+
+# Rule F: a question block starts at a line that is only its title — bold
+# optional (the #109 thread had none), a list item allowed, `(story-level)`
+# allowed — and runs to the next title. The label admits no `(`, `:`, arrow
+# or dash, so a ruling (`**Q1 · Scope** → (a)`) or a resolved item
+# (`**[em] · Q1 · lock** — resolved.`) never opens a block.
+Q_TITLE = re.compile(
+    r"^\s*(?:[-*+]\s+|\d+[.)]\s+)?(?:\*\*)?(?:\[[^\]\n]+\] · )?(Q\d+) · "
+    r"[^\n*(:→—–]+?(?: \(story-level\))?(?:\*\*)?\s*$")
+OPTION_BULLET = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+\([a-z]\)")
+OPTIONS_MSG = (
+    "Roz Gate: blocked — a question comment lists its options as bullets, "
+    "one per line, and %s has none: `- (a) …` / `- (b) … ← ✅ recommended` "
+    "(commands/next-stage.md A3; references/intake-brief.md). Why: the forge "
+    "renders consecutive lines as one paragraph — options written as prose "
+    "or as bare lines reach the gate holder's phone run together, and the "
+    "shorthand reply (`3a`) has nothing to point at (issue #109)."
 )
 
 BODY_FILE_MSG = (
@@ -318,7 +347,7 @@ def check_gate_label_add(cmd, toks):
         deny(RULE_B_MSG)
 
 
-def check_quote_open(cmd, toks):
+def check_comment_writes(cmd, toks):
     """Rule C: a marker-carrying comment body never opens with a quote.
 
     Purely static — no forge call. Judged only on comment-shaped writes
@@ -349,11 +378,21 @@ def check_quote_open(cmd, toks):
     WHOLE command text (a `--body-file -` heredoc body may itself
     contain separator-looking tokens; body_from_file never uses the
     segmentation).
+
+    Rule F (#109) rides the same bodies: after the quote check, a question
+    block without its option bullets is denied.
     """
     if toks is None:
         return
     for seg in shell_segments(toks):
-        check_quote_open_segment(cmd, seg)
+        for body in segment_bodies(cmd, seg):
+            if not body:
+                continue
+            if quote_opening(body):
+                deny(QUOTE_OPEN_MSG)
+            q = question_without_options(body)
+            if q:
+                deny(OPTIONS_MSG % q)
 
 
 def shell_segments(toks):
@@ -373,7 +412,10 @@ def shell_segments(toks):
     return segments
 
 
-def check_quote_open_segment(cmd, toks):
+def segment_bodies(cmd, toks):
+    """The comment bodies of one shell segment — none unless it is a
+    comment-shaped forge write (gh/glab comment or note, or an api call to a
+    comments/replies/notes/discussions route)."""
     gh_comment = "gh" in toks and "comment" in toks and (
         "issue" in toks or "pr" in toks
     )
@@ -384,10 +426,23 @@ def check_quote_open_segment(cmd, toks):
         re.search(r"/(comments|replies|notes|discussions)\b", " ".join(toks))
     )
     if not (gh_comment or glab_note or api_comment):
-        return
-    for body in comment_bodies(cmd, toks, gh_comment, glab_note, api_comment):
-        if body and quote_opening(body):
-            deny(QUOTE_OPEN_MSG)
+        return []
+    return comment_bodies(cmd, toks, gh_comment, glab_note, api_comment)
+
+
+def question_without_options(body):
+    """Rule F's predicate: the first question block (Q_TITLE line to the
+    next) with fewer than two OPTION_BULLET lines — its Q-ID, or None."""
+    current, count = None, 0
+    for line in ansi_c(body).splitlines():
+        m = Q_TITLE.match(line)
+        if m:
+            if current and count < 2:
+                return current
+            current, count = m.group(1), 0
+        elif current and OPTION_BULLET.match(line):
+            count += 1
+    return current if current and count < 2 else None
 
 
 def comment_bodies(cmd, toks, gh_comment, glab_note, api_comment):
@@ -449,11 +504,16 @@ def body_from_file(path, cmd):
     return None
 
 
-def quote_opening(body):
+def ansi_c(body):
+    """bash ANSI-C $'...' reaches shlex as `$` + content with literal \\n
+    escapes; normalize enough to judge lines and openings."""
     if body.startswith("$"):
-        # bash ANSI-C $'...' reaches shlex as `$` + content with literal
-        # \n escapes; normalize enough to judge the opening.
-        body = body[1:].replace("\\n", "\n").replace("\\t", "\t")
+        return body[1:].replace("\\n", "\n").replace("\\t", "\t")
+    return body
+
+
+def quote_opening(body):
+    body = ansi_c(body)
     return bool(ROZ_MARKER.search(body)) and body.lstrip().startswith(">")
 
 
@@ -577,7 +637,7 @@ def main():
     except ValueError:
         toks = None
     check_gate_label_add(cmd, toks)
-    check_quote_open(cmd, toks)
+    check_comment_writes(cmd, toks)
     check_open_questions_commit(toks)
     if SUMMARY_MARKER.search(cmd):
         bots = load_bot_logins()

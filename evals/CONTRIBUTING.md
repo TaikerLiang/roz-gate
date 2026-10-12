@@ -35,7 +35,7 @@ Take the first that can decide it:
 
 | if the rule… | put it in | example |
 |---|---|---|
-| can be decided from one tool call as it happens | a **hook** (`../hooks/README.md`) | C4, B4 → rule C, E2 → rule D |
+| can be decided from one tool call as it happens | a **hook** (`../hooks/README.md`) | C4, B4 → rule C, E2 → rule D, E7 → rule F |
 | lives in prose and is provable by reading the source | **lint** | B1, C6, D1 |
 | is about what a model actually does with the prose | **replay** | A1–A5, D4, F1–F5 |
 | needs a judgment of meaning ("did it raise the thing that mattered") | **judgment** | P1…N10 |

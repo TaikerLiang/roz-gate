@@ -36,7 +36,9 @@ of:
      - Each question: `**Q<n> · <2–3-word label>**` (e.g. Scope / Coverage /
        Driver), then the options as **(a)/(b) bullets** — mark the recommended
        one `← ✅ recommended` — then the why as **one italic line**. An option
-       needing detail says so inline ("(b) a subset → say which").
+       needing detail says so inline ("(b) a subset → say which"). One bullet
+       per option, never prose — guard-gate denies the comment without them
+       (rule F, #109).
      - Long background (enumerations, current-state surveys) goes in a
        `<details><summary>Background</summary>` block per question — visible
        text stays question + options + one-line why. **Must-read budget:
