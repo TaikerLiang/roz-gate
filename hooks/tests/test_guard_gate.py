@@ -298,6 +298,26 @@ EOF''', "Q1 has none"),
         ("ANSI-C quoted body denied",
          r"gh pr comment 12 --body $'**[em] · Q1 · lock strategy**\n\nRow or table?\n\n"
          r"(a) row ← ✅ recommended (b) table'", "Q1 has none"),
+        # The label is free text (codex review, PR #112): punctuation in it
+        # does not turn a question into a non-question.
+        ("a label with a colon is still a question — denied",
+         '''gh pr comment 12 --body "**[em] · Q1 · Scope: exports**
+
+Is the export in?
+
+(a) no ← ✅ recommended (b) yes"''', "Q1 has none"),
+        ("a label with a parenthetical is still a question — denied",
+         '''gh pr comment 12 --body "**[em] · Q1 · Sort (pagination)**
+
+Does sort apply?
+
+(a) no ← ✅ recommended (b) yes"''', "Q1 has none"),
+        ("an unbolded label with a colon is still a question — denied",
+         '''gh pr comment 12 --body "[em] · Q1 · Scope: exports
+
+Is the export in?
+
+(a) no ← ✅ recommended (b) yes"''', "Q1 has none"),
     ]
     ALLOWED = [
         ("the prescribed shape allowed", 'gh pr comment 12 --body "%s"' % GOOD),
@@ -336,6 +356,16 @@ Row or table lock?
 
 **[em] · Q1 · lock strategy** — resolved.
 **Resolved:** (a) row lock — paul. Folded into R4."'''),
+        ("a bolded ruling line allowed",
+         '''gh issue comment 5 --body "**[intake] · note**
+
+**Q1 · Scope → (a)**
+**Q2 · Driver → (b)**"'''),
+        ("an unbolded resolved item allowed",
+         '''gh pr comment 12 --body "[em] · Q1 · lock strategy — resolved.
+**Resolved:** (a) row lock — paul."'''),
+        ("text after the closing bold is not a title — allowed",
+         '''gh pr comment 12 --body "**Q1 · Scope** — the holder's call, see the thread."'''),
         ("a rulings list — each title shares its line — allowed",
          '''gh issue comment 5 --body "**[intake] · note** rulings so far:
 

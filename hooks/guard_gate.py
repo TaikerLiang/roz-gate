@@ -36,8 +36,8 @@ pattern. Five rules, each the mechanical form of existing protocol text:
      ``3a`` shorthand to point at. Per question block (a stand-alone title
      line, ``**[<role>] · Q<k> · <label>**`` or ``**Q<n> · <label>**``, up
      to the next), fewer than two option bullets (``- (a) …``, any list
-     marker) is a deny; a title sharing its line with anything else
-     (``— resolved.``, ``→ (a)``) is not a question — answers, folds and
+     marker) is a deny; a title whose line carries a ruling (``→ (a)``) or
+     a resolution (``— resolved.``) is not a question — answers, folds and
      ledgers are out of scope by construction.
 
 Exit 0 allows the tool call; exit 2 blocks it and feeds stderr to the
@@ -124,13 +124,17 @@ QUOTE_OPEN_MSG = (
 )
 
 # Rule F: a question block starts at a line that is only its title — bold
-# optional (the #109 thread had none), a list item allowed, `(story-level)`
-# allowed — and runs to the next title. The label admits no `(`, `:`, arrow
-# or dash, so a ruling (`**Q1 · Scope** → (a)`) or a resolved item
-# (`**[em] · Q1 · lock** — resolved.`) never opens a block.
+# optional (the #109 thread had none), a list item allowed — and runs to
+# the next title. The label is free text (`Scope: exports`, `Sort
+# (pagination)`, `… (story-level)`); what closes the line to a title is the
+# tail: a ruling (`→`, or an `(a)`-shaped option anywhere on the line) or a
+# resolution (`— resolved`) opens no block, nor does text after a closing
+# `**`. Codex review, PR #112: the first cut excluded `(` and `:` from the
+# label, and a `Scope: exports` question with prose options passed —
+# the silent direction.
 Q_TITLE = re.compile(
-    r"^\s*(?:[-*+]\s+|\d+[.)]\s+)?(?:\*\*)?(?:\[[^\]\n]+\] · )?(Q\d+) · "
-    r"[^\n*(:→—–]+?(?: \(story-level\))?(?:\*\*)?\s*$")
+    r"^\s*(?:[-*+]\s+|\d+[.)]\s+)?(?!.*(?:→|\([a-z]\)|[—–-]\s*resolved))"
+    r"(?:\*\*)?(?:\[[^\]\n]+\] · )?(Q\d+) · \S[^\n*]*?(?:\*\*)?\s*$")
 OPTION_BULLET = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+\([a-z]\)")
 OPTIONS_MSG = (
     "Roz Gate: blocked — a question comment lists its options as bullets, "
