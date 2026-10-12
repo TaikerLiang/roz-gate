@@ -450,6 +450,14 @@ worktree commit onto `origin/spec/5`, push again.
          'gh issue comment 5 --body "%s"' % STOP.replace(
              "<details>", "To resume: clear blocked, apply ready-for-spec.\n\n<details>", 1),
          "resume line"),
+        # Codex review, PR #114: the line must CLOSE the must-read.
+        ("the resume line only inside the folded evidence — denied",
+         'gh issue comment 5 --body "%s"' % STOP.replace(
+             "</details>", RESUME + "\n</details>", 1), "resume line"),
+        ("the resume line followed by more must-read prose — denied",
+         'gh issue comment 5 --body "%s"' % STOP.replace(
+             "<details>", RESUME + "\n\nAlso: the worktree is gone.\n\n<details>", 1),
+         "resume line"),
     ]
     ALLOWED = [
         ("the prescribed shape allowed", 'gh issue comment 5 --body "%s"' % GOOD),
@@ -464,6 +472,8 @@ Round 3 of 3 red: 3 harness issues in a row, all in AcceptanceSupport.
          '''gh pr comment 12 --body "**[review] · question** — the merge is blocked on a conflict in a.txt; which side wins?"'''),  # noqa: E501
         ("a title sharing its line is not the STOP title — allowed",
          '''gh issue comment 5 --body "**[next-stage] · blocked** — see the thread; nothing to resume."'''),  # noqa: E501
+        ("no evidence block at all — the line last — allowed",
+         'gh issue comment 5 --body "%s"' % (STOP.split("<details>", 1)[0] + RESUME)),
         ("the title quoted inside a sentence allowed",
          '''gh issue comment 5 --body "✅ [next-stage] resumed — the **[next-stage] · blocked** comment above is handled."'''),  # noqa: E501
     ]

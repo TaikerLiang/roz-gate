@@ -35,6 +35,10 @@ c.expect("spec-answers.md §5.4", "a top-level reply on the CR opens with ✅ [ 
          any(e.get("write") and e.get("route") == "pr-comment" and str(e.get("pr")) == "101"
              and (e.get("body") or "").startswith("✅ [") and "amended" in (e.get("body") or "")
              for e in r.journal()))
+c.expect("spec-answers.md §5.4 (the citation marks it heard; codex review, PR #114)",
+         "the reply cites the comment (its id 800)",
+         any(e.get("write") and e.get("route") == "pr-comment" and "800" in (e.get("body") or "")
+             for e in r.journal()))
 c.expect("spec-answers.md §9 (labels)", "in-spec-review stays, no STOP",
          r.status_labels("5") == ["status: in-spec-review"])
 c.finish()

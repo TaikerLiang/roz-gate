@@ -61,9 +61,14 @@ A thread needs processing when it is **unresolved** and EITHER:
   Out of Scope); any other file → `product`.
 - **a top-level item** — a comment or a review body (CR-COMMENTS-LIST,
   REVIEWS-LIST) — is **unheard** when its latest entry does NOT start with
-  `**[` or `✅ [` (`review-answers`' predicate). It has no path, so it is
-  `product`'s; the human's text is the ruling — the seat decides whether it
-  closes an open `Q<k>` or is an amendment `A<k>`, and folds it like one.
+  `**[` or `✅ [` (`review-answers`' predicate) **and no later top-level
+  comment opening with `**[` or `✅ [` cites it** — the reply in § 5.4 does,
+  and that citation is what marks it heard: the item itself never changes
+  (a top-level reply is a new comment, not an entry in it), so without the
+  citation every later run would fold it again (codex review, PR #114). It
+  has no path, so it is `product`'s; the human's text is the ruling — the
+  seat decides whether it closes an open `Q<k>` or is an amendment `A<k>`,
+  and folds it like one.
 
 If a thread has only the original `**[...]**` question and no reply → leave it,
 the user has not answered yet. If no thread or top-level item qualifies on any CR → report "no
@@ -129,8 +134,9 @@ half-done:
    `✅ [<role>] resolved — <decision>, folded into spec.md.` (an amendment:
    `✅ [<role>] amended — <what changed>, folded into <document>.`) then
    THREAD-RESOLVE. A top-level item has no thread: CR-COMMENT the same
-   `✅ [<role>] amended — …` line, citing the comment's URL; nothing to
-   resolve — the `✅ [` opening is what makes it heard.
+   `✅ [<role>] amended — …` line, **citing the item's URL** (`#issuecomment-<id>`
+   / `#note_<id>`); nothing to resolve — the marker opening plus the citation
+   is what marks it heard, and the next run skips it (§ 3).
 5. **Story-level check:** if the resolution changes the user story /
    acceptance criteria, ISSUE-COMMENT a summary linking the thread. Do NOT
    edit the issue body/AC — the user decides whether to amend.

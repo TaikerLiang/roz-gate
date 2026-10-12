@@ -379,7 +379,8 @@ evidence (logs, command output, diffs) folded below it in one
 `<details><summary>Evidence</summary>` block; the human on a phone reads the
 decision first and opens the evidence only to check it. The must-read has a
 fixed first and last line (#98): it opens with the
-title `**[<command>] · blocked**`, and it ends with the resume line —
+title `**[<command>] · blocked**`, and its last line (one source line,
+right before `<details>`) is the resume line —
 **To resume:** clear `status: blocked`, apply `status: <phase>` — yourself,
 or tell the main agent; <where the answer goes> — where `<phase>` is the
 phase the step re-enters (none when the run entered from in flight:

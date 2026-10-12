@@ -229,9 +229,12 @@ src("C18: hooks/README carries row G", "hooks/README.md",
 src("E8: spec-answers reads the three channels", "commands/spec-answers.md",
     "On each CR: THREADS-LIST (inline threads), REVIEWS-LIST")
 src("E8: a top-level item is product's", "commands/spec-answers.md",
-    "It has no path, so it is\n  `product`'s")
+    "has no path, so it is `product`'s")
 src("E8: the reply to a top-level item is a CR-COMMENT", "commands/spec-answers.md",
     "A top-level item has no thread: CR-COMMENT")
+src("E8: a cited top-level item is heard — never folded twice (codex review, PR #114)",
+    "commands/spec-answers.md",
+    "**and no later top-level\n  comment opening with `**[` or `✅ [` cites it**")
 src("E8: the GitHub adapter names CR-COMMENT", "references/forge-github.md",
     '| CR-COMMENT | `gh pr comment <pr> --body "..."`')
 src("E8: the GitLab adapter names CR-COMMENT", "references/forge-gitlab.md",

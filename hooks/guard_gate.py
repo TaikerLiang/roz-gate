@@ -156,17 +156,21 @@ OPTIONS_MSG = (
 # Rule G: the STOP comment's two fixed lines (references/workflow.md, the
 # STOP protocol). The title is the whole line — a title sharing its line
 # (`**[next-stage] · blocked** — see below`) is prose quoting it; the resume
-# line is matched by its bold opening anywhere in the body.
+# line is the LAST non-empty line of the must-read (the text before the
+# first `<details`). Codex review, PR #114: matched anywhere in the body, a
+# `**To resume:**` pasted inside the folded evidence, or followed by more
+# must-read prose, passed — the exact failure the rule exists for.
 STOP_TITLE = re.compile(r"^\s*\*\*\[[^\]\n]+\] · blocked\*\*\s*$")
 RESUME_LINE = re.compile(r"^\s*\*\*To resume:\*\*")
 RESUME_MSG = (
     "Roz Gate: blocked — a STOP comment ends its must-read with the resume "
-    "line and this one has none: `**To resume:** clear status: blocked, "
-    "apply status: <phase> — yourself, or tell the main agent; <where the "
-    "answer goes>` (references/workflow.md, the STOP protocol; the "
-    "command's STOP section names its phase and channel). Why: the comment "
-    "is what the gate holder reads on a phone — without the line they leave "
-    "`blocked` on and answer where nothing listens (issue #98)."
+    "line — the last non-empty line before `<details>` — and this one does "
+    "not: `**To resume:** clear status: blocked, apply status: <phase> — "
+    "yourself, or tell the main agent; <where the answer goes>` on one line "
+    "(references/workflow.md, the STOP protocol; the command's STOP section "
+    "names its phase and channel). Why: the comment is what the gate holder "
+    "reads on a phone — without the line they leave `blocked` on and answer "
+    "where nothing listens (issue #98)."
 )
 
 BODY_FILE_MSG = (
@@ -477,10 +481,14 @@ def question_without_options(body):
 
 
 def stop_without_resume(body):
-    """Rule G's predicate: a STOP_TITLE line and no RESUME_LINE anywhere."""
-    lines = ansi_c(body).splitlines()
-    return (any(STOP_TITLE.match(ln) for ln in lines)
-            and not any(RESUME_LINE.match(ln) for ln in lines))
+    """Rule G's predicate: a STOP_TITLE line, and the must-read (the text
+    before the first `<details`; the whole body without one) does not end
+    on a RESUME_LINE."""
+    text = ansi_c(body)
+    if not any(STOP_TITLE.match(ln) for ln in text.splitlines()):
+        return False
+    must_read = [ln for ln in text.split("<details", 1)[0].splitlines() if ln.strip()]
+    return not (must_read and RESUME_LINE.match(must_read[-1]))
 
 
 def comment_bodies(cmd, toks, gh_comment, glab_note, api_comment):
