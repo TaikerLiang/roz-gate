@@ -136,6 +136,16 @@ background-dispatched scanner hands its table back as a
 `task_notification`) — shipped with the sweep; runs 1 and 5 were rescored
 under the fixed checker and say so in their `result.json`.
 
+**Replay, k=3, plugin v1.36.0 (2026-10-12) — E8** (a top-level comment on
+the spec CR, no inline thread, folded as an amendment and answered with a
+top-level `✅ [product] amended` that cites it) **3/3**, Wilson 90%
+[53%, 100%]; checker commit `f2cb1d2`, amended at `8c1e33a` (the citation
+check, codex review) — both before any run; the runs were from `bc51463`.
+≈ 619k tokens in / 0.9k out over the three runs, subscription quota. k=3
+by the gate holder's quota call. The seed is E6's with the amendment moved
+from an inline thread to the CR's top-level channel — the first replay seed
+with anything in that channel for `spec-answers` (#98).
+
 **Judgment, k=2 (opus judge, quote-verified, zero judge-invalid):**
 
 | fixture | recall | precision | questions | historical |
