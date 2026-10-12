@@ -2,6 +2,19 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.34.1 — guard-blind reads the suite in any worktree of the repo — 2026-10-12
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.34.1>
+
+**Hooks only.** Rule E (the fidelity dispatch is blind) denied the suite it audits whenever the suite sat in a linked worktree and the hook fired from another tree — the normal shape since the Read tool takes absolute paths and a sub-agent's Bash cwd is the session's (#107, ADMC #73 on 1.34.0).
+
+### Hooks
+- **`guard-blind` resolves the suite under every worktree of the repo** (#107): one `git worktree list --porcelain` names the trees; the `qa/<n>` worktree's `<acceptance_dir>` is readable from the main checkout's cwd, Read, Grep, Glob and Bash alike. A tree on a `feat/` ref or on the marker's `feat=` ref is not a readable tree, its acceptance dir included; `src/main` and anything else outside the suite stays denied in every tree. Known over-block, recorded: a grep whose *pattern* is `src/` (`grep 'src/' hooks/guard-blind.sh`) is denied — a pattern operand looks like a path operand.
+- Hook tests 228 → 250: the linked-worktree suite from the main checkout, the implementation worktree's suite, the marker-named tree; red-proofed against the 1.34.0 hook (9 allowed cases red).
+
+### Docs
+- `hooks/README.md`: rule E row; cautionary list entry **Tree by cwd**.
+
 ## v1.34.0 — replay runs export to Langfuse; the local Langfuse ships in evals/langfuse (#80) — 2026-10-11
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.34.0>
