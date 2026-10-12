@@ -2,6 +2,26 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.36.0 — the STOP comment names its resume move (guard-gate rule G); spec-answers hears all three channels (#98, #72) — 2026-10-12
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.36.0>
+
+**Behavior:** a STOP comment opens with `**[<command>] · blocked**` and ends with a **To resume:** line — which label to clear, which to apply, where to answer — and the hook denies one without it; `spec-answers` hears a top-level comment on the spec CR as an amendment (#98). The rewind from `ready-for-dev` is one checklist in `workflow.md` (#72).
+
+### Behavior
+- **The STOP comment names its resume move** (#98): the protocol's template in `references/workflow.md`; `spec-answers` (→ `in-spec-review`, answer on the spec CR — inline or top-level, never the issue), `next-stage` (→ the gate label it consumed, run the remedy first), `integrate` (clear `blocked` alone; patrol re-runs it) fill it in. ADMC #73: the human read the STOP, left `blocked` on and answered as a top-level CR comment — nothing heard.
+- **`spec-answers` reads all three channels** (#98): THREADS-LIST, REVIEWS-LIST, CR-COMMENTS-LIST with `review-answers`' predicate; a top-level item is `product`'s, folded like an amendment, answered with a top-level `✅ [product] amended`. Op **CR-COMMENT** named in both adapters.
+- **Rewind from `ready-for-dev`** (#72, ruled (a)): route (ii) carries the checklist — close the spec CR, amend the issue, `ready-for-dev` → `ready-for-spec`; a `{seq}` template keeps the branches, otherwise `spec/<n>` (+ `feat`/`qa`) is yours to delete. No command deletes a branch.
+
+### Hooks
+- **Rule G — a STOP comment names its resume move** (`guard-gate`, #98): a comment-shaped forge write with a `**[…] · blocked**` title and no `**To resume:**` line is denied before it posts. Hook tests 277 → 297; red-proofed by mutation.
+
+### Evals
+- **C18** (hook + lint) and **E8** (replay + lint, `redproof.py` shipped): lint 31 → 33 cases (491 checks), replay 34 → 35, red-proofs 19 → 20. E8's baseline is a separate run.
+
+### Docs
+- `README.md`, `docs/index.html`, `hooks/README.md`: rule table row G (since 1.36.0); `docs/onboarding.html`: the `blocked` stop shape names the resume line.
+
 ## v1.35.0 — guard-gate rule F: a question comment lists its options as bullets (#109) — 2026-10-12
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.35.0>
