@@ -267,6 +267,19 @@ class RuleE_MultiModuleSuite(HookTest):
         with self.case("worktree: Read of the feat/<n> worktree's suite denied"):
             self.assertDenied(self.tool("Read", file_path=str(feat / suite / "ExpiryTest.java")),
                               "Read under src/")
+        # The hook's own tree is filtered too (codex review, PR #110): fired
+        # from the implementation worktree, its suite is still not readable.
+        with self.case("worktree: cwd = the feat/<n> worktree, its own suite relative — denied"):
+            self.assertDenied(self.run_bash("cat %s/ExpiryTest.java" % suite, cwd=feat),
+                              "read of src/")
+        with self.case("worktree: cwd = the feat/<n> worktree, Read of its own suite denied"):
+            self.assertDenied(
+                self.tool("Read", feat, file_path=str(feat / suite / "ExpiryTest.java")),
+                "Read under src/")
+        with self.case("worktree: cwd = the feat/<n> worktree, the qa/<n> worktree's suite "
+                       "allowed"):
+            self.assertAllowed(
+                self.tool("Read", feat, file_path=str(qa / suite / "ExpiryTest.java")))
         with self.case("worktree: a templated implementation branch's tree is readable "
                        "until the marker names it"):
             self.assertAllowed(self.tool("Read", file_path=str(fix / suite / "ExpiryTest.java")))
@@ -276,6 +289,9 @@ class RuleE_MultiModuleSuite(HookTest):
                               "Read under src/")
         with self.case("worktree: the qa/<n> worktree's suite still allowed under that marker"):
             self.assertAllowed(self.tool("Read", file_path=str(qa / suite / "ExpiryTest.java")))
+        with self.case("worktree: cwd = the marker's tree, its own suite relative — denied"):
+            self.assertDenied(self.run_bash("cat %s/ExpiryTest.java" % suite, cwd=fix),
+                              "read of src/")
 
     def test_module_src_exempts_nothing(self):
         bare = self.new_repo(

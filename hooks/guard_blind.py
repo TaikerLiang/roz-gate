@@ -101,10 +101,10 @@ SRC_MENTIONED = re.compile(
     r"""|(?:^|\s)#[^\n]*""", re.M)
 
 
-def bash_reads_src(cmd, suite=None, tops=()):
+def bash_reads_src(cmd, suite=None, top=None, tops=None):
     cmd = SRC_MENTIONED.sub(" ", SRC_EXCLUDED.sub(" ", cmd))
     if suite:
-        cmd = suite_operand_re(suite, tops).sub(suite_blanker(suite, tops), cmd)
+        cmd = suite_operand_re(suite, top).sub(suite_blanker(suite, top, tops), cmd)
     return SRC_PATH.search(cmd) is not None
 # --------------------------------------------------------------------------
 
@@ -126,9 +126,9 @@ def bash_reads_src(cmd, suite=None, tops=()):
 # the first cut joined it to the toplevel the hook fired in, and the qa/<n>
 # worktree's suite — where B5b runs the dispatch — was denied from the main
 # checkout, which is where a sub-agent's Bash cwd and every absolute Read
-# come from), except a tree checked out on the implementation branch. The
-# four regexes above are untouched (lint D2 holds them byte-identical to
-# the replay checker).
+# come from), except a tree checked out on the implementation branch — the
+# hook's own tree included (codex review, PR #110). The four regexes above
+# are untouched (lint D2 holds them byte-identical to the replay checker).
 DEFAULT_ACCEPTANCE_DIR = "tests/acceptance"
 
 
@@ -156,7 +156,7 @@ def suite_under_src(acceptance_dir):
     return "/".join(segs)
 
 
-def suite_operand_re(suite, tops):
+def suite_operand_re(suite, top):
     """A shell operand naming the suite: relative (`src/test/…`, `./src/test/…`,
     after `)/` as in `$(git rev-parse --show-toplevel)/src/test/…`) or absolute
     (any `/…/<suite>…`); the suite dir itself or anything below it, never a
@@ -167,15 +167,16 @@ def suite_operand_re(suite, tops):
     quoted = re.escape(suite)
     tail = r"(?![\w.-])[^\s'\"<>|;&()]*"
     forms = [r"(?:(?<![\w.\-/])|(?<=\)/))(?:\./)?" + quoted + tail]
-    if tops:
+    if top:
         forms.append(r"(?<![\w.-])/[^\s'\"<>|;&()]*?/" + quoted + tail)
     return re.compile("|".join(forms))
 
 
-def resolves_under_suite(path, suite, tops):
+def resolves_under_suite(path, suite, top, tops=None):
     """The operand's REAL location is at or under the suite of one of the
-    repo's trees (`tree_tops()`; a relative operand is the first tree's, the
-    toplevel the hook fired in): `realpath` resolves `..` and symlinks alike,
+    readable trees (`tops`, from `tree_tops()`; `top` alone when None — a
+    relative operand is `top`'s, the toplevel the hook fired in, whether or
+    not that tree is readable): `realpath` resolves `..` and symlinks alike,
     so a climb out of the suite (`…/acceptance/../../main/…`), a symlink
     inside it that points out (`…/acceptance/impl → ../../../../main`, codex
     review, PR #84), a `src/test/…` that is no tree's suite (`vendor/<suite>`),
@@ -183,56 +184,60 @@ def resolves_under_suite(path, suite, tops):
     `/private/var/…`) all land where they really point. The suite dir itself
     is joined lexically — a suite that is itself a symlink out of src/
     exempts nothing."""
-    if not tops:
+    if not top:
         return False
-    rp = os.path.realpath(path if os.path.isabs(path) else os.path.join(tops[0], path))
-    for top in tops:
-        want = os.path.join(os.path.realpath(top), suite)
+    rp = os.path.realpath(path if os.path.isabs(path) else os.path.join(top, path))
+    for tree in [top] if tops is None else tops:
+        want = os.path.join(os.path.realpath(tree), suite)
         if rp == want or rp.startswith(want + "/"):
             return True
     return False
 
 
-def suite_blanker(suite, tops):
+def suite_blanker(suite, top, tops=None):
     def blank(m):
-        return " " if resolves_under_suite(m.group(0), suite, tops) else m.group(0)
+        return " " if resolves_under_suite(m.group(0), suite, top, tops) else m.group(0)
     return blank
 
 
-def under_suite(path, suite, tops):
+def under_suite(path, suite, top, tops=None):
     """A tool path (absolute or repo-relative) whose real location is at or
     under the suite — the same resolution as a Bash operand."""
-    return resolves_under_suite(path, suite, tops)
+    return resolves_under_suite(path, suite, top, tops)
 
 
-def tool_reads_src(tool, inp, suite=None, tops=()):
+def tool_reads_src(tool, inp, suite=None, top=None, tops=None):
     """A Read/Glob/Grep input naming src/ — unless every such value is under the suite."""
     if not suite:
         return SRC_PATH.search(json.dumps(inp, ensure_ascii=False)) is not None
     for v in inp.values():
         text = v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)
-        if SRC_PATH.search(text) and not (isinstance(v, str) and under_suite(v, suite, tops)):
+        if SRC_PATH.search(text) and not (isinstance(v, str)
+                                          and under_suite(v, suite, top, tops)):
             return True
     return False
 
 
 def tree_tops(top, ref=None):
-    """The trees the suite may resolve under: the toplevel the hook fired in
-    first, then every other worktree of this repo (`git worktree list
-    --porcelain` — the same common dir, so another repo with the same layout
-    is not one), except a tree checked out on a `feat/` ref or on the ref the
-    marker names — the implementation worktree is not a readable tree, its
-    acceptance dir included (#107: the dispatch runs in the qa/<n> worktree,
-    B5b, while the Read tool's paths are absolute and a sub-agent's Bash cwd
-    is the session's, so the hook fires from the main checkout)."""
-    tops = [top] if top else []
+    """The trees whose suite is readable: every worktree of this repo (`git
+    worktree list --porcelain` — the same common dir, so another repo with
+    the same layout is not one), except one checked out on a `feat/` ref or
+    on the ref the marker names — the implementation worktree is not a
+    readable tree, its acceptance dir included, whether the hook fires from
+    it or from elsewhere (codex review, PR #110: the first cut seeded the
+    list with the hook's own toplevel unfiltered). #107: the dispatch runs
+    in the qa/<n> worktree (B5b) while the Read tool's paths are absolute
+    and a sub-agent's Bash cwd is the session's, so the hook fires from the
+    main checkout. A toplevel the list does not name (a `--separate-git-dir`
+    checkout) is readable as it was before #107; no list at all, likewise."""
     try:
         out = subprocess.run(["git", "worktree", "list", "--porcelain"],
                              capture_output=True, text=True, timeout=5)
     except (OSError, subprocess.TimeoutExpired):
-        return tops
+        return [top]
     if out.returncode != 0:
-        return tops
+        return [top]
+    tops, listed = [], False
     for block in out.stdout.strip().split("\n\n"):
         path = branch = None
         for line in block.splitlines():
@@ -240,11 +245,15 @@ def tree_tops(top, ref=None):
                 path = line[len("worktree "):]
             elif line.startswith("branch refs/heads/"):
                 branch = line[len("branch refs/heads/"):]
-        if not path or path in tops:
+        if not path:
             continue
+        if top and os.path.realpath(path) == os.path.realpath(top):
+            listed = True
         if branch and (branch.startswith("feat/") or branch == ref):
             continue
         tops.append(path)
+    if top and not listed:
+        tops.append(top)
     return tops
 
 BLIND_MSG = (
@@ -300,22 +309,22 @@ def ref_touch_re(ref):
         r"|worktree)\b[^|;&\n]*(?<![\w-])" + re.escape(ref) + r"(?![\w-])")
 
 
-def violation(tool, inp, ref=None, suite=None, tops=()):
+def violation(tool, inp, ref=None, suite=None, top=None, tops=None):
     """The D2 checker's dispatch_blind(), per call: what it names. `suite`
-    is the acceptance dir when it sits under src/ (never a read); `tops`
-    the trees the suite resolves under (`tree_tops()`, or one toplevel)."""
-    if isinstance(tops, str):
-        tops = [tops]
+    is the acceptance dir when it sits under src/ (never a read); `top` the
+    toplevel the hook fired in, which relative operands resolve against;
+    `tops` the trees whose suite is readable (`tree_tops()`; `top` alone
+    when None)."""
     if tool == "Bash":
         cmd = inp.get("command") or ""
         if GIT_TOUCH.search(cmd):
             return "a git action on a feat/ ref"
         if ref and ref_touch_re(ref).search(cmd):
             return "a git action on %s, the implementation branch" % ref
-        if bash_reads_src(cmd, suite, tops):
+        if bash_reads_src(cmd, suite, top, tops):
             return "a read of src/"
     elif tool in ("Read", "Glob", "Grep"):
-        if tool_reads_src(tool, inp, suite, tops):
+        if tool_reads_src(tool, inp, suite, top, tops):
             return "a %s under src/" % tool
     return None
 
@@ -342,7 +351,7 @@ def main():
     ref = marker_ref(marker)
     top = toplevel()
     suite = suite_under_src(load_acceptance_dir(top))
-    what = violation(tool, inp, ref, suite, tree_tops(top, ref) if suite else ())
+    what = violation(tool, inp, ref, suite, top, tree_tops(top, ref) if suite else None)
     if not what:
         return
     agent = payload.get("agent_type")
