@@ -410,6 +410,92 @@ Row or table lock?
             self.assertAllowed(self.bash("gh pr comment 12 --body-file %s" % good))
 
 
+class RuleG_StopCommentNamesItsResume(HookTest):
+    """Static rule, no API. Issue #98 (ADMC #73): the STOP comment named no
+    label move and no channel; the human left `blocked` on and answered as
+    a top-level CR comment — neither heard."""
+
+    guard = "guard-gate"
+
+    STOP = """**[next-stage] · blocked**
+
+Step A4 died: the push of `spec/5` was rejected (non-fast-forward).
+Remote: `spec/5` exists at `abc1234`, no CR. Recommended: fetch, rebase the
+worktree commit onto `origin/spec/5`, push again.
+
+<details><summary>Evidence</summary>
+
+    ! [rejected] spec/5 -> spec/5 (fetch first)
+
+</details>"""
+    RESUME = ("**To resume:** clear `status: blocked`, apply `status: ready-for-spec` — "
+              "yourself, or tell the main agent; nothing to answer — run the remedy first.")
+    GOOD = STOP.replace("<details>", RESUME + "\n\n<details>", 1)
+
+    DENIED = [
+        ("a STOP comment without the resume line — denied",
+         'gh issue comment 5 --body "%s"' % STOP, "resume line"),
+        ("glab form denied",
+         'glab issue note 5 --message "%s"' % STOP, "resume line"),
+        ("api form denied",
+         "gh api -X POST repos/o/r/issues/5/comments -f body='%s'" % STOP, "resume line"),
+        ("heredoc body-file denied",
+         "gh issue comment 5 --body-file - <<'EOF'\n%s\nEOF" % STOP, "resume line"),
+        ("ANSI-C quoted body denied",
+         r"gh issue comment 5 --body $'**[integrate] · blocked**\n\nconflict in a.txt; "
+         r"see below.'", "resume line"),
+        ("the resume line in another segment is not in the body — denied",
+         'gh issue comment 5 --body "%s" && echo "%s"' % (STOP, RESUME), "resume line"),
+        ("the line without its bold opening is not the line — denied",
+         'gh issue comment 5 --body "%s"' % STOP.replace(
+             "<details>", "To resume: clear blocked, apply ready-for-spec.\n\n<details>", 1),
+         "resume line"),
+    ]
+    ALLOWED = [
+        ("the prescribed shape allowed", 'gh issue comment 5 --body "%s"' % GOOD),
+        ("glab prescribed shape allowed", 'glab issue note 5 --message "%s"' % GOOD),
+        ("integrate's phase-less resume line allowed",
+         '''gh issue comment 5 --body "**[integrate] · blocked**
+
+Round 3 of 3 red: 3 harness issues in a row, all in AcceptanceSupport.
+
+**To resume:** clear `status: blocked` — nothing else; patrol re-runs integrate."'''),
+        ("`blocked` in prose with no STOP title allowed",
+         '''gh pr comment 12 --body "**[review] · question** — the merge is blocked on a conflict in a.txt; which side wins?"'''),  # noqa: E501
+        ("a title sharing its line is not the STOP title — allowed",
+         '''gh issue comment 5 --body "**[next-stage] · blocked** — see the thread; nothing to resume."'''),  # noqa: E501
+        ("the title quoted inside a sentence allowed",
+         '''gh issue comment 5 --body "✅ [next-stage] resumed — the **[next-stage] · blocked** comment above is handled."'''),  # noqa: E501
+    ]
+
+    def test_denied(self):
+        for name, cmd, says in self.DENIED:
+            with self.case(name):
+                self.assertDenied(self.bash(cmd), says)
+
+    def test_allowed(self):
+        for name, cmd in self.ALLOWED:
+            with self.case(name):
+                self.assertAllowed(self.bash(cmd))
+
+    def test_only_forge_writes_and_no_api(self):
+        with self.case("non-forge command carrying the STOP title allowed (gh/glab only)"):
+            self.assertAllowed(self.bash('git commit -m "**[next-stage] · blocked**"'))
+        with self.case("rule G made no API call"):
+            self.assertEqual(self.api_calls(), [])
+
+    def test_body_file_read_back(self):
+        stop = self.tmp / "stop.md"
+        stop.write_text(self.STOP + "\n")
+        good = self.tmp / "stop-good.md"
+        good.write_text(self.GOOD + "\n")
+        with self.case("body-file read back and denied"):
+            self.assertDenied(self.bash("gh issue comment 5 --body-file %s" % stop),
+                              "resume line")
+        with self.case("body-file with the resume line allowed"):
+            self.assertAllowed(self.bash("gh issue comment 5 --body-file %s" % good))
+
+
 # The E2 fixture's exact technical-spec.md (the scripted double's output).
 TS_WITH_SECTION = """# Technical spec #5
 

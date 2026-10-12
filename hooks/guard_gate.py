@@ -2,7 +2,7 @@
 """Roz Gate enforcement — layer 2: trigger validation.
 
 Invoked by guard-gate.sh only when a Bash command mentions a guarded
-pattern. Five rules, each the mechanical form of existing protocol text:
+pattern. Six rules, each the mechanical form of existing protocol text:
 
   A. An ``**[intake] · summary**`` comment may be posted only when the
      async-intake trigger holds (commands/patrol.md step 2): a gate label
@@ -39,6 +39,14 @@ pattern. Five rules, each the mechanical form of existing protocol text:
      marker) is a deny; a title whose line carries a ruling (``→ (a)``) or
      a resolution (``— resolved.``) is not a question — answers, folds and
      ledgers are out of scope by construction.
+  G. A STOP comment names its resume move (references/workflow.md, the
+     STOP protocol; issue #98). The ``blocked`` comment is what the gate
+     holder reads on a phone; ADMC #73 saw them do the two natural things
+     — leave ``blocked`` on, answer as a top-level CR comment — and neither
+     was heard. The protocol fixes the must-read's first line (the title
+     ``**[<command>] · blocked**``) and its last (``**To resume:**`` — the
+     label to clear, the phase to apply, where the answer goes); a body
+     carrying the title and no resume line is a deny.
 
 Exit 0 allows the tool call; exit 2 blocks it and feeds stderr to the
 model. Forge API failures fail closed, with a message that says it is an
@@ -143,6 +151,22 @@ OPTIONS_MSG = (
     "renders consecutive lines as one paragraph — options written as prose "
     "or as bare lines reach the gate holder's phone run together, and the "
     "shorthand reply (`3a`) has nothing to point at (issue #109)."
+)
+
+# Rule G: the STOP comment's two fixed lines (references/workflow.md, the
+# STOP protocol). The title is the whole line — a title sharing its line
+# (`**[next-stage] · blocked** — see below`) is prose quoting it; the resume
+# line is matched by its bold opening anywhere in the body.
+STOP_TITLE = re.compile(r"^\s*\*\*\[[^\]\n]+\] · blocked\*\*\s*$")
+RESUME_LINE = re.compile(r"^\s*\*\*To resume:\*\*")
+RESUME_MSG = (
+    "Roz Gate: blocked — a STOP comment ends its must-read with the resume "
+    "line and this one has none: `**To resume:** clear status: blocked, "
+    "apply status: <phase> — yourself, or tell the main agent; <where the "
+    "answer goes>` (references/workflow.md, the STOP protocol; the "
+    "command's STOP section names its phase and channel). Why: the comment "
+    "is what the gate holder reads on a phone — without the line they leave "
+    "`blocked` on and answer where nothing listens (issue #98)."
 )
 
 BODY_FILE_MSG = (
@@ -384,7 +408,8 @@ def check_comment_writes(cmd, toks):
     segmentation).
 
     Rule F (#109) rides the same bodies: after the quote check, a question
-    block without its option bullets is denied.
+    block without its option bullets is denied. Rule G (#98) too: a body
+    titled ``**[<command>] · blocked**`` without its ``**To resume:**`` line.
     """
     if toks is None:
         return
@@ -397,6 +422,8 @@ def check_comment_writes(cmd, toks):
             q = question_without_options(body)
             if q:
                 deny(OPTIONS_MSG % q)
+            if stop_without_resume(body):
+                deny(RESUME_MSG)
 
 
 def shell_segments(toks):
@@ -447,6 +474,13 @@ def question_without_options(body):
         elif current and OPTION_BULLET.match(line):
             count += 1
     return current if current and count < 2 else None
+
+
+def stop_without_resume(body):
+    """Rule G's predicate: a STOP_TITLE line and no RESUME_LINE anywhere."""
+    lines = ansi_c(body).splitlines()
+    return (any(STOP_TITLE.match(ln) for ln in lines)
+            and not any(RESUME_LINE.match(ln) for ln in lines))
 
 
 def comment_bodies(cmd, toks, gh_comment, glab_note, api_comment):

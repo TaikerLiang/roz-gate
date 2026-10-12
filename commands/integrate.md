@@ -203,11 +203,14 @@ label.
 2. LABEL-REMOVE `status: processing` **and the phase label the run entered
    from** (`status: in-user-review` on a re-verdict) — `blocked` is worn
    alone, never beside a phase label; LABEL-ADD `status: blocked`.
-3. ISSUE-COMMENT: what happened and your **recommended next step** as the
-   must-read; the evidence (conflicting files / test output / error) folded
+3. ISSUE-COMMENT: the title `**[integrate] · blocked**`, what happened and
+   your **recommended next step** as the must-read, closing with the resume
+   line — **To resume:** clear `status: blocked` — nothing else; patrol's
+   next pass re-runs integrate, or run `/roz-gate:integrate <n>` — the
+   evidence (conflicting files / test output / error) folded
    under `<details><summary>Evidence</summary>`. When a CR was already
-   merged (a post-green shape), the next step reads: clear `blocked` —
-   patrol re-verdicts on its next pass, or run `/roz-gate:integrate <n>`.
+   merged (a post-green shape), the next step says so: both are in, the
+   re-run re-verdicts the spec tip.
    **The cap STOP** (`fix_rounds` spent, still red) has a fixed shape. The
    must-read: the cap was reached (*N of N rounds*; under `fix_rounds: 0`,
    *0 of 0 — every RED stops at once*); the **pattern** line — *N rounds ·

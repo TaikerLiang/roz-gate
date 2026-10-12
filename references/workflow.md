@@ -125,7 +125,13 @@ spec/{n}`; `next-stage` stops and tells you so, because **an agent never
 deletes or force-pushes a remote branch**), and the previous spec stays
 readable in the closed CR. Under a `branch_template` that carries `{seq}`
 there is nothing to delete: the next pass cuts the next sequence and the
-old branch stays (`references/branch-names.md`). (iii) The issue is **a different story** → strip
+old branch stays (`references/branch-names.md`). From `ready-for-dev` — a
+serious hole found after you opened the gate (#72) — the same route is one
+checklist: close the spec CR; amend the issue; remove `status: ready-for-dev`,
+apply `status: ready-for-spec`; branches — a `{seq}` template keeps them,
+otherwise `spec/{n}` is yours to delete, and so are `feat`/`qa` if stage (3)
+already cut them; the previous spec stays readable in its closed CR. No
+command deletes a branch. (iii) The issue is **a different story** → strip
 its `track:`/`status:` labels and it returns to the inbox, exactly as from
 (7) below.
 
@@ -371,7 +377,18 @@ where it died, what already exists remotely, a recommended next step — as the
 phone's ~60 characters per line; a long line counts for several), with the
 evidence (logs, command output, diffs) folded below it in one
 `<details><summary>Evidence</summary>` block; the human on a phone reads the
-decision first and opens the evidence only to check it. No third
+decision first and opens the evidence only to check it. The must-read has a
+fixed first and last line (#98): it opens with the
+title `**[<command>] · blocked**`, and it ends with the resume line —
+**To resume:** clear `status: blocked`, apply `status: <phase>` — yourself,
+or tell the main agent; <where the answer goes> — where `<phase>` is the
+phase the step re-enters (none when the run entered from in flight:
+clearing `blocked` is the whole move) and the last clause names the channel
+the loop listens to, or says *nothing to answer — run the remedy*. Each
+command's STOP section fills the two in; guard-gate denies a
+`· blocked`-titled comment without the line (rule G). Without it the human
+does the two natural things — answers on the issue, leaves `blocked` on —
+and neither is heard (ADMC #73). No third
 exit. A stale `processing` therefore means exactly one thing — a killed run —
 and the phase label next to it says where.
 
