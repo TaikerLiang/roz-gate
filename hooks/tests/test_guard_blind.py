@@ -214,6 +214,69 @@ class RuleE_MultiModuleSuite(HookTest):
             self.assertDenied(self.run_bash("cat dlh-api/other/src/main/java/acme/Other.java"),
                               "`%s` is readable here" % suite)
 
+    def test_suite_in_a_linked_worktree(self):
+        """#107: the dispatch runs in the qa/<n> worktree (B5b), the Read tool's
+        paths are absolute and a sub-agent's Bash cwd is the session's — the
+        hook fires from the main checkout. The suite resolves under every
+        tree of the repo but the implementation worktree."""
+        repo, suite = self.repo, self.SUITE
+        qa = repo / ".git/roz-gate/wt/qa/73"
+        feat = repo / ".git/roz-gate/wt/feat/73"
+        fix = repo / ".git/roz-gate/wt/fix/paul/73/1"
+        self.git(repo, "worktree", "add", "-q", str(qa), "-b", "qa/73")
+        self.git(repo, "worktree", "add", "-q", str(feat), "-b", "feat/73")
+        self.git(repo, "worktree", "add", "-q", str(fix), "-b", "fix/paul/73/1")
+        main_src = "dlh-api/console/src/main/java/acme/App.java"
+        for name, cmd in [
+            ("worktree: cat of the qa/<n> worktree's suite, cwd = main checkout, allowed",
+             "cat %s/%s/ExpiryTest.java" % (qa, suite)),
+            ("worktree: grep over the qa/<n> worktree's suite dir, cwd = main checkout, allowed",
+             "grep -rn Traces %s/%s/" % (qa, suite)),
+            ("worktree: ls of the qa/<n> worktree's suite dir itself allowed",
+             "ls %s/%s" % (qa, suite)),
+        ]:
+            with self.case(name):
+                self.assertAllowed(self.run_bash(cmd))
+        with self.case("worktree: Read of the qa/<n> worktree's suite, cwd = main checkout, "
+                       "allowed"):
+            self.assertAllowed(self.tool("Read", file_path=str(qa / suite / "ExpiryTest.java")))
+        with self.case("worktree: Grep with the qa/<n> worktree's suite as path allowed"):
+            self.assertAllowed(self.tool("Grep", pattern="Traces", path=str(qa / suite)))
+        with self.case("worktree: Glob under the qa/<n> worktree's suite allowed"):
+            self.assertAllowed(self.tool("Glob", pattern=str(qa / suite) + "/**/*.java"))
+        with self.case("worktree: cwd = the qa/<n> worktree, the main checkout's suite allowed"):
+            self.assertAllowed(
+                self.tool("Read", qa, file_path=str(repo / suite / "ExpiryTest.java")))
+        with self.case("worktree: cwd = the qa/<n> worktree, its own suite relative allowed"):
+            self.assertAllowed(self.run_bash("cat %s/ExpiryTest.java" % suite, cwd=qa))
+        for name, cmd in [
+            ("worktree: the qa/<n> worktree's src/main denied", "cat %s/%s" % (qa, main_src)),
+            ("worktree: the qa/<n> worktree's unit tests (not the suite) denied",
+             "cat %s/dlh-api/console/src/test/java/acme/unit/UnitTest.java" % qa),
+            ("worktree: a climb out of the qa/<n> worktree's suite denied",
+             "cat %s/%s/../../../../main/java/acme/App.java" % (qa, suite)),
+            ("worktree: the qa/<n> suite AND the main checkout's src/main in one command denied",
+             "cat %s/%s/ExpiryTest.java %s" % (qa, suite, main_src)),
+            ("worktree: the feat/<n> worktree's suite is not a readable tree — denied",
+             "cat %s/%s/ExpiryTest.java" % (feat, suite)),
+        ]:
+            with self.case(name):
+                self.assertDenied(self.run_bash(cmd), "read of src/")
+        with self.case("worktree: Read of the qa/<n> worktree's src/main denied"):
+            self.assertDenied(self.tool("Read", file_path=str(qa / main_src)), "Read under src/")
+        with self.case("worktree: Read of the feat/<n> worktree's suite denied"):
+            self.assertDenied(self.tool("Read", file_path=str(feat / suite / "ExpiryTest.java")),
+                              "Read under src/")
+        with self.case("worktree: a templated implementation branch's tree is readable "
+                       "until the marker names it"):
+            self.assertAllowed(self.tool("Read", file_path=str(fix / suite / "ExpiryTest.java")))
+        self.write(repo / ".git/roz-gate/fidelity-dispatch", "issue=73\nfeat=fix/paul/73/1\n")
+        with self.case("worktree: the tree on the marker's feat= ref is not readable — denied"):
+            self.assertDenied(self.tool("Read", file_path=str(fix / suite / "ExpiryTest.java")),
+                              "Read under src/")
+        with self.case("worktree: the qa/<n> worktree's suite still allowed under that marker"):
+            self.assertAllowed(self.tool("Read", file_path=str(qa / suite / "ExpiryTest.java")))
+
     def test_module_src_exempts_nothing(self):
         bare = self.new_repo(
             {"CLAUDE.local.md": config_block(forge="github", acceptance_dir="dlh-api/console/src"),

@@ -57,7 +57,7 @@ Any "no" → a replay case, not a hook, and never prose alone.
 | **B** human-only gate labels | `guard-gate` · Bash | `--add-label` (gh) / `issue update --label` (glab) naming `ready-for-spec` or `ready-for-dev`; a command shlex cannot tokenize is judged on the add flag's value alone — after `=`, whitespace or a `\`-newline continuation — never on a gate word elsewhere in it | the gate holder applies the label themselves | static, no API |
 | **C** quote-open guard | `guard-gate` · Bash | a comment-shaped forge write whose body carries a roz-gate marker and opens with `>` (per shell segment; `--body-file` read back, heredoc parsed) | put the marker on line one | an unreadable marker-carrying `--body-file` fails **closed** |
 | **D** open questions have one home | `guard-gate` · Bash | a `git commit` while any `<specs_dir>/*/technical-spec.md` — working tree **or** index — carries a heading matching `^#+ .*open questions` | move it to `spec.md`'s Open Questions, delete it here, `git add`, commit | index checked too: a fixed file never re-staged would commit the stale section |
-| **E** fidelity dispatch is blind | `guard-blind` · Bash, Read, Glob, Grep | while the marker exists: a Read/Glob/Grep path under `src/`; in Bash, a git checkout/switch/diff/show/log/merge/restore/worktree on a `feat/` ref or on the ref the marker's `feat=` line names (the bound implementation branch, `references/branch-names.md`), or a read of `src/` outside `<acceptance_dir>` after blanking exclusion operands (`grep -v`, `:!`, `--exclude`, `-not -path`), echo/printf operands, comments, and operands under the suite (a suite under a `src/` segment — Maven's `src/test/…`, a multi-module `<module>/src/test/…` — is what the dispatch audits; `src` or `<module>/src` itself exempts nothing, a climb out of the suite is not blanked) | what you need is on `qa/<n>`; a required read is a **finding**, not an action | a **stale marker keeps the rule ON** — over-blocking is visible, under-blocking is not; the rule cannot see a forge read of the implementation CR (a THREADS-LIST on it names no `src/`) — the brief's step zero and the dispatcher's contract-currency step close that, replay D6 proves it (#96) |
+| **E** fidelity dispatch is blind | `guard-blind` · Bash, Read, Glob, Grep | while the marker exists: a Read/Glob/Grep path under `src/`; in Bash, a git checkout/switch/diff/show/log/merge/restore/worktree on a `feat/` ref or on the ref the marker's `feat=` line names (the bound implementation branch, `references/branch-names.md`), or a read of `src/` outside `<acceptance_dir>` after blanking exclusion operands (`grep -v`, `:!`, `--exclude`, `-not -path`), echo/printf operands, comments, and operands under the suite (a suite under a `src/` segment — Maven's `src/test/…`, a multi-module `<module>/src/test/…` — is what the dispatch audits; `src` or `<module>/src` itself exempts nothing, a climb out of the suite is not blanked; the suite resolves under **every worktree of the repo** — the dispatch's `qa/<n>` worktree while the hook fires from the main checkout (#107) — except a tree on a `feat/` ref or the marker's ref) | what you need is on `qa/<n>`; a required read is a **finding**, not an action | a **stale marker keeps the rule ON** — over-blocking is visible, under-blocking is not; a grep whose *pattern* is `src/` (`grep 'src/' hooks/guard-blind.sh`) is denied — a pattern operand looks like a path operand, the visible direction; the rule cannot see a forge read of the implementation CR (a THREADS-LIST on it names no `src/`) — the brief's step zero and the dispatcher's contract-currency step close that, replay D6 proves it (#96) |
 | **acceptance** | `guard-acceptance` · Edit, Write, MultiEdit | on a spec branch — `spec/*`, or HEAD matching the block's `branch_template` rendered for the spec kind — a write under `<acceptance_dir>` | make the change on `qa/<n>`, merge it in | branch-and-path only; no exemption list |
 
 ## The fidelity-dispatch marker (rule E)
@@ -199,7 +199,7 @@ row to the table above.
 
 ## Instrument blindness — the cautionary list
 
-Four times the instrument (hook or checker) was blind to a form the agent
+Five times the instrument (hook or checker) was blind to a form the agent
 actually used. Audit every new predicate for the class, not the instance:
 
 - **Body by reference** (1.14.0 review, then the replay stub): a comment
@@ -221,3 +221,10 @@ actually used. Audit every new predicate for the class, not the instance:
   context where both files land, ran the loop. Read every home the prose
   reads, through one reader (`config_block.py`), and look where the prose
   looks: the main checkout, not only the worktree the hook fired in.
+- **Tree by cwd** (#107): rule E's suite exemption resolved the path
+  against the toplevel the hook fired in. The dispatch's suite sits in the
+  `qa/<n>` worktree (B5b) while the Read tool's paths are absolute and a
+  sub-agent's Bash cwd is the session's — the same file, allowed from one
+  cwd and denied from another, and the audit that #95 made mandatory could
+  not read what it audits. A path belongs to the tree it is in, not the
+  tree the hook runs from: resolve against every worktree of the repo.
