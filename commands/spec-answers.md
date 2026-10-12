@@ -35,8 +35,12 @@ the project's `implementer` agent).
 - An `in-spec-review` issue whose spec CR is missing or closed is an impossible
   state → the STOP exit (step 9).
 
-## 2. Read the review threads
-THREADS-LIST on each CR.
+## 2. Read the three channels
+On each CR: THREADS-LIST (inline threads), REVIEWS-LIST (review summary
+bodies — GitHub only, as for `review-answers`), CR-COMMENTS-LIST (top-level
+comments — the PR page's default affordance, the one a phone offers). The
+STOP's resume line sends the human to the spec CR, and these are where they
+land (#98: an amendment written as a top-level comment was never read).
 
 ## 3. Identify ANSWERED threads — and AMENDMENT requests
 A thread needs processing when it is **unresolved** and EITHER:
@@ -55,9 +59,19 @@ A thread needs processing when it is **unresolved** and EITHER:
   `implementer`; `spec.md` → `product`, or `em` when the thread is on a
   section em owns (Problem Statement, Success Metrics, Architecture Notes,
   Out of Scope); any other file → `product`.
+- **a top-level item** — a comment or a review body (CR-COMMENTS-LIST,
+  REVIEWS-LIST) — is **unheard** when its latest entry does NOT start with
+  `**[` or `✅ [` (`review-answers`' predicate) **and no later top-level
+  comment opening with `**[` or `✅ [` cites it** — the reply in § 5.4 does,
+  and that citation is what marks it heard: the item itself never changes
+  (a top-level reply is a new comment, not an entry in it), so without the
+  citation every later run would fold it again (codex review, PR #114). It
+  has no path, so it is `product`'s; the human's text is the ruling — the
+  seat decides whether it closes an open `Q<k>` or is an amendment `A<k>`,
+  and folds it like one.
 
 If a thread has only the original `**[...]**` question and no reply → leave it,
-the user has not answered yet. If no thread qualifies on any CR → report "no
+the user has not answered yet. If no thread or top-level item qualifies on any CR → report "no
 new answers" and stop (no lock was taken).
 
 ## 4. Lock, per issue with work
@@ -119,7 +133,10 @@ half-done:
 4. Otherwise, after the spec edit: THREAD-REPLY
    `✅ [<role>] resolved — <decision>, folded into spec.md.` (an amendment:
    `✅ [<role>] amended — <what changed>, folded into <document>.`) then
-   THREAD-RESOLVE.
+   THREAD-RESOLVE. A top-level item has no thread: CR-COMMENT the same
+   `✅ [<role>] amended — …` line, **citing the item's URL** (`#issuecomment-<id>`
+   / `#note_<id>`); nothing to resolve — the marker opening plus the citation
+   is what marks it heard, and the next run skips it (§ 3).
 5. **Story-level check:** if the resolution changes the user story /
    acceptance criteria, ISSUE-COMMENT a summary linking the thread. Do NOT
    edit the issue body/AC — the user decides whether to amend.
@@ -221,8 +238,13 @@ failing, a rejected push, an impossible state: follow the STOP protocol.
 it** (the uncommitted spec edits live nowhere else; the user's checkout was
 never touched — and a refused `worktree add` means the worktree is another
 run's, so remove nothing), replace the issue's status
-labels with `status: blocked` alone, and ISSUE-COMMENT: what happened and
-your recommended next step as the must-read, the evidence folded under
+labels with `status: blocked` alone, and ISSUE-COMMENT: the title
+`**[spec-answers] · blocked**`, what happened and your recommended next step
+as the must-read, closing with the resume line — **To resume:** clear
+`status: blocked`, apply `status: in-spec-review` — yourself, or tell the
+main agent; an answer or amendment goes on the spec CR `<url>` — an inline
+thread or a top-level comment; a reply here on the issue is not read — the
+evidence folded under
 `<details><summary>Evidence</summary>`. Name the half-done thread if there is
 one — a folded-but-unresolved thread will be re-folded on re-run, and the human
 should know. Already-resolved threads are idempotent; a re-run skips them.

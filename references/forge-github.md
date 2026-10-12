@@ -43,6 +43,7 @@ Two modes, set by `agent_identity` in the Roz Gate config (key absent →
 | LABEL-ADD | `gh issue edit <n> --add-label "<label>"` |
 | LABEL-REMOVE | `gh issue edit <n> --remove-label "<label>"` |
 | ISSUE-COMMENT | `gh issue comment <n> --body "..."` |
+| CR-COMMENT | `gh pr comment <pr> --body "..."` (a top-level CR comment — the reply to a CR-COMMENTS-LIST item; `review-answers`, `spec-answers`) |
 | COMMENT-EDIT | `gh api -X PATCH repos/<owner>/<repo>/issues/comments/<comment-id> -f body="..."` (top-level issue/CR comments; id from the comment's URL or listing) |
 | ISSUE-CREATE | `gh issue create --title "..." --body "..." [--label "<label>"]` |
 | ISSUE-EDIT-BODY | `gh issue edit <n> --body "..."` (async intake only, at finalize — after the gate holder's gate label) |

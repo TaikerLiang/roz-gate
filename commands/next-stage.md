@@ -101,7 +101,7 @@ human's to remove: **STOP**, and the `blocked` comment and the report carry
 the remedy verbatim — `git push origin --delete <spec-branch>` (and `<feat-branch>` / `<qa-branch>` if present) — *the human
 runs this; the agent never does*: an agent never deletes or force-pushes a
 remote branch, and the previous attempt stays readable in its closed CR
-(cite it). Re-apply the gate label after deleting; the next pass cuts fresh (the cut
+(cite it). The resume line reads: run the delete, then re-apply the gate label; the next pass cuts fresh (the cut
 uses `-B`, so the previous attempt's local ref cannot block it).
 
 Create `<spec-branch>` from `<default_branch>` **in a worktree** —
@@ -477,7 +477,7 @@ human's to remove: **STOP**, and the `blocked` comment and the report carry
 the remedy verbatim — `git push origin --delete <fast-branch>` — *the human
 runs this; the agent never does*: an agent never deletes or force-pushes a
 remote branch, and the previous attempt stays readable in its closed CR
-(cite it). Re-apply the gate label after deleting; the next pass cuts fresh (the cut
+(cite it). The resume line reads: run the delete, then re-apply the gate label; the next pass cuts fresh (the cut
 uses `-B`, so the previous attempt's local ref cannot block it).
 
 Create `<fast-branch>` from `<default_branch>` **in a worktree** —
@@ -538,5 +538,9 @@ comment. This command **creates remote artifacts as it goes**, so the comment
 must inventory what already exists — branches pushed, CRs opened, partial
 deliverables committed — say which step it died on, and recommend how to
 continue; that is the must-read, the evidence folds under
-`<details><summary>Evidence</summary>`. The escalation valve (C3) is **not** a failure — it is a designed
+`<details><summary>Evidence</summary>`. The must-read opens with
+`**[next-stage] · blocked**` and ends with the resume line — **To resume:**
+clear `status: blocked`, apply the gate label this run consumed
+(`status: ready-for-spec` or `status: ready-for-dev`) — yourself, or tell the
+main agent; nothing to answer — run the remedy first, if there is one. The escalation valve (C3) is **not** a failure — it is a designed
 transition and never uses the STOP exit.

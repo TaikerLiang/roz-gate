@@ -193,6 +193,54 @@ src("E7: hooks/README carries row F", "hooks/README.md",
     "| **F** question options are bullets |")
 
 # ---------------------------------------------------------------------------
+# C18 · a STOP comment names its resume move                   (defect: 1.35.0-)
+# Issue #98 (ADMC #73): the human read the STOP comment, left `blocked` on
+# and wrote the amendment as a top-level CR comment — neither heard; the
+# comment in front of them named no label move and no channel. Teeth since
+# 1.36.0: guard-gate rule G denies a `· blocked`-titled comment without the
+# line (proven in hooks/tests/). The static layer: the protocol holds the
+# template, every spelled-out STOP section fills in its phase, the hook's
+# message is the remedy, the rule tables carry the row.
+src("C18: the STOP protocol fixes the title", "references/workflow.md",
+    "it opens with the\ntitle `**[<command>] · blocked**`")
+src("C18: the STOP protocol holds the resume template", "references/workflow.md",
+    "**To resume:** clear `status: blocked`, apply `status: <phase>` — yourself,\n"
+    "or tell the main agent; <where the answer goes>")
+src("C18: spec-answers resumes at in-spec-review and answers on the spec CR",
+    "commands/spec-answers.md",
+    "apply `status: in-spec-review` — yourself, or tell the\nmain agent; an answer or "
+    "amendment goes on the spec CR")
+src("C18: next-stage resumes at the gate label it consumed", "commands/next-stage.md",
+    "**To resume:**\nclear `status: blocked`, apply the gate label this run consumed")
+src("C18: integrate resumes by clearing blocked alone", "commands/integrate.md",
+    "**To resume:** clear `status: blocked` — nothing else")
+src("C18: the hook's message is the remedy", "hooks/guard_gate.py",
+    "ends its must-read with the resume ")
+src("C18: README carries row G", "README.md", "| **G** | a STOP comment")
+src("C18: docs/index.html carries row G", "docs/index.html", "<tr><td><b>G</b></td>")
+src("C18: hooks/README carries row G", "hooks/README.md",
+    "| **G** a STOP comment names its resume move |")
+
+# ---------------------------------------------------------------------------
+# E8 · a top-level comment on the spec CR is heard as an amendment
+#      (defect: 1.35.0-, #98) — replay E8 proves the fold; the static layer:
+#      spec-answers names the three channels, routes a no-path item to
+#      product, replies through an op both adapters name.
+src("E8: spec-answers reads the three channels", "commands/spec-answers.md",
+    "On each CR: THREADS-LIST (inline threads), REVIEWS-LIST")
+src("E8: a top-level item is product's", "commands/spec-answers.md",
+    "has no path, so it is `product`'s")
+src("E8: the reply to a top-level item is a CR-COMMENT", "commands/spec-answers.md",
+    "A top-level item has no thread: CR-COMMENT")
+src("E8: a cited top-level item is heard — never folded twice (codex review, PR #114)",
+    "commands/spec-answers.md",
+    "**and no later top-level\n  comment opening with `**[` or `✅ [` cites it**")
+src("E8: the GitHub adapter names CR-COMMENT", "references/forge-github.md",
+    '| CR-COMMENT | `gh pr comment <pr> --body "..."`')
+src("E8: the GitLab adapter names CR-COMMENT", "references/forge-gitlab.md",
+    '| CR-COMMENT | `glab mr note <iid> --message "..."`')
+
+# ---------------------------------------------------------------------------
 # B5 · the must-read stays on top and within budget           (defect: 1.19.0-)
 # Issue #42: agent-written documents grew until the human skipped them. Each
 # producing brief now states a budget — what is must-read, what folds into a
