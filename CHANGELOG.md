@@ -2,6 +2,25 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.35.0 — guard-gate rule F: a question comment lists its options as bullets (#109) — 2026-10-12
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.35.0>
+
+**Behavior:** a new hook rule — a question comment whose options are not bullets is denied before it posts (#109).
+
+### Hooks
+- **Rule F — question options are bullets** (`guard-gate`, #109): a comment-shaped forge write carrying a question block (`**[<role>] · Q<k> · <label>**` / `**Q<n> · <label>**`, up to the next title) with fewer than two option bullets (`- (a) …`, any list marker) is denied; the message names the Q and the shape. The label is free text; a title whose line carries a ruling (`→ (a)`) or a resolution (`— resolved.`) opens no block, so answers, folds and summaries are untouched. Why: the forge renders consecutive lines as one paragraph — options as prose reach the gate holder's phone run together, and the `3a` shorthand has nothing to point at.
+- Hook tests 250 → 277; red-proofed by mutation.
+
+### Behavior
+- `commands/next-stage.md` A3 and `references/intake-brief.md`: one bullet per option, never prose — and the teeth are named.
+
+### Evals
+- Lint **E7** (30 → 31 cases, 476 checks): both homes state bullets and name the teeth; the hook's message is the remedy; the rule tables carry row F. LEDGER E7.
+
+### Docs
+- `README.md`, `docs/index.html`, `hooks/README.md`: rule table row F (since 1.35.0).
+
 ## v1.34.1 — guard-blind reads the suite in any worktree of the repo — 2026-10-12
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.34.1>
