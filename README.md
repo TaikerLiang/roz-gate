@@ -317,9 +317,9 @@ checkout and in the main worktree:
 
 ```
 - forge: github | gitlab
-- test: <full-suite command>            e.g. uv run pytest / npm test
+- test: <full-suite command>            e.g. uv run pytest / npm test — in a linked worktree
 - acceptance_dir: tests/acceptance
-- acceptance_test: <one feature's acceptance command>
+- acceptance_test: <one feature's acceptance command>   in a linked worktree
 - env_sync: <dependency sync command>   e.g. uv sync / npm ci
 - lockfile: <lockfile name>             the only mechanical merge carve-out
 - lockfile_regen: <regen command>
@@ -332,6 +332,12 @@ checkout and in the main worktree:
 - branch_template: {type}/{user}/{n}/{seq}   # optional — your branch convention; absent = {kind}/{n}, see "Branch names"
 - fix_rounds: 3                   # optional — fix-and-rerun rounds at (6) and in a (7) hand-back; absent = 3, 0 = every red stops
 ```
+
+`test` and `acceptance_test` run **in a linked worktree** (`git worktree add`,
+under `.git/roz-gate/wt/<branch>`), never in your checkout — a tool that
+resolves `.git` as a directory (Maven's git-commit-id plugin, some version
+plugins) needs its worktree-safe flag (`-Dmaven.gitcommitid.skip=true`), or
+the first integration red is a harness issue, not a verdict.
 
 Five keys are **yours, per clone** — never in the block, never committed.
 `/roz-gate:config` shows them and sets one from a menu; with arguments it

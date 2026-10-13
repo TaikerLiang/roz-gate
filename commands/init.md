@@ -34,6 +34,12 @@ user, one compact block, not twenty questions:
 - `test` — command that runs the full suite (e.g. `uv run pytest`, `npm test`)
 - `acceptance_dir` (default `tests/acceptance`) and `acceptance_test` — command
   for one feature's acceptance dir
+- Say it as you ask for the two commands: they run **in a linked worktree**
+  (`git worktree add`, under `.git/roz-gate/wt/<branch>`), never in the
+  checkout — a tool that resolves `.git` as a directory (Maven's
+  git-commit-id plugin, some version plugins) needs its worktree-safe flag
+  (`-Dmaven.gitcommitid.skip=true`), or the first integration red is a
+  harness issue, not a verdict.
 - `env_sync` — dependency install/sync command (e.g. `uv sync`, `npm ci`)
 - `lockfile` + `lockfile_regen` (e.g. `uv.lock` / `uv lock`;
   `package-lock.json` / `npm install --package-lock-only`)
