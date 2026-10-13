@@ -2,6 +2,18 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.36.1 — test and acceptance_test say they run in a linked worktree, where the keys are filled in (#99) — 2026-10-13
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.36.1>
+
+**No runtime change.** `commands/init.md` changed, so the version moves; what changes is what init tells an adopter.
+
+### Docs
+- **`test` / `acceptance_test` run in a linked worktree — said where the keys are filled in** (#99): README's config block, init's prompt and the onboarding builder's hint now say the command runs under `.git/roz-gate/wt/<branch>`, never in the checkout, and that a tool resolving `.git` as a directory (Maven's git-commit-id plugin) needs its worktree-safe flag (`-Dmaven.gitcommitid.skip=true`). ADMC's first integration red was that harness issue, not a verdict.
+
+### Evals
+- Lint **L6** (33 → 34 cases): the sentence is anchored on all three surfaces, red-proofed by mutation.
+
 ## v1.36.0 — the STOP comment names its resume move (guard-gate rule G); spec-answers hears all three channels (#98, #72) — 2026-10-12
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.36.0>
