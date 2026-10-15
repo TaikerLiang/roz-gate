@@ -24,6 +24,10 @@ from replaylib import Checker, Run
 
 HEADER = "| issue | state | this pass | needs you |"
 CELL_CAP = 12
+# The `this pass` vocabulary, verbatim from patrol.md §4: a prefixed clause or
+# one of the two bare words.
+VOCAB = ("acted:", "queued:", "waits on you:", "blocked:", "locked:", "illegal:",
+         "shipped", "in progress")
 LISTED = ("5", "6", "7", "8", "9", "10")   # one row each — what the scanner lists
 FILTERED = "11"                            # outside the inbox filter: counted, never a row
 # A row or queue line that leans on a pass the reader never saw. Details is
@@ -68,8 +72,10 @@ def num(x):
     return m.group(1) if m else ""
 
 
-c.expect("patrol.md §4 (one row per issue the scanner listed)",
-         "#5 #6 #7 #8 #9 #10 each have a row", all(row(n) for n in LISTED))
+nums = [num(x) for x in rows if len(x) == 4]
+c.expect("patrol.md §4 (one row per issue the scanner listed, nothing else in it)",
+         "the rows are #5 #6 #7 #8 #9 #10 — each once, no other issue",
+         sorted(nums, key=int) == sorted(LISTED, key=int) and len(nums) == len(set(nums)))
 c.expect("patrol-scan.md (the filter) / patrol.md §4",
          "the filtered-out #11 is counted, never a row", row(FILTERED) is None)
 c.expect("patrol.md §4 (no row cites another pass)",
@@ -78,6 +84,10 @@ c.expect("patrol.md §4 (no row cites another pass)",
 c.expect("patrol.md §4 (`this pass`: one clause, at most %d words)" % CELL_CAP,
          "every `this pass` cell is within the cap",
          bool(rows) and all(len(x[2].split()) <= CELL_CAP for x in rows))
+c.expect("patrol.md §4 (`this pass`: the fixed vocabulary)",
+         "every `this pass` cell is one of the fixed forms",
+         bool(rows) and all(x[2] in ("shipped", "in progress")
+                            or x[2].startswith(VOCAB[:6]) for x in rows))
 c.expect("patrol.md §4 (`needs you`: yes or —)", "every `needs you` cell is yes or —",
          bool(rows) and all(x[3] in ("yes", "—") for x in rows))
 c.expect("patrol.md §4 (`needs you` whenever the next move is a human's)",
@@ -85,6 +95,17 @@ c.expect("patrol.md §4 (`needs you` whenever the next move is a human's)",
          all(row(n) is not None and row(n)[3] == "yes" for n in ("8", "9", "10")))
 c.expect("patrol.md §4 (`needs you`)", "#6 (queued machine work) is not",
          row("6") is not None and row("6")[3] == "—")
+# The acted rows: a review answered leaves the review to the human; a
+# questions batch posted leaves the questions to the holder (§4). Tied to
+# what the pass did, so a pass that never got to them is not scored on them.
+acted5 = r.route_taken("5")
+asked7 = any(b.startswith("**[intake]**") for b in r.issue_comment_bodies("7"))
+c.expect("patrol.md §4 (`needs you`: a review to merge)",
+         "#5 is `needs you` exactly when the pass answered it",
+         row("5") is not None and (row("5")[3] == "yes") == acted5)
+c.expect("patrol.md §4 (`needs you`: an intake batch posted this pass)",
+         "#7 is `needs you` exactly when its batch was posted",
+         row("7") is not None and (row("7")[3] == "yes") == asked7)
 
 # ---- the filter line ---------------------------------------------------------
 c.expect("patrol.md §4 (the filter line)", "the filter line counts the one excluded issue",
@@ -98,11 +119,13 @@ d_at = next((i for i, ln in enumerate(lines)
              if re.match(r"^\s*#{1,6}\s*details\b", ln, re.I)), len(lines))
 queue = [ln.strip() for ln in lines[q_at + 1:d_at] if ln.strip()] if q_at is not None else []
 items = [ln for ln in queue if re.match(r"^-\s*#\d+", ln)]
+loop_items = [ln for ln in queue if re.match(r"^-\s*loop\s+—", ln)]   # §0's flags
 yes_rows = {num(x) for x in rows if len(x) == 4 and x[3] == "yes"}
 queued = {re.match(r"^-\s*#(\d+)", ln).group(1) for ln in items}
 c.expect("patrol.md §4 (the queue)", "the queue exists", q_at is not None)
-c.expect("patrol.md §4 (the queue holds items only)", "every queue line is `- #n — …`",
-         bool(queue) and len(items) == len(queue))
+c.expect("patrol.md §4 (the queue holds items only)",
+         "every queue line is `- #n — …` or `- loop — …`",
+         bool(queue) and len(items) + len(loop_items) == len(queue))
 c.expect("patrol.md §4 (a queue item without its link is not written)",
          "every queue item carries a link",
          bool(items) and all(re.search(r"https?://\S+", ln) for ln in items))

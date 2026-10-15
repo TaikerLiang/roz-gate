@@ -103,15 +103,48 @@ SHAPES = [
      report(queue=QUEUE + ["- nothing further needed for #6"])),
     ("Details cites the last pass", False,
      report(details=DETAILS + ["- #9/#10 read as blocked; last pass said illegal state."])),
+    ("a loop-level item: the workflow stamp is stale", True,
+     report(queue=QUEUE + ["- loop — re-run /roz-gate:init — workflow stamp v3, plugin v4"])),
+    ("#5 answered but marked —, dropped from the queue", False,
+     report(table=swap(TABLE, "answered the checkout-time question | yes |",
+                       "answered the checkout-time question | — |"),
+            queue=[ln for ln in QUEUE if not ln.startswith("- #5")])),
+    ("#7's batch posted but marked —, dropped from the queue", False,
+     report(table=swap(TABLE, "questions batch posted | yes |", "questions batch posted | — |"),
+            queue=[ln for ln in QUEUE if not ln.startswith("- #7")])),
+    ("the pass never reached #5 or #7 — both — is right", True,
+     report(table=swap(swap(TABLE,
+                            "acted: review-answers — answered the checkout-time question | yes |",
+                            "queued: review-answers | — |"),
+                       "acted: intake — questions batch posted | yes |", "queued: intake | — |"),
+            queue=[ln for ln in QUEUE if not ln.startswith(("- #5", "- #7"))]),
+     {"acted5": False, "asked7": False}),
+    ("a `this pass` cell outside the vocabulary", False,
+     report(table=swap(TABLE, "queued: next-stage", "nothing happened today"))),
+    ("#6 listed twice", False,
+     report(table=TABLE + [TABLE[3]])),
+    ("a row for an issue the scanner never listed (#12)", False,
+     report(table=TABLE + ["| #12 Ghost | spec · in flight | in progress | — |"])),
 ]
 
 
-def run_check(tmp, text):
+def run_check(tmp, text, acted5=True, asked7=True):
+    """The pass answered #5 (its lock in the journal) and posted #7's batch
+    (the comment in the state) unless a shape says otherwise."""
     run = os.path.join(tmp, "run")
     shutil.rmtree(run, ignore_errors=True)
     os.makedirs(os.path.join(run, "forge"))
-    shutil.copy(os.path.join(CASE, "state.json"), os.path.join(run, "forge", "state.json"))
-    open(os.path.join(run, "forge", "journal.jsonl"), "w").close()
+    with open(os.path.join(CASE, "state.json"), encoding="utf-8") as f:
+        st = json.load(f)
+    if asked7:
+        st["issues"]["7"]["comments"] = [{"id": 1, "author": "paul",
+                                          "body": "**[intake]** 1. Expiry? (a) …"}]
+    with open(os.path.join(run, "forge", "state.json"), "w", encoding="utf-8") as f:
+        json.dump(st, f)
+    with open(os.path.join(run, "forge", "journal.jsonl"), "w", encoding="utf-8") as f:
+        if acted5:
+            f.write(json.dumps({"route": "issue-edit", "write": True, "issue": "5",
+                                "add": ["status: processing"]}) + "\n")
     with open(os.path.join(run, "transcript.jsonl"), "w", encoding="utf-8") as f:
         f.write(json.dumps({"type": "result", "result": text}, ensure_ascii=False) + "\n")
     env = dict(os.environ, RUN_DIR=run, BARE=tmp)
@@ -123,8 +156,8 @@ def main():
     passed = failed = 0
     tmp = tempfile.mkdtemp()
     try:
-        for name, want_pass, text in SHAPES:
-            p = run_check(tmp, text)
+        for name, want_pass, text, *kw in SHAPES:
+            p = run_check(tmp, text, **(kw[0] if kw else {}))
             ok = (p.returncode == 0) == want_pass
             verdict = "pass" if want_pass else "fail"
             print("%s F11 %s → %s%s" % ("PASS" if ok else "FAIL", name, verdict,

@@ -277,7 +277,11 @@ order, one line each, `- #n — <verb phrase> — <link>` (answer the threads,
 answer the intake questions, say `summary`, apply the gate label, decide
 the STOP, review & merge, needs an assignee, clear a stale lock). A row
 that does not need them is not a queue item; a queue item without its link
-is not written.
+is not written. What §0 flags for the **whole loop**, not an issue — the
+workflow stamp missing or outdated, a legacy config block — is a queue item
+too, `- loop — re-run /roz-gate:init — <why>` (no link: nothing on the forge
+to open); the effective branch names §0 has the report state go under
+Details.
 
 **A row the pass cannot act on as written** — a verdict outside the brief's
 list, a missing `cr` for an actionable row (§2), a scan that contradicts
