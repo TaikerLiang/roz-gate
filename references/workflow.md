@@ -355,8 +355,11 @@ a status report. Neither ever moves the other's.**
 | labels retire at close | the closing merge — (7), or your fast-CR merge; patrol's **close-out** finishes it (labels off, issue closed) where the forge does not do it on merge |
 
 **Invocation policy.** Workflow commands are executed by the main agent and —
-except `/roz-gate:to-issues`, which you always initiate (the inbox's async
-intake is likewise initiated by you, by filing the raw issue) — do not wait
+except `/roz-gate:to-issues` and `/roz-gate:tip`, which you always initiate
+(the inbox's async intake is likewise initiated by you, by filing the raw
+issue; `/roz-gate:tip <n>` is read-only: what #n needs next — your move, the
+loop's, the repair when its state is off — read from its labels, CRs,
+threads and branches and from this document) — do not wait
 for you to type them. A patrol pass (`/roz-gate:patrol`, run manually, on a loop, or on
 a schedule) sends one **read-only scanner sub-agent** to classify every open
 issue into a table (`references/patrol-scan.md` — the single home of the
@@ -428,5 +431,6 @@ reply, which is exactly what `blocked` would have bought.
   fast — routed by labels, printing the workflow map first);
   `/roz-gate:spec-answers` (2a); `/roz-gate:integrate` (6);
   `/roz-gate:review-answers` (7 — one turn of your review conversation);
+  `/roz-gate:tip` (what #n needs next — read-only);
   `/roz-gate:patrol` — one polling pass that auto-invokes the commands above
   and triages the inbox ((1b)). The merge at the end of (7) is yours.

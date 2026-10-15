@@ -1,0 +1,35 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, expired offers never apply, and an offer that expires while my cart is open is re-checked at checkout.\n\n**Acceptance criteria**\n- An offer past its `expires_at` is not applied.\n- Expiry during an open cart is re-checked at checkout.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec", "status: in-spec-review"],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer expiry enforcement",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [
+        {"id": "T1", "isResolved": true, "path": "docs/specs/5/spec.md", "line": 9,
+         "comments": [
+           {"databaseId": 9010, "author": "paul", "body": "**[em] · Q1 · open-cart expiry** — An offer that expires while the cart is open: re-checked at checkout, or honoured until checkout?\n- (a) re-checked at checkout — recommended: the story says so\n- (b) honoured until checkout", "createdAt": "2026-08-20T10:00:00Z"},
+           {"databaseId": 9011, "author": "paul", "body": "(a)", "createdAt": "2026-08-21T08:00:00Z"},
+           {"databaseId": 9012, "author": "paul", "body": "✅ [em] folded — R5 re-check at checkout (from Q1); S2 added.", "createdAt": "2026-08-21T09:00:00Z"}
+         ]}
+      ],
+      "reviews": [],
+      "comments": []
+    }
+  }
+}

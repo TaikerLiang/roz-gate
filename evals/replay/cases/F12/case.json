@@ -1,0 +1,6 @@
+{
+  "ledger": "F12 · tip names the next move and writes nothing",
+  "prompt": "/roz-gate:tip 5",
+  "k": 5,
+  "timeout": 900
+}
