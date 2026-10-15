@@ -64,6 +64,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | B3 | the marker convention is identical everywhere | lint (preventive) | — |
 | B4 | an agent write never opens with a quote block | lint (defect 1.11.0-) + hook (guard-gate rule C) | — |
 | B5 | the must-read stays on top and within budget | lint (defect 1.19.0-) | — |
+| B6 | `unverified` is a reserved word — a spec document carries it only as the evidence tag; the Path B and promote checks match the whole word anywhere, so the word in prose (line-initial after a wrap, mid-sentence, capitalised) stops the gate like a tag and the remedy is to reword; `unverifiable` / `verified` are not hits | lint (defect 1.36.1-, #123) | — |
 
 ### C · labels and exits
 
