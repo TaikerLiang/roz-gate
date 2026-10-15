@@ -65,6 +65,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | B4 | an agent write never opens with a quote block | lint (defect 1.11.0-) + hook (guard-gate rule C) | — |
 | B5 | the must-read stays on top and within budget | lint (defect 1.19.0-) | — |
 | B6 | `unverified` is a reserved word — a spec document carries it only as the evidence tag; the Path B and promote checks match the whole word anywhere, so the word in prose (line-initial after a wrap, mid-sentence, capitalised) stops the gate like a tag and the remedy is to reword; `unverifiable` / `verified` are not hits | lint (defect 1.36.1-, #123) | — |
+| B7 | the patrol report is one fixed table — `\| issue \| state \| this pass \| needs you \|`, one row per scanned issue, one clause per cell, no row citing another pass; the queue is exactly the `needs you` rows with links; `## Details` trails and never hides what needs the human | lint (defect 1.37.0-, #124) | — |
 
 ### C · labels and exits
 
@@ -128,6 +129,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | F10 | A branch is cut by the configured template | replay | "`spec/paul/5/1` descends from `origin/<default_branch>`, the CR's head is that branch and targets the base, no `spec/5` and no `fix/paul/5/1` exists on the remote." (every seed before this one ran the default names, so a loop that hardcoded them measured 100%; the `type: fix` label on the fixture is the tempting wrong render for the spec branch — issue #75) |
 | F7 | A branch is cut from the configured base, not the trunk | replay | "`spec/<n>` descends from `origin/<default_branch>` and the CR targets it — with `default_branch` naming a release branch while `main` and an older release branch also exist." (the only base ever exercised was `main`; a loop that always cut from the trunk measured 100% — issue #38) |
 | F6 | Compliance survives a long session — instrument, not assert | replay (instrument only) | "The same command run as turn 1, 3, 5, 8 and 12 of one session. Record the compliance rate at each position. No pass mark." (amended — see below) |
+| F11 | A pass reports in the template | replay | "The report's must-read is the template's table with a row per scanned issue and none for the filtered-out one; no row cites a previous pass; every `this pass` cell is one clause within the cap; every `needs you` row is a queue item with a link and the queue has nothing else; the filter line is present." (the pasted report of #124: key/value blocks, seven issues folded into "same as previous pass", a queue without links, a flip-flop only in Details) |
 | F12 | tip names the next move and writes nothing | replay (#121) | "The answer names `status: ready-for-dev` as the human's move and `next-stage` as the loop's, and links the spec CR; the journal carries zero writes, no dispatch happened, #5's labels are as seeded, the remote's refs are byte-identical." (a read-only command measured as one: the tempting write is the label it recommends) |
 
 **Amendment — F6.** The original text measured turns 1, 3, 5 and 10. The

@@ -2,6 +2,18 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.37.0 — `unverified` is a reserved word in spec documents; the checks match the whole word (#123) — 2026-10-15
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.37.0>
+
+**Runtime change.** `next-stage` (Path B entry) and `spec-answers` (the promote check) now stop on the whole word `unverified` anywhere in a spec document, not only in tag position.
+
+### Behavior
+- **`unverified` is a reserved word in spec documents** (#123): it appears only as the evidence tag `(unverified)`; prose says *not yet measured* or *asserted*. The unverified-claim check is `grep -nwi unverified <specs_dir>/<n>/*.md` — a tag, a tag merged into another parenthesis, a wrap-split tag and the word loose in a sentence are all hits, and the remedy is named by what the hit is: measure or demote a tag, reword prose. There is no "known false positive".
+
+### Evals
+- Lint **B6** (34 → 35 cases): the reserved word proven on ADMC's exact text; **B1** re-anchored on the whole-word pattern, its negative fixture now prose without the word.
+
 ## v1.36.1 — test and acceptance_test say they run in a linked worktree, where the keys are filled in (#99) — 2026-10-13
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.36.1>

@@ -241,19 +241,60 @@ issue body, and all comments), never patrol's own.
    `<details><summary>Evidence</summary>`.
 
 ## 4. Report
-A short table: issue · state · action taken this pass, or what it waits on and
-who. When an inbox filter is configured, one line under the table states the
-filter and the count it excluded — `inbox filter: label discuss · N
-track-less issues not in the inbox filter` — so a quiet inbox is never a
-mystery. End with the user's queue: what (if anything) needs them — answer threads,
-answer intake questions, say `summary`, confirm a summary with the gate
-label, apply a gate label, or review &
-merge — with links. Close-outs appear in the table as `shipped`. The table, the filter line and the queue are the
-**must-read**; anything else — per-issue notes, why an issue was skipped,
+The report is the scanner's table rendered for the user, plus what this pass
+did — one fixed shape, so the first screen of a phone-width read says
+everything that needs them. Patrol has no memory across passes and the
+reader has no previous report in front of them: every row states its own
+state and its own wait, and no row cites another pass — "unchanged",
+"same as previous pass", "see last pass" are not clauses.
+
+**The table** — this header, one row per issue the scanner listed (open loop
+issues, close-out candidates, locked, blocked, inbox issues in the filter),
+in the scanner's order, nothing else in it:
+
+`| issue | state | this pass | needs you |`
+
+- `issue` — `#n title`. No links here: the report is a terminal print, and
+  links live in the queue.
+- `state` — the scanner's `track · status` as read: `spec · in-spec-review`,
+  `fast · ready-for-dev`, `spec · in flight` (no `status:`), `spec · blocked`,
+  `inbox`.
+- `this pass` — **one clause, at most 12 words**, from this vocabulary:
+  `acted: <action> — <outcome>` · `queued: <action>` · `waits on you: <what>`
+  · `blocked: <the STOP comment's title>` · `locked: <phase> · <age>` ·
+  `illegal: <why>` · `shipped` · `in progress`. Never a list, never a commit
+  log — that is Details material.
+- `needs you` — `yes` or `—`; `yes` whenever the next move is a human's: a
+  wait, a `blocked`, an illegal row, a stale lock, an intake batch or a
+  `· question` posted this pass, a review to merge.
+
+Then the filter line, when an inbox filter is configured — `inbox filter:
+label discuss · N track-less issues not in the inbox filter` — so a quiet
+inbox is never a mystery.
+
+**The queue** — `Your queue:` then exactly the `needs you` rows, in table
+order, one line each, `- #n — <verb phrase> — <link>` (answer the threads,
+answer the intake questions, say `summary`, apply the gate label, decide
+the STOP, review & merge, needs an assignee, clear a stale lock). A row
+that does not need them is not a queue item; a queue item without its link
+is not written. What §0 flags for the **whole loop**, not an issue — the
+workflow stamp missing or outdated, a legacy config block — is a queue item
+too, `- loop — re-run /roz-gate:init — <why>` (no link: nothing on the forge
+to open); the effective branch names §0 has the report state go under
+Details.
+
+**A row the pass cannot act on as written** — a verdict outside the brief's
+list, a missing `cr` for an actionable row (§2), a scan that contradicts
+what this session read earlier (`blocked` now, `illegal state` a pass ago)
+— is `illegal: <why>` with `needs you: yes` and a queue item (`decide:
+<why>`); never a note under Details, never re-derived.
+
+The table, the filter line and the queue are the **must-read**; anything
+else — per-issue notes, what a dispatch returned, why a row was skipped,
 what a lock looked like — goes under a trailing `## Details` heading after
-the queue (this report is printed to a terminal, not a forge, so it uses a
-heading rather than a `<details>` tag). Nothing that needs the human is ever
-only in Details.
+the queue, omitted when empty (this report is printed to a terminal, not a
+forge, so it uses a heading rather than a `<details>` tag). Nothing that
+needs the human is ever only in Details.
 
 ## 5. Notification (optional)
 If a messaging channel (e.g. Telegram) is connected and an issue **newly**
