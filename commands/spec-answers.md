@@ -104,9 +104,11 @@ half-done:
      with **both tags, separately**: the ruling carries its authority tag
      `(from Q<j>)` as usual, and the empirical premise carries `(unverified)`
      as its evidence tag — never merged into one parenthesis (the two axes
-     never share a tag, per A3's placement rule; the Path B and promote
-     greps are widened to catch a merged parenthesis anyway — convention
-     first line of defense, grep the second). The ruling part is the
+     never share a tag, per A3's placement rule; `unverified` is a
+     reserved word, so the Path B and promote checks match the whole word
+     anywhere — a merged parenthesis, a wrapped tag and the word in prose
+     all stop; convention first line of defense, grep the second). The
+     ruling part is the
      holder's; the claim about the world still needs measuring or demoting.
    - **A fold touching an evidence-tagged sentence re-derives the tag**: the
      measurement still covers the edited claim, or the tag downgrades to
@@ -176,13 +178,14 @@ depends on where the issue is — decided by CR-FIND for `<feat-branch>` /
 - **First pass through (2a)** — no `<feat-branch>` / `<qa-branch>` CRs exist:
   LABEL-REMOVE `status: processing` (leave `status: in-spec-review`). Before
   reporting ready, two checks:
-  - `grep -nE '(^|[(,])[[:space:]]*unverified' <specs_dir>/<n>/*.md` (the
-    widened form — it also catches a tag illegally merged into another
-    parenthesis or split by a wrap) — any hit is an unresolved
-    blocker: the report lists the claims and does **not** say "ready for
-    approval" (measure, or demote to `(assumed-empirical: <risk>)`). Zero
-    hits in a pre-vocabulary spec (no evidence tags anywhere) is absence of
-    the vocabulary, not verification — say which the report means.
+  - `grep -nwi unverified <specs_dir>/<n>/*.md` (the whole word, anywhere —
+    `unverified` is reserved for the tag, so a merged or wrapped tag and
+    the word in prose are all hits) — any hit is an unresolved blocker:
+    the report lists the hits and does **not** say "ready for approval"
+    (measure, demote to `(assumed-empirical: <risk>)`, or reword prose).
+    Zero hits in a pre-vocabulary spec (no evidence tags anywhere) is
+    absence of the vocabulary, not verification — say which the report
+    means.
   - **Walk currency**: if any fold added or reshaped a scenario since the §5
     observability walk's commit, those walk rows are stale — re-dispatch the
     implementer for exactly those rows before reporting ready (same shape as

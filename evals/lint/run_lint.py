@@ -106,23 +106,28 @@ def section(text, start_re, end_re):
 
 # ---------------------------------------------------------------------------
 # B1 · a compound tag evades the literal it contains        (defect: 1.12.0-)
-# Canonical unverified-claim pattern: tag position = start of line (a wrap
-# continuation) or after ( or , (its own tag, or illegally merged into one).
-UNV = r"(^|[(,])[ \t]*unverified"
+# Canonical unverified-claim pattern since 1.37.0: the whole word, anywhere,
+# any case. `unverified` is reserved for the evidence tag (B6), so its own
+# tag, one merged into another parenthesis and a wrap-split compound are
+# the same hit — no tag position to compute, nothing a line break can hide.
+# (1.12.0–1.36.1 matched tag position — start of line, or after ( or , —
+# and read a wrapped prose line as a tag: #123.)
+UNV = r"(?i)\bunverified\b"
 must_match("B1 pattern: compound (from Q4, unverified) found",
            UNV, fixture("b1_compound.md"))
 must_match("B1 pattern: conventional (unverified) found",
            UNV, fixture("b1_plain.md"))
 must_match("B1 pattern: wrap-split compound found",
            UNV, fixture("b1_wrapped.md"))
-must_not_match("B1 pattern: the word in prose NOT flagged",
+must_not_match("B1 pattern: prose without the word NOT flagged",
                UNV, fixture("b1_negative.md"))
-src("B1 conformance: Path B check carries the widened pattern",
-    "commands/next-stage.md", "grep -nE '(^|[(,])[[:space:]]*unverified'")
-src("B1 conformance: promote check carries the widened pattern",
-    "commands/spec-answers.md", "grep -nE '(^|[(,])[[:space:]]*unverified'")
-c.expect("pattern", "B1 conformance: no site still greps only the old literal",
-         "grep -n '(unverified)'" not in dirs_text("commands", "references"))
+src("B1 conformance: Path B check carries the whole-word grep",
+    "commands/next-stage.md", "grep -nwi unverified <specs_dir>/<n>/*.md")
+src("B1 conformance: promote check carries the whole-word grep",
+    "commands/spec-answers.md", "grep -nwi unverified <specs_dir>/<n>/*.md")
+c.expect("pattern", "B1 conformance: no site greps the bare literal or the tag-position form",
+         "grep -n '(unverified)'" not in dirs_text("commands", "references")
+         and "[(,])[[:space:]]*unverified" not in dirs_text("commands", "references"))
 
 # ---------------------------------------------------------------------------
 # B2 · a line-wrapped tag survives the check                (defect: 1.12.0-)
@@ -290,6 +295,33 @@ src("B5 conformance: B3 folds test-spec narrative",
     "commands/next-stage.md", "`test-spec.md` keeps the **must-read on top**")
 src("B5 conformance: the patrol report keeps the table and queue as must-read",
     "commands/patrol.md", "trailing `## Details` heading after")
+
+# ---------------------------------------------------------------------------
+# B6 · `unverified` is a reserved word                       (defect 1.36.1-, #123)
+# A spec document carries the word only as the evidence tag. ADMC's
+# technical-spec.md wrapped the prose "(not citing #8's claim unverified)"
+# so that `unverified` opened a line, and the 1.12.0 tag-position grep read
+# it as a wrap-split tag — a hit the author called a false positive. Paul's
+# ruling: the word is reserved, like `import` in a program; prose says "not
+# yet measured" or "asserted", the checks match the whole word anywhere, so
+# the word in prose stops the gate like a tag and the remedy is to reword.
+must_match("B6 pattern: ADMC's line-initial prose wrap is a hit", UNV,
+           fixture("b6_prose_wrap.md"))
+must_match("B6 pattern: the word mid-sentence is a hit", UNV, fixture("b6_prose_midline.md"))
+must_match("B6 pattern: a sentence-initial capital is a hit", UNV,
+           fixture("b6_prose_capital.md"))
+must_not_match("B6 pattern: unverifiable / verified are not hits (word boundary)", UNV,
+               fixture("b6_clean.md"))
+src("B6 conformance: A3 states the reserved word", "commands/next-stage.md",
+    "**`unverified` is a reserved word** in every\n    spec document: it appears only as this tag")
+src("B6 conformance: A3 says the whole word anywhere stops the gate", "commands/next-stage.md",
+    "the checks match the whole word anywhere")
+src("B6 conformance: Path B names reword as the prose remedy", "commands/next-stage.md",
+    "the word in prose: reword\nthe sentence")
+src("B6 conformance: the promote check names reword as the prose remedy",
+    "commands/spec-answers.md", "or reword prose")
+src("B6 conformance: the fold rule states the reserved word", "commands/spec-answers.md",
+    "`unverified` is a\n     reserved word")
 
 # ---------------------------------------------------------------------------
 # E2 · a question left behind in the source document        (defect: 1.14.2-)
@@ -1362,7 +1394,7 @@ src("L6: the onboarding builder's hint names the failure (zh)", "docs/onboarding
     "worktree-safe 旗標")
 
 # ---------------------------------------------------------------------------
-# B7 · the patrol report is one fixed table                 (defect: 1.36.1-, #124)
+# B7 · the patrol report is one fixed table                 (defect: 1.37.0-, #124)
 # patrol.md §4 said "a short table … the user's queue … with links" and
 # nothing pinned the shape: an adopter's pass printed three key/value lines
 # per issue, folded seven issues into "unchanged — same as previous pass"

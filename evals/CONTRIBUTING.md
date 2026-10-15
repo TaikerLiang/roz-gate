@@ -50,11 +50,11 @@ One block in `lint/run_lint.py`:
 ```python
 # ---------------------------------------------------------------------------
 # B1 · a compound tag evades the literal it contains        (defect: 1.12.0-)
-UNV = r"(^|[(,])[ \t]*unverified"
+UNV = r"(?i)\bunverified\b"
 must_match("B1 pattern: compound (from Q4, unverified) found", UNV, fixture("b1_compound.md"))
-must_not_match("B1 pattern: the word in prose NOT flagged", UNV, fixture("b1_negative.md"))
-src("B1 conformance: Path B check carries the widened pattern",
-    "commands/next-stage.md", "grep -nE '(^|[(,])[[:space:]]*unverified'")
+must_not_match("B1 pattern: prose without the word NOT flagged", UNV, fixture("b1_negative.md"))
+src("B1 conformance: Path B check carries the whole-word grep",
+    "commands/next-stage.md", "grep -nwi unverified <specs_dir>/<n>/*.md")
 ```
 
 - **Header**: `# <ID> · <title>` and `(defect: <version>-)` or
