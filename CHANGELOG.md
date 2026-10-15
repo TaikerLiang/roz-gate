@@ -2,6 +2,21 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.39.0 — /roz-gate:tip <n>: the read-only answer to "what now" (#121) — 2026-10-15
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.39.0>
+
+**Runtime change: one new command, read-only.** Nothing existing changes behaviour.
+
+### Behavior
+- **`/roz-gate:tip <n>`** (#121): reads #n's labels, CRs, threads and branches and answers in the terminal — your next move (with links and the `workflow.md` passage), the loop's next move if you do nothing, and, when the state is illegal or stuck, what is off and the repair the documents give. It writes nothing: no label, no comment, no commit, no branch, no lock; patrol never invokes it.
+
+### Evals
+- Lint **C19** (36 → 37 cases): the command's read-only contract and its answer shape are anchored on the command and the five doc surfaces; replay **F12** (36 → 37 cases): a seeded `in-spec-review` issue with every thread resolved — the answer names `ready-for-dev` and `next-stage`, the journal carries no write (checker + 16-shape red-proof; baseline a separate decision).
+
+### Docs
+- `README.md` (command table, § Troubleshooting), `docs/index.html` ("What should I do now?") and `docs/onboarding.html` (When it stops) point at tip; `references/workflow.md` lists it as human-initiated.
+
 ## v1.38.0 — the patrol report is one fixed table (#124) — 2026-10-15
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.38.0>
