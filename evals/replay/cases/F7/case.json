@@ -1,5 +1,7 @@
 {
   "ledger": "F7 · A branch is cut from the configured base, not the trunk",
+  "tier": "replay",
+  "ledger_text": "\"`spec/<n>` descends from `origin/<default_branch>` and the CR targets it — with `default_branch` naming a release branch while `main` and an older release branch also exist.\" (the only base ever exercised was `main`; a loop that always cut from the trunk measured 100% — issue #38)",
   "prompt": "/roz-gate:next-stage 5",
   "k": 5,
   "timeout": 2400

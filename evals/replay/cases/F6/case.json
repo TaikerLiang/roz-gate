@@ -1,6 +1,8 @@
 {
- "ledger": "F6 \u00b7 Compliance survives a long session \u2014 instrument, not assert",
- "driver": "drive.py",
- "k": 3,
- "timeout": 7200
+  "ledger": "F6 · Compliance survives a long session — instrument, not assert",
+  "tier": "replay (instrument only)",
+  "ledger_text": "\"The same command run as turn 1, 3, 5, 8 and 12 of one session. Record the compliance rate at each position. No pass mark.\" (amended — see below)",
+  "driver": "drive.py",
+  "k": 3,
+  "timeout": 7200
 }

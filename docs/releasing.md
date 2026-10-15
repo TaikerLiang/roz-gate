@@ -5,11 +5,20 @@ preparing one. An agent may prepare every step. The two that publish —
 merging the release PR, and pushing "Publish" on the release — belong to
 the maintainer.
 
+## Where the version moves
+
+Only in the release PR (step 2). A feature PR never touches
+`.claude-plugin/plugin.json`; it carries a `## Release note` section in
+its body instead, and CI's `release-note` job refuses a PR that changes a
+behaviour path (`agents/`, `bin/`, `commands/`, `references/`, `templates/`,
+`hooks/`, `scripts/`) without one. The release is assembled from those
+sections, never reconstructed. (Until 1.39.0 the pre-push gate demanded the
+bump in every feature PR — and every second feature PR conflicted on that
+one line, issue #131.)
+
 ## Minor or patch
 
-The pre-push gate demands a version bump whenever a behavior path changes
-(`agents/`, `commands/`, `references/`, `templates/`). Beyond that it is a
-judgment, and the release history is the guide:
+A judgment, and the release history is the guide:
 
 - **minor** — a new hook rule (1.14.0 rule C, 1.15.0 rule D, 1.16.0 rule
   E), a new command, or a body of work worth its own line (1.17.0: D4, the
@@ -30,8 +39,8 @@ judgment, and the release history is the guide:
 
 2. **Bump.** Branch `release/<x.y.z>` from `origin/main`, change only
    `.claude-plugin/plugin.json`'s `version`, and commit `release: <x.y.z>`
-   with one paragraph saying why minor or patch. Open the PR; the
-   maintainer merges it.
+   with one paragraph saying why minor or patch. This is the only commit
+   that ever moves the version. Open the PR; the maintainer merges it.
 
 3. **Draft the release** against the release PR's merge commit. Take the
    SHA from the PR itself, not from `origin/main`: a local `origin/main`

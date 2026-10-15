@@ -1,5 +1,7 @@
 {
   "ledger": "F1 · A quiet loop stays quiet",
+  "tier": "replay",
+  "ledger_text": "\"Report says no action. Zero label writes, zero comments, one dispatch — the scanner — and no other, no processing left behind.\" (amended for #59: the scan is a read-only sub-agent)",
   "prompt": "/roz-gate:patrol",
   "k": 5,
   "timeout": 900

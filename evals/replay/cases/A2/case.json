@@ -1,5 +1,7 @@
 {
   "ledger": "A2 · A review whose whole content is its body is invisible",
+  "tier": "replay",
+  "ledger_text": "\"Detected as unheard via REVIEWS-LIST.\" (a repository could scan perfectly clean while a reviewer had blocked the change)",
   "prompt": "/roz-gate:patrol",
   "k": 5,
   "timeout": 900

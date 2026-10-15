@@ -1,5 +1,7 @@
 {
   "ledger": "E5 · An answer folds into the document that owns it",
+  "tier": "replay",
+  "ledger_text": "\"technical-spec.md is modified. The spec.md entry records the resolution and points at the clause.\" (folded as prose beside the question instead, the contract never changes, QA derives from the unchanged contract, and the defect ships with a resolved thread pointing at it)",
   "prompt": "/roz-gate:spec-answers 5",
   "k": 5,
   "timeout": 1200

@@ -1,5 +1,7 @@
 {
   "ledger": "A3 · Top-level comments are read as a channel",
+  "tier": "replay",
+  "ledger_text": "\"Actionable. Top-level is the default affordance on the PR page and the only one usable from a phone.\"",
   "prompt": "/roz-gate:patrol",
   "k": 5,
   "timeout": 900

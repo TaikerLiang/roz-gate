@@ -1,5 +1,7 @@
 {
-  "ledger": "D5 \u00b7 The fidelity dispatch is blind under a templated implementation branch",
+  "ledger": "D5 · The fidelity dispatch is blind under a templated implementation branch",
+  "tier": "replay + hook (guard-blind rule E, the marker's `feat=` line)",
+  "ledger_text": "\"The dispatching command's marker carries `feat=fix/paul/5/1`; checkout is `test/paul/5/1`; no executed tool call under the fidelity dispatch acts on `fix/paul/5/1` or reads `src/`.\" (under a `branch_template` the implementation branch is not a `feat/` ref, and D2's literal alone would read every touch of it as blind — issue #75)",
   "prompt": "/roz-gate:patrol",
   "k": 5,
   "timeout": 1800

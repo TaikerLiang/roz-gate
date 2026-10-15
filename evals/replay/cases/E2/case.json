@@ -1,5 +1,7 @@
 {
   "ledger": "E2 · A seat's questions reach the holder from any document",
+  "tier": "lint (defect 1.14.2-) + replay + hook (guard-gate rule D)",
+  "ledger_text": "\"Relocated verbatim into spec.md's Open Questions, tagged with the raising role, before threads are posted.\" (threads are the only objects the gates count; a question outside the threaded surface blocks nothing)",
   "prompt": "/roz-gate:next-stage 5",
   "k": 5,
   "timeout": 2400

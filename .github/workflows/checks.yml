@@ -9,6 +9,8 @@ jobs:
         run: python3 hooks/tests/run_tests.py
       - name: eval ledger lint tier
         run: python3 evals/lint/run_lint.py
+      - name: ledger page and eval counts are rendered from the cases
+        run: python3 tools/ledger.py --check
       - name: replay red-proofs (checkers scored on seeded sandboxes, no model)
         run: python3 evals/replay/run_redproofs.py
       - name: naming convention (repo hygiene, tools/ — not the ledger)
@@ -16,3 +18,25 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - name: ruff (code lint, dev dependency — not the ledger)
         run: uv run ruff check .
+  release-note:
+    # A PR that changes a behaviour path carries its release note in the body
+    # (docs/releasing.md); the version moves only in the release PR, so no
+    # feature PR bumps it and no two feature PRs conflict on it (issue #131).
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: a behaviour change carries a `## Release note` section
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+          BASE: ${{ github.base_ref }}
+        run: |
+          git fetch -q origin "$BASE"
+          changed=$(git diff --name-only "origin/$BASE...HEAD" -- agents bin commands references templates hooks scripts)
+          if [ -z "$changed" ]; then echo "no behaviour path changed"; exit 0; fi
+          if printf '%s\n' "$BODY" | grep -q '^## Release note'; then echo "release note present"; exit 0; fi
+          echo "behaviour files changed but the PR body has no '## Release note' section:" >&2
+          echo "$changed" | sed 's/^/  /' >&2
+          exit 1

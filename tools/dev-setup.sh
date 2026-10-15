@@ -6,4 +6,4 @@
 set -e
 cd "$(git rev-parse --show-toplevel)"
 git config core.hooksPath .githooks
-echo "core.hooksPath = $(git config core.hooksPath) — pre-commit (naming) and pre-push (suites + version bump) are live."
+echo "core.hooksPath = $(git config core.hooksPath) — pre-commit (naming) and pre-push (suites + ledger check) are live."

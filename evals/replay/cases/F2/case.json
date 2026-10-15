@@ -1,5 +1,7 @@
 {
   "ledger": "F2 · One review turn answers exactly what was asked",
+  "tier": "replay",
+  "ledger_text": "\"Exactly three `· answer` replies, each citing its item's URL; zero threads resolved; lock taken and released; in-user-review retained.\" (two answers = an item dropped silently; four = one answered twice; a resolved thread = the agent closed a question that was not its own)",
   "prompt": "/roz-gate:review-answers 5",
   "k": 5,
   "timeout": 1200

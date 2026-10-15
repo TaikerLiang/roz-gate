@@ -1,5 +1,7 @@
 {
   "ledger": "F8 · A command leaves the user's checkout as it found it",
+  "tier": "replay",
+  "ledger_text": "\"HEAD is still main, the uncommitted edit and the untracked file are intact, no linked worktree is left behind, and spec/<n> reached the remote.\" (every earlier seed ran in a clean clone, where a checkout in the user's tree is invisible — issue #37)",
   "prompt": "/roz-gate:next-stage 5",
   "k": 5,
   "timeout": 2400

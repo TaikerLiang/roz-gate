@@ -1,5 +1,7 @@
 {
   "ledger": "C7 · A branch is cut only from a base the remote has",
+  "tier": "lint + replay",
+  "ledger_text": "\"Labels are blocked alone; the STOP comment names the missing base; no branch pushed, no CR opened.\" (a mistyped or retired `default_branch` used to cut an empty branch from nothing and open a CR against it — issue #38; until #90 its two anchors pinned the bare `git merge --no-edit <default_branch>` / `git diff <default_branch>...` — the local ref — as the required form)",
   "prompt": "/roz-gate:next-stage 5",
   "k": 5,
   "timeout": 1200

@@ -1,58 +1,27 @@
 #!/bin/sh
-# Block pushes that change plugin behavior without bumping the plugin version.
-# Behavior = anything under the plugin's executable markdown dirs.
-
-BEHAVIOR_PATHS="agents bin commands references templates"
-PLUGIN_JSON=".claude-plugin/plugin.json"
-ZERO=0000000000000000000000000000000000000000
+# The release gate, on every push: the hook unit tests, the eval ledger's
+# lint tier, the ledger page's freshness and the replay checkers' red-proofs
+# must be green (the first three are sub-second, the red-proofs seconds —
+# they seed real sandboxes, no model; --no-verify is the human override, CI
+# the backstop). The version is not this gate's business any more: it moves
+# only in the release PR (docs/releasing.md), and a feature PR carries a
+# `## Release note` section in its body instead — CI's release-note job
+# checks that (issue #131: a bump in every feature PR was the conflict in
+# every feature PR).
 
 # Hook-time git exports GIT_DIR; the suites below create sandbox repos
 # whose git calls must never act on THIS repo (a push from a linked
-# worktree false-fails 4 hook tests otherwise). The gate's own git
-# commands below resolve fine from the working directory.
+# worktree false-fails 4 hook tests otherwise).
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
 
-# Release gate: the hook unit tests, the eval ledger's lint tier and the
-# replay checkers' red-proofs must be green on every push (the first two
-# are sub-second, the red-proofs seconds — they seed real sandboxes, no
-# model; --no-verify is the human override, CI the backstop).
 for suite in "python3 hooks/tests/run_tests.py" "python3 evals/lint/run_lint.py" \
-             "python3 evals/replay/run_redproofs.py"; do
+             "python3 tools/ledger.py --check" "python3 evals/replay/run_redproofs.py"; do
   out=$($suite 2>&1) || {
     echo "pre-push: $suite failed:" >&2
     echo "$out" | grep -v '^PASS ' >&2
     echo "Fix it (or push with --no-verify to override)." >&2
     exit 1
   }
-done
-
-while read -r local_ref local_sha remote_ref remote_sha; do
-  # branch deletion — nothing to check
-  [ "$local_sha" = "$ZERO" ] && continue
-
-  if [ "$remote_ref" = "refs/heads/main" ] && [ "$remote_sha" != "$ZERO" ]; then
-    # main itself: everything since the remote's head must carry its bump
-    base=$remote_sha
-  else
-    # a feature branch, new or existing: the rule is "bumped somewhere since
-    # the branch left main", so compare against the merge-base — a second
-    # push of behaviour prose to a branch that already bumped is not a second
-    # bump (the docs catch-up PR hit exactly this).
-    base=$(git merge-base "$local_sha" origin/main 2>/dev/null) || continue
-    [ "$base" = "$local_sha" ] && continue
-  fi
-
-  changed=$(git diff --name-only "$base" "$local_sha" -- $BEHAVIOR_PATHS)
-  [ -z "$changed" ] && continue
-
-  if ! git diff "$base" "$local_sha" -- "$PLUGIN_JSON" | grep -q '^+.*"version"'; then
-    {
-      echo "pre-push: behavior files changed but \"version\" in $PLUGIN_JSON was not bumped:"
-      echo "$changed" | sed 's/^/  /'
-      echo "Bump the version (or push with --no-verify to override)."
-    } >&2
-    exit 1
-  fi
 done
 
 exit 0

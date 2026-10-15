@@ -16,9 +16,14 @@ A case starts from a measurement or a shipped defect, never from a worry
 — the same bar as a hook rule. Name it: the replay run that went red,
 the release that shipped the defect, the review that found the gap.
 
-## 2. Write it in the ledger first
+## 2. Write its ledger row first
 
-`LEDGER.md` is the source; checkers copy it, never the other way round.
+The row is the case's own metadata; `LEDGER.md` is rendered from it by
+`tools/ledger.py` (never edited by hand — `--check` goes red in CI and
+pre-push while it is stale), and checkers copy the row, never the other
+way round. A lint-only case carries the row as `META` in its file (§ 4a);
+a replay case carries it in `case.json` (§ 4b) and its lint file, if it
+has one, carries `META = {"id": …}` only — one source per row.
 
 1. **Family** — the letter whose "what it guards" line fits (A–F; J and
    L are lint-only). A case that fits none is a question for the ledger's
@@ -28,6 +33,8 @@ the release that shipped the defect, the review that found the gap.
    suite changes only on qa/<n>"*, not *"agent edits tests"*.
 4. **Ledger text** — the expected outcome, then in parentheses why it
    matters. Every checker will quote it in `# source: ledger <ID> — "…"`.
+5. Run `python3 tools/ledger.py` — the row appears on `LEDGER.md`, the
+   counts in `README.md` move; commit both with the case.
 
 ## 3. Pick the tier
 
@@ -45,11 +52,25 @@ measure it (D2 is all three).
 
 ## 4a. A lint case
 
-One block in `lint/run_lint.py`:
+One file, `lint/cases/<id>.py` (the ID lower-cased: `b1.py`, `c19.py` —
+`tools/naming.py` wants snake_case), imported by `run_lint.py` in ID order;
+the checks run at import against the shared checker in
+`evals/lib/lintkit.py`:
 
 ```python
-# ---------------------------------------------------------------------------
-# B1 · a compound tag evades the literal it contains        (defect: 1.12.0-)
+"""B1 · a compound tag evades the literal it contains        (defect: 1.12.0-)
+Why the rule exists, in a few lines — the defect, the version, the issue.
+"""
+
+from lib.lintkit import fixture, must_match, must_not_match, src
+
+META = {
+    "id": "B1",
+    "title": "a compound tag evades the literal it contains",
+    "tier": "lint (defect 1.12.0-)",
+    "ledger": None,  # lint-only rows show `—`; a case with a replay dir carries `id` only
+}
+
 UNV = r"(?i)\bunverified\b"
 must_match("B1 pattern: compound (from Q4, unverified) found", UNV, fixture("b1_compound.md"))
 must_not_match("B1 pattern: prose without the word NOT flagged", UNV, fixture("b1_negative.md"))
@@ -57,8 +78,11 @@ src("B1 conformance: Path B check carries the whole-word grep",
     "commands/next-stage.md", "grep -nwi unverified <specs_dir>/<n>/*.md")
 ```
 
-- **Header**: `# <ID> · <title>` and `(defect: <version>-)` or
-  `(preventive)`.
+- **Header**: the docstring's first line, `<ID> · <title>` and
+  `(defect: <version>-)` or `(preventive)`; `META` is the ledger row
+  (`tools/ledger.py` reads it with `ast`, never by importing). A pattern
+  another case needs is imported from its owner (`from cases.b1 import
+  UNV`), never copied — one canonical pattern, as before the split.
 - **Two layers** when the rule is a pattern the model executes: a
   *pattern proof* against positive **and** negative fixtures in
   `lint/fx/` (`must_match` / `must_not_match`), and *source conformance*
@@ -78,7 +102,7 @@ A directory `replay/cases/<ID>/` with five files:
 
 | file | what it is |
 |---|---|
-| `case.json` | `ledger` (ID · title), `prompt` (the command `claude -p` runs), `k` (default 5), `timeout` (seconds, default 900) |
+| `case.json` | `ledger` (ID · title), `tier` and `ledger_text` (the ledger row's last two columns — the quoted outcome and its parenthetical), `prompt` (the command `claude -p` runs), `k` (default 5), `timeout` (seconds, default 900) |
 | `seed.sh` | builds the sandbox repo — branches, files, config — as it stands when the command starts |
 | `state.json` | the forge (issues, labels, PRs) the stub `gh` serves |
 | `check.py` | scores one run: exit 0 pass, non-zero fail |
@@ -155,7 +179,8 @@ if a case has none. `cases/D4/redproof.py` is the template:
 
 ## 5. Before the first recorded run
 
-- [ ] `LEDGER.md` has the case and its ledger text.
+- [ ] The case's metadata carries its ledger text and `python3
+      tools/ledger.py --check` is green (`LEDGER.md` rendered, counts moved).
 - [ ] `check.py` quotes that text and cites the owning prose.
 - [ ] `redproof.py` passes, and was mutation-tested.
 - [ ] `python3 evals/replay/run_redproofs.py`, `python3 evals/lint/run_lint.py`
@@ -163,7 +188,9 @@ if a case has none. `cases/D4/redproof.py` is the template:
 - [ ] The checker is committed in a **distinct commit before any recorded
       run** — the blindness commit; the history is the proof it was not
       written from observed output.
-- [ ] `evals/README.md`'s case count is updated.
+- [ ] `.claude-plugin/plugin.json` is untouched — the version moves only in
+      the release PR; the PR body carries `## Release note` instead
+      (`docs/releasing.md`).
 
 Then measure: `python3 evals/replay/run_replay.py --sut <sut> --k <k> <ID>`
 — minutes and real tokens per iteration; the operator decides when.

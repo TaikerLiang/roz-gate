@@ -1,5 +1,7 @@
 {
   "ledger": "F4 · A green verdict makes the claim it is entitled to",
+  "tier": "replay (seed amended for #95: the QA CR carries the fidelity record)",
+  "ledger_text": "\"Both merged, suite captured, branch pushed, in-user-review applied — and the claim printed reads 'green against the pre-rework spec, at SHA x', never 'verified'.\" (the weakened claim is one sentence in a long command, exactly the kind that silently reverts to the confident phrasing)",
   "prompt": "/roz-gate:integrate 5",
   "k": 5,
   "timeout": 1800

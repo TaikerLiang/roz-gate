@@ -1,5 +1,7 @@
 {
   "ledger": "E6 · A thread the human opens is an amendment, folded like an answer",
+  "tier": "replay",
+  "ledger_text": "\"`spec.md` on the remote carries the amendment; a `✅ [<role>] amended` reply; the thread resolved.\" (a human-opened thread has one comment and no `[role]` tag, so the answered-thread rule skipped it while patrol classified it actionable — every pass reported \"no new answers\" — issue #62)",
   "prompt": "/roz-gate:spec-answers 5",
   "k": 5,
   "timeout": 1200

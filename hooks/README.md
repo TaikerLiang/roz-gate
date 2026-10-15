@@ -107,8 +107,8 @@ predicate, `tools/naming.py`, which CI re-runs over the tree so a
 `--no-verify` commit is caught one step later) and runs ruff on the staged
 `.py` files — skipped when `uv` is absent, CI's ruff step is the backstop;
 `tools/naming.py` stays the file-NAME check while ruff is code; **pre-push** runs the hook unit
-tests and the lint tier and refuses a behaviour change without a version
-bump.
+tests, the lint tier, the ledger check and the replay red-proofs (the
+version moves only in the release PR — `docs/releasing.md`).
 
 ## Running the tests
 

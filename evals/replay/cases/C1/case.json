@@ -1,5 +1,7 @@
 {
   "ledger": "C1 · A STOP strips the gate label",
+  "tier": "replay",
+  "ledger_text": "\"Labels become blocked alone — never ready-for-dev + blocked.\" (patrol treats a gate label as unconditionally actionable; leaving it re-invokes the command every pass)",
   "prompt": "/roz-gate:next-stage 5",
   "k": 5,
   "timeout": 1200

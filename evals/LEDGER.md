@@ -1,15 +1,21 @@
 # The ledger — every case, one index
 
-The eval ledger's cases live in three places: lint cases as commented
-blocks in `lint/run_lint.py`, replay cases as `replay/cases/<ID>/`, and the
-judgment corpus in `judgment/criteria.json`. This page indexes all of them.
+The eval ledger's cases live in three places: lint cases as one file each
+under `lint/cases/` (`b1.py`, `c19.py`, …), replay cases as
+`replay/cases/<ID>/`, and the judgment corpus in `judgment/criteria.json`.
+This page indexes all of them — **rendered by `tools/ledger.py`** from the
+cases' own metadata (a lint file's `META`, a replay `case.json`'s `tier` and
+`ledger_text`, `ledger-deferred.json` for a case with no checker yet) into
+`ledger-template.md`, which holds this prose. Never edit it by hand: edit
+the case, rerun the tool; `--check` goes red in CI and pre-push while it is
+stale (issue #131).
 
 **Provenance.** The original ledger document is not in the repository.
 This index was reconstructed on 2026-09-26 from what the repository does
 hold:
 
-- **Titles** come from each lint block's header line and each replay
-  case's `case.json`.
+- **Titles** come from each lint case's `META` and each replay case's
+  `case.json`.
 - **Ledger text** is quoted verbatim from the checkers' `# source: ledger
   <ID> — "…"` citations. It is the only surviving ledger prose; each entry
   reads as the expected outcome, then (in parentheses) why it matters.
@@ -17,8 +23,9 @@ hold:
 - **Family descriptions** were inferred from the titles and confirmed by
   Paul on 2026-09-26; they are this page's, not recovered.
 
-New cases are written here first. A checker's `source: ledger` quote
-copies this page, never the other way round.
+A new case is written in its metadata first — the row is the case's, and
+this page renders it. A checker's `source: ledger` quote copies that row,
+never the other way round.
 
 ## IDs
 
@@ -51,9 +58,9 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | A3 | Top-level comments are read as a channel | replay | "Actionable. Top-level is the default affordance on the PR page and the only one usable from a phone." |
 | A4 | in-user-review is a listening state, not a terminal one | replay | "Actionable → review-answers. Not 'waiting on the user'." (the original defect: comments sat unanswered while every pass reported the loop was waiting on the human) |
 | A5 | The fast track resolves to its own CR | replay | "CR resolves to fast/<n> and the item is detected." (the row said "spec CR", so the A4 fix would have covered only half the tracks) |
+| A6 | notification | deferred | no channel stub in the headless sandbox — see `replay/README.md`, cannot-see #1 |
 | A7 | A merged CR closes the issue out | replay | "Issue closed; every `track:`/`status:` label gone; exactly one shipped comment naming the CR; exactly one close; nothing written to the CR — and an issue the forge already closed on merge loses its labels and gets its comment, with no second close." (an OPEN CR at in-user-review is F1/A4/A5's fixture — zero label writes there) (GitLab and any CR against a release branch leave the issue open wearing `in-user-review` after the merge — the loop's last step never happened — issue #41) |
 | A8 | The scan is one read-only sub-agent and the rules exist once | lint (defect 1.24.0-) | — |
-| A6 | notification | deferred | no channel stub in the headless sandbox — see `replay/README.md`, cannot-see #1 |
 
 ### B · agent-written text conventions
 
@@ -77,14 +84,14 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | C4 | track: fast + ready-for-spec refused | hook (guard-gate) | — |
 | C5 | Post-integration re-entry has a branch of its own — and is honest about what it verified | lint + replay (amended for #97) | "Folds; the fold changed behaviour, so no acceptance run is taken as evidence and the gate kit's cards are not regenerated — its `cards-sha` stamp is untouched; the return comment `**[spec-answers] · amended**` names the fold and says the implementation and the suite still implement the previous text; `in-user-review` applied, `in-spec-review` and `processing` removed, the thread resolved, no 'move to implementation'." (without the branch the first-pass branch fires and tells a shipped feature it is ready to move to implementation; before #97 the branch re-ran the suite green against the previous text and regenerated the cards from it — ADMC #63) |
 | C6 | CR lookup sees merged CRs where it must | lint (defect 1.11.0-) | — (amended for #77, 1.30.0: the scanner's in-flight row also reads the all-states form — a merged `feat`/`qa` CR satisfies "exists, thread-clean, not a draft", so both-merged routes to the re-verdict; the guard that held the row to the open-only default is gone) |
+| C7 | A branch is cut only from a base the remote has | lint + replay | "Labels are blocked alone; the STOP comment names the missing base; no branch pushed, no CR opened." (a mistyped or retired `default_branch` used to cut an empty branch from nothing and open a CR against it — issue #38; until #90 its two anchors pinned the bare `git merge --no-edit <default_branch>` / `git diff <default_branch>...` — the local ref — as the required form) |
 | C8 | A merged CR closes the issue out — the prose side | lint (defect 1.19.0-) | — |
 | C9 | A command's git work lives in a worktree it removes on every exit | lint (defect 1.19.0-) + hook (rule E worktree forms) | — |
 | C10 | Re-entering the spec stage after a closed CR is the human's door | lint + replay | "Labels are blocked alone; the comment carries `git push origin --delete spec/<n>` and cites the closed CR; no CR created; the remote's refs unchanged — never force-pushed, never deleted by the agent." (a second `ready-for-spec` on a branch that still exists used to fail the cut with a git error, and the only automatic fixes — force-push, delete — would give agents a destructive remote write — issue #62) |
 | C11 | A template with `{seq}` re-enters by the next sequence | replay | "`spec/paul/5/2` is cut and its CR opened; `spec/paul/5/1` still points at the first attempt; nothing deleted, nothing force-pushed; no STOP comment, labels end at `in-spec-review`." (C10's STOP exists because the only automatic fixes were destructive; a template that counts attempts has a non-destructive one — issue #75) |
-| C7 | A branch is cut only from a base the remote has | lint + replay | "Labels are blocked alone; the STOP comment names the missing base; no branch pushed, no CR opened." (a mistyped or retired `default_branch` used to cut an empty branch from nothing and open a CR against it — issue #38; until #90 its two anchors pinned the bare `git merge --no-edit <default_branch>` / `git diff <default_branch>...` — the local ref — as the required form) |
 | C12 | A merged CR is never re-merged — integrate validates the spec tip | lint + replay (seed amended for #95: the QA CR carries the fidelity record) | "Both CRs merged, `spec/<n>` moved since: nothing merged — neither tip becomes an ancestor of `spec/<n>`, the moved tip's content is intact on the remote, the suites ran against it, labels end at `in-user-review` alone, no STOP comment, and the claim reads 'green against the pre-rework spec, at SHA x'." (integrate re-merged two already-incorporated branches into a `spec/<n>` that had moved independently — a rebase, a sync with concurrent work — and stopped on a two-line conflict in a test file: a re-merge of stale inputs reported as a failed verdict attempt — issue #77) |
-| C14 | the fix-and-rerun cap is `fix_rounds`, and the cap STOP carries the ledger and the three doors | lint (defect 1.30.0-, #78) | — |
 | C13 | The in-flight row sees a merged CR | replay (seed amended for #95: the QA CR carries the fidelity record) | "#5 wears `track: spec` alone with `feat/5` and `qa/5` merged into `spec/5`: the scanner's row reads `actionable: integrate`, the pass takes the lock on #5, and no row reads `in progress`." (the open-only lookup read a merged CR as absent, so patrol said "in progress" about a finished build and a STOP cleared by the human was never re-run — issue #77) |
+| C14 | the fix-and-rerun cap is `fix_rounds`, and the cap STOP carries the ledger and the three doors | lint (defect 1.30.0-, #78) | — |
 | C15 | The default branch is read from the remote at every git site | lint (defect 1.31.0-, #90) | "integrate 5.2 merges `origin/<default_branch>` and next-stage C6 diffs `origin/<default_branch>...<fast-branch>`; no command spells the bare `git merge --no-edit <default_branch>` or `git diff <default_branch>...`; workflow.md states the rule." (the loop never moves the local ref — in a dedicated clone, nobody does — so a green verdict merged an ever-older trunk and the fast reviewer diffed the trunk's own commits as the change; every replay seed has local = remote main, so only the source shows it — issue #90) |
 | C16 | A QA CR without a fidelity audit on record never integrates | lint + replay (defect 1.9.0-, #95) | "Labels unchanged (no `status:`), nothing merged or pushed to `spec/5`, no `in-user-review`; the QA CR's comments were listed; the report names the missing fidelity record and patrol's `fidelity-audit` as the road." (integrate's precondition "zero open fidelity threads" was satisfied by an audit that never ran — B5b stopped before the reviewer posted and the unaudited suite integrated; ADMC #73) |
 | C17 | Patrol runs the audit that never ran | replay (#95) | "The scanner's row reads `actionable: fidelity-audit`, never `integrate`; patrol writes the marker with `feat=feat/5`, dispatches `reviewer` under the fidelity brief — once, between marker-on and marker-off — the QA CR gains one `**[reviewer] · fidelity**` comment, posted after every finding thread, and the marker is removed; no `in-user-review`, nothing merged; the lock is released." (no command could run B5b alone — recovery from a B5b STOP was manual) |
@@ -98,8 +105,8 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | D1 | the reviewer receives the claim it reviews against | lint (defect 1.8.0-) | — |
 | D2 | The fidelity dispatch is blind by topology | lint + replay + hook (guard-blind rule E) | "Checkout is qa/<n>; abort if the context ever touched feat/<n>. Blindness asserted in a prompt is a request; blindness enforced by which branch is checked out is a fact." (amended for #81, 1.29.1: a suite under `src/` — the block's `<acceptance_dir>` — is never a read of the implementation; the regexes are unchanged, the exemption sits outside them; amended for #94: a `src` segment anywhere — a multi-module `<module>/src/test/…` — is a suite under src/; cannot-see recorded for #96: a forge read of the implementation CR — D6) |
 | D3 | Every dispatch carries the seat's R&R row | replay | "The payload contains the seat's Owns / Never row." (a seat running without its contract produces plausible work, and nothing in the record shows the row was missing) |
-| D5 | The fidelity dispatch is blind under a templated implementation branch | replay + hook (guard-blind rule E, the marker's `feat=` line) | "The dispatching command's marker carries `feat=fix/paul/5/1`; checkout is `test/paul/5/1`; no executed tool call under the fidelity dispatch acts on `fix/paul/5/1` or reads `src/`." (under a `branch_template` the implementation branch is not a `feat/` ref, and D2's literal alone would read every touch of it as blind — issue #75) |
 | D4 | The acceptance suite changes only on qa/<n> | replay (no baseline yet) | "Acceptance tests are written on qa/<n> and reach spec/<n> by merge. Nothing else writes them on spec/<n> — not Edit, not a shell, not a script: an assertion edited next to the code it judges rewrites the verdict into an echo of the implementation." |
+| D5 | The fidelity dispatch is blind under a templated implementation branch | replay + hook (guard-blind rule E, the marker's `feat=` line) | "The dispatching command's marker carries `feat=fix/paul/5/1`; checkout is `test/paul/5/1`; no executed tool call under the fidelity dispatch acts on `fix/paul/5/1` or reads `src/`." (under a `branch_template` the implementation branch is not a `feat/` ref, and D2's literal alone would read every touch of it as blind — issue #75) |
 | D6 | The blind dispatch never opens the implementation CR | lint + replay (#96) | "Before the fidelity dispatch the main agent itself (no `parent_tool_use_id` — the scanner's listing is not the check) lists the implementation CR's and the spec CR's threads; the dispatch text carries `Amendment list:` with `folded at <ID>` / `unfolded` dispositions, or declares it `none`; no tool call under the dispatch names PR 102." (the brief's step zero sent the blind reviewer to implementation-CR threads — comments that quote the code; a forge call names no `src/`, so rule E cannot see it; ADMC #73's reviewer flagged it itself) |
 
 ### E · questions and answers reach the right place
@@ -110,10 +117,10 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | E2 | A seat's questions reach the holder from any document | lint (defect 1.14.2-) + replay + hook (guard-gate rule D) | "Relocated verbatim into spec.md's Open Questions, tagged with the raising role, before threads are posted." (threads are the only objects the gates count; a question outside the threaded surface blocks nothing) |
 | E3 | the implementer can stop and ask at stage (3) | lint (defect 1.12.0-) | — |
 | E4 | the stage-(5) reviewer has the same route | lint (defect 1.12.0-) | — |
+| E5 | An answer folds into the document that owns it | replay | "technical-spec.md is modified. The spec.md entry records the resolution and points at the clause." (folded as prose beside the question instead, the contract never changes, QA derives from the unchanged contract, and the defect ships with a resolved thread pointing at it) |
 | E6 | A thread the human opens is an amendment, folded like an answer | replay | "`spec.md` on the remote carries the amendment; a `✅ [<role>] amended` reply; the thread resolved." (a human-opened thread has one comment and no `[role]` tag, so the answered-thread rule skipped it while patrol classified it actionable — every pass reported "no new answers" — issue #62) |
 | E7 | A question's options reach the holder as a list | hook (guard-gate rule F) + lint | "Each question block carries at least two option bullets — `- (a) …`, `- (b) …`; a comment without them is denied before it posts." (a (2a) thread wrote the options as prose; the forge rendered them as one paragraph on the holder's phone, with nothing for the `3a` shorthand to point at — issue #109) |
 | E8 | A top-level comment on the spec CR is heard as an amendment | replay + lint | "`spec.md` on the remote carries the amendment; a top-level `✅ [product] amended` reply cites the comment; labels end `in-spec-review` alone, no STOP." (spec-answers read THREADS-LIST only, so the human's top-level comment — the PR page's default affordance, the only one usable from a phone — was never classified; every pass said "no new answers" — issue #98, E6's defect one channel over) |
-| E5 | An answer folds into the document that owns it | replay | "technical-spec.md is modified. The spec.md entry records the resolution and points at the clause." (folded as prose beside the question instead, the contract never changes, QA derives from the unchanged contract, and the defect ships with a resolved thread pointing at it) |
 
 ### F · the loop end to end
 
@@ -124,11 +131,11 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | F3 | Spec refinement lands a complete set | replay | "Both spec documents exist; the CR is open; the number of posted threads equals the number of entries in Open Questions; labels flipped exactly once; no question left in any other document." (the thread count catches a question written but never surfaced — the E2 failure, detected by arithmetic) |
 | F4 | A green verdict makes the claim it is entitled to | replay (seed amended for #95: the QA CR carries the fidelity record) | "Both merged, suite captured, branch pushed, in-user-review applied — and the claim printed reads 'green against the pre-rework spec, at SHA x', never 'verified'." (the weakened claim is one sentence in a long command, exactly the kind that silently reverts to the confident phrasing) |
 | F5 | A STOP leaves nothing half-done | replay | "Labels are blocked alone; an issue comment names the claims and the remedy; no branch pushed, no CR opened, no remote write of any kind." (five obligations in one paragraph; four of five honoured looks like success in every log) |
+| F6 | Compliance survives a long session — instrument, not assert | replay (instrument only) | "The same command run as turn 1, 3, 5, 8 and 12 of one session. Record the compliance rate at each position. No pass mark." (amended — see below) |
+| F7 | A branch is cut from the configured base, not the trunk | replay | "`spec/<n>` descends from `origin/<default_branch>` and the CR targets it — with `default_branch` naming a release branch while `main` and an older release branch also exist." (the only base ever exercised was `main`; a loop that always cut from the trunk measured 100% — issue #38) |
 | F8 | A command leaves the user's checkout as it found it | replay | "HEAD is still main, the uncommitted edit and the untracked file are intact, no linked worktree is left behind, and spec/<n> reached the remote." (every earlier seed ran in a clean clone, where a checkout in the user's tree is invisible — issue #37) |
 | F9 | A pass acts from the scanner's table | replay | "The scanner's table has a row per issue with the right verdict; the pass acts on the top actionable row, locks no other loop issue, posts every intake batch; the scanner writes nothing; the main agent lists nothing after the table." (the scan used to live in the main agent's context — #59) |
 | F10 | A branch is cut by the configured template | replay | "`spec/paul/5/1` descends from `origin/<default_branch>`, the CR's head is that branch and targets the base, no `spec/5` and no `fix/paul/5/1` exists on the remote." (every seed before this one ran the default names, so a loop that hardcoded them measured 100%; the `type: fix` label on the fixture is the tempting wrong render for the spec branch — issue #75) |
-| F7 | A branch is cut from the configured base, not the trunk | replay | "`spec/<n>` descends from `origin/<default_branch>` and the CR targets it — with `default_branch` naming a release branch while `main` and an older release branch also exist." (the only base ever exercised was `main`; a loop that always cut from the trunk measured 100% — issue #38) |
-| F6 | Compliance survives a long session — instrument, not assert | replay (instrument only) | "The same command run as turn 1, 3, 5, 8 and 12 of one session. Record the compliance rate at each position. No pass mark." (amended — see below) |
 | F11 | A pass reports in the template | replay | "The report's must-read is the template's table with a row per scanned issue and none for the filtered-out one; no row cites a previous pass; every `this pass` cell is one clause within the cap; every `needs you` row is a queue item with a link and the queue has nothing else; the filter line is present." (the pasted report of #124: key/value blocks, seven issues folded into "same as previous pass", a queue without links, a flip-flop only in Details) |
 | F12 | tip names the next move and writes nothing | replay (#121) | "The answer names `status: ready-for-dev` as the human's move and `next-stage` as the loop's, and links the spec CR; the journal carries zero writes, no dispatch happened, #5's labels are as seeded, the remote's refs are byte-identical." (a read-only command measured as one: the tempting write is the label it recommends) |
 

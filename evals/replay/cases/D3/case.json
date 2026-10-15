@@ -1,5 +1,7 @@
 {
   "ledger": "D3 · Every dispatch carries the seat's R&R row",
+  "tier": "replay",
+  "ledger_text": "\"The payload contains the seat's Owns / Never row.\" (a seat running without its contract produces plausible work, and nothing in the record shows the row was missing)",
   "prompt": "/roz-gate:patrol",
   "k": 5,
   "timeout": 900

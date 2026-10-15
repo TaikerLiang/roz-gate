@@ -1,5 +1,7 @@
 {
   "ledger": "F11 · A pass reports in the template",
+  "tier": "replay",
+  "ledger_text": "\"The report's must-read is the template's table with a row per scanned issue and none for the filtered-out one; no row cites a previous pass; every `this pass` cell is one clause within the cap; every `needs you` row is a queue item with a link and the queue has nothing else; the filter line is present.\" (the pasted report of #124: key/value blocks, seven issues folded into \"same as previous pass\", a queue without links, a flip-flop only in Details)",
   "prompt": "/roz-gate:patrol",
   "k": 5,
   "timeout": 1500
