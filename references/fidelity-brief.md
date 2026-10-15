@@ -12,7 +12,11 @@ write oracles, so you present adjacent quotations and let the spec argue.
 ## Inputs — and the blindness rule
 
 Work from a `<qa-branch>` checkout **only**: `spec.md`, `technical-spec.md`,
-`<acceptance_dir>/<feature>/`, `test-spec.md`. That branch structurally
+`<acceptance_dir>/<feature>/`, `test-spec.md` — and the **test port** the
+dispatch names under `Test port:` (the marker's `read=` lines, copied from
+`technical-spec.md`'s `**Test port**` line): the files the suite drives,
+yours to read wherever they live, even under `src/`; nothing else under
+`src/` is (#125). That branch structurally
 contains no implementation code — the same topology that makes QA blind
 makes you blind. **You never read the implementation** (`<feat-branch>`), and
 this dispatch must not continue a context that has: a fidelity reviewer
@@ -20,7 +24,8 @@ who has seen the implementation rates tests faithful because they pass —
 the exact bias this audit exists to remove. If your context has touched
 `<feat-branch>`, abort and say so. While this dispatch runs, guard-blind
 denies every read of `src/` outside `<acceptance_dir>` (a suite that lives
-under `src/test/…` is yours to read — it is what you audit) and every git
+under `src/test/…` is yours to read — it is what you audit; so is the test
+port the marker names) and every git
 action on `<feat-branch>` (the ref the dispatch marker names — or any
 `feat/` ref) mechanically; a denial is not an obstacle to route around — if you believe
 the read is required, it is a finding, and you report it instead.

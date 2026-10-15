@@ -431,3 +431,151 @@ class RuleE_SuiteUnderSrc(HookTest):
         self.write(no_cfg / ".git/roz-gate/fidelity-dispatch", "issue=5\n")
         with self.case("suite: no CLAUDE.md — the rule is whole, src/ denied"):
             self.assertDenied(self.run_bash("cat src/app.txt", no_cfg), "read of src/")
+
+
+class RuleE_TestPortIsReadable(HookTest):
+    """#125 (1.40.0): the contract's test port may live outside the suite —
+    ADMC #11's sat in an existing unit-test file under src/test/… — and the
+    dispatch audits the suite that drives it. The dispatching command copies
+    `technical-spec.md`'s `**Test port** — <path>` line into the marker as
+    `read=<path>` lines; a read under one of them is exempt exactly as a
+    read under the suite is. Maven layout: the suite under src/test/…, the
+    port file beside it, a port directory, a unit test that is neither."""
+
+    guard = "guard-blind"
+    SUITE = "src/test/java/acme/acceptance"
+    PORT = "src/test/java/acme/port/OfferPortTest.java"
+    KIT = "src/test/java/acme/portkit"
+    UNIT = "src/test/java/acme/unit/UnitTest.java"
+    MAIN = "src/main/java/acme/App.java"
+    MARKER = "issue=5\nfeat=feat/5\nread=%s\nread=%s\n" % (PORT, KIT)
+
+    def setUp(self):
+        super().setUp()
+        self.repo = self.new_repo(
+            {"CLAUDE.md": config_block(forge="github", acceptance_dir=self.SUITE),
+             self.MAIN: "class App {}\n",
+             self.SUITE + "/ExpiryTest.java": "// @Traces(5, S1)\n",
+             self.PORT: "// the port: advance_clock, run_expiry_sweep, get_offer_state\n",
+             self.PORT + ".bak": "// stale copy\n",
+             "src/test/java/acme/port/OfferPortTestX.java": "// not the port\n",
+             self.KIT + "/Kit.java": "// port helpers\n",
+             self.UNIT: "// unit\n"},
+            commit=True, branch="qa/5")
+        self.marker = self.repo / ".git/roz-gate/fidelity-dispatch"
+        self.write(self.marker, self.MARKER)
+
+    def tool(self, tool, cwd=None, **tool_input):
+        return self.call(tool, tool_input, cwd or self.repo, agent_type="roz-gate:reviewer")
+
+    def run_bash(self, command, cwd=None):
+        return self.tool("Bash", cwd, command=command)
+
+    def test_port_is_readable(self):
+        repo, port, kit = self.repo, self.PORT, self.KIT
+        for name, cmd in [
+            ("port: cat of the port file allowed", "cat %s" % port),
+            ("port: grep over the port file allowed", "grep -n advance_clock %s" % port),
+            ("port: sed -n over the port file allowed", "sed -n '1,40p' %s" % port),
+            ("port: ./-prefixed port path allowed", "cat ./%s" % port),
+            ("port: absolute port path allowed", "cat %s/%s" % (repo, port)),
+            ("port: a child of the port directory allowed", "cat %s/Kit.java" % kit),
+            ("port: ls of the port directory itself allowed", "ls %s" % kit),
+            ("port: the suite AND the port in one command allowed",
+             "cat %s/ExpiryTest.java %s" % (self.SUITE, port)),
+        ]:
+            with self.case(name):
+                self.assertAllowed(self.run_bash(cmd))
+        with self.case("port: Read of the absolute port file allowed"):
+            self.assertAllowed(self.tool("Read", file_path=str(repo / port)))
+        with self.case("port: Read of a file under the port directory allowed"):
+            self.assertAllowed(self.tool("Read", file_path=str(repo / kit / "Kit.java")))
+        with self.case("port: Grep with the port directory as path allowed"):
+            self.assertAllowed(self.tool("Grep", pattern="helpers", path=kit))
+        with self.case("port: Glob under the port directory allowed"):
+            self.assertAllowed(self.tool("Glob", pattern=str(repo / kit) + "/**/*.java"))
+        with self.case("port: the suite stays readable beside the port"):
+            self.assertAllowed(self.run_bash("cat %s/ExpiryTest.java" % self.SUITE))
+
+    def test_everything_else_stays_denied(self):
+        repo, port, kit = self.repo, self.PORT, self.KIT
+        for name, cmd in [
+            ("port: a unit test beside the port (not listed) denied", "cat %s" % self.UNIT),
+            ("port: src/main denied", "cat %s" % self.MAIN),
+            ("port: a climb out of the port directory denied",
+             "cat %s/../../../../main/java/acme/App.java" % kit),
+            ("port: the port AND a src/main file in one command denied",
+             "cat %s %s" % (port, self.MAIN)),
+            ("port: a sibling spelled with the port's name as a prefix denied",
+             "cat src/test/java/acme/port/OfferPortTestX.java"),
+            ("port: a stale copy of the port (.bak) denied", "cat %s.bak" % port),
+        ]:
+            with self.case(name):
+                self.assertDenied(self.run_bash(cmd), "read of src/")
+        with self.case("port: Read of the unit test beside the port denied"):
+            self.assertDenied(self.tool("Read", file_path=str(repo / self.UNIT)),
+                              "Read under src/")
+        with self.case("port: Read of a climb out of the port directory denied"):
+            self.assertDenied(self.tool("Read", file_path=str(
+                repo / kit / "../../../../main/java/acme/App.java")), "Read under src/")
+        with self.case("port: the deny message names the suite AND the port"):
+            r = self.run_bash("cat %s" % self.MAIN)
+            self.assertDenied(r, "`%s` is readable here" % self.SUITE)
+            self.assertDenied(r, "the port it names: `%s`, `%s`" % (port, kit))
+        with self.case("port: git action on the feat/ ref still denied"):
+            self.assertDenied(self.run_bash("git diff qa/5...feat/5 -- %s" % port), "feat/ ref")
+
+    def test_port_in_a_linked_worktree(self):
+        """#107's rule for the port: the dispatch runs in the qa/<n> worktree,
+        the Read tool's paths are absolute, a sub-agent's Bash cwd is the
+        session's — the port resolves under every tree but the implementation's."""
+        repo, port, kit = self.repo, self.PORT, self.KIT
+        qa = repo / ".git/roz-gate/wt/qa/73"
+        feat = repo / ".git/roz-gate/wt/feat/73"
+        self.git(repo, "worktree", "add", "-q", str(qa), "-b", "qa/73")
+        self.git(repo, "worktree", "add", "-q", str(feat), "-b", "feat/73")
+        self.write(self.marker, "issue=73\nfeat=feat/73\nread=%s\nread=%s\n" % (port, kit))
+        with self.case("port: cat of the qa/<n> worktree's port, cwd = main checkout, allowed"):
+            self.assertAllowed(self.run_bash("cat %s/%s" % (qa, port)))
+        with self.case("port: Read of the qa/<n> worktree's port, cwd = main checkout, allowed"):
+            self.assertAllowed(self.tool("Read", file_path=str(qa / port)))
+        with self.case("port: cwd = the qa/<n> worktree, the port relative allowed"):
+            self.assertAllowed(self.run_bash("cat %s" % port, cwd=qa))
+        with self.case("port: Grep with the qa/<n> worktree's port directory allowed"):
+            self.assertAllowed(self.tool("Grep", pattern="helpers", path=str(qa / kit)))
+        with self.case("port: the feat/<n> worktree's port is not a readable tree — denied"):
+            self.assertDenied(self.run_bash("cat %s/%s" % (feat, port)), "read of src/")
+        with self.case("port: cwd = the feat/<n> worktree, its own port relative — denied"):
+            self.assertDenied(self.run_bash("cat %s" % port, cwd=feat), "read of src/")
+        with self.case("port: the qa/<n> worktree's unit test (not listed) denied"):
+            self.assertDenied(self.run_bash("cat %s/%s" % (qa, self.UNIT)), "read of src/")
+
+    def test_marker_edges(self):
+        port = self.PORT
+        self.write(self.marker, "issue=5\nfeat=feat/5\n")
+        with self.case("port: no read= line — the port is denied exactly as before #125"):
+            self.assertDenied(self.run_bash("cat %s" % port), "read of src/")
+        with self.case("port: no read= line — the deny message names no port"):
+            r = self.run_bash("cat %s" % port)
+            self.assertDenied(r, "`%s` is readable here)" % self.SUITE)
+        self.write(self.marker, "issue=5\nfeat=feat/5\nread=src\n")
+        with self.case("port: read=src (the segment itself) exempts nothing"):
+            self.assertDenied(self.run_bash("cat %s" % self.MAIN), "read of src/")
+        self.write(self.marker, "issue=5\nfeat=feat/5\nread=tests/port.py\n")
+        with self.case("port: read=tests/port.py exempts nothing and nothing denies it"):
+            self.assertAllowed(self.run_bash("cat tests/port.py"))
+            self.assertDenied(self.run_bash("cat %s" % port), "read of src/")
+        self.write(self.marker, "issue=5\nfeat=feat/5\nread= ./%s \n" % port)
+        with self.case("port: a read= line with ./ and spaces is normalized"):
+            self.assertAllowed(self.run_bash("cat %s" % port))
+        self.write(self.marker, "issue=5\nfeat=feat/5\nread=`%s`\n" % port)
+        with self.case("port: a read= line in backticks is normalized"):
+            self.assertAllowed(self.run_bash("cat %s" % port))
+        self.write(self.marker, "issue=5\nread=%s\n" % port)
+        with self.case("port: the 1.16–1.28 marker shape plus read= — the port readable, feat/ "
+                       "denied"):
+            self.assertAllowed(self.run_bash("cat %s" % port))
+            self.assertDenied(self.run_bash("git checkout feat/5"), "feat/ ref")
+        self.marker.unlink()
+        with self.case("port: marker removed — everything allowed again"):
+            self.assertAllowed(self.run_bash("cat %s" % self.MAIN))

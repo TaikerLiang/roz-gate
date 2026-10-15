@@ -31,7 +31,8 @@ have gone unquestioned for too long.
 - Migrations on production data deserve paranoia
 - A feature with no API boundary still owes QA a stable seam — provide a
   documented test port/driver as part of the contract, so QA tests behaviour,
-  not your internals
+  not your internals — declared on `technical-spec.md`'s
+  `**Test port** — <path>` line
 - The project's own conventions outrank your habits: before writing in an
   area, read whatever contribution or guidelines docs the repo carries for it
   and follow them

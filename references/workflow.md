@@ -154,8 +154,8 @@ both CRs targeting the spec CR:
 - **(5q)** `reviewer`, in a separate implementation-blind dispatch on
   `qa/{n}` (the branch topology enforces the blindness, and since 1.16.0
   guard-blind rule E enforces it at the tool layer while the dispatch's
-  marker exists — no read of `src/` outside the suite, no touch of
-  `feat/{n}`), audits the QA
+  marker exists — no read of `src/` outside the suite and the declared
+  test port, no touch of `feat/{n}`), audits the QA
   suite's fidelity to the spec — the suite the verdict is computed from
   is otherwise the loop's only unaudited artifact. Findings are two-way
   cited threads on the QA CR, and its summary comment — `**[reviewer] · fidelity**`
@@ -417,7 +417,12 @@ reply, which is exactly what `blocked` would have bought.
   **specified in `technical-spec.md` at stage (2)** — that is what lets QA
   write its suite in parallel with the build — and implemented by the
   implementer at stage (3) with the same obligations as a public API: stable,
-  documented, behaviour-only. A port that exposes internal state or models
+  documented, behaviour-only. Its location is one fixed line of
+  `technical-spec.md` — `**Test port** — <path>[, <path>]`, or `**Test
+  port** — none` for an API contract — the line Path B requires and the
+  fidelity dispatch's marker copies as `read=` lines, so the blind reviewer
+  may read the port it audits against and nothing else under `src/`
+  (#125). A port that exposes internal state or models
   "for convenience" re-couples QA to the implementation and is a contract
   defect — QA should report it, not use it. **A port that under-exposes a
   promised observation point is the same defect in the other direction** —
