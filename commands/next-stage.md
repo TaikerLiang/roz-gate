@@ -143,7 +143,12 @@ Base everything strictly on the issue body. Per the workflow's stage (2):
     date says when; the scope is the falsifier.
   - `(unverified)` — asserted, load-bearing, and nobody has checked. The
     honest state of a draft; **illegal to sign** (Path B refuses to
-    start while one exists).
+    start while one exists). **`unverified` is a reserved word** in every
+    spec document: it appears only as this tag. Prose says *not yet
+    measured* or *asserted* — the checks match the whole word anywhere,
+    so the word loose in a sentence stops the gate exactly as the tag
+    does, and the remedy is to reword it, never to wave it through as a
+    false positive (#123).
   - `(assumed-empirical: <named risk>)` — the demotion: not measured,
     accepted as an assumption with its risk stated. Distinct from
     `(assumed)`, which marks an unconfirmed *decision*; this marks an
@@ -158,7 +163,9 @@ Base everything strictly on the issue body. Per the workflow's stage (2):
   free text wrap at the document's line width: requiring the closing
   paren on the same line makes the miss silent on exactly the tag whose
   purpose is to be seen, and a wrapped `(measured …` a checker cannot
-  fully parse is a *present* tag, never read as absent.
+  fully parse is a *present* tag, never read as absent. For `unverified`
+  the match is the whole word, anywhere: the word is reserved, so no
+  prose position needs telling apart.
 - **Must-read / supplement requirement:** each spec document is two
   parts. The **must-read** is on top and stands alone — for `spec.md`:
   `## Rules`, `## Scenarios`, `## Open Questions`, with **at most 3 lines
@@ -286,14 +293,16 @@ The spec CR (`<spec-branch>`) must already exist and be approved (its Q&A thread
 resolved). If `<spec-branch>` does not exist, stop and say so.
 
 **Unverified-claim check (before anything else):**
-`grep -nE '(^|[(,])[[:space:]]*unverified' <specs_dir>/<n>/*.md` — the
-widened pattern also catches a tag illegally merged into another
-parenthesis (`(from Q4, unverified)`) and a wrap-split compound, both of
-which the bare literal `(unverified)` misses; the two-axis writing rule
-(A3) is the first line of defense, this grep the second. Any hit → the
-STOP exit, listing
-the claims, recommendation: measure (implementer, at (2) cost) or demote to
-`(assumed-empirical: <named risk>)`. This is the signing moment — B2 stamps
+`grep -nwi unverified <specs_dir>/<n>/*.md` — the whole word, anywhere:
+`unverified` is reserved for the evidence tag (A3), so its own parenthesis,
+a tag merged into another (`(from Q4, unverified)`), a wrap-split compound
+and the word loose in a sentence are all hits, and nothing a line break can
+do hides one; the two-axis writing rule (A3) is the first line of defense,
+this grep the second. Any hit → the STOP exit, listing the hits, the
+recommendation by what each is — a tag: measure (implementer, at (2) cost)
+or demote to `(assumed-empirical: <named risk>)`; the word in prose: reword
+the sentence (the gate reads words, not intent — #123). This is the signing
+moment — B2 stamps
 the approval — and it is the only gate that can reach the false-GREEN branch:
 a claim false only under conditions the acceptance run never produces passes
 (4), (5q) and (6), because **a faithful transcription of a falsehood
