@@ -2,6 +2,22 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.38.0 — the patrol report is one fixed table (#124) — 2026-10-15
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.38.0>
+
+**Runtime change: the patrol report is one fixed table.** `commands/patrol.md` §4 renders the scanner's table as `| issue | state | this pass | needs you |`, one row per issue, one clause per cell; the queue is exactly the `needs you` rows with links; `## Details` trails and never hides what needs you.
+
+### Behavior
+- **Patrol's report has a template** (#124): one row per scanned issue, no row citing a previous pass (patrol has no memory), `this pass` capped at 12 words, `needs you` marked per row; the user's queue lists exactly those rows, each with its link; a row the pass cannot act on as written — including a scan that contradicts what the session read earlier — is `illegal: <why>` and queued, never a Details note.
+
+### Evals
+- Lint **B7** (35 → 36 cases): the template is anchored in `patrol.md`, in F11's checker and in the onboarding mock, red-proofed by mutation.
+- Replay **F11** (35 → 36 cases): the report's shape on a real pass — six listed issues, one filtered out, two blocked, one waiting on a thread; checker + red-proof. Baseline: Paul's call.
+
+### Docs
+- `docs/onboarding.html` § 5: the "What a pass reports" mock shows the `needs you` column and a linked queue.
+
 ## v1.37.0 — `unverified` is a reserved word in spec documents; the checks match the whole word (#123) — 2026-10-15
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.37.0>
