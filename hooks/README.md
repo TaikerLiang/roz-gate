@@ -69,7 +69,8 @@ inside (the fidelity review and the stage-(5) code review are the same
 `reviewer` seat). So the **dispatching command** says so:
 
 ```sh
-mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\nfeat=<feat-branch>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"
+mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\nfeat=<feat-branch>\nread=<path>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"
+# one read=<path> line per path technical-spec.md's `**Test port**` line names; none for `none`
 # … Task/Agent dispatch …
 rm -f "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"
 ```

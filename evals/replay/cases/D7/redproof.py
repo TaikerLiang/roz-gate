@@ -37,10 +37,12 @@ MARKER_ON = ('mkdir -p "%s" && printf \'issue=5\\nfeat=%s\\nread=%s\\n\' > "%s/f
 MARKER_1_39 = ('mkdir -p "%s" && printf \'issue=5\\nfeat=%s\\n\' > "%s/fidelity-dispatch"'
                % (GITDIR, FEAT, GITDIR))
 MARKER_OFF = 'rm -f "%s/fidelity-dispatch"' % GITDIR
-DISPATCH = ("Contract: ${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md. Work on %s. "
-            "Amendment list: none since abc1234. Test port: %s" % (QA, PORT))
-DISPATCH_NOPORT = ("Contract: ${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md. Work on %s. "
+DISPATCH = ("Contract: ${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md. Work on %s.\n"
+            "Amendment list: none since abc1234.\nTest port: %s" % (QA, PORT))
+DISPATCH_NOPORT = ("Contract: ${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md. Work on %s.\n"
                    "Amendment list: none since abc1234." % QA)
+DISPATCH_MENTION = ("Contract: ${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md. Work on %s.\n"
+                    "The suite imports %s. Amendment list: none since abc1234." % (QA, PORT))
 DENY = ("Roz Gate: blocked — this is a fidelity dispatch and it is implementation-blind: `src/` "
         "and `feat/<n>` are off-limits (a read of src/).")
 INTEGRATE = ("git checkout -q spec/5 && git merge -q --no-edit feat/5 "
@@ -129,6 +131,11 @@ SHAPES = [
      DISPATCH, MARKER_ON, None),
     ("the dispatch text does not name the port", False, [], RECORD, GOOD, CLEAN, (),
      DISPATCH_NOPORT, MARKER_ON, None),
+    ("the dispatch text mentions the path but has no `Test port:` field (codex, PR #137)",
+     False, [], RECORD, GOOD, CLEAN, (), DISPATCH_MENTION, MARKER_ON, None),
+    ("the port only ECHOED, never read (codex, PR #137: mention is not a read)", False, [],
+     RECORD, GOOD, [("Bash", {"command": "echo %s" % PORT}), READ_SUITE, READ_SPEC], (),
+     DISPATCH, MARKER_ON, None),
     ("the marker left behind", False, [], RECORD, ["on", "dispatch"], CLEAN, (), DISPATCH,
      MARKER_ON, None),
     ("the marker removed BEFORE the dispatch", False, [], RECORD, ["on", "off", "dispatch"],

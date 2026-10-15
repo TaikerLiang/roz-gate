@@ -1152,15 +1152,15 @@ src("D7: B3 builds the port at the declared path", "commands/next-stage.md",
 src("D7: B5b's marker carries read= lines", "commands/next-stage.md", _PRINTF7)
 src("D7: B5b says one read= line per declared path", "commands/next-stage.md",
     "one `read=<path>` line per path the `**Test port**` line\n  of `technical-spec.md` names")
-src("D7: B5b names the paths in the dispatch text", "commands/next-stage.md",
-    "`Test port:\n  <path>[, <path>]` or `Test port: none`")
+src("D7: B5b names the paths on a line of the dispatch text", "commands/next-stage.md",
+    "on a line of\n  its own, `Test port: <path>[, <path>]` or `Test port: none`")
 src("D7: patrol's verbatim procedure carries the same marker", "commands/patrol.md", _PRINTF7)
 _m7 = [set(re.findall(r"printf 'issue=[^']*'", read(_f)))
        for _f in ("commands/next-stage.md", "commands/patrol.md")]
 c.expect("pattern", "D7: next-stage and patrol write the identical marker line",
          len(_m7[0]) == 1 and _m7[0] == _m7[1])
-src("D7: patrol names the read= lines in the dispatch text", "commands/patrol.md",
-    "the same paths in the dispatch text as\n   `Test port: …`")
+src("D7: patrol names the paths on a line of the dispatch text", "commands/patrol.md",
+    "on a line of their own\n   in the dispatch text, `Test port: …`")
 src("D7: the brief — the port is the reviewer's to read", "references/fidelity-brief.md",
     "the **test port** the\ndispatch names under `Test port:`")
 src("D7: the brief's guard-blind sentence names the port", "references/fidelity-brief.md",

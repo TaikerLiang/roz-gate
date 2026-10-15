@@ -447,8 +447,9 @@ Launch both at once (they never see each other):
   denies by name; one `read=<path>` line per path the `**Test port**` line
   of `technical-spec.md` names (Path B's check read it; no `read=` line
   when it says `none`) — the port the hook lets the dispatch read beside
-  the suite (#125); the dispatch text names the same paths, `Test port:
-  <path>[, <path>]` or `Test port: none`. Immediately after it returns,
+  the suite (#125); the dispatch text carries the same paths on a line of
+  its own, `Test port: <path>[, <path>]` or `Test port: none`. Immediately
+  after it returns,
   `rm -f "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`.
   While the marker exists, every read of `src/` outside
   `<acceptance_dir>` (a suite under `src/test/…` stays readable — it is

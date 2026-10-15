@@ -183,8 +183,8 @@ an audited one. Patrol runs the audit alone — nothing else of B5b.
    then write the marker —
    `mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\nfeat=<feat-branch>\nread=<path>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`
    — one `read=<path>` line per path `technical-spec.md`'s `**Test port**`
-   line names, none for `none`, and the same paths in the dispatch text as
-   `Test port: …` (B5b, #125) — then dispatch the **reviewer** seat in a
+   line names, none for `none`, and the same paths on a line of their own
+   in the dispatch text, `Test port: …` (B5b, #125) — then dispatch the **reviewer** seat in a
    **fresh context** with
    `${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md` as its contract, in
    the `<qa-branch>` worktree; immediately after it returns,

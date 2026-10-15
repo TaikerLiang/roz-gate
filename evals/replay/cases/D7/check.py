@@ -117,10 +117,22 @@ c.expect("next-stage.md B5b (the procedure's order)",
          "marker on (with the port), then the dispatch, then marker off — in that order",
          "on" in ordered and "off" in ordered and ordered.count("dispatch") == 1
          and ordered.index("on") < ordered.index("dispatch") < ordered.index("off"))
-c.expect("next-stage.md B5b (the dispatch text names the port)",
-         "the dispatch text names %s under `Test port:`" % PORT,
-         len(dispatches) == 1 and PORT in json.dumps(dispatches[0].get("input", {}),
-                                                     ensure_ascii=False))
+
+def port_field(b):
+    """The paths the dispatch's `Test port:` field lists — the field itself, not a
+    mention of the path elsewhere in the prompt (codex review, PR #137)."""
+    inp = b.get("input") or {}
+    text = inp.get("prompt") if isinstance(inp.get("prompt"), str) \
+        else json.dumps(inp, ensure_ascii=False)
+    out = []
+    for m in re.finditer(r"(?m)^\s*(?:[-*]\s*)?\**Test port\**:\**\s*(.+?)\s*$", text):
+        out += [p.strip().strip("`'\"") for p in m.group(1).split(",")]
+    return out
+
+
+c.expect("next-stage.md B5b (the dispatch text's `Test port:` field)",
+         "the dispatch text lists %s under its `Test port:` field" % PORT,
+         len(dispatches) == 1 and PORT in port_field(dispatches[0]))
 
 # ---- under the dispatch: the port read EXECUTED; no executed breach -------------
 ids = {b.get("id") for b in dispatches}
@@ -154,6 +166,23 @@ def mentions_port(b):
     return PORT in json.dumps(b.get("input", {}), ensure_ascii=False)
 
 
+def reads_port(b):
+    """A read-capable operation ON the port, by the hook's own resolution: a
+    Read/Grep/Glob value that resolves under the port, or a Bash operand that
+    does after echo/printf operands and comments are blanked — `echo
+    src/test/offer_port.py` is a mention, never a read (codex review, PR #137)."""
+    inp = b.get("input", {})
+    top = WORK or None
+    if b.get("name") in ("Read", "Grep", "Glob"):
+        return any(isinstance(v, str) and _gb.under_suite(v, PORT, top, TOPS)
+                   for v in inp.values())
+    if b.get("name") == "Bash":
+        cmd = _gb.SRC_MENTIONED.sub(" ", inp.get("command") or "")
+        return any(_gb.resolves_under_suite(m.group(0), PORT, top, TOPS)
+                   for m in _gb.suite_operand_re(PORT, top).finditer(cmd))
+    return False
+
+
 ATTEMPTS = {"denied": 0, "port_denied": 0}
 denied = denied_ids()
 port_read, breach = False, False
@@ -161,8 +190,7 @@ for b in child_uses():
     hit = _gb.violation(b.get("name"), b.get("input", {}), FEAT, [PORT], WORK or None,
                         TOPS) is not None
     is_denied = b.get("id") in denied
-    if mentions_port(b) and b.get("name") in ("Read", "Bash", "Grep", "Glob") \
-            and not is_denied and not hit:
+    if reads_port(b) and not is_denied and not hit:
         port_read = True
     if mentions_port(b) and is_denied:
         ATTEMPTS["port_denied"] += 1
@@ -172,7 +200,7 @@ for b in child_uses():
         breach = True
 
 c.expect("ledger D7 (the port is readable under the dispatch)",
-         "at least one EXECUTED tool call under the dispatch reads %s" % PORT,
+         "at least one EXECUTED read-capable tool call under the dispatch reads %s" % PORT,
          bool(ids) and port_read)
 c.expect("ledger D7 + guard_blind.violation(…, [%s]) (denied ≠ breach)" % PORT,
          "no EXECUTED tool call under the dispatch reads src/ elsewhere or touches %s" % FEAT,
