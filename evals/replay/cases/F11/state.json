@@ -1,0 +1,103 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, expired offers never apply.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec", "status: in-user-review"],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": []
+    },
+    "6": {
+      "title": "Bump the HTTP client to 3.2",
+      "body": "**User story** — As a maintainer, I want the HTTP client on 3.2 so the deprecation warnings stop.\n\n**Acceptance criteria**\n- Lockfile updated; the suite stays green.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: fast", "status: ready-for-dev"],
+      "createdAt": "2026-08-18T09:00:00Z",
+      "comments": []
+    },
+    "7": {
+      "title": "Gift cards",
+      "body": "We should sell gift cards. Not sure about expiry or partial redemption.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["discuss"],
+      "createdAt": "2026-08-20T09:00:00Z",
+      "comments": []
+    },
+    "8": {
+      "title": "Grace period on expired offers",
+      "body": "**User story** — As a shopper, an offer that expired while my cart was open still applies at checkout within a grace period.\n\n**Acceptance criteria**\n- An offer expired less than the grace period ago still prices the cart.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec", "status: in-spec-review"],
+      "createdAt": "2026-08-19T09:00:00Z",
+      "comments": []
+    },
+    "9": {
+      "title": "Bundle offers",
+      "body": "**User story** — As a shopper, I can buy a bundle at the bundle price.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec", "status: blocked"],
+      "createdAt": "2026-08-17T09:00:00Z",
+      "comments": [
+        {"id": 901, "author": "paul", "body": "**[next-stage] · blocked**\n\nThe spec stage cannot start: `release/2026-09` is not on the remote, so there is nothing to cut `spec/9` from.\n\n**To resume:** clear status: blocked, apply status: ready-for-spec — yourself, or tell the main agent; push the base branch first, or set `default_branch` to one the remote has\n\n<details><summary>Evidence</summary>\n\n`git ls-remote --heads origin release/2026-09` → empty.\n\n</details>", "created_at": "2026-08-22T08:00:00Z"}
+      ]
+    },
+    "10": {
+      "title": "Retry the webhook delivery",
+      "body": "**User story** — As an integrator, a failed webhook delivery is retried three times.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: fast", "status: blocked"],
+      "createdAt": "2026-08-21T09:00:00Z",
+      "comments": [
+        {"id": 902, "author": "paul", "body": "**[next-stage] · blocked**\n\nThe fast track cannot start: the suite is red on `main` before any change (`tests/test_webhook.py::test_delivery` fails), so a green verdict would be unreadable.\n\n**To resume:** clear status: blocked, apply status: ready-for-dev — yourself, or tell the main agent; fix the red on `main` first\n\n<details><summary>Evidence</summary>\n\n`uv run pytest` → 1 failed, 41 passed.\n\n</details>", "created_at": "2026-08-22T09:00:00Z"}
+      ]
+    },
+    "11": {
+      "title": "Dark mode",
+      "body": "A dark theme for the storefront.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": [],
+      "createdAt": "2026-08-23T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer expiry enforcement",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [],
+      "reviews": [],
+      "comments": [
+        {"id": 800, "author": "paul", "body": "看起來可以。merge 之前想確認一件事:R1 的過期判斷是用下單時間還是結帳時間?", "created_at": "2026-08-21T08:00:00Z"}
+      ]
+    },
+    "102": {
+      "number": 102,
+      "title": "Spec: #8 Grace period on expired offers",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/8",
+      "baseRefName": "main",
+      "threads": [
+        {"id": "T1", "isResolved": false, "path": "docs/specs/8/spec.md", "line": 4, "comments": [
+          {"databaseId": 9101, "author": "paul", "body": "**[product] · Q1 · Grace period length**\n\nHow long after expiry does an offer still apply?\n- (a) 15 minutes — the cart's own session timeout (recommended)\n- (b) 24 hours\n- (c) configurable per offer", "createdAt": "2026-08-20T10:00:00Z"}
+        ]}
+      ],
+      "reviews": [],
+      "comments": []
+    }
+  }
+}
