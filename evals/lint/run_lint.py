@@ -1411,9 +1411,10 @@ for _nm, _lit in (("fast + ready-for-spec", "**`fast` + `ready-for-spec`**"),
                    "**Two `track:` labels, or two `status:` labels besides `processing`**"),
                   ("blocked beside another status", "**`blocked` beside any other `status:`**"),
                   ("a gate label on a track-less issue", "**A gate label on a track-less issue**"),
-                  ("a stale processing lock", "**`processing` with nothing running**"),
-                  ("a gate label beside an existing branch",
-                   "**A gate label worn while the kind's branch exists on the remote**"),
+                  ("the processing lock", "**`processing` beside a phase label**: a lock"),
+                  ("a branch-cutting gate beside an existing branch",
+                   "**A branch-cutting gate worn while that kind's branch exists on the "
+                   "remote**"),
                   ("in-user-review with a merged CR",
                    "**`in-user-review` with the CR merged and the issue still open**"),
                   ("a review state with no CR",
@@ -1423,6 +1424,19 @@ for _nm, _lit in (("fast + ready-for-spec", "**`fast` + `ready-for-spec`**"),
     src("C19: the diagnosis names %s" % _nm, "commands/tip.md", _lit)
 src("C19: the re-entry repair is branch-names.md's — seq cuts next, else the human deletes",
     "commands/tip.md", "with a `{seq}` template the next pass cuts\n  the next sequence")
+# codex, PR #129: the four ways a reading of the state can mislead
+src("C19: the re-entry diagnosis spares spec + ready-for-dev (codex, PR #129)",
+    "commands/tip.md", "never `spec` +\n  `ready-for-dev`")
+src("C19: the approved spec branch is a normal row, not a re-entry", "commands/tip.md",
+    "| `spec` + `ready-for-dev`, the spec CR open — the one you approved |")
+src("C19: tip never declares a lock stale from its reads (codex, PR #129)",
+    "commands/tip.md", "cannot tell a live lock from a stale one from its reads")
+src("C19: tip loads the inbox filter keys (codex, PR #129)", "commands/tip.md",
+    "the inbox filter `inbox_label` / `inbox_assignee`")
+src("C19: an issue outside the filter is outside patrol's inbox", "commands/tip.md",
+    "| no `track:`, **outside the inbox filter**")
+src("C19: a pending summary request is the loop's move (codex, PR #129)",
+    "commands/tip.md", "the gate holder's latest comment requests `summary`")
 must_not_match("C19: no write op in tip.md",
                r"LABEL-ADD|LABEL-REMOVE|ISSUE-COMMENT|ISSUE-EDIT-BODY|ISSUE-CLOSE|CR-COMMENT\b"
                r"|THREAD-REPLY|THREAD-RESOLVE|CR-OPEN|CR-READY|CR-MERGE|--add-label"

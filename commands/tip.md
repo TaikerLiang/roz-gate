@@ -22,7 +22,10 @@ Read the `### Roz Gate config` block in the project's CLAUDE.md (or
 CLAUDE.local.md), then `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md`
 for the concrete CLI behind every CAPITALIZED-OP. Missing config → stop; tell
 the user to run `/roz-gate:init`. **Local keys** — `default_branch`,
-`branch_user` — from `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`.
+`branch_user`, and the inbox filter `inbox_label` / `inbox_assignee` — from
+`python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`; the block's `bot_login`
+list (normalized as patrol does: `app/` prefix and `[bot]` suffix stripped)
+tells a human holder from a bot.
 **Branch names**: run one `git ls-remote --heads origin` (a query of the
 remote; it touches no checkout and no local ref) and bind `<spec-branch>`,
 `<feat-branch>`, `<qa-branch>`, `<fast-branch>` by **Lookup** over it per
@@ -72,10 +75,13 @@ command, does if you do nothing):
 
 | state | yours | the loop's |
 |---|---|---|
-| no `track:` (the inbox), no `**[intake]**` batch yet | nothing — or run `/roz-gate:patrol` now | the next pass posts the questions batch (async intake, (1b)) |
-| inbox, batch posted, no summary | the gate holder answers in the comments; ends a comment with `summary` when it settles, or applies the gate label directly | nothing until the holder speaks |
+| no `track:`, **outside the inbox filter** (`inbox_label` / `inbox_assignee` set and not matched) | bring it into your inbox — add one of the filter labels or assign a filtered login — or file it with `/roz-gate:to-issues` | nothing — patrol only counts it, even with a gate label on (`patrol-scan.md § Scan`) |
+| no `track:` (the inbox, in the filter), no `**[intake]**` batch yet | nothing — or run `/roz-gate:patrol` now | the next pass posts the questions batch (async intake, (1b)) |
+| inbox, batch posted, no summary requested | the gate holder answers in the comments; ends a comment with `summary` when it settles, or applies the gate label directly | nothing until the holder speaks |
+| inbox, the gate holder's latest comment requests `summary` (its first or last non-empty line, stripped of emphasis/backticks/quotes and case, is exactly `summary`; no `**[intake] · summary**` since) | nothing | the next pass posts the `**[intake] · summary**` (`patrol.md` → the async-intake action) |
 | inbox, `**[intake] · summary**` posted | the holder applies `ready-for-spec` (⇒ `track: spec`) or `ready-for-dev` (⇒ `track: fast`) — the label is the confirmation; corrections: reply, end with `summary` | finalize on the next pass after the label: body rewrite + the `track:` |
-| `track:` + `ready-for-spec` / `ready-for-dev`, no CR on the remote | nothing — you authorized it | `/roz-gate:next-stage <n>`: (2) the spec stage, (3)+(4)+(5) the parallel build, or the fast track — on the next pass |
+| `spec` + `ready-for-spec`, or `fast` + `ready-for-dev`, no branch of that kind on the remote | nothing — you authorized it | `/roz-gate:next-stage <n>` cuts the branch on the next pass: (2) the spec stage, or the fast track |
+| `spec` + `ready-for-dev`, the spec CR open — the one you approved | nothing — you authorized it | `/roz-gate:next-stage <n>` launches (3)+(4)+(5) off `<spec-branch>` on the next pass |
 | `in-spec-review`, an unresolved thread whose last comment is yours (answered), or a thread you opened | nothing further | `/roz-gate:spec-answers <n>` folds it on the next pass |
 | `in-spec-review`, unresolved threads awaiting you | answer each inline on the spec CR — each is one contract clause with a recommendation; or open a thread yourself for a gap | nothing until you answer |
 | `in-spec-review`, every thread resolved, nothing unheard | apply `status: ready-for-dev` — all threads resolved is the (2) → (3) gate (`workflow.md` → owner table) | nothing until the label; then `next-stage` launches (3)+(4) |
@@ -86,7 +92,7 @@ command, does if you do nothing):
 | `in-user-review`, nothing unheard, no `· question` | review the CR: **merge it, change it (comment — `review-answers` hosts the turn), or send it back to intake** (strip `track:` + `status:`) | nothing until you move |
 | `in-user-review`, the CR **merged** | nothing | the next pass's **close-out** (labels off, issue closed) — the forge may already have closed it |
 | `blocked` | read the last `**[<command>] · blocked**` comment: its evidence and its **To resume:** line say which label to clear, which to apply, where the answer goes — do that | nothing — patrol never re-invokes anything on `blocked` |
-| `processing` beside a phase label, a command running | wait | the running command's exit (Done or STOP) |
+| `processing` beside a phase label | wait — a command holds the lock: this session's, or a scheduled patrol's in another; `Check:` says what the evidence shows | the running command's exit (Done or STOP) |
 
 Cite the passage behind each line (`workflow.md § The loop (2a)`, `§ Label
 state machine`, `§ (7) Review`, `branch-names.md § Re-entry`,
@@ -111,16 +117,24 @@ already give. Never perform the repair here.
 - **A gate label on a track-less issue**: the one legal transient of intake
   — the next pass finalizes it (`workflow.md` → Label state machine). Nothing
   to fix.
-- **`processing` with nothing running** (no command in this session; the
-  pair is older than a run takes): a killed run. The phase label beside it
-  says where it died. Clear the lock — yours to remove — and re-run that
-  phase's command; commands are idempotent on re-entry (`README` →
-  Troubleshooting).
-- **A gate label worn while the kind's branch exists on the remote**:
-  Lookup found `<spec-branch>` (or `<fast-branch>`) and CR-FIND says its CR
-  is **open** → the gate label is wrong, not the branch (someone is still
-  reviewing it; `next-stage` A2/C2 STOPs on it): remove the gate label, or
-  close the CR first. CR **closed unmerged, or none** → a re-entry
+- **`processing` beside a phase label**: a lock, not a phase. This command
+  cannot tell a live lock from a stale one from its reads — a scheduled
+  patrol may hold it from another session, and the label carries no age
+  here — so it never declares the lock stale. It reports the pair, the
+  phase the label names, and the evidence: a worktree on the issue's bound
+  branch (`git worktree list`) is a run in progress or its leftover; a lock
+  older than a pass takes with no worktree and no new comment is a killed
+  run. Clearing it is yours, after you have checked that nothing is running
+  anywhere; then re-run that phase's command — commands are idempotent on
+  re-entry (`README` → Troubleshooting).
+- **A branch-cutting gate worn while that kind's branch exists on the remote**
+  — `ready-for-spec` on `track: spec` with `<spec-branch>` found, or
+  `ready-for-dev` on `track: fast` with `<fast-branch>` found (never `spec` +
+  `ready-for-dev`: there the open spec CR is what you approved, and
+  `next-stage` builds from it). CR-FIND says that CR is **open** → the gate
+  label is wrong, not the branch (someone is still reviewing it;
+  `next-stage` A2/C2 STOPs on it): remove the gate label, or close the CR
+  first. CR **closed unmerged, or none** → a re-entry
   (`branch-names.md` → Re-entry): with a `{seq}` template the next pass cuts
   the next sequence and nothing is yours to do; without `{seq}` the stale
   branch is yours to remove — `git push origin --delete <branch>` (and
@@ -135,10 +149,11 @@ already give. Never perform the repair here.
   `track:` + `status:`).
 - **No `status:`, `track: spec`, no CR on the remote**: not stuck — it was
   never gated. Apply `ready-for-spec` when you want design to start.
-- **A leftover worktree** under `.git/roz-gate/wt/<branch>` with nothing
-  running: `git worktree list`, then `git worktree remove --force <path>` —
-  yours; the next command would otherwise refuse the branch (`workflow.md` →
-  The workspace).
+- **A leftover worktree** under `.git/roz-gate/wt/<branch>` with no lock on
+  the issue: a killed run's. `git worktree list`, then
+  `git worktree remove --force <path>` — yours; the next command would
+  otherwise refuse the branch (`workflow.md` → The workspace). With the lock
+  still on, see the lock above — it may be a run in progress.
 - **A legacy config block or a stale workflow stamp**: not an issue state
   — say so in one line and point at `/roz-gate:init`.
 
