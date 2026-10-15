@@ -161,6 +161,7 @@ cannot authorize it.
 | `/roz-gate:spec-answers [n]` | fold your answers on spec-CR threads back into the spec, resolve the threads |
 | `/roz-gate:integrate [n]` | run the stage-(6) verdict: merge what is open (never what is merged), run the acceptance suite, classify red (up to `fix_rounds` rounds), finalize green |
 | `/roz-gate:review-answers [n]` | host one turn of your stage-(7) review: answer your CR comments from the artifacts, dispatch a seat when judgment is needed, change only what you confirm |
+| `/roz-gate:tip <n>` | what does #n need next? reads its labels, CRs, threads and branches and answers in the terminal — your move (with links and the `workflow.md` passage), the loop's move if you do nothing, and what is off when a label pair or a branch is wrong; read-only — no label, no comment, no commit, no lock |
 | `/roz-gate:config` | set one of your four loop keys — the base branch, the inbox label list, the inbox assignee list, the helper model — from a menu; the write is `bin/roz-config`'s, per clone, never committed |
 | `/roz-gate:patrol` | one supervisory pass: a read-only scanner sub-agent classifies every open issue into one table (the main agent's context never holds the forge reads); the main agent invokes whichever command the table authorizes, triages the inbox, reports what waits on you |
 | `/roz-gate:uninit` | retire the loop from this repo: verify nothing is in flight, remove the scaffolding `init` installed, keep every work product — run before `/plugin uninstall` |
@@ -518,6 +519,9 @@ work shaped like that, nothing about shapes never run.
 
 ## Troubleshooting
 
+- **Not sure what an issue needs?** `/roz-gate:tip <n>` reads its labels, CRs,
+  threads and branches and answers from the workflow: your move, the loop's,
+  and the repair when a label pair or a branch is off. It writes nothing.
 - **Your checkout is never touched.** Commands do every checkout, merge, commit
   and test run in a linked worktree under `.git/roz-gate/wt/<branch>` and remove
   it on exit — so a scheduled patrol can fire while you are mid-edit on the
