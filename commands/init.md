@@ -61,7 +61,8 @@ user, one compact block, not twenty questions:
   `specs_dir` — a configured path must exist from day one, not first
   materialize at stage (6).
 - Contract style: does this project expose an HTTP API (contract = API doc) or
-  not (contract must include a test port)? — recorded as a note in the
+  not (contract must include a test port, declared on `technical-spec.md`'s
+  `**Test port** — <path>` line)? — recorded as a note in the
   implementer persona, not in the config block.
 - **Agent identity** — one question: does the agent act as the human
   (`user`, default) or as its own bot identity (`bot` — GitHub App /

@@ -53,6 +53,17 @@ D2 predicate held byte-identical with the checker); an empty or
 ``issue=``-only marker is the 1.16–1.28 shape and enforces exactly what
 it did.
 
+The marker's ``read=<path>`` lines (1.40.0, #125): the **test port** the
+contract declares — ``technical-spec.md``'s ``**Test port** — <path>``
+line, copied by the dispatching command — may live outside
+``acceptance_dir`` (ADMC #11: an existing unit-test file under
+``src/test/…``), and the dispatch audits the suite that drives it. A
+tool path or Bash operand under a ``read=`` path is exempt exactly as
+one under the suite is — resolved under every tree of the repo but the
+implementation's, a climb out still a read — and only when the path
+carries a ``src/`` segment (nothing else is denied). An unlisted path
+stays denied: the blind zone narrows only by the contract's own line.
+
 Exit 0 allows the tool call; exit 2 blocks it and feeds stderr to the
 model.
 """
@@ -103,9 +114,17 @@ SRC_MENTIONED = re.compile(
 
 def bash_reads_src(cmd, suite=None, top=None, tops=None):
     cmd = SRC_MENTIONED.sub(" ", SRC_EXCLUDED.sub(" ", cmd))
-    if suite:
-        cmd = suite_operand_re(suite, top).sub(suite_blanker(suite, top, tops), cmd)
+    for root in roots_of(suite):
+        cmd = suite_operand_re(root, top).sub(suite_blanker(root, top, tops), cmd)
     return SRC_PATH.search(cmd) is not None
+
+
+def roots_of(suite):
+    """The readable roots: one suite (a string, the pre-#125 callers) or a
+    list — the suite plus the marker's `read=` paths (`readable_roots`)."""
+    if not suite:
+        return []
+    return [suite] if isinstance(suite, str) else list(suite)
 # --------------------------------------------------------------------------
 
 # ---- the suite is not the implementation (issue #81, 1.29.1) -------------
@@ -129,6 +148,11 @@ def bash_reads_src(cmd, suite=None, top=None, tops=None):
 # come from), except a tree checked out on the implementation branch — the
 # hook's own tree included (codex review, PR #110). The four regexes above
 # are untouched (lint D2 holds them byte-identical to the replay checker).
+# #125 (1.40.0): the suite is one readable root; the marker's `read=` lines
+# — the test port `technical-spec.md` declares — are the others, under the
+# same normalization (`suite_under_src`: a `src/` segment, not the last) and
+# the same resolution. A file root matches itself; a directory root its
+# children.
 DEFAULT_ACCEPTANCE_DIR = "tests/acceptance"
 
 
@@ -146,7 +170,9 @@ def load_acceptance_dir(top):
 
 def suite_under_src(acceptance_dir):
     """The suite's repo-relative path when it sits under a `src/` segment —
-    `src/test/…` or `<module>/src/test/…` — else None."""
+    `src/test/…` or `<module>/src/test/…` — else None. The marker's `read=`
+    paths (#125) go through the same gate: a file or directory under a
+    `src/` segment is a root; anything else needs no exemption."""
     if not acceptance_dir:
         return None
     segs = [x for x in os.path.normpath(acceptance_dir).replace(os.sep, "/").split("/")
@@ -207,13 +233,15 @@ def under_suite(path, suite, top, tops=None):
 
 
 def tool_reads_src(tool, inp, suite=None, top=None, tops=None):
-    """A Read/Glob/Grep input naming src/ — unless every such value is under the suite."""
-    if not suite:
+    """A Read/Glob/Grep input naming src/ — unless every such value is under
+    a readable root (the suite, or a `read=` path of the marker)."""
+    roots = roots_of(suite)
+    if not roots:
         return SRC_PATH.search(json.dumps(inp, ensure_ascii=False)) is not None
     for v in inp.values():
         text = v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)
-        if SRC_PATH.search(text) and not (isinstance(v, str)
-                                          and under_suite(v, suite, top, tops)):
+        if SRC_PATH.search(text) and not (isinstance(v, str) and any(
+                under_suite(v, root, top, tops) for root in roots)):
             return True
     return False
 
@@ -259,8 +287,9 @@ def tree_tops(top, ref=None):
 BLIND_MSG = (
     "Roz Gate: blocked — this is a fidelity dispatch and it is "
     "implementation-blind: `src/` and `feat/<n>` are off-limits (%s). What "
-    "you need is in spec.md / technical-spec.md and the QA suite on "
-    "qa/<n>%s. If you believe a read of the implementation is required, "
+    "you need is in spec.md / technical-spec.md, the QA suite on qa/<n> "
+    "and the test port the marker names%s. If you believe a read of the "
+    "implementation is required, "
     "report it as a finding instead of performing it "
     "(references/fidelity-brief.md, the blindness rule). Not inside a "
     "fidelity dispatch? Then the marker is stale — the dispatching command "
@@ -300,6 +329,36 @@ def marker_ref(path):
     return None
 
 
+def marker_reads(path):
+    """The paths the marker's `read=` lines name — the test port
+    `technical-spec.md` declares, copied by the dispatching command (#125) —
+    as written, relative to the repo top; [] when the marker has none."""
+    out = []
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("read="):
+                    p = line[len("read="):].strip().strip("`'\"")
+                    if p:
+                        out.append(p)
+    except (OSError, TypeError):
+        pass
+    return out
+
+
+def readable_roots(suite, reads):
+    """The roots a read may resolve under: the suite when it sits under
+    `src/`, then every `read=` path that does (a path with no `src/` segment
+    is never denied; `src` or `<module>/src` itself exempts nothing) —
+    normalized, in order, without repeats."""
+    roots = []
+    for p in ([suite] if suite else []) + list(reads or []):
+        r = suite_under_src(p)
+        if r and r not in roots:
+            roots.append(r)
+    return roots
+
+
 def ref_touch_re(ref):
     """GIT_TOUCH's shape for one exact ref: the same verbs, the bound name
     (not a prefix — `fix/paul/5/1` must not deny `fix/paul/5/10`; a leading
@@ -311,7 +370,9 @@ def ref_touch_re(ref):
 
 def violation(tool, inp, ref=None, suite=None, top=None, tops=None):
     """The D2 checker's dispatch_blind(), per call: what it names. `suite`
-    is the acceptance dir when it sits under src/ (never a read); `top` the
+    is the acceptance dir when it sits under src/ (never a read) — or the
+    list `readable_roots()` builds, the suite plus the marker's `read=`
+    paths (#125); `top` the
     toplevel the hook fired in, which relative operands resolve against;
     `tops` the trees whose suite is readable (`tree_tops()`; `top` alone
     when None)."""
@@ -351,11 +412,15 @@ def main():
     ref = marker_ref(marker)
     top = toplevel()
     suite = suite_under_src(load_acceptance_dir(top))
-    what = violation(tool, inp, ref, suite, top, tree_tops(top, ref) if suite else None)
+    ports = readable_roots(None, marker_reads(marker))
+    roots = readable_roots(suite, ports)
+    what = violation(tool, inp, ref, roots, top, tree_tops(top, ref) if roots else None)
     if not what:
         return
     agent = payload.get("agent_type")
-    deny(BLIND_MSG % (what, " (its `%s` is readable here)" % suite if suite else "",
+    readable = (["its `%s` is readable here" % suite] if suite else []) + (
+        ["the port it names: `%s`" % "`, `".join(ports)] if ports else [])
+    deny(BLIND_MSG % (what, " (%s)" % "; ".join(readable) if readable else "",
                       marker or "<git-dir>/" + MARKER_REL,
                       " (agent: %s)" % agent if agent else ""))
 
