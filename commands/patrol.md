@@ -142,9 +142,10 @@ workspace).
 2. Spec track: implementation CR threads → dispatch `implementer` on
    `<feat-branch>`; QA CR fidelity threads → dispatch `qa` on `<qa-branch>` **under
    the fidelity-dispatch procedure** (next-stage.md B5b: marker on, carrying
-   `feat=<feat-branch>`, dispatch, marker off — guard-blind denies any
-   `src/` read outside `<acceptance_dir>` or git action on `<feat-branch>`
-   while it runs) (it may
+   `feat=<feat-branch>` and the test port's `read=` lines, dispatch, marker
+   off — guard-blind denies any
+   `src/` read outside `<acceptance_dir>` and the port, or git action on
+   `<feat-branch>`, while it runs) (it may
    decline a finding that lacks verbatim citations) — fix and/or reply.
    Fast track: the main agent addresses its own CR's threads directly
    (it wrote the code; `implementer` is never dispatched onto `<fast-branch>`).
@@ -180,8 +181,11 @@ an audited one. Patrol runs the audit alone — nothing else of B5b.
    contract currency by you first — THREADS-LIST on both CRs, the
    amendment list into the dispatch text, no dispatch on a (5) breach —
    then write the marker —
-   `mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\nfeat=<feat-branch>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`
-   — then dispatch the **reviewer** seat in a **fresh context** with
+   `mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\nfeat=<feat-branch>\nread=<path>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`
+   — one `read=<path>` line per path `technical-spec.md`'s `**Test port**`
+   line names, none for `none`, and the same paths on a line of their own
+   in the dispatch text, `Test port: …` (B5b, #125) — then dispatch the **reviewer** seat in a
+   **fresh context** with
    `${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md` as its contract, in
    the `<qa-branch>` worktree; immediately after it returns,
    `rm -f "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`.

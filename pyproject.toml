@@ -36,3 +36,10 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
+
+[tool.ruff.lint.isort]
+# The lint cases import their kit (`lib.lintkit`) and, now and then, a sibling
+# case (`cases.b1`); both are this repo's. Said explicitly so the pre-commit
+# hook, which lints the staged files alone in a temp tree, sorts them the way
+# a run over the whole tree does (codex review, PR #138).
+known-first-party = ["cases", "lib"]

@@ -135,6 +135,10 @@ deals (`track: fast`) skip the contract and close on the MOU alone.
 > reaching into internals. Example: offer expiry runs on a schedule, so the
 > port exposes `advance_clock(minutes)`, `run_expiry_sweep()`, and
 > `get_offer_state(id)` — control and observation points, nothing internal.
+> Its location is one line of `technical-spec.md` — `**Test port** — <path>`
+> (or `none` for an API contract) — which the fidelity dispatch's marker
+> copies, so the blind reviewer may read the port and nothing else under
+> `src/` (#125).
 > Because the port is promised in the contract at stage (2), QA can write its
 > suite in parallel with the build; because it exposes only observable
 > behaviour, the tests survive refactors and the black box stays sealed. In
@@ -239,7 +243,7 @@ discipline is the manners; the hook is the law.*
 | **B** | an agent applying `status: ready-for-spec` / `ready-for-dev` | a gate label is an authorization — only the human moves it | 1.5.0 |
 | **C** | a marker-carrying comment that opens with a quote block | patrol classifies by the opening token; a quote-opening agent comment reads as a human answer and the loop replies to itself | 1.14.0 |
 | **D** | a `git commit` while `technical-spec.md` still carries an open-questions section | a question outside the threaded surface resolves by silent interpretation; the prose measured 0/5 after it was made explicit | 1.15.0 |
-| **E** | inside a fidelity dispatch, any read of `src/` outside `<acceptance_dir>` (a suite under `src/test/…` stays readable), or a git action on a `feat/<n>` ref — or on the implementation branch the dispatch marker names, under a `branch_template` | the blindness the integration verdict rests on — a green looks identical either way | 1.16.0 |
+| **E** | inside a fidelity dispatch, any read of `src/` outside `<acceptance_dir>` (a suite under `src/test/…` stays readable, and so does the test port the marker's `read=` lines name — `technical-spec.md`'s `**Test port**` line), or a git action on a `feat/<n>` ref — or on the implementation branch the dispatch marker names, under a `branch_template` | the blindness the integration verdict rests on — a green looks identical either way | 1.16.0 |
 | **F** | a question comment (`**[<role>] · Q<k> · <label>**` / `**Q<n> · <label>**`) whose options are not `- (a)` / `- (b)` bullets | the forge renders consecutive lines as one paragraph — options as prose reach the holder's phone run together, and the `3a` shorthand has nothing to point at | 1.35.0 |
 | **G** | a STOP comment (`**[<command>] · blocked**`) without its **To resume:** line | the comment is what the holder reads on a phone — without the label move and the channel, they leave `blocked` on and answer where nothing listens | 1.36.0 |
 | **acceptance** | editing the acceptance suite on a spec branch (`spec/<n>`, or whatever `branch_template` renders) | a weakened assertion re-runs green and turns the verdict into an echo of the implementation | 1.11.0 |

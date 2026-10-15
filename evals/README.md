@@ -5,8 +5,8 @@ Three tiers of evidence that the workflow's rules hold.
 <!-- counts -->
 | Tier | Cases | Status | Cost class |
 |---|---|---|---|
-| **lint** | 37 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
-| **replay** | 37 | built — `replay/run_replay.py` | needs a running loop and pass^k over repeated runs |
+| **lint** | 38 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
+| **replay** | 38 | built — `replay/run_replay.py` | needs a running loop and pass^k over repeated runs |
 | **judgment** | 7 items / 4 fixtures | built — `judgment/run_judgment.py`, k=2 baseline complete (2026-09-21) | a real repo per iteration plus an opus judge; the only tier that measures whether the spec stage earns its cost |
 <!-- /counts -->
 

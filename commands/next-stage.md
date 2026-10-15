@@ -113,7 +113,14 @@ Base everything strictly on the issue body. Per the workflow's stage (2):
 - Dispatch `em` and `product` → write `<specs_dir>/<n>/spec.md`.
 - Dispatch `implementer` → write `<specs_dir>/<n>/technical-spec.md` (the
   contract: command/API spec, schema, behavioral guarantees; a documented test
-  **port** for non-API features).
+  **port** for non-API features). **The test-port line** (#125):
+  `technical-spec.md` carries exactly one line `**Test port** — <path>[,
+  <path>…]` — the repo-relative files or directories the port lives in;
+  the acceptance suite drives it, and it is the one thing under `src/`
+  the blind reviewer may read — or `**Test port** — none` when the contract
+  is an API doc. Path B refuses to start without the line, and B5b
+  copies its paths into the dispatch marker; a port that lives in an
+  existing unit-test file is declared there all the same (ADMC #11).
 - **Rules enumeration requirement:** `spec.md` MUST enumerate its
   story-level rules exhaustively and number them — `R<k> · <2–4-word
   title>`, one entry per behavioural rule or guarantee; scenarios cite the
@@ -310,6 +317,15 @@ satisfies fidelity**. Zero hits in a spec that carries evidence tags is a
 clean check; zero hits in a spec written before the vocabulary existed is
 **not** — say which one the report means.
 
+**Test-port check (beside it):**
+`grep -nE '^\*\*Test port\*\* — ' <specs_dir>/<n>/technical-spec.md` —
+exactly one hit, reading `none` or a comma-separated list of repo-relative
+paths (A3's line). Zero hits, two or more, or a value that is neither →
+the STOP exit, naming the line's shape; the remedy is the implementer's at
+(2) cost — a spec written before the line existed (1.40.0-) has none and
+gains one here. Its paths are what B5b writes into the dispatch marker as
+`read=` lines (#125).
+
 ### B1. Lock
 LABEL-ADD `status: processing`.
 
@@ -335,7 +351,8 @@ branch is reused — else Expand):
 Launch both at once (they never see each other):
 - **implementer** on `<feat-branch>`: implement per
   `<specs_dir>/<n>/technical-spec.md` + write **unit** tests. For a non-API
-  feature, also provide the documented test **port** QA tests against.
+  feature, also provide the documented test **port** QA tests against, at
+  the path(s) `technical-spec.md`'s `**Test port**` line names.
   **A contract gap you cannot resolve from the spec docs → stop and report
   to the main agent; never decide unilaterally in code** — the same
   mid-flight route QA has, and the ambiguity takes the same backward
@@ -425,12 +442,19 @@ Launch both at once (they never see each other):
   which is what makes this dispatch structurally implementation-blind.
 - **Blindness is hook-enforced while the dispatch runs** (guard-blind,
   rule E): immediately before the dispatch, write the marker
-  `mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\nfeat=<feat-branch>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`
+  `mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\nfeat=<feat-branch>\nread=<path>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`
   — the `feat=` line is the bound implementation branch, the ref the hook
-  denies by name; immediately after it returns, `rm -f "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`.
+  denies by name; one `read=<path>` line per path the `**Test port**` line
+  of `technical-spec.md` names (Path B's check read it; no `read=` line
+  when it says `none`) — the port the hook lets the dispatch read beside
+  the suite (#125); the dispatch text carries the same paths on a line of
+  its own, `Test port: <path>[, <path>]` or `Test port: none`. Immediately
+  after it returns,
+  `rm -f "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`.
   While the marker exists, every read of `src/` outside
   `<acceptance_dir>` (a suite under `src/test/…` stays readable — it is
-  what the dispatch audits) and every git action on
+  what the dispatch audits; so is the port the marker's `read=` lines
+  name) and every git action on
   `<feat-branch>` (or any `feat/` ref) is denied mechanically, with the
   remedy in the message. The
   brief's "you never read the implementation" stays in the dispatch text —

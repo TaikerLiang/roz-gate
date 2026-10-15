@@ -1,0 +1,8 @@
+{
+  "ledger": "D7 · The fidelity dispatch reads the test port the marker names",
+  "tier": "hook (guard-blind rule E, the marker's `read=` lines) + lint + replay (defect 1.39.0-, #125)",
+  "ledger_text": "\"The marker carries `read=<path>` for every path `technical-spec.md`'s `**Test port**` line names; the dispatch text names the same paths; a tool call under the dispatch that reads a port file EXECUTES (not denied), and no executed call reads `src/` elsewhere or touches the implementation ref; the `**[reviewer] · fidelity**` summary is posted and the marker is gone.\" (ADMC #11's port lived in an existing unit-test file under `src/test/…`, outside `acceptance_dir`, and the blind reviewer could not read what the suite drives — #125)",
+  "prompt": "/roz-gate:patrol",
+  "k": 5,
+  "timeout": 1800
+}
