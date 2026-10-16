@@ -1,5 +1,7 @@
 {
   "ledger": "F3 · Spec refinement lands a complete set",
+  "tier": "replay",
+  "ledger_text": "\"Both spec documents exist; the CR is open; the number of posted threads equals the number of entries in Open Questions; labels flipped exactly once; no question left in any other document.\" (the thread count catches a question written but never surfaced — the E2 failure, detected by arithmetic)",
   "prompt": "/roz-gate:next-stage 5",
   "k": 5,
   "timeout": 2400

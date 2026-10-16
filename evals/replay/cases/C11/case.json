@@ -1,5 +1,7 @@
 {
-  "ledger": "C11 \u00b7 A template with {seq} re-enters by the next sequence",
+  "ledger": "C11 · A template with `{seq}` re-enters by the next sequence",
+  "tier": "replay",
+  "ledger_text": "\"`spec/paul/5/2` is cut and its CR opened; `spec/paul/5/1` still points at the first attempt; nothing deleted, nothing force-pushed; no STOP comment, labels end at `in-spec-review`.\" (C10's STOP exists because the only automatic fixes were destructive; a template that counts attempts has a non-destructive one — issue #75)",
   "prompt": "/roz-gate:next-stage 5",
   "k": 5,
   "timeout": 900

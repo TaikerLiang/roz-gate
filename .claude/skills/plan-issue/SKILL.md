@@ -100,7 +100,7 @@ Scan **all** of these, every time — list each with "changed" or
 | `commands/*.md` the change touches | the executable prose — every statement of the rule, not only the first |
 | `references/forge-github.md` / `forge-gitlab.md` | an op the new prose calls must exist in **both** |
 | `hooks/README.md` | rule table, if a hook changed |
-| `evals/LEDGER.md`, `evals/CONTRIBUTING.md`, `evals/README.md` | new case rows; the case count |
+| `evals/LEDGER.md`, `evals/README.md` (rendered by `tools/ledger.py` from the cases' metadata), `evals/CONTRIBUTING.md` | new case rows; the case count — run the tool, never edit |
 | `docs/releasing.md` | only if the release procedure itself changes |
 
 Then one grep across `README.md commands references templates docs` for
@@ -110,8 +110,10 @@ idea template). `CHANGELOG.md` is never edited by hand.
 ### release
 
 - **Version**: minor or patch, by `docs/releasing.md` § Minor or patch,
-  with the one-sentence reason. Any change under `agents commands
-  references templates` needs a bump (pre-push refuses otherwise).
+  with the one-sentence reason — stated for the release, never bumped in
+  the PR: the version moves only in the release PR, and CI refuses a PR
+  that changes `agents bin commands references templates hooks scripts`
+  without a `## Release note` section in its body.
 - **Release-note block**, written now in `docs/releasing.md`'s layout
   (runtime-impact line first, then Behavior / Evals / Hooks / Tooling /
   Docs bullets with bold subjects, code formatting for every path and

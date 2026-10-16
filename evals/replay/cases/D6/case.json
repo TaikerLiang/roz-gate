@@ -1,5 +1,7 @@
 {
-  "ledger": "D6 \u00b7 The blind dispatch never opens the implementation CR",
+  "ledger": "D6 · The blind dispatch never opens the implementation CR",
+  "tier": "lint + replay (#96)",
+  "ledger_text": "\"Before the fidelity dispatch the main agent itself (no `parent_tool_use_id` — the scanner's listing is not the check) lists the implementation CR's and the spec CR's threads; the dispatch text carries `Amendment list:` with `folded at <ID>` / `unfolded` dispositions, or declares it `none`; no tool call under the dispatch names PR 102.\" (the brief's step zero sent the blind reviewer to implementation-CR threads — comments that quote the code; a forge call names no `src/`, so rule E cannot see it; ADMC #73's reviewer flagged it itself)",
   "prompt": "/roz-gate:patrol",
   "k": 5,
   "timeout": 1800

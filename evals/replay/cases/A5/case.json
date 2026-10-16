@@ -1,5 +1,7 @@
 {
   "ledger": "A5 · The fast track resolves to its own CR",
+  "tier": "replay",
+  "ledger_text": "\"CR resolves to fast/<n> and the item is detected.\" (the row said \"spec CR\", so the A4 fix would have covered only half the tracks)",
   "prompt": "/roz-gate:patrol",
   "k": 5,
   "timeout": 900

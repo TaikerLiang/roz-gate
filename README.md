@@ -51,8 +51,11 @@ tools/dev-setup.sh          # = git config core.hooksPath .githooks
 ```
 
 That wires `.githooks/pre-commit` (naming convention) and
-`.githooks/pre-push` (hook tests + lint tier + version-bump check). CI runs
-the lint tier as the backstop for a clone that never did this. ruff (the
+`.githooks/pre-push` (hook tests + lint tier + ledger check + red-proofs).
+CI runs the same suites as the backstop for a clone that never did this,
+and checks that a PR changing a behaviour path carries its `## Release
+note` — the version itself moves only in the release PR
+([docs/releasing.md](docs/releasing.md)). ruff (the
 repo's one dev dependency) runs on the staged `.py` files in pre-commit and
 over the tree in CI; locally it is skipped when `uv` is absent.
 

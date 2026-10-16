@@ -1,5 +1,7 @@
 {
   "ledger": "F9 · A pass acts from the scanner's table",
+  "tier": "replay",
+  "ledger_text": "\"The scanner's table has a row per issue with the right verdict; the pass acts on the top actionable row, locks no other loop issue, posts every intake batch; the scanner writes nothing; the main agent lists nothing after the table.\" (the scan used to live in the main agent's context — #59)",
   "prompt": "/roz-gate:patrol",
   "k": 5,
   "timeout": 1500

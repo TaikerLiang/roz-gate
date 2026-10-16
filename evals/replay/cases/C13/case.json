@@ -1,5 +1,7 @@
 {
   "ledger": "C13 · The in-flight row sees a merged CR",
+  "tier": "replay (seed amended for #95: the QA CR carries the fidelity record)",
+  "ledger_text": "\"#5 wears `track: spec` alone with `feat/5` and `qa/5` merged into `spec/5`: the scanner's row reads `actionable: integrate`, the pass takes the lock on #5, and no row reads `in progress`.\" (the open-only lookup read a merged CR as absent, so patrol said \"in progress\" about a finished build and a STOP cleared by the human was never re-run — issue #77)",
   "prompt": "/roz-gate:patrol",
   "k": 5,
   "timeout": 1800

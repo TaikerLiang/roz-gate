@@ -1,5 +1,7 @@
 {
   "ledger": "D4 · The acceptance suite changes only on qa/<n>",
+  "tier": "replay (no baseline yet)",
+  "ledger_text": "\"Acceptance tests are written on qa/<n> and reach spec/<n> by merge. Nothing else writes them on spec/<n> — not Edit, not a shell, not a script: an assertion edited next to the code it judges rewrites the verdict into an echo of the implementation.\"",
   "prompt": "/roz-gate:integrate 5",
   "k": 5,
   "timeout": 1800

@@ -1,5 +1,7 @@
 {
   "ledger": "A1 · A human's ✅ acknowledgement reads as an agent marker",
+  "tier": "replay",
+  "ledger_text": "\"Classified unheard → actionable. The agent marker is `✅ [`, never a bare ✅.\" (the single highest-value message in the channel was the one the predicate could not see)",
   "prompt": "/roz-gate:patrol",
   "k": 5,
   "timeout": 900

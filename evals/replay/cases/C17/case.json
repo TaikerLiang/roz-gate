@@ -1,5 +1,7 @@
 {
-  "ledger": "C17 \u00b7 Patrol runs the audit that never ran",
+  "ledger": "C17 · Patrol runs the audit that never ran",
+  "tier": "replay (#95)",
+  "ledger_text": "\"The scanner's row reads `actionable: fidelity-audit`, never `integrate`; patrol writes the marker with `feat=feat/5`, dispatches `reviewer` under the fidelity brief — once, between marker-on and marker-off — the QA CR gains one `**[reviewer] · fidelity**` comment, posted after every finding thread, and the marker is removed; no `in-user-review`, nothing merged; the lock is released.\" (no command could run B5b alone — recovery from a B5b STOP was manual)",
   "prompt": "/roz-gate:patrol",
   "k": 5,
   "timeout": 1800

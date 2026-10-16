@@ -1,5 +1,7 @@
 {
   "ledger": "A4 · in-user-review is a listening state, not a terminal one",
+  "tier": "replay",
+  "ledger_text": "\"Actionable → review-answers. Not 'waiting on the user'.\" (the original defect: comments sat unanswered while every pass reported the loop was waiting on the human)",
   "prompt": "/roz-gate:patrol",
   "k": 5,
   "timeout": 900

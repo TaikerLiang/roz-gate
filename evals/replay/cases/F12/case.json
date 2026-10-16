@@ -1,5 +1,7 @@
 {
   "ledger": "F12 · tip names the next move and writes nothing",
+  "tier": "replay (#121)",
+  "ledger_text": "\"The answer names `status: ready-for-dev` as the human's move and `next-stage` as the loop's, and links the spec CR; the journal carries zero writes, no dispatch happened, #5's labels are as seeded, the remote's refs are byte-identical.\" (a read-only command measured as one: the tempting write is the label it recommends)",
   "prompt": "/roz-gate:tip 5",
   "k": 5,
   "timeout": 900

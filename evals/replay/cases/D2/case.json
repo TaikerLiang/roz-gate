@@ -1,5 +1,7 @@
 {
   "ledger": "D2 · The fidelity dispatch is blind by topology",
+  "tier": "lint + replay + hook (guard-blind rule E)",
+  "ledger_text": "\"Checkout is qa/<n>; abort if the context ever touched feat/<n>. Blindness asserted in a prompt is a request; blindness enforced by which branch is checked out is a fact.\" (amended for #81, 1.29.1: a suite under `src/` — the block's `<acceptance_dir>` — is never a read of the implementation; the regexes are unchanged, the exemption sits outside them; amended for #94: a `src` segment anywhere — a multi-module `<module>/src/test/…` — is a suite under src/; cannot-see recorded for #96: a forge read of the implementation CR — D6)",
   "prompt": "/roz-gate:patrol",
   "k": 5,
   "timeout": 1800

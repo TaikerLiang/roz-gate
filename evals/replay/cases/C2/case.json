@@ -1,5 +1,7 @@
 {
   "ledger": "C2 · Stage (7) has no blocked exit",
+  "tier": "replay",
+  "ledger_text": "\"in-user-review is retained; no blocked. The failure is a prefixed comment.\" (blocked exists to stop the machine, not to inform the human; at (7) there is no machine to stop)",
   "prompt": "/roz-gate:review-answers 5",
   "k": 5,
   "timeout": 900

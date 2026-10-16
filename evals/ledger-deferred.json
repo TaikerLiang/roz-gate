@@ -1,0 +1,17 @@
+{
+  "_comment": "Ledger rows for cases that have no checker yet (deferred, cannot-see); tools/ledger.py merges them into LEDGER.md by ID.",
+  "cases": [
+    {
+      "id": "A6",
+      "title": "notification",
+      "tier": "deferred",
+      "ledger": "no channel stub in the headless sandbox — see `replay/README.md`, cannot-see #1"
+    },
+    {
+      "id": "E1",
+      "title": "judgment quality",
+      "tier": "judgment, deferred",
+      "ledger": "see `replay/README.md`, cannot-see #4"
+    }
+  ]
+}

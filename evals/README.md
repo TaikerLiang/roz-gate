@@ -2,11 +2,13 @@
 
 Three tiers of evidence that the workflow's rules hold.
 
+<!-- counts -->
 | Tier | Cases | Status | Cost class |
 |---|---|---|---|
 | **lint** | 38 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
 | **replay** | 38 | built — `replay/run_replay.py` | needs a running loop and pass^k over repeated runs |
 | **judgment** | 7 items / 4 fixtures | built — `judgment/run_judgment.py`, k=2 baseline complete (2026-09-21) | a real repo per iteration plus an opus judge; the only tier that measures whether the spec stage earns its cost |
+<!-- /counts -->
 
 Every case, across all three tiers, is indexed in [`LEDGER.md`](LEDGER.md)
 — IDs, families, and the ledger text each checker cites. Adding a case:
@@ -22,8 +24,8 @@ Two failure modes exist, and only one of them is what people expect:
    green.
 
 Everything in the lint tier is class 2, and each case is either a defect
-that actually shipped (version annotated in the runner) or a preventive
-check on the identical shape. These checks are proofs, not samples: a lint
+that actually shipped (version annotated in the case's header) or a
+preventive check on the identical shape. These checks are proofs, not samples: a lint
 that reports "no occurrence" has enumerated the space.
 
 ## What a green run proves — and what it does not
@@ -53,9 +55,10 @@ conventions written into prose that a model executes at runtime. A lint
 cannot execute prose, so every case that guards a runtime check gets two
 layers:
 
-- **Pattern proof** — the canonical pattern lives once in `run_lint.py`
-  and runs against positive AND negative fixtures (`fx/`). Proves the
-  pattern behaves.
+- **Pattern proof** — the canonical pattern lives once, in the case's
+  file under `lint/cases/` (a case that shares it imports it from its
+  owner), and runs against positive AND negative fixtures (`fx/`). Proves
+  the pattern behaves.
 - **Source conformance** — the plugin source must carry that same pattern
   byte-for-byte. Proves the prose the model executes is the pattern that
   was proven.
@@ -204,16 +207,20 @@ ships in `evals/langfuse/`.
 that breaks the naming convention (`tools/naming.py` — repo hygiene, run
 again by CI over the tree; deliberately not a ledger case). `.githooks/pre-push`
 (same wiring) runs this suite
-(`python3 evals/lint/run_lint.py`), the hook unit tests and the replay
+(`python3 evals/lint/run_lint.py`), the hook unit tests, the ledger page's
+freshness (`python3 tools/ledger.py --check` — `LEDGER.md` and the counts
+above are rendered from the cases, never edited) and the replay
 checkers' red-proofs (`python3 evals/replay/run_redproofs.py`, seconds —
-seeded sandboxes, no model) on **every push** and blocks on red. "Must pass before
-every version bump" is a subset of that; unconditional is simpler and the
-cost is seconds. `git push --no-verify` is the documented human
-override; `.github/workflows/checks.yml` is its backstop.
+seeded sandboxes, no model) on **every push** and blocks on red;
+unconditional is simpler and the cost is seconds. The version is not its
+business: it moves only in the release PR (`docs/releasing.md`). `git push
+--no-verify` is the documented human override; `.github/workflows/checks.yml`
+is its backstop.
 
 Run locally:
 
 ```sh
 python3 evals/lint/run_lint.py     # or, from the repo root: uv run evals/lint/run_lint.py
+python3 tools/ledger.py --check    # LEDGER.md and the counts above still match the cases
 python3 evals/replay/run_redproofs.py   # every replay case's redproof.py
 ```

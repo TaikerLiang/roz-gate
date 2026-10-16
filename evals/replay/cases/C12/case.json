@@ -1,5 +1,7 @@
 {
   "ledger": "C12 · A merged CR is never re-merged — integrate validates the spec tip",
+  "tier": "lint + replay (seed amended for #95: the QA CR carries the fidelity record)",
+  "ledger_text": "\"Both CRs merged, `spec/<n>` moved since: nothing merged — neither tip becomes an ancestor of `spec/<n>`, the moved tip's content is intact on the remote, the suites ran against it, labels end at `in-user-review` alone, no STOP comment, and the claim reads 'green against the pre-rework spec, at SHA x'.\" (integrate re-merged two already-incorporated branches into a `spec/<n>` that had moved independently — a rebase, a sync with concurrent work — and stopped on a two-line conflict in a test file: a re-merge of stale inputs reported as a failed verdict attempt — issue #77)",
   "prompt": "/roz-gate:integrate 5",
   "k": 5,
   "timeout": 1800

@@ -1,5 +1,7 @@
 {
   "ledger": "E8 · A top-level comment on the spec CR is heard as an amendment",
+  "tier": "replay + lint",
+  "ledger_text": "\"`spec.md` on the remote carries the amendment; a top-level `✅ [product] amended` reply cites the comment; labels end `in-spec-review` alone, no STOP.\" (spec-answers read THREADS-LIST only, so the human's top-level comment — the PR page's default affordance, the only one usable from a phone — was never classified; every pass said \"no new answers\" — issue #98, E6's defect one channel over)",
   "prompt": "/roz-gate:spec-answers 5",
   "k": 5,
   "timeout": 1200

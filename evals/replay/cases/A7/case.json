@@ -1,5 +1,7 @@
 {
   "ledger": "A7 · A merged CR closes the issue out",
+  "tier": "replay",
+  "ledger_text": "\"Issue closed; every `track:`/`status:` label gone; exactly one shipped comment naming the CR; exactly one close; nothing written to the CR — and an issue the forge already closed on merge loses its labels and gets its comment, with no second close.\" (an OPEN CR at in-user-review is F1/A4/A5's fixture — zero label writes there) (GitLab and any CR against a release branch leave the issue open wearing `in-user-review` after the merge — the loop's last step never happened — issue #41)",
   "prompt": "/roz-gate:patrol",
   "k": 5,
   "timeout": 900

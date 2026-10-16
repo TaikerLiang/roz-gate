@@ -1,5 +1,7 @@
 {
   "ledger": "F5 · A STOP leaves nothing half-done",
+  "tier": "replay",
+  "ledger_text": "\"Labels are blocked alone; an issue comment names the claims and the remedy; no branch pushed, no CR opened, no remote write of any kind.\" (five obligations in one paragraph; four of five honoured looks like success in every log)",
   "prompt": "/roz-gate:next-stage 5",
   "k": 5,
   "timeout": 1200

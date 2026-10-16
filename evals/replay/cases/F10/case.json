@@ -1,5 +1,7 @@
 {
-  "ledger": "F10 \u00b7 A branch is cut by the configured template",
+  "ledger": "F10 · A branch is cut by the configured template",
+  "tier": "replay",
+  "ledger_text": "\"`spec/paul/5/1` descends from `origin/<default_branch>`, the CR's head is that branch and targets the base, no `spec/5` and no `fix/paul/5/1` exists on the remote.\" (every seed before this one ran the default names, so a loop that hardcoded them measured 100%; the `type: fix` label on the fixture is the tempting wrong render for the spec branch — issue #75)",
   "prompt": "/roz-gate:next-stage 5",
   "k": 5,
   "timeout": 2400
