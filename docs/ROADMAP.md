@@ -262,8 +262,9 @@ and the eval ledger (`evals/README.md`).
 - **ADMC** (the first real project): bot-mode identity config in place
   (in the untracked `CLAUDE.local.md` since its PR #62); the judgment
   fixtures re-create the config block on each sandbox.
-- **2.0.0: deferred.** The frozen items below are design-approved but
-  unshipped; the measurement track has not changed that decision.
+- **2.0.0: shipped.** #140 gave it a vehicle (the stage order changed);
+  the frozen protocol pages below ship with it (#142, 2026-10-17); the
+  patrol gate-label audit is #144, on its own merits.
 
 ## The vision (why 2.0.0 exists)
 
@@ -420,3 +421,9 @@ durably in the project memory directory
 (`~/.claude/projects/-Users-taiker-dev-roz-gate/memory/frozen-2.0.0-drafts/`).
 Retrieval condition: Paul green-lights 2.0.0. If lost, regenerate from
 the "Design decisions" section above — it is the complete outline.
+
+**Resolved 2026-10-17 (#142):** both pages were regenerated against the
+2.0.0 workflow and ship in `docs/` — `docs/protocol.md` (protocol v1) and
+`docs/participating.md` (four moves: the (7) review conversation joined the
+three). The drafts in memory are superseded. The timeline audit (item 4,
+*Detection*) is #144.
