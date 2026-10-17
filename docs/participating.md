@@ -20,7 +20,9 @@ as an assumption.
 
 ## 2. Say `summary` (gate holders only)
 
-The **gate holder** is the issue's assignee (unassigned → the author). When
+The **gate holder** is the issue's assignee (unassigned → the author, if
+human — a bot never holds a gate, so a bot-authored issue with no assignee
+has no holder until a human is assigned). When
 the discussion feels settled — or immediately, if the recommendations look
 right — end a comment with the single line:
 
@@ -49,8 +51,10 @@ final story folds in **your** words only.
 ## 4. The review conversation
 
 When the work has passed its verdict, the issue carries
-`status: in-user-review` and the agent hosts your review on the spec pull
-request. Comment there like any code review: the agent answers from what the
+`status: in-user-review` and the agent hosts your review on the issue's open
+pull request — the spec pull request on the spec track, the work's own pull
+request on the fast track. Comment there like any code review: the agent
+answers from what the
 artifacts already say, with links, and reads any change back to you in one
 line before making it. **Nothing is built without your word; silence is never
 consent.** Your three options: **merge it, change it, or send it back** to
@@ -63,8 +67,9 @@ An automated step that hits something it will not decide leaves the issue
 with `status: blocked` and one comment titled `**[<command>] · blocked**`:
 what happened and a recommended next step, evidence folded below. Its last
 line before the evidence tells you the whole move — **To resume:** which
-label to clear, which to apply, and where your answer goes. Do those and the
-step re-runs; nothing else is needed.
+label to clear, which to apply (sometimes none: clearing is the whole move),
+and where your answer goes. Do those and the step re-runs; nothing else is
+needed.
 
 ## On spec pull requests
 

@@ -33,9 +33,11 @@ the lock can sit next to a phase label.
 
 **The one ownership rule.** Humans move **gate** labels — a gate label is an
 authorization. Agents move **transient** labels — a transient label is a
-status report. Neither ever moves the other's. An agent that applies
-`status: ready-for-spec` or `status: ready-for-dev` violates the protocol
-(the reference client refuses it at the tool layer).
+status report. Neither ever moves the other's — with one exception, in the
+human's favour: the human may clear `status: blocked` themselves (the resume
+line below invites it). An agent that applies `status: ready-for-spec` or
+`status: ready-for-dev` violates the protocol (the reference client refuses it
+at the tool layer).
 
 **Invariants.**
 
@@ -78,8 +80,10 @@ status report. Neither ever moves the other's. An agent that applies
   `status: blocked` alone and one comment whose title is
   `**[<command>] · blocked**`; its last line before the folded evidence is
   the resume line — **To resume:** clear `status: blocked`, apply
-  `status: <phase>` — and that line names where the answer goes. Nothing
-  else about the stop is wire.
+  `status: <phase>` — and that line names where the answer goes. When the
+  step stopped from in flight there is no phase to restore: the line then
+  says that clearing `status: blocked` is the whole move. Nothing else about
+  the stop is wire.
 
 ## 3. The gate holder
 
@@ -97,9 +101,13 @@ mechanism** — text markers are presentation, not authority.
 
 - An agent acts under its **own** forge identity: a GitHub App
   (`<slug>[bot]`) or a GitLab project access token bot
-  (`project_<id>_bot_<hash>`) — never a human's session. GitLab bot
-  usernames are opaque; name the tokens meaningfully and keep the mapping
-  in the client's configuration.
+  (`project_<id>_bot_<hash>`) — or, as the reference client does by
+  default, under its **operator's** session, in which case that one human
+  owns every word posted under their name and the `**[` prefix is what
+  tells agent output from theirs. Never another agent's session, and never a
+  shared one: with more than one agent in a thread, each acts under its own
+  bot identity. GitLab bot usernames are opaque; name the tokens
+  meaningfully and keep the mapping in the client's configuration.
 - When comparing GitHub logins, strip the `app/` prefix and the `[bot]`
   suffix — one App surfaces as `app/<slug>`, `<slug>` and `<slug>[bot]`
   depending on the API path.
@@ -130,8 +138,9 @@ An agent joining the loop MUST:
 1. Read state **only** from labels and comments — no side channels.
 2. Prefix every comment it authors with `**[<its-role-or-name>]`.
 3. Never apply, remove or repair a **gate** label; never merge a CR.
-4. Act under its own bot identity, and give every issue it creates a human
-   assignee.
+4. Act under its own bot identity or under its one accountable operator's
+   session — never another agent's — and give every issue it creates a
+   human assignee.
 5. Honor `status: processing` and `status: blocked` — never act on a locked
    or stopped issue.
 6. Stop and report anything illegal or unexpected — never improvise.
