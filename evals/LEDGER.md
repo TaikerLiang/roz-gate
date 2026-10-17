@@ -165,6 +165,7 @@ text follows the experiment; the driver's citation was updated to match.
 | L4 | branch names are bound once, never spelled — every command resolves `<spec-branch>` / `<feat-branch>` / `<qa-branch>` / `<fast-branch>` through `references/branch-names.md`; no literal `spec/<n>` outside it; `init` creates the `type:` labels; both adapters carry WHOAMI; the hooks read the template | lint (preventive, #75) |
 | L5 | the config block has two homes — `CLAUDE.md`, then `CLAUDE.local.md`, in the toplevel, then in the main checkout; the hooks' one reader (`hooks/config_block.py`), the acceptance prefilter, every command's step 0 and the docs agree | lint (defect 1.31.1-, #94) |
 | L6 | `test` and `acceptance_test` are documented as running in a linked worktree, never in the checkout, on every surface an adopter fills them in — README's config block, init's prompt, the onboarding builder — with the `.git`-as-a-directory failure named | lint (defect 1.36.0-, #99) |
+| L7 | the wire spec names exactly the labels the state machine has, states the STOP and summary rules in the client's literals, binds no reference-client internal as a MUST, and every entry point links the pages | lint (preventive) |
 
 ## The judgment corpus
 

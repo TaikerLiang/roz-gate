@@ -14,6 +14,13 @@ pipeline stops at explicit gates and cannot cross them without you.
 
 Works with **GitHub (`gh`) and GitLab (`glab`)**, gitlab.com or self-hosted.
 
+The forge conventions *are* the protocol —
+**[protocol v1](https://taikerliang.github.io/roz-gate/protocol.html)**:
+the labels, the comment markers, who holds a gate. Roz Gate is its
+**reference client**: a teammate's own agent interoperates by following that
+page, and a human joining a thread needs only
+**[the participating guide](https://taikerliang.github.io/roz-gate/participating.html)**.
+
 ```
 (1) intake → (2) spec → (2a) Q&A → (3) impl → (5) review → (4) QA → (5q) → (6) verdict → (7) merge
       ▲gate                   ▲gate                                                          ▲gate

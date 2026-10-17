@@ -64,7 +64,8 @@ of:
      the fast track) — the label is the confirmation. Off? Reply corrections
      — end the comment with a line `summary` to see a revised summary first,
      or apply the label directly: finalize folds your corrections either
-     way. Context and the decision trail are folded below."*
+     way. Context and the decision trail are folded below. New here?
+     https://taikerliang.github.io/roz-gate/participating.html"*
    - then the supplement, one block:
      `<details><summary>Supplement — context and decision trail</summary>`
      holding **context** (background for whoever picks this up; **no file
