@@ -50,10 +50,15 @@ def fixture(name):
 
 
 def dir_files(*reldirs):
+    """Every `.md`, `.html` and `.json` file under the given directories —
+    the three types the cases read. Anything else (a PDF dropped under
+    `docs/`, an image) is skipped: `dirs_text` decodes what this yields as
+    UTF-8, and one stray byte took the whole suite down (#149)."""
     for d in reldirs:
         for base, _, names in os.walk(os.path.join(R, d)):
             for n in sorted(names):
-                yield os.path.join(base, n)
+                if n.endswith((".md", ".html", ".json")):
+                    yield os.path.join(base, n)
 
 
 def dirs_text(*reldirs):
