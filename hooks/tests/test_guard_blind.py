@@ -579,3 +579,113 @@ class RuleE_TestPortIsReadable(HookTest):
         self.marker.unlink()
         with self.case("port: marker removed — everything allowed again"):
             self.assertAllowed(self.run_bash("cat %s" % self.MAIN))
+
+
+class RuleE_QaDispatchSeat(HookTest):
+    """2.0.0 (#140): QA writes its suite on a qa/<n> cut AFTER the
+    implementation landed on the spec branch, so the branch carries the code
+    and the topology no longer protects — the QA dispatch runs under the
+    same marker with `seat=qa`. The predicate is unchanged: QA may RUN its
+    suite (`acceptance_test` names no src/ operand) and read the suite and
+    the port; it may not read the code it runs against, nor touch the
+    implementation ref. The deny message names the dispatch and its brief."""
+
+    guard = "guard-blind"
+    SUITE = "src/test/java/acme/acceptance"
+    PORT = "src/test/java/acme/port/OfferPort.java"
+    MAIN = "src/main/java/acme/App.java"
+
+    def setUp(self):
+        super().setUp()
+        self.repo = self.new_repo(
+            {"CLAUDE.md": config_block(forge="github", acceptance_dir=self.SUITE),
+             self.MAIN: "class App {}\n",
+             self.SUITE + "/OfferAcceptanceTest.java": "// @Traces(5, S1)\n",
+             self.PORT: "// the port: seedOffer, advanceClock, priceCart\n",
+             "src/test/java/acme/unit/UnitTest.java": "// unit\n",
+             "docs/specs/5/technical-spec.md": "# tech spec\n"},
+            commit=True)
+        self.git(self.repo, "branch", "-q", "feat/5")
+        self.git(self.repo, "checkout", "-q", "-b", "qa/5")
+        self.marker = self.repo / ".git/roz-gate/fidelity-dispatch"
+        self.write(self.marker, "issue=5\nfeat=feat/5\nread=%s\nseat=qa\n" % self.PORT)
+
+    def tool(self, tool, cwd=None, **tool_input):
+        return self.call(tool, tool_input, cwd or self.repo, agent_type="roz-gate:qa")
+
+    def run_bash(self, command, cwd=None):
+        return self.tool("Bash", cwd, command=command)
+
+    def test_qa_may_run_but_not_read(self):
+        repo = self.repo
+        for name, cmd in [
+            ("seat=qa: running the acceptance suite (mvnw -Dtest=…AcceptanceTest) allowed",
+             "./mvnw -q test -Dtest=OfferAcceptanceTest"),
+            ("seat=qa: running the suite by pattern allowed",
+             "mvn -q test -Dtest='*AcceptanceTest' -Dmaven.gitcommitid.skip=true"),
+            ("seat=qa: a pytest acceptance run allowed", "pytest tests/acceptance -q"),
+            ("seat=qa: a read under <acceptance_dir> allowed",
+             "cat %s/OfferAcceptanceTest.java" % self.SUITE),
+            ("seat=qa: a read of the port the marker names allowed", "cat %s" % self.PORT),
+            ("seat=qa: the spec docs allowed", "cat docs/specs/5/technical-spec.md"),
+            ("seat=qa: git status in the qa worktree allowed",
+             "git -C $(git rev-parse --git-common-dir)/roz-gate/wt/qa/5 status --short"),
+            ("seat=qa: a test report under target/ (no src/) allowed",
+             "cat target/surefire-reports/acme.acceptance.OfferAcceptanceTest.txt"),
+        ]:
+            with self.case(name):
+                self.assertAllowed(self.run_bash(cmd))
+        with self.case("seat=qa: Read of the suite file allowed"):
+            self.assertAllowed(self.tool("Read", file_path=str(
+                repo / self.SUITE / "OfferAcceptanceTest.java")))
+        for name, cmd, says in [
+            ("seat=qa: cat src/main denied", "cat %s" % self.MAIN, "read of src/"),
+            ("seat=qa: the deny message names the QA dispatch", "cat %s" % self.MAIN,
+             "this is a QA dispatch"),
+            ("seat=qa: the deny message names the QA brief", "cat %s" % self.MAIN,
+             "references/qa-brief.md"),
+            ("seat=qa: the deny message still states the remedy", "cat %s" % self.MAIN,
+             "report it as a finding"),
+            ("seat=qa: a unit test beside the suite (not the suite, not the port) denied",
+             "cat src/test/java/acme/unit/UnitTest.java", "read of src/"),
+            ("seat=qa: git diff feat/5 denied", "git diff feat/5 -- src/", "feat/ ref"),
+            ("seat=qa: git diff spec/5...feat/5 denied", "git diff spec/5...feat/5",
+             "feat/ ref"),
+            ("seat=qa: git log origin/feat/5 denied", "git log origin/feat/5 --oneline",
+             "feat/ ref"),
+            ("seat=qa: a grep over src/main denied", "grep -rn price src/main/", "read of src/"),
+        ]:
+            with self.case(name):
+                self.assertDenied(self.run_bash(cmd), says)
+        with self.case("seat=qa: Read of src/main denied, message names the QA dispatch"):
+            r = self.tool("Read", file_path=str(repo / self.MAIN))
+            self.assertDenied(r, "Read under src/")
+            self.assertDenied(r, "this is a QA dispatch")
+        with self.case("seat=qa: Grep with path src/main denied"):
+            self.assertDenied(self.tool("Grep", pattern="price", path="src/main"),
+                              "Grep under src/")
+
+    def test_seat_names_the_dispatch(self):
+        for name, marker, says in [
+            ("seat=reviewer: the message opens as a fidelity dispatch",
+             "issue=5\nfeat=feat/5\nseat=reviewer\n", "this is a fidelity dispatch"),
+            ("no seat line (the 1.x marker): a fidelity dispatch",
+             "issue=5\nfeat=feat/5\n", "this is a fidelity dispatch"),
+            ("an unknown seat value: a fidelity dispatch (the predicate is the same)",
+             "issue=5\nfeat=feat/5\nseat=product\n", "this is a fidelity dispatch"),
+            ("seat=qa in backticks is normalized",
+             "issue=5\nfeat=feat/5\nseat=`qa`\n", "this is a QA dispatch"),
+            ("seat=QA (case) is normalized", "issue=5\nfeat=feat/5\nseat=QA\n",
+             "this is a QA dispatch"),
+        ]:
+            self.write(self.marker, marker)
+            with self.case(name):
+                self.assertDenied(self.run_bash("cat %s" % self.MAIN), says)
+        with self.case("seat=reviewer: the message names the fidelity brief"):
+            self.write(self.marker, "issue=5\nfeat=feat/5\nseat=reviewer\n")
+            self.assertDenied(self.run_bash("cat %s" % self.MAIN), "references/fidelity-brief.md")
+        with self.case("the stale-marker remedy no longer says 'fidelity dispatch' alone"):
+            self.assertDenied(self.run_bash("cat %s" % self.MAIN), "Not inside a blind dispatch?")
+        self.marker.unlink()
+        with self.case("marker removed — src/main readable again"):
+            self.assertAllowed(self.run_bash("cat %s" % self.MAIN))

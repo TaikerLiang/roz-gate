@@ -1,8 +1,10 @@
-"""guard-gate (Bash): rules A-D. See hooks/README.md for each rule's predicate.
+"""guard-gate (Bash): rules A-D, F-H. See hooks/README.md for each rule's predicate.
 
 A case table is (name, command) for allowed cases and (name, command,
 stderr substring) for denied ones.
 """
+
+import subprocess
 
 from hooktest import HookTest, config_block
 
@@ -685,3 +687,146 @@ class RuleA_IntakeSummaryTrigger(HookTest):
             self.assertAllowed(self.bash('''glab issue note 7 --message "**[intake] · summary**
 
 **Story** ..."'''))
+
+
+TS_V1 = ("# Technical spec #5\n\n## Contract\n- **C1 (R4)** — `price(cart, now)` excludes "
+         "offers with `expires_at < now`.\n")
+TS_V2 = TS_V1 + "- **C2 (R4)** — `now` is the DB clock, not the caller's (as built).\n"
+DEVIATIONS = ("## Contract deviations\n\n- **C2** — `now` was the caller's clock; the DB clock "
+              "is the only one the sweep can see. Declared, not decided: R4 is untouched.\n")
+
+
+class RuleH_CrOpenDeclaresDeviations(HookTest):
+    """2.0.0 (#140): the implementer corrects technical-spec.md on its branch
+    as it builds, and QA tests the contract as built. A CR-OPEN whose diff
+    touches `<specs_dir>/*/technical-spec.md` carries `## Contract
+    deviations` in its body; the diff is one git call, and a diff the guard
+    cannot compute fails closed. The repo: spec/5 at the seed, feat/5 edits
+    the contract and the code, feat/6 edits the code only."""
+
+    guard = "guard-gate"
+    CR = 'gh pr create --base spec/5 --head feat/5 --title "feat: implement #5" --body "%s"'
+
+    def setUp(self):
+        super().setUp()
+        repo = self.new_repo(
+            {"CLAUDE.md": config_block(forge="github", specs_dir="docs/specs"),
+             "docs/specs/5/technical-spec.md": TS_V1,
+             "docs/specs/5/spec.md": "# Spec #5\n", "src/app.py": "x = 1\n"}, commit=True)
+        self.git(repo, "branch", "-q", "spec/5")
+        self.git(repo, "checkout", "-q", "-b", "feat/5")
+        self.write(repo / "docs/specs/5/technical-spec.md", TS_V2)
+        self.write(repo / "src/app.py", "x = 2\n")
+        self.git(repo, "add", "-A")
+        self.git(repo, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "impl #5")
+        self.git(repo, "checkout", "-q", "-b", "feat/6", "spec/5")
+        self.write(repo / "src/app.py", "x = 3\n")
+        self.git(repo, "add", "-A")
+        self.git(repo, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "impl #6")
+        self.git(repo, "checkout", "-q", "feat/5")
+        (repo / "sub").mkdir()
+        self.repo = repo
+
+    def test_denied(self):
+        repo = self.repo
+        for name, cmd, says in [
+            ("rule H: the diff touches technical-spec.md and the body has no section — denied",
+             self.CR % "Closes #5", "Contract deviations"),
+            ("rule H: the message names the file and the remedy",
+             self.CR % "Closes #5", "docs/specs/5/technical-spec.md"),
+            ("rule H: a body that merely mentions deviations is not the section — denied",
+             self.CR % "Closes #5. Contract deviations: none.", "Contract deviations"),
+            ("rule H: --fill (no body at all) — denied",
+             'gh pr create --base spec/5 --head feat/5 --fill', "Contract deviations"),
+            ("rule H: heredoc body-file without the section — denied",
+             "gh pr create --base spec/5 --head feat/5 --title t --body-file - <<'EOF'\n"
+             "Closes #5\nEOF", "Contract deviations"),
+            ("rule H: the head defaults to HEAD (feat/5 checked out) — denied",
+             'gh pr create --base spec/5 --title t --body "Closes #5"', "Contract deviations"),
+            ("rule H: glab mr create without the section — denied",
+             'glab mr create --source-branch feat/5 --target-branch spec/5 --title t '
+             '--description "Closes #5"', "Contract deviations"),
+            ("rule H: an unknown base — the diff cannot be computed — fails closed",
+             'gh pr create --base nope/5 --head feat/5 --title t --body "%s"' % DEVIATIONS,
+             "could not be computed"),
+            ("rule H: the fail-closed message says it is not a protocol block",
+             'gh pr create --base nope/5 --head feat/5 --title t --body "%s"' % DEVIATIONS,
+             "NOT a protocol block"),
+            ("rule H: compound line — the create segment is still judged",
+             'git push -q origin feat/5 && ' + self.CR % "Closes #5", "Contract deviations"),
+        ]:
+            with self.case(name):
+                self.assertDenied(self.bash(cmd, repo), says)
+        with self.case("rule H: judged from a subdirectory"):
+            self.assertDenied(self.bash(self.CR % "Closes #5", repo / "sub"), "Contract deviations")
+        nosec = self.tmp / "body-nosec.md"
+        nosec.write_text("Closes #5\n")
+        with self.case("rule H: --body-file read back without the section — denied"):
+            self.assertDenied(self.bash(
+                "gh pr create --base spec/5 --head feat/5 --title t --body-file %s" % nosec, repo),
+                "Contract deviations")
+        with self.case("rule H: an unreadable --body-file fails closed"):
+            self.assertDenied(self.bash(
+                "gh pr create --base spec/5 --head feat/5 --title t --body-file /nonexistent/b.md",
+                repo), "cannot judge")
+
+    def test_allowed(self):
+        repo = self.repo
+        for name, cmd in [
+            ("rule H: the section present — allowed", self.CR % ("Closes #5\n\n" + DEVIATIONS)),
+            ("rule H: the section with `none` — allowed",
+             self.CR % "Closes #5\n\n## Contract deviations\n\nnone"),
+            ("rule H: a deeper heading with a trailing note — allowed",
+             self.CR % "Closes #5\n\n### Contract deviations — none"),
+            ("rule H: heredoc body-file with the section — allowed",
+             "gh pr create --base spec/5 --head feat/5 --title t --body-file - <<'EOF'\n"
+             "Closes #5\n\n" + DEVIATIONS + "EOF"),
+            ("rule H: --body= glued form with the section — allowed",
+             "gh pr create --base spec/5 --head feat/5 --title t --body='Closes #5\n\n%s'"
+             % DEVIATIONS),
+            ("rule H: glab mr create with the section — allowed",
+             'glab mr create --source-branch feat/5 --target-branch spec/5 --title t '
+             '--description "Closes #5\n\n%s"' % DEVIATIONS),
+            ("rule H: a diff that does not touch technical-spec.md needs no section — allowed",
+             'gh pr create --base spec/5 --head feat/6 --title t --body "Closes #6"'),
+            ("rule H: a draft CR (the QA CR) off the spec tip — no contract change — allowed",
+             'gh pr create --draft --base spec/5 --head feat/6 --title t --body "QA"'),
+            ("rule H: a comment that mentions `pr create` is not a CR-OPEN — allowed",
+             'gh pr comment 12 --body "run gh pr create after the fix"'),
+            ("rule H: the fast CR off the base, code only — allowed",
+             'gh pr create --base spec/5 --head feat/6 --title "fast: #6 x" --body "Closes #6"'),
+        ]:
+            with self.case(name):
+                self.assertAllowed(self.bash(cmd, repo))
+        good = self.tmp / "body-good.md"
+        good.write_text("Closes #5\n\n" + DEVIATIONS)
+        with self.case("rule H: --body-file read back with the section — allowed"):
+            self.assertAllowed(self.bash(
+                "gh pr create --base spec/5 --head feat/5 --title t --body-file %s" % good, repo))
+        with self.case("rule H: -F file with the section — allowed"):
+            self.assertAllowed(self.bash(
+                "gh pr create --base spec/5 --head feat/5 --title t -F %s" % good, repo))
+        # A worktree cut from origin/<spec-branch> may have no local spec/5:
+        # the base resolves through its origin/ form (resolve_ref).
+        sha = subprocess.run(["git", "-C", str(repo), "rev-parse", "spec/5"],
+                             capture_output=True, text=True).stdout.strip()
+        self.git(repo, "update-ref", "refs/remotes/origin/spec/5", sha)
+        self.git(repo, "branch", "-q", "-D", "spec/5")
+        with self.case("rule H: a base that exists only as origin/<base> resolves — judged"):
+            self.assertDenied(self.bash(self.CR % "Closes #5", repo), "Contract deviations")
+        with self.case("rule H: … and passes with the section"):
+            self.assertAllowed(self.bash(self.CR % ("Closes #5\n\n" + DEVIATIONS), repo))
+        with self.case("rule H: rule H made no API call"):
+            self.assertEqual(self.api_calls(), [])
+
+    def test_no_config_block(self):
+        repo = self.new_repo({"docs/specs/5/technical-spec.md": TS_V1}, commit=True)
+        self.git(repo, "branch", "-q", "spec/5")
+        self.git(repo, "checkout", "-q", "-b", "feat/5")
+        self.write(repo / "docs/specs/5/technical-spec.md", TS_V2)
+        self.git(repo, "add", "-A")
+        self.git(repo, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "x")
+        with self.case("rule H: repo without a Roz Gate config block untouched"):
+            self.assertAllowed(self.bash(self.CR % "Closes #5", repo))
+        with self.case("rule H: outside any git repo — allowed (nothing to diff, not a project)"):
+            self.assertAllowed(self.bash(self.CR % "Closes #5", self.new_dir()))

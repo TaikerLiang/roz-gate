@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""Roz Gate enforcement — layer 2: the fidelity dispatch is blind.
+"""Roz Gate enforcement — layer 2: an implementation-blind dispatch is blind.
 
-Invoked by guard-blind.sh only while the fidelity-dispatch marker exists.
-One rule, the mechanical form of existing protocol text:
+Invoked by guard-blind.sh only while the dispatch marker exists. One rule,
+the mechanical form of existing protocol text:
 
-  E. Under an implementation-blind dispatch (the QA seat addressing
-     fidelity threads, the reviewer's fidelity review and re-checks — all
-     on ``qa/<n>``; references/fidelity-brief.md: "You never read the
-     implementation"; commands/next-stage.md B5b), no tool call reads
-     ``src/`` or acts on a ``feat/`` ref. The first opus baseline measured
+  E. Under an implementation-blind dispatch — the reviewer's fidelity
+     review and re-checks, the QA seat addressing fidelity threads, and
+     since 2.0.0 the QA seat writing its suite (#140: ``qa/<n>`` is cut
+     after the implementation landed on the spec branch, so the branch
+     carries the code and the topology no longer protects) — all on
+     ``qa/<n>``; references/fidelity-brief.md and references/qa-brief.md:
+     "You never read the implementation"; commands/next-stage.md B2.4 /
+     B2.7 — no tool call reads ``src/`` or acts on a ``feat/`` ref. The first opus baseline measured
      the dispatch prompt's "Do NOT read src/" at 4/5: run 4's QA child ran
      ``git status --short && git rev-parse --abbrev-ref HEAD && cat
      src/app.txt`` — harmless intent, trivial file, and the blindness the
@@ -52,6 +55,13 @@ action on THAT ref is denied too — the same verbs, the exact name. The
 D2 predicate held byte-identical with the checker); an empty or
 ``issue=``-only marker is the 1.16–1.28 shape and enforces exactly what
 it did.
+
+The marker's ``seat=<qa|reviewer>`` line (2.0.0, #140) names the dispatch
+the marker guards, so the deny message says which brief the reader is
+under; absent, the dispatch is the fidelity review (every 1.x shape). The
+predicate is the same either way — QA may RUN its suite under the marker
+(``acceptance_test`` names no ``src/`` operand); it may not read the code
+it runs against.
 
 The marker's ``read=<path>`` lines (1.40.0, #125): the **test port** the
 contract declares — ``technical-spec.md``'s ``**Test port** — <path>``
@@ -284,15 +294,21 @@ def tree_tops(top, ref=None):
         tops.append(top)
     return tops
 
+# The message opens by naming the dispatch the marker guards: the fidelity
+# review (the 1.x literal — lint D2 and the D2/D7 checkers pair denials by
+# it) or, under a `seat=qa` marker, QA's own dispatch (#140).
+FIDELITY_OPEN = "Roz Gate: blocked — this is a fidelity dispatch"
+QA_OPEN = "Roz Gate: blocked — this is a QA dispatch"
+BRIEF = {"qa": "references/qa-brief.md", "reviewer": "references/fidelity-brief.md"}
 BLIND_MSG = (
-    "Roz Gate: blocked — this is a fidelity dispatch and it is "
+    "%s and it is "
     "implementation-blind: `src/` and `feat/<n>` are off-limits (%s). What "
     "you need is in spec.md / technical-spec.md, the QA suite on qa/<n> "
     "and the test port the marker names%s. If you believe a read of the "
     "implementation is required, "
     "report it as a finding instead of performing it "
-    "(references/fidelity-brief.md, the blindness rule). Not inside a "
-    "fidelity dispatch? Then the marker is stale — the dispatching command "
+    "(%s, the blindness rule). Not inside a "
+    "blind dispatch? Then the marker is stale — the dispatching command "
     "removes `%s` when the dispatch returns; remove it and retry.%s"
 )
 
@@ -324,6 +340,21 @@ def marker_ref(path):
             for line in f:
                 if line.startswith("feat="):
                     return line[len("feat="):].strip() or None
+    except (OSError, TypeError):
+        pass
+    return None
+
+
+def marker_seat(path):
+    """The seat the marker names (`seat=qa` / `seat=reviewer`), normalized;
+    None when the line is absent or unknown — the 1.x shape, a fidelity
+    dispatch."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("seat="):
+                    v = line[len("seat="):].strip().strip("`'\"").lower()
+                    return v if v in BRIEF else None
     except (OSError, TypeError):
         pass
     return None
@@ -418,9 +449,12 @@ def main():
     if not what:
         return
     agent = payload.get("agent_type")
+    seat = marker_seat(marker)
     readable = (["its `%s` is readable here" % suite] if suite else []) + (
         ["the port it names: `%s`" % "`, `".join(ports)] if ports else [])
-    deny(BLIND_MSG % (what, " (%s)" % "; ".join(readable) if readable else "",
+    deny(BLIND_MSG % (QA_OPEN if seat == "qa" else FIDELITY_OPEN,
+                      what, " (%s)" % "; ".join(readable) if readable else "",
+                      BRIEF.get(seat, BRIEF["reviewer"]),
                       marker or "<git-dir>/" + MARKER_REL,
                       " (agent: %s)" % agent if agent else ""))
 

@@ -13,8 +13,9 @@ input=$(cat)
 # arrive JSON-escaped as ✅ depending on the caller's encoder. body-file
 # forms escalate marker-blind: their body (and so the marker) lives outside
 # the command text. `git … commit` escalates for rule D (the open-questions
-# section check) — the python side confirms the segment shape.
-if ! printf '%s' "$input" | grep -qE '\[intake\]|ready-for-(spec|dev)|\*\*\[|✅ \[|\\u2705 \[|Q[0-9]+ (·|\\u00b7)|body-file|-F |git .*commit'; then
+# section check), `pr create` / `mr create` for rule H (the contract
+# deviations section) — the python side confirms the segment shape.
+if ! printf '%s' "$input" | grep -qE '\[intake\]|ready-for-(spec|dev)|\*\*\[|✅ \[|\\u2705 \[|Q[0-9]+ (·|\\u00b7)|body-file|-F |git .*commit|pr create|mr create'; then
   exit 0
 fi
 

@@ -2,7 +2,7 @@
 """Roz Gate enforcement — layer 2: trigger validation.
 
 Invoked by guard-gate.sh only when a Bash command mentions a guarded
-pattern. Six rules, each the mechanical form of existing protocol text:
+pattern. Seven rules, each the mechanical form of existing protocol text:
 
   A. An ``**[intake] · summary**`` comment may be posted only when the
      async-intake trigger holds (commands/patrol.md step 2): a gate label
@@ -47,6 +47,18 @@ pattern. Six rules, each the mechanical form of existing protocol text:
      ``**[<command>] · blocked**``) and its last (``**To resume:**`` — the
      label to clear, the phase to apply, where the answer goes); a body
      carrying the title and no resume line is a deny.
+  H. A CR-OPEN declares its contract deviations (commands/next-stage.md
+     B4; issue #140, 2.0.0). The implementer corrects ``technical-spec.md``
+     on its branch as it builds, and QA — which since 2.0.0 starts after
+     the implementation lands — tests the contract as built; a correction
+     nobody declared reaches QA and the (5) reviewer as a silent edit. A
+     ``gh pr create`` / ``glab mr create`` whose head's diff against its
+     base touches ``<specs_dir>/*/technical-spec.md`` must carry a line
+     ``## Contract deviations`` in its body (``--body`` / ``--body-file`` /
+     ``--description``, a file read back, a heredoc parsed — rule C's
+     shapes). The diff is one ``git diff --name-only <base>...<head>``; a
+     diff that cannot be computed fails CLOSED, and the message says it is
+     the diff that failed, not the protocol.
 
 Exit 0 allows the tool call; exit 2 blocks it and feeds stderr to the
 model. Forge API failures fail closed, with a message that says it is an
@@ -188,6 +200,27 @@ UNPARSEABLE_MSG = (
     "the guard can check the issue."
 )
 
+# Rule H: the section heading, alone on its line — `## Contract deviations`
+# (any heading level; trailing text such as ` — none` tolerated).
+DEVIATIONS_HEADING = re.compile(r"^#+\s*Contract deviations\b", re.I | re.M)
+DEVIATIONS_MSG = (
+    "Roz Gate: blocked — this CR changes `%s` and its body has no "
+    "`## Contract deviations` section. Add the section to the body — one "
+    "bullet per changed clause (`G<k>` / `C<k>` / a §5 row): what changed and "
+    "why; or the single line `none` — then retry (commands/next-stage.md B4). "
+    "Why: the contract is corrected during implementation, and QA tests it as "
+    "built; a correction nobody declared reaches QA and the reviewer as a "
+    "silent edit (issue #140)."
+)
+DIFF_FAILED_MSG = (
+    "Roz Gate: cannot verify this CR — the diff `%s...%s` could not be "
+    "computed (%s), so the guard cannot tell whether `technical-spec.md` "
+    "changed. This is NOT a protocol block: fetch the base and head refs "
+    "(`git fetch origin`), or pass `--base` / `--head` (gh) or "
+    "`--target-branch` / `--source-branch` (glab) naming refs this clone "
+    "has, then retry."
+)
+
 OPEN_QUESTIONS_MSG = (
     "Roz Gate: blocked — `%s` (%s) still carries an open-questions section "
     "(`%s`). Move it to spec.md's `## Open Questions` and delete it here — "
@@ -318,6 +351,92 @@ def check_open_questions_commit(toks):
             m = OPEN_QUESTIONS_SECTION.search(text)
             if m:
                 deny(OPEN_QUESTIONS_MSG % (rel, where, m.group(0).strip()))
+
+
+def check_cr_open(cmd, toks):
+    """Rule H: a CR-OPEN whose diff touches a technical-spec.md under
+    specs_dir carries `## Contract deviations` in its body. Judged per shell
+    segment on the CR-shaped writes only (`gh pr create`, `glab mr create`);
+    a repo without a config block is not a roz-gate project and is left
+    alone; a diff the guard cannot compute fails closed."""
+    if toks is None:
+        return
+    for seg in shell_segments(toks):
+        gh_pr = "gh" in seg and "pr" in seg and "create" in seg
+        glab_mr = "glab" in seg and "mr" in seg and "create" in seg
+        if not (gh_pr or glab_mr):
+            continue
+        top = (git_out("rev-parse", "--show-toplevel") or "").strip()
+        if not top:
+            return
+        specs_dir = load_specs_dir(top)
+        if not specs_dir:
+            return
+        base = flag_value(seg, ["--base", "-B"] if gh_pr else ["--target-branch", "-b"])
+        head = flag_value(seg, ["--head", "-H"] if gh_pr else ["--source-branch", "-s"])
+        base_ref = resolve_ref(top, base) if base else resolve_ref(top, "origin/HEAD")
+        head_ref = resolve_ref(top, head) if head else "HEAD"
+        if base_ref is None or head_ref is None:
+            deny(DIFF_FAILED_MSG % (base or "<base>", head or "HEAD",
+                                    "ref not found: %s" % (base if base_ref is None else head)))
+        changed = git_out("-C", top, "diff", "--name-only",
+                          "%s...%s" % (base_ref, head_ref))
+        if changed is None:
+            deny(DIFF_FAILED_MSG % (base_ref, head_ref, "git diff failed"))
+        want = specs_dir.strip("/") + "/*/technical-spec.md"
+        hit = [p for p in changed.splitlines() if p.strip() and _spec_match(p.strip(), want)]
+        if not hit:
+            continue
+        body = cr_body(cmd, seg, gh_pr)
+        if not DEVIATIONS_HEADING.search(ansi_c(body or "")):
+            deny(DEVIATIONS_MSG % hit[0])
+
+
+def _spec_match(path, pattern):
+    """`<specs_dir>/*/technical-spec.md` — one path segment for the issue."""
+    pre, _, name = pattern.partition("/*/")
+    rest = path[len(pre) + 1:] if path.startswith(pre + "/") else None
+    return rest is not None and rest.count("/") == 1 and rest.endswith("/" + name)
+
+
+def flag_value(toks, flags):
+    for i, tok in enumerate(toks):
+        for flag in flags:
+            if tok == flag and i + 1 < len(toks):
+                return toks[i + 1]
+            if tok.startswith(flag + "="):
+                return tok.split("=", 1)[1]
+    return None
+
+
+def resolve_ref(top, ref):
+    """The ref as given, else its `origin/` form (a worktree cut from
+    `origin/<spec-branch>` may have no local `<spec-branch>`); None when
+    neither resolves."""
+    for cand in (ref, "origin/" + ref) if not ref.startswith("origin/") else (ref,):
+        if git_out("-C", top, "rev-parse", "--verify", "-q", cand + "^{commit}") is not None:
+            return cand
+    return None
+
+
+def cr_body(cmd, toks, gh_pr):
+    """The CR body of one `pr create` / `mr create` segment: `--body`/`-b`,
+    `--body-file`/`-F` (file read back, `-` heredoc parsed) for gh;
+    `--description`/`-d` for glab. None when none is given (`--fill`, or a
+    body to be filled in an editor)."""
+    flags = ["--body", "-b"] if gh_pr else ["--description", "-d"]
+    for i, tok in enumerate(toks):
+        nxt = toks[i + 1] if i + 1 < len(toks) else None
+        for flag in flags:
+            if tok == flag and nxt is not None:
+                return nxt
+            if tok.startswith(flag + "="):
+                return tok.split("=", 1)[1]
+        if gh_pr and (tok in ("--body-file", "-F") or tok.startswith("--body-file=")):
+            path = tok.split("=", 1)[1] if "=" in tok else nxt
+            if path is not None:
+                return body_from_file(path, cmd, deviations=True)
+    return None
 
 
 def deny_api_failure(detail):
@@ -525,13 +644,15 @@ def comment_bodies(cmd, toks, gh_comment, glab_note, api_comment):
     return vals
 
 
-def body_from_file(path, cmd):
+def body_from_file(path, cmd, deviations=False):
     """gh's --body-file: the body is not an argument. `-` is stdin — in
     agent practice a heredoc whose text IS in the command; parse it out.
     A real path is read back from disk (it must exist for gh to work). A
     body the guard cannot see fails closed only when the command itself
     shows a marker — the scoping condition lives in the body, so an
-    unmarked command stays free."""
+    unmarked command stays free. For rule H (`deviations=True`) the scoping
+    condition is the diff, already decided: an unreadable body is an
+    unreadable body, and it fails closed."""
     if path == "-":
         m = re.search(
             r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n(.*?)\n\s*\2\s*(?:\n|$)",
@@ -545,6 +666,9 @@ def body_from_file(path, cmd):
                 return f.read()
         except OSError:
             pass
+    if deviations:
+        deny(BODY_FILE_MSG.replace("the command carries a roz-gate marker",
+                                   "the CR changes technical-spec.md (rule H)"))
     if ROZ_MARKER.search(cmd):
         deny(BODY_FILE_MSG)
     return None
@@ -685,6 +809,7 @@ def main():
     check_gate_label_add(cmd, toks)
     check_comment_writes(cmd, toks)
     check_open_questions_commit(toks)
+    check_cr_open(cmd, toks)
     if SUMMARY_MARKER.search(cmd):
         bots = load_bot_logins()
         check_github_summary(cmd, bots)
