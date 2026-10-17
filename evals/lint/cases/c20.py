@@ -64,7 +64,8 @@ src("C20: the quiz's stage 4 says QA starts after the landing", "docs/learn/quiz
     "實作落到 spec/{n} 之後才開工")
 # The retired vocabulary: none of it survives outside the history files.
 RETIRED = re.compile(r"IN PARALLEL|launch together|never see each other|in parallel with the build"
-                     r"|chase green|independent siblings|\(3\)\+\(4\)\+\(5\)|blind by topology")
+                     r"|chase green|independent siblings|\(3\)\+\(4\)\+\(5\)|blind by topology"
+                     r"|∥|meet for the first time|互相看不見")
 for _f in sorted(dir_files("commands", "references", "templates", "agents", "docs")) + [
         os.path.join(R, "README.md")]:
     _rel = os.path.relpath(_f, R)
