@@ -1,11 +1,14 @@
 ---
-description: Drive stage (6) integration — merge the implementation and QA CRs into the spec branch, run the QA black-box tests against the implementation, report the verdict
+description: Drive stage (6) integration — merge what is still open into the spec branch (normally the QA CR alone; the implementation landed before QA started), run the QA black-box suite as the recorded verdict, report it
 argument-hint: "[issue-number]"
 ---
 
 Drive **integration (6)** — the spec-compliance verdict — for one feature.
-Preconditions: the implementation CR's review threads are all resolved and the
-QA CR is complete. Follow these steps exactly; do nothing beyond them.
+Preconditions: the implementation CR is review-clean (its code-review record
+current, zero open threads) — since 2.0.0 it is normally already **merged**
+into `<spec-branch>`, because QA starts after the implementation lands
+(`next-stage` Path B2) — and the QA CR is complete and audited. Follow these
+steps exactly; do nothing beyond them.
 
 **Safety invariant:** the user's checkout is **untouchable** — the user may be
 mid-edit on it when a scheduled patrol invokes this — and the **worktree** is
@@ -60,10 +63,15 @@ mapped subagent, attaching the seat's R&R row from
   already in `<spec-branch>`. Bind each CR's state, `open` / `draft` /
   `merged`; a closed-unmerged CR counts as absent, and a CR that is absent
   stops the run as it always has.
-  Verify the **implementation CR has no open review threads** (THREADS-LIST)
-  — a merged CR too: a merged MR can still carry an unresolved thread.
-  If any are open, stop and list them — review must be clean before
-  integration.
+  Verify the **implementation CR is review-clean** (`workflow.md` (5)) —
+  open or merged alike, a merged MR can still carry an unresolved thread:
+  THREADS-LIST shows **no open review threads**, **and** CR-COMMENTS-LIST
+  carries a `**[reviewer] · code-review**` comment whose `reviewed-sha:` is
+  the CR's head. Open threads → stop and list them. **No record, or a
+  stale one → stop: no code review on record — patrol runs it (the
+  `code-review` action).** Zero threads because nobody reviewed is not zero
+  findings — the symmetric precondition to the fidelity record below,
+  closing the asymmetry #95 left (#140 ruling 9).
 - Verify the **QA CR is not a draft** (CR-VIEW) — draft means QA is still
   working or paused on a question; a verdict run against an incomplete suite is
   a silently weakened verdict. If draft, stop and say so.
@@ -95,9 +103,11 @@ label.
   → STOP exit, naming both SHAs: pushing them is the human's decision.
   Then, **merge what is open, never what is merged**: for each of the
   two CRs, state `open` → `git merge --no-edit origin/<feat-branch>` /
-  `git merge --no-edit origin/<qa-branch>` — this brings the contract + code
-  + tests together for the first time; state `merged` → nothing to merge,
-  its content is already in `<spec-branch>`. **Both merged → nothing is
+  `git merge --no-edit origin/<qa-branch>`; state `merged` → nothing to
+  merge, its content is already in `<spec-branch>`. In the 2.0 flow the
+  implementation CR is already merged (Path B2 landed it before QA started)
+  and this step merges `<qa-branch>` alone; an issue cut under 1.x with both
+  CRs still open merges both, as it always did. **Both merged → nothing is
   merged**: the worktree holds `<spec-branch>`'s tip as it stands, and steps
   4–5 run against it — a **re-verdict**. Once both CRs are merged, integrate
   validates the current `<spec-branch>` tip; it never reconstructs it from
@@ -116,7 +126,10 @@ label.
 - Run config `env_sync`.
 
 ## 4. Run the verdict
-- Run QA's black-box suite against the implementation: config
+- Run QA's black-box suite against the implementation — **the recorded
+  run**: QA ran it in its own worktree at (4) and got the harness green
+  there; this run, on the merged `<spec-branch>` tip, is the one the verdict
+  and the evidence cards are computed from. Config
   `acceptance_test` for the feature (`<acceptance_dir>/<feature>/`). **On a
   re-verdict run the full acceptance suite**, not the feature-scoped one:
   the spec branch moved by means a feature-scoped run cannot see (a sync
@@ -167,8 +180,10 @@ label.
   - **real bug** in the implementation → dispatch `implementer` to fix on
     `<feat-branch>`,
   - **harness issue** in the QA tests — a failure where the test **never
-    reached its assertion** (import path / async / DB isolation — the known
-    cost of blind QA) → dispatch `qa` to fix on `<qa-branch>`,
+    reached its assertion** (import path / async / DB isolation) → dispatch
+    `qa` to fix on `<qa-branch>`. Since 2.0.0 QA runs its suite at (4) and
+    clears its harness there, so a harness red reaching (6) is rare — the
+    report says one did,
   - **contract defect** — the test reached its assertion, the assertion
     faithfully states the contract, and reality disagrees (a guaranteed
     behaviour that measurably does not hold) → **STOP exit**: the contract

@@ -21,7 +21,7 @@ META = {
     "id": "D7",
 }
 
-_PRINTF7 = "printf 'issue=<n>\\nfeat=<feat-branch>\\nread=<path>\\n'"
+_PRINTF7 = "printf 'issue=<n>\\nfeat=<feat-branch>\\nread=<path>\\nseat=<seat>\\n'"
 src("D7: A3 states the test-port line", "commands/next-stage.md",
     "**The test-port line** (#125):")
 src("D7: A3 names the API-contract form", "commands/next-stage.md",
@@ -32,10 +32,10 @@ src("D7: Path B stops on zero, two or a malformed value", "commands/next-stage.m
     "Zero hits, two or more, or a value that is neither →\nthe STOP exit")
 src("D7: B3 builds the port at the declared path", "commands/next-stage.md",
     "at\n  the path(s) `technical-spec.md`'s `**Test port**` line names")
-src("D7: B5b's marker carries read= lines", "commands/next-stage.md", _PRINTF7)
-src("D7: B5b says one read= line per declared path", "commands/next-stage.md",
+src("D7: the dispatch marker carries read= lines (B2.4 / B2.7)", "commands/next-stage.md", _PRINTF7)
+src("D7: the procedure says one read= line per declared path", "commands/next-stage.md",
     "one `read=<path>` line per path the `**Test port**` line\n  of `technical-spec.md` names")
-src("D7: B5b names the paths on a line of the dispatch text", "commands/next-stage.md",
+src("D7: the procedure names the paths on a line of the dispatch text", "commands/next-stage.md",
     "on a line of\n  its own, `Test port: <path>[, <path>]` or `Test port: none`")
 src("D7: patrol's verbatim procedure carries the same marker", "commands/patrol.md", _PRINTF7)
 _m7 = [set(re.findall(r"printf 'issue=[^']*'", read(_f)))

@@ -1,7 +1,7 @@
 {
   "ledger": "C16 · A QA CR without a fidelity audit on record never integrates",
   "tier": "lint + replay (defect 1.9.0-, #95)",
-  "ledger_text": "\"Labels unchanged (no `status:`), nothing merged or pushed to `spec/5`, no `in-user-review`; the QA CR's comments were listed; the report names the missing fidelity record and patrol's `fidelity-audit` as the road.\" (integrate's precondition \"zero open fidelity threads\" was satisfied by an audit that never ran — B5b stopped before the reviewer posted and the unaudited suite integrated; ADMC #73)",
+  "ledger_text": "\"Labels unchanged (no `status:`), nothing merged or pushed to `spec/5`, no `in-user-review`; the QA CR's comments were listed; the report names the missing fidelity record and patrol's `fidelity-audit` as the road.\" (integrate's precondition \"zero open fidelity threads\" was satisfied by an audit that never ran — B5b stopped before the reviewer posted and the unaudited suite integrated; ADMC #73 — and since 2.0.0 the implementation CR needs its `**[reviewer] · code-review**` record the same way, #140 ruling 9: an absence is never read as a pass)",
   "prompt": "/roz-gate:integrate 5",
   "k": 5,
   "timeout": 1800

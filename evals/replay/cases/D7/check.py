@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # D7 · The fidelity dispatch reads the test port the marker names.
-# Fixture: C17's — spec/5, feat/5, qa/5 open and thread-clean, the QA CR
+# Fixture: C17's (the 2.0 shape: feat/5 merged into spec/5 with its
+# code-review record, #140) — qa/5 open and thread-clean, the QA CR
 # without a fidelity summary, so patrol runs the audit alone — plus the
 # contract's test port in an existing unit-test file under src/test/…
 # (ADMC #11), declared on technical-spec.md's `**Test port**` line and
@@ -12,7 +13,8 @@
 #   EXECUTES (not denied), and no executed call reads `src/` elsewhere or
 #   touches the implementation ref; the `**[reviewer] · fidelity**` summary
 #   is posted and the marker is gone." (#125)
-# source: commands/next-stage.md B5b — printf 'issue=<n>\nfeat=<feat-branch>\nread=<path>\n';
+# source: commands/next-stage.md B2.7 —
+#   printf 'issue=<n>\nfeat=<feat-branch>\nread=<path>\nseat=<seat>\n';
 #   one read= line per path the **Test port** line names; the dispatch text
 #   names the same paths
 # source: commands/patrol.md § The fidelity-audit action, step 3 (verbatim)
@@ -221,9 +223,9 @@ c.expect("fidelity-brief.md § Findings (the record is the last write)",
          "the marked summary was posted after every finding thread on #103",
          len(summaries) == 1 and all(i < summaries[0] for i in findings))
 c.expect("patrol.md § fidelity-audit (nothing else of B5b, no integrate)",
-         "no in-user-review; nothing merged into remote spec/5",
+         "no in-user-review; qa/5 not merged into remote spec/5 (feat/5 landed there "
+         "before QA started — the 2.0 shape)",
          lambda: not r.has_label("5", "status: in-user-review")
-             and not r.remote_is_ancestor(FEAT, "spec/5")
              and not r.remote_is_ancestor(QA, "spec/5"))
 c.expect("patrol.md § fidelity-audit 4 (the lock)", "status labels cleared at the end",
          r.status_labels("5") == [])

@@ -10,7 +10,7 @@ META = {
     "ledger": None,
 }
 
-b5 = section(read("commands/next-stage.md"), r"^### B5\. ", r"^### B5b\. ")
+b5 = section(read("commands/next-stage.md"), r"^### B5\. ", r"^### B6\. ")
 c.expect("pattern", "D1: stage-(5) dispatch attaches spec.md",
          "spec.md" in b5)
 c.expect("pattern", "D1: stage-(5) dispatch attaches technical-spec.md",

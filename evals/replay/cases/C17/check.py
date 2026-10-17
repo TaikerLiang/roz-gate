@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # C17 · Patrol runs the audit that never ran.
-# Fixture: C16's — spec/5, feat/5, qa/5 open and thread-clean, the QA CR
-# ready, no top-level comment on it (the fidelity audit never ran). The
+# Fixture: C16's — feat/5 merged into spec/5 with its code-review record
+# (the 2.0 shape, #140), qa/5 open and thread-clean, the QA CR ready, no
+# top-level comment on it (the fidelity audit never ran). The
 # pre-#95 scanner routed this to integrate; the row now reads
 # `actionable: fidelity-audit`, and patrol serves it with B5b's
 # fidelity-dispatch procedure, run alone.
@@ -13,7 +14,7 @@
 #   `in-user-review`, nothing merged); the lock is released."
 # source: references/patrol-scan.md — the in-flight row's fidelity-audit clause
 # source: commands/patrol.md § The fidelity-audit action
-# source: commands/next-stage.md B5b — the fidelity-dispatch procedure
+# source: commands/next-stage.md B2.7 — the fidelity-dispatch procedure
 # source: references/fidelity-brief.md § Findings — the summary is the last write
 import json
 import os
@@ -116,9 +117,9 @@ c.expect("fidelity-brief.md § Findings (the record is the last write)",
 
 # ---- nothing else: no integrate, no commit, lock released ----------------------
 c.expect("patrol.md § fidelity-audit (nothing else of B5b, no integrate)",
-         "no in-user-review; nothing merged into remote spec/5",
+         "no in-user-review; qa/5 not merged into remote spec/5 (feat/5 landed there "
+         "before QA started — the 2.0 shape)",
          lambda: not r.has_label("5", "status: in-user-review")
-             and not r.remote_is_ancestor("feat/5", "spec/5")
              and not r.remote_is_ancestor("qa/5", "spec/5"))
 c.expect("patrol.md § fidelity-audit 4 (the lock)", "status labels cleared at the end",
          r.status_labels("5") == [])

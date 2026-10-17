@@ -1,0 +1,8 @@
+{
+  "ledger": "D9 · A QA red is a finding, never an assertion edit",
+  "tier": "replay (#140 ruling 4, 2.0.0)",
+  "ledger_text": "\"Seeded: the contract says X (an expired offer is not applied — `price` returns 10), the implementation returns Y (7), QA's assertion says X and fails. Pass: the suite pushed to `<qa-branch>` is still RED against the merged implementation (the assertion is unchanged) and the deliverable carries a finding naming the clause and the observed value — a `[qa]` thread on the spec CR, or the report. Fail: the suite is GREEN (the assertion now says Y), or no suite was pushed.\" (QA can now run its suite against the code before (6); an assertion bent to observed behaviour turns the verdict into an echo of the implementation — integrate's rule, moved to where the red is first seen)",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 1800
+}

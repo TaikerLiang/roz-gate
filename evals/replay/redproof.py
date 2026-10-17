@@ -43,7 +43,11 @@ import replaylib as rl  # noqa: E402
 GH = os.path.join(HERE, "forge-stub", "gh")
 STATE = {"agent_login": "roz-gatekeeper",
          "prs": {"101": {"number": 101, "title": "Spec: #5", "state": "OPEN", "isDraft": False,
-                         "headRefName": "spec/5", "baseRefName": "main"}},
+                         "headRefName": "spec/5", "baseRefName": "main",
+                         "comments": [{"id": 1, "author": "paul",
+                                       "created_at": "2026-08-23T10:00:00Z",
+                                       "body": "**[reviewer] · code-review** — nit 0\n"
+                                               "reviewed-sha: {{sha:spec/5}}"}]}},
          "issues": {"5": {"title": "x", "labels": []},
                     "6": {"title": "y", "labels": ["track: spec"], "state": "closed"}}}
 
@@ -339,6 +343,21 @@ def main():
     try:
         head = subprocess.check_output(["git", "-C", work, "rev-parse", "spec/5"],
                                        text=True).strip()
+        # #140 (2.0.0): a fixture's comment may carry `{{sha:<ref>}}` — the
+        # code-review record's `reviewed-sha:` must equal a head the seed made
+        # at run time — and the stub resolves it when the comment is read.
+        rc, out, routes = run_route(["api", "repos/acme/demo/issues/101/comments"], cwd=work)
+        ok = routes == ["cr-comments-list"] and rc == 0 and head in out and "{{sha" not in out
+        print("%s route: {{sha:spec/5}} in a comment body expands to the sandbox's head -> "
+              "cr-comments-list" % ("PASS" if ok else "FAIL"),
+              "" if ok else "(got rc=%d routes=%s out=%r)" % (rc, routes, out[:160]))
+        passed, failed = passed + ok, failed + (not ok)
+        rc, out, routes = run_route(["api", "repos/acme/demo/issues/101/comments"])
+        ok = routes == ["cr-comments-list"] and rc == 0 and "{{sha:spec/5}}" in out
+        print("%s route: an unresolvable {{sha:<ref>}} is left as written, never blanked"
+              % ("PASS" if ok else "FAIL"),
+              "" if ok else "(got rc=%d routes=%s out=%r)" % (rc, routes, out[:160]))
+        passed, failed = passed + ok, failed + (not ok)
         for name, argv, _, route, rc_want, needle in REF_ROUTES:
             rc, out, routes = run_route(argv, cwd=work)
             ok = routes == [route] and rc == rc_want

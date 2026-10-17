@@ -193,12 +193,27 @@ depends on where the issue is — decided by CR-FIND for `<feat-branch>` /
   Then report that #<n> is fully answered and ready for the user's approval
   to move to implementation. Do NOT touch the gate — applying `ready-for-dev`
   is the user's.
-- **Mid-flight re-entry** — open `<feat-branch>` / `<qa-branch>` CRs exist (the thread
-  was a contract ambiguity raised during (3)+(4)): LABEL-REMOVE both
+- **Mid-flight re-entry** — an open `<feat-branch>` or `<qa-branch>` CR exists
+  (the thread was a contract ambiguity raised during (3) or (4), or one of
+  QA's `[qa]` contract-review findings — since 2.0.0 the implementation CR
+  is normally already merged when QA's threads open): LABEL-REMOVE both
   `status: in-spec-review` and `status: processing`, then re-dispatch the
-  paused side (normally `qa`) with the amended contract so it resumes. When
-  `qa` reports its suite complete, CR-READY its CR — until then it stays
-  draft. Report the amendment and what resumed.
+  paused side (normally `qa`) with the amended contract so it resumes. The
+  fold landed on `<spec-branch>` (step 6); `<qa-branch>` still carries the
+  pre-amendment contract, so **bring the amended tip into the QA worktree
+  first**: `git fetch`, then
+  `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<qa-branch> <qa-branch>`
+  (a refusal — the branch is checked out elsewhere — is the STOP exit) and,
+  in that worktree, `git merge --no-edit origin/<spec-branch>` (a conflict is
+  the STOP exit, naming the files). Dispatch `qa` **into that worktree**
+  under the QA dispatch procedure (`next-stage.md` B2.4: marker on with
+  `seat=qa`, `feat=` and the `read=` lines, the QA brief, marker off); commit
+  what it changed through the **commit** sub-agent and push `<qa-branch>`
+  from the returned `sha`; then `git worktree remove --force` that worktree
+  and `git worktree prune`. When
+  `qa` reports its suite complete **and no `[qa]` thread is still open**,
+  CR-READY its CR — until then it stays draft. Report the amendment and
+  what resumed.
 - **Post-integration re-entry** — `<feat-branch>` / `<qa-branch>` exist but are
   **merged** (the issue came back from (7): the user's review raised something
   that changed what a rule means). The work is built, so this never returns to
@@ -237,7 +252,8 @@ then `git worktree prune`.
 ## 8. The STOP exit
 On anything this command cannot or should not decide — a fold that keeps
 failing, a rejected push, an impossible state: follow the STOP protocol.
-`git worktree remove --force` the `<spec-branch>` worktree **if this run created
+`git worktree remove --force` the `<spec-branch>` worktree — and the
+`<qa-branch>` worktree of a mid-flight re-entry — **if this run created
 it** (the uncommitted spec edits live nowhere else; the user's checkout was
 never touched — and a refused `worktree add` means the worktree is another
 run's, so remove nothing), replace the issue's status

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# D4 sandbox: the pre-integration shape (F4's), but the verdict is RED and
+# D4 sandbox: the pre-integration shape (F4's, in its 2.0 form: feat/5
+# merged into spec/5 before qa/5 is cut), but the verdict is RED and
 # the QA suite is the party at fault. spec/5 states the boundary (S2: an
 # offer expiring exactly at `now` still applies); feat/5 implements it;
 # qa/5's S2 test asserts the opposite. The implementation is right and the
@@ -86,6 +87,9 @@ EOF
 git add -A && git -c user.email=paul@example.com -c user.name=paul commit -qm "impl #5"
 
 git checkout -q spec/5
+# 2.0.0 (#140): the implementation lands on the spec branch BEFORE qa/<n>
+# is cut — the QA branch carries the code; the hook is the blindness.
+git merge -q --no-edit feat/5
 git checkout -qb qa/5
 mkdir -p tests/acceptance/offers
 cat > tests/acceptance/offers/test_expiry.py <<'EOF'

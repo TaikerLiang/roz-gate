@@ -1,4 +1,4 @@
-"""D2 · the fidelity dispatch is blind by topology           (defect: 1.15.0-)
+"""D2 · the fidelity dispatch is blind by the hook, not topology  (defect: 1.15.0-; 2.0.0, #140)
 First opus baseline, 4/5: one QA child ran `cat src/app.txt` under the
 fidelity dispatch — the prose "Do NOT read src/" was the only guard and a
 GREEN looks identical either way. Teeth since 1.16.0: guard-blind rule E,

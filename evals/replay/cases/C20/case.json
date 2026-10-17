@@ -1,0 +1,8 @@
+{
+  "ledger": "C20 · (4) launches only after the implementation lands on the spec branch",
+  "tier": "lint + replay (#140, 2.0.0)",
+  "ledger_text": "\"`ready-for-dev` launches (3)+(5); next-stage B2 merges the review-clean implementation CR into `<spec-branch>`, pushes, then cuts `<qa-branch>` off the new tip; the QA dispatch runs between marker-on (`seat=qa`) and marker-off, once; a draft QA CR targets `<spec-branch>`; no gate label is involved; nothing is pushed to `<feat-branch>`.\" (the parallel launch retires: QA wrote its suite against the contract as drafted and met the contract as built only at (6) — #140)",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 1800
+}

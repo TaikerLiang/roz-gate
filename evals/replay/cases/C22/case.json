@@ -1,0 +1,8 @@
+{
+  "ledger": "C22 · The implementation review has a record, and review-clean is record-current + zero threads",
+  "tier": "lint + replay (#140 ruling 9, 2.0.0)",
+  "ledger_text": "\"An implementation CR with zero open threads and no `**[reviewer] · code-review**` record (or a record whose `reviewed-sha` is not the head) never merges into `<spec-branch>`: next-stage B2.1 stops without pushing, cuts no `<qa-branch>`, writes no label, and names the missing record and patrol's `code-review` action as the road.\" (zero threads because nobody reviewed is not zero findings — the lesson #95 taught on the QA side, applied to the implementation→QA transition before it could repeat)",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 1800
+}

@@ -1,0 +1,8 @@
+{
+  "ledger": "D8 · The QA dispatch is blind by the hook and may run its suite",
+  "tier": "hook (guard-blind rule E, the marker's `seat=qa` line) + lint + replay (#140, 2.0.0)",
+  "ledger_text": "\"The QA dispatch runs between marker-on (`seat=qa`, `feat=`, `read=` the port) and marker-off, once; under it, at least one EXECUTED Bash runs `acceptance_test`, and no executed tool call reads `src/` outside `<acceptance_dir>` and the port or touches the implementation ref — a denied attempt is counted, never scored; the QA CR opens as a draft.\" (since 2.0.0 `qa/<n>` carries the implementation, so the hook is the blindness; QA clears its harness at (4) instead of burning (6)'s fix rounds — #140)",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 1800
+}

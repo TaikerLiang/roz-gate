@@ -1,0 +1,8 @@
+{
+  "ledger": "E9 · QA's contract review reaches the holder as `[qa]` spec-CR threads",
+  "tier": "lint + replay (#140 ruling 3, 2.0.0)",
+  "ledger_text": "\"QA's finding batch is posted by the main agent as `**[qa] · Q<k> · <label>**` threads on the spec CR (rule F bullets), `in-spec-review` applied, the item appended to `spec.md`'s Open Questions; the QA CR opens and stays a draft; spec-answers' mid-flight re-entry resumes qa.\" (a contradiction between the as-built contract and a spec rule, found by QA's first step, is a question for the holder — never interpreted into a test, never left in QA's report where no gate reads it)",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 1800
+}

@@ -21,8 +21,8 @@ stays in the loop at every transition.
 | **main agent** | proxy + accountable for all output; intake: dispatches `product` under the intake brief, relays its questions verbatim, publishes the confirmed story; orchestration, git/forge mechanics, integration; **hosts the (7) review conversation** — answering by quotation, dispatching for judgment; decides the next step; implements `track: fast` changes itself | act as a specialist on any clarification or `track: spec` work (it dispatches) |
 | **product** | actors, scenarios (Given/When/Then: happy/edge/failure), consistency, user-facing gaps | architecture, code, impl tests |
 | **em** | problem statement, success metrics, architecture / domain boundaries, business rules, out-of-scope; resolves conflicts; owns `spec.md` | code, deep implementation |
-| **implementer** | `technical-spec.md` (the contract); implementation code + **unit** tests; the QA test **port** for non-API features | spec scenarios, black-box tests, reviewing its own code |
-| **qa** | black-box acceptance tests from `spec.md`'s scenarios + the contract **only — never the implementation**; `test-spec.md`; the integration verdict — reports **only to the main agent** | reading the implementation, unit tests, architecture |
+| **implementer** | `technical-spec.md` (the contract) — and its **as-built** corrections on `<feat-branch>`, each declared under the implementation CR's `## Contract deviations`; implementation code + **unit** tests; the QA test **port** for non-API features, **including the Given-state control points** (§5) every scenario's setup needs | spec scenarios, black-box tests, reviewing its own code |
+| **qa** | a **contract review** of `spec.md` + the as-built `technical-spec.md` first — findings as one batch, posted by the main agent as `[qa]` threads on the spec CR; black-box acceptance tests from `spec.md`'s scenarios + the contract **only — never the implementation**; **runs its suite** at (4) — a red is a harness issue it fixes or a finding it reports, **never an assertion edited to observed behaviour**; `test-spec.md`; the integration verdict — reports **only to the main agent** | reading the implementation, unit tests, architecture, the persistence layer (Given-state goes through the port's control points) |
 | **reviewer** | independent review of the **implementation code** (correctness / security / performance / maintainability); **fidelity audit of the QA suite** (assertions vs scenarios — cited evidence, never a verdict); severity-graded inline comments | architecture (em's), re-testing behaviour (qa's), writing code; **reading the implementation when auditing QA's tests** (separate blind dispatch) |
 
 **Seats and personas.** The role names above are fixed **seats** — the
@@ -41,8 +41,8 @@ linking. Personas block missing (pre-1.2 project) → plugin defaults
 
 The first two stages differ by binding force: (1) drafts the **MOU** — intent
 and boundary, no implementation terms — and (2) signs the **contract**
-(`technical-spec.md`), whose enforcement is blind QA (4) plus the integration
-verdict (6). `track: fast` deals close on the MOU alone.
+(`technical-spec.md`), whose enforcement is blind QA (4) — run against the
+contract as built — plus the integration verdict (6). `track: fast` deals close on the MOU alone.
 
 **(1) Intake** — `/roz-gate:to-issues` (or the inbox, (1b)). The `product`
 agent, dispatched under the **intake brief** (one self-contained question at a
@@ -135,27 +135,59 @@ command deletes a branch. (iii) The issue is **a different story** → strip
 its `track:`/`status:` labels and it returns to the inbox, exactly as from
 (7) below.
 
-**(3) Implementation + (4) Validation — launch together**, gated by
-`status: ready-for-dev`. Independent siblings, both branched off `spec/{n}`,
-both CRs targeting the spec CR:
-- **(3)** `implementer` on `feat/{n}` → implementation code + **unit** tests.
-- **(4)** `qa` on `qa/{n}` → `test-spec.md` + black-box tests in
-  `<acceptance_dir>/<feature>/`. The qa branch carries **no implementation
-  code** — that structurally enforces the black box: QA tests the **contract**
-  (or a provided port), never the raw implementation. Tests are a **living
+**(3) Implementation — then (4) Validation**, gated by `status: ready-for-dev`.
+Since 2.0.0 the two stages are **sequential**: QA starts after the
+implementation has landed on `spec/{n}`, so it reviews and tests the
+contract **as built**, not the contract as drafted (#140 — the contract is
+corrected during implementation; a suite written against the draft meets the
+real thing only at (6), and the time saved by starting early was spent there).
+- **(3)** `implementer` on `feat/{n}`, cut off `spec/{n}` → implementation
+  code + **unit** tests + the test port with its Given-state control points
+  (§5). It **corrects `technical-spec.md` as it builds** — on `feat/{n}`, in
+  the same CR as the code — and declares every changed clause under the
+  implementation CR's `## Contract deviations` section (`G<k>` / `C<k>` / a
+  §5 row: what changed and why; the single line `none` when nothing did).
+  A deviation that changes what a **rule** (`R<k>`) means is a contract
+  ambiguity and takes the backward transition below, never a silent edit.
+  **(5)** reviews that CR — the as-built contract diff and the deviations
+  attached — and leaves its record (below). **The implementation lands:**
+  once the CR is review-clean, `next-stage` merges it into `spec/{n}` (a
+  local merge in a worktree, pushed — the forge marks the CR merged; a
+  conflict is a STOP) and launches (4) off the new tip. No gate label sits
+  here: your next gate is still (7).
+- **(4)** `qa` on `qa/{n}`, cut off `spec/{n}` **after the merge** — the
+  branch now carries the implementation, so blindness is the hook's, not
+  the topology's: the dispatch runs under guard-blind rule E (the same
+  marker as the fidelity dispatch, `seat=qa`), which denies every read of
+  `src/` outside `<acceptance_dir>` and the declared test port and every
+  git action on the implementation branch. QA's first step is a **contract
+  review** — `spec.md`, the as-built `technical-spec.md`, the deviations —
+  returned as one batch; the main agent posts them as `[qa]` threads on
+  the spec CR and applies `in-spec-review` (the (2a) machinery folds the
+  answers); QA continues with the unaffected scenarios. Then
+  `test-spec.md` + black-box tests in `<acceptance_dir>/<feature>/`, written
+  through the **port only** (for an HTTP feature the port is the API itself;
+  otherwise the documented port, process-level where the feature is),
+  never through the persistence layer or an implementation import beyond
+  the port's declared types; no unit tests. QA **runs its suite** in its
+  worktree (`acceptance_test`) and gets the harness green there — a red has
+  exactly two dispositions: a **harness issue** QA fixes, or an **assertion
+  that disagrees with observed behaviour**, which is a finding (a `[qa]`
+  thread) and **never an assertion edit**. Tests are a **living
   suite** — maintained and evolving, never write-once per-issue snapshots.
   Suite layout is the project's call, like its test runner: optional config
   `acceptance_layout` declares it (absent → feature-organized, the
   default). `test-spec.md`'s scenario→test map is derived from
   machine-readable trace markers in the test source (config
   `trace_marker`), never hand-maintained. The QA CR opens as a
-  **draft** and is marked ready only when the suite is complete —
-  ready-not-draft is the completeness signal integration waits for.
+  **draft** and is marked ready only when the suite is complete **and no
+  `[qa]` thread is open** — ready-not-draft is the completeness signal
+  integration waits for. The seat's contract is `references/qa-brief.md`.
 - **(5q)** `reviewer`, in a separate implementation-blind dispatch on
-  `qa/{n}` (the branch topology enforces the blindness, and since 1.16.0
-  guard-blind rule E enforces it at the tool layer while the dispatch's
-  marker exists — no read of `src/` outside the suite and the declared
-  test port, no touch of `feat/{n}`), audits the QA
+  `qa/{n}` (guard-blind rule E enforces the blindness at the tool layer
+  while the dispatch's marker exists — no read of `src/` outside the suite and the declared
+  test port, no touch of `feat/{n}`; the topology no longer protects, since
+  2.0.0 the branch carries the code), audits the QA
   suite's fidelity to the spec — the suite the verdict is computed from
   is otherwise the loop's only unaudited artifact. Findings are two-way
   cited threads on the QA CR, and its summary comment — `**[reviewer] · fidelity**`
@@ -164,7 +196,9 @@ both CRs targeting the spec CR:
 
 If **QA or the implementer** hits a contract ambiguity mid-flight, it stops
 and reports to the main agent — it never interprets, and it never decides
-unilaterally in code. The main agent distills the question and its
+unilaterally in code (an implementer's as-built correction of a `G`/`C`
+clause is declared, not decided; a correction that would move an `R` is this
+ambiguity). The main agent distills the question and its
 recommendation into an inline thread on the still-open spec CR; the affected
 work pauses and the issue re-enters `status: in-spec-review` (the backward
 transition). The decision folds in through (2a)'s machinery; the label clears
@@ -173,16 +207,34 @@ ambiguity takes the same route through the main agent — never settled on the
 implementation CR, where the contract stays unamended and QA keeps testing
 the old text.
 
-**(5) Code review** — on the implementation CR. `reviewer` posts
-severity-graded inline comments (`blocking` / `should-fix` / `nit` /
-`question`); `implementer` addresses them; loop until **all review threads
-resolved**.
+**(5) Code review** — on the implementation CR. `reviewer` receives the
+spec docs, the approved→as-built contract diff and the CR's `## Contract
+deviations`, posts severity-graded inline comments (`blocking` /
+`should-fix` / `nit` / `question`), and ends with **one top-level comment**
+`**[reviewer] · code-review**` carrying `reviewed-sha: <CR head SHA>` and the
+finding count by severity — posted **even with zero findings**: that comment
+is the **record that the review ran**. `implementer` addresses the threads;
+the reviewer's re-check resolves what satisfies it and, on the last resolve,
+re-stamps the record's `reviewed-sha` to the head it re-checked. **Review-clean**
+means exactly three things, defined here and read everywhere else: the
+record is present **and** its `reviewed-sha` equals the CR head **and** zero
+review threads are open. Zero threads alone is not review-clean — zero
+because nobody reviewed is not zero findings (#95's lesson, which the fidelity
+record closed on the QA side; the code-review record closes it on this side,
+ruling 9 of #140). A head that moved past `reviewed-sha` without a re-check
+is a **stale** record, not a clean CR; patrol's `code-review` action runs the
+review that never ran, or re-runs a stale one. The same record is posted on
+the fast track's CR, and read before its hand-off.
 
-**(6) Integration = the verdict.** Once the implementation CR is review-clean
-and the QA CR is ready, the main agent merges **both** into `spec/{n}` and runs
-QA's black-box tests against the implementation **for the first time**.
+**(6) Integration = the verdict.** Once the QA CR is ready and audited (the
+implementation is already in `spec/{n}` since (4) started), the main agent
+merges `qa/{n}` into `spec/{n}` and runs QA's black-box suite against the
+implementation as **the recorded run** — QA ran it in its own worktree at
+(4), this is the one the verdict and the evidence cards are computed from.
 Pass/fail is the verdict on whether the implementation matches the spec — this
-is where genuine bugs surface. Once both CRs are merged, a later run
+is where genuine bugs surface (a harness red here is rare now, and the report
+says it reached (6)). Integrate merges what is open and never what is merged,
+so a pre-2.0 issue with both CRs still open integrates as it always did. Once both CRs are merged, a later run
 **validates the current `spec/{n}` tip and merges nothing** — the spec branch
 is the integration source of truth from that moment, never reconstructed from
 stale `feat/{n}` / `qa/{n}` tips; it moves legitimately without either branch
@@ -293,7 +345,8 @@ Skips (2), (2a), (4) and (6). Picked up from `status: ready-for-dev`:
   `blocked` (an automated step stopped on something it won't decide and left an
   issue comment with evidence + recommendation; you decide, the label clears,
   the step re-runs). No `status:` label = in flight (the open CRs are the
-  state) or done.
+  state — two shapes since 2.0.0: the implementation CR open, or the
+  implementation merged into `spec/{n}` and the QA CR open) or done.
 - `fast`+`ready-for-spec` is **illegal**. Commands validate these invariants
   before acting and stop to report a violation; they never repair labels.
 - On GitLab, `track::`/`status::` are scoped labels (the platform enforces the
@@ -325,8 +378,9 @@ refusal is the mutex between two commands running at once, and it is a STOP
 that removes nothing — the worktree is the other run's — never a reason to
 work in the checkout. A command removes only the worktrees it created. Patrol itself touches no git at all —
 its scan is forge calls. The one piece of command state outside a worktree
-is rule E's fidelity-dispatch marker, which lives in the *common* git dir
-the checkout and its worktrees share (`hooks/README.md`). **An agent never
+is rule E's dispatch marker — on for the fidelity dispatch and for the QA
+dispatch alike — which lives in the *common* git dir the checkout and its
+worktrees share (`hooks/README.md`). **An agent never
 deletes or force-pushes a remote branch**: every remote write a command
 makes is additive — a new branch, a commit on its own branch, a label, a
 comment. Removing a branch is the human's act, like a gate label.
@@ -345,7 +399,8 @@ a status report. Neither ever moves the other's.**
 | gate → `processing` → next state | the running command |
 | (2) complete → `in-spec-review` | the spec stage |
 | `in-spec-review` → `ready-for-dev` (all threads resolved) | **you** |
-| in flight → `in-spec-review` (backward; QA ambiguity) | main agent |
+| in flight → `in-spec-review` (backward; QA ambiguity, or QA's contract-review findings) | main agent |
+| review-clean implementation CR → merged into `spec/{n}`, (4) launched | `next-stage` (patrol's `next-stage (qa)` row) — no gate label |
 | `in-user-review` → `in-spec-review` (backward; a (7) comment changes what a rule means) | main agent |
 | → `in-user-review` (both tracks; and back from (2a) after a (7) amendment) | main agent |
 | (7) → the inbox (`track:` + `status:` stripped — start over) | **you** |
@@ -414,10 +469,18 @@ reply, which is exactly what `blocked` would have bought.
   importing internals — control points to drive the behaviour (e.g.
   `advance_clock(minutes)`, `run_expiry_sweep()`) and observation points to
   read its externally observable outcomes (e.g. `get_offer_state(id)`). It is
-  **specified in `technical-spec.md` at stage (2)** — that is what lets QA
-  write its suite in parallel with the build — and implemented by the
+  **specified in `technical-spec.md` at stage (2)** — so the human signs the
+  front door before anything is built — and implemented by the
   implementer at stage (3) with the same obligations as a public API: stable,
-  documented, behaviour-only. Its location is one fixed line of
+  documented, behaviour-only. **Given-state is part of the port**: §5 lists
+  the seed/setup control points every Given clause needs, the implementer
+  implements them, and QA calls them — it never persists entities or touches
+  the persistence layer directly; a Given with no control point is a
+  contract defect QA reports, never works around (#140 — four integration
+  rounds in one adopter were QA seeding a schema it was blind to). For an
+  HTTP feature the port is the API itself; for anything else it is the
+  documented port, which may be process-level — "the port is the API" never
+  becomes "the port is always HTTP". Its location is one fixed line of
   `technical-spec.md` — `**Test port** — <path>[, <path>]`, or `**Test
   port** — none` for an API contract — the line Path B requires and the
   fidelity dispatch's marker copies as `read=` lines, so the blind reviewer
@@ -429,11 +492,19 @@ reply, which is exactly what `blocked` would have bought.
   QA reports it, never works around it or silently downgrades the scenario
   to uncovered. (In hexagonal-architecture terms: a driving port whose actor
   is the acceptance suite.)
-- **The verdict lives at integration, by design.** (3) and (4) run in parallel
-  and never see each other; that independence is what makes the verdict honest.
+- **The verdict lives at integration, by design.** Since 2.0.0 (4) starts
+  after (3) has landed, and the verdict stays honest for three reasons that
+  do not depend on timing: QA never reads the implementation (guard-blind
+  rule E, on for its dispatch), never edits an assertion to match what it
+  observed (a red is a harness fix or a finding — audited at (5q), where
+  every expected literal must have an origin in spec or contract text), and
+  the recorded run is (6)'s under the hand-back rule. **QA's level is
+  pinned**: through the port only, in `<acceptance_dir>` under the project's
+  `acceptance_layout`, no unit tests, no implementation imports beyond the
+  port's declared types.
 - **Tooling:** `/roz-gate:to-issues` (1, 1a — dispatches `product` under the
-  intake brief); `/roz-gate:next-stage` (2, 3+4+5, or
-  fast — routed by labels, printing the workflow map first);
+  intake brief); `/roz-gate:next-stage` (2; 3+5; 4+5q once the implementation has landed;
+  or fast — routed by labels and CR state, printing the workflow map first);
   `/roz-gate:spec-answers` (2a); `/roz-gate:integrate` (6);
   `/roz-gate:review-answers` (7 — one turn of your review conversation);
   `/roz-gate:tip` (what #n needs next — read-only);

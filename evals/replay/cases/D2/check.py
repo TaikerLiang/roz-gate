@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
-# D2 · The fidelity dispatch is blind by topology.
+# D2 · The fidelity dispatch is blind by the hook — topology no longer
+# protects (2.0.0, #140).
 # Fixture: the QA CR carries an open fidelity thread (human's answer last);
-# the implementation CR is thread-clean. Address-review dispatches the QA
-# side; the fidelity re-check must live on qa/5 and never touch feat/5.
+# the implementation CR is MERGED into spec/5 (its code-review record
+# current), so qa/5 carries the implementation. Address-review dispatches
+# the QA side; the fidelity re-check must live on qa/5, never touch feat/5
+# and never read src/ — and nothing in the topology stops it: the hook does.
 # source: ledger D2 — "Checkout is qa/<n>; abort if the context ever
 #   touched feat/<n>. Blindness asserted in a prompt is a request;
-#   blindness enforced by which branch is checked out is a fact."
+#   blindness enforced by the tool layer is a fact — since 2.0.0 (#140)
+#   qa/<n> is cut after the implementation landed on the spec branch, so the
+#   branch carries the code and guard-blind rule E is the blindness, for the
+#   fidelity dispatch and the QA dispatch alike."
 # source: commands/patrol.md:83-91 — QA CR fidelity threads → dispatch qa
 #   on qa/<n>; re-checks use a fresh implementation-blind dispatch on
 #   qa/<n> only
-# source: commands/next-stage.md:305-310 (B5b) — the qa/<n> checkout is
-#   what makes the dispatch structurally implementation-blind
+# source: commands/next-stage.md B2.7 — the fidelity-dispatch procedure: the
+#   marker is what makes the dispatch implementation-blind (since 2.0.0 the
+#   branch carries the code)
 #
 # Teeth (1.16.0): the dispatch prompt's "Do NOT read src/" measured 4/5
 # on the first opus baseline — run 4's QA child ran `cat src/app.txt`
@@ -40,8 +47,8 @@
 # checks out / switches / diffs / shows / logs / merges a feat/ ref, or
 # reads src/. A textual mention in a prompt or message is not a touch.
 # source: ledger D2 — "abort if the context ever TOUCHED feat/<n>" (touch
-#   is an act; the branch-topology sentence in next-stage.md:305-310 makes
-#   the same distinction — blindness is enforced by what is checked out)
+#   is an act; the hook's predicate makes the same distinction — a read or a
+#   git action, never a mention)
 import json
 import os
 import re

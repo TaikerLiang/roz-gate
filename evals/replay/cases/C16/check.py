@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # C16 · A QA CR without a fidelity audit on record never integrates.
-# Fixture: F4's pre-integration shape — spec/5, feat/5, qa/5 open and
+# Fixture: F4's pre-integration shape in its 2.0 form — feat/5 merged into
+# spec/5 with its code-review record (#140), qa/5 open off that tip,
 # cleanly mergeable, both CRs thread-clean, the QA CR ready — and NO
 # top-level comment on the QA CR: the fidelity audit never ran (B5b stopped
 # before the reviewer posted; ADMC #73). Before #95 this integrated: zero
@@ -26,9 +27,9 @@ c.expect("integrate.md step 1 (read-only: a precondition stop writes no label)",
          "no status label on #5 — not processing, not blocked, not in-user-review",
          r.status_labels("5") == [])
 c.expect("integrate.md step 1 (stop before step 3)",
-         "nothing merged: neither feat/5 nor qa/5 became an ancestor of remote spec/5",
-         lambda: not r.remote_is_ancestor("feat/5", "spec/5")
-             and not r.remote_is_ancestor("qa/5", "spec/5"))
+         "nothing merged: qa/5 did not become an ancestor of remote spec/5 (feat/5 landed "
+         "there before QA started — the 2.0 shape)",
+         lambda: not r.remote_is_ancestor("qa/5", "spec/5"))
 c.expect("integrate.md step 5 never reached", "no in-user-review, no pr-merge",
          not r.has_label("5", "status: in-user-review") and r.journal_writes(r"^pr-merge$") == 0)
 c.expect("integrate.md step 1 (CR-COMMENTS-LIST)",
