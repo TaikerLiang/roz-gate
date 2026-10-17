@@ -15,8 +15,8 @@ pipeline stops at explicit gates and cannot cross them without you.
 Works with **GitHub (`gh`) and GitLab (`glab`)**, gitlab.com or self-hosted.
 
 ```
-(1) intake → (2) spec → (2a) Q&A → (3)(4) impl ∥ QA → (5) review → (6) verdict → (7) merge
-      ▲gate            ▲gate                                                    ▲gate
+(1) intake → (2) spec → (2a) Q&A → (3) impl → (5) review → (4) QA → (5q) → (6) verdict → (7) merge
+      ▲gate                   ▲gate                                                          ▲gate
 ```
 
 ## Why
@@ -25,9 +25,10 @@ A single AI assistant asked to "build and test the feature" grades its own
 homework: its misunderstandings flow into the code *and* the tests, so green
 proves nothing. Roz Gate splits the work across agents with strict
 information walls — the QA agent **never sees the implementation**; it writes
-black-box tests from the spec and a technical contract only, and the two sides
-meet for the first time at an **integration verdict**. Disagreements surface as
-real test failures before merge, not in production. Every open question an
+black-box tests from the spec and the contract as built, runs them against code
+it cannot read, and that suite is what the **integration verdict** is computed
+from. Disagreements surface as real test failures before merge, not in
+production. Every open question an
 agent hits stops the line and comes to you as a written, answerable thread —
 agents are forbidden to guess.
 
