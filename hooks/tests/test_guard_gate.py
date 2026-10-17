@@ -759,6 +759,20 @@ class RuleH_CrOpenDeclaresDeviations(HookTest):
                 self.assertDenied(self.bash(cmd, repo), says)
         with self.case("rule H: judged from a subdirectory"):
             self.assertDenied(self.bash(self.CR % "Closes #5", repo / "sub"), "Contract deviations")
+        # gh's default base (codex review, PR #143): branch.<head>.gh-merge-base
+        # before the repository default branch.
+        self.git(repo, "config", "branch.feat/5.gh-merge-base", "spec/5")
+        with self.case("rule H: no --base — the head's gh-merge-base is the base — denied"):
+            self.assertDenied(self.bash(
+                'gh pr create --title t --body "Closes #5"', repo), "Contract deviations")
+        with self.case("rule H: no --base, --head given — that branch's gh-merge-base — denied"):
+            self.assertDenied(self.bash(
+                'gh pr create --head feat/5 --title t --body "Closes #5"', repo / "sub"),
+                "Contract deviations")
+        with self.case("rule H: no --base, no gh-merge-base, no origin/HEAD — fails closed"):
+            self.git(repo, "config", "--unset", "branch.feat/5.gh-merge-base")
+            self.assertDenied(self.bash(
+                'gh pr create --title t --body "Closes #5"', repo), "could not be computed")
         nosec = self.tmp / "body-nosec.md"
         nosec.write_text("Closes #5\n")
         with self.case("rule H: --body-file read back without the section — denied"):
@@ -806,6 +820,16 @@ class RuleH_CrOpenDeclaresDeviations(HookTest):
         with self.case("rule H: -F file with the section — allowed"):
             self.assertAllowed(self.bash(
                 "gh pr create --base spec/5 --head feat/5 --title t -F %s" % good, repo))
+        self.git(repo, "config", "branch.feat/5.gh-merge-base", "spec/5")
+        with self.case("rule H: no --base, the head's gh-merge-base, with the section — allowed"):
+            self.assertAllowed(self.bash(
+                'gh pr create --title t --body "Closes #5\n\n%s"' % DEVIATIONS, repo))
+        with self.case("rule H: --base wins over gh-merge-base (feat/6: no contract change)"):
+            self.git(repo, "config", "branch.feat/6.gh-merge-base", "feat/5")
+            self.assertAllowed(self.bash(
+                'gh pr create --base spec/5 --head feat/6 --title t --body "Closes #6"', repo))
+        self.git(repo, "config", "--unset", "branch.feat/5.gh-merge-base")
+        self.git(repo, "config", "--unset", "branch.feat/6.gh-merge-base")
         # A worktree cut from origin/<spec-branch> may have no local spec/5:
         # the base resolves through its origin/ form (resolve_ref).
         sha = subprocess.run(["git", "-C", str(repo), "rev-parse", "spec/5"],

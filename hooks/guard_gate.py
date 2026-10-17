@@ -56,7 +56,9 @@ pattern. Seven rules, each the mechanical form of existing protocol text:
      base touches ``<specs_dir>/*/technical-spec.md`` must carry a line
      ``## Contract deviations`` in its body (``--body`` / ``--body-file`` /
      ``--description``, a file read back, a heredoc parsed — rule C's
-     shapes). The diff is one ``git diff --name-only <base>...<head>``; a
+     shapes). The diff is one ``git diff --name-only <base>...<head>``; the
+     base is ``--base``, else gh's own default — the head branch's
+     ``gh-merge-base`` config, else the repository default branch; a
      diff that cannot be computed fails CLOSED, and the message says it is
      the diff that failed, not the protocol.
 
@@ -374,6 +376,8 @@ def check_cr_open(cmd, toks):
             return
         base = flag_value(seg, ["--base", "-B"] if gh_pr else ["--target-branch", "-b"])
         head = flag_value(seg, ["--head", "-H"] if gh_pr else ["--source-branch", "-s"])
+        if not base and gh_pr:
+            base = gh_merge_base(top, head)
         base_ref = resolve_ref(top, base) if base else resolve_ref(top, "origin/HEAD")
         head_ref = resolve_ref(top, head) if head else "HEAD"
         if base_ref is None or head_ref is None:
@@ -407,6 +411,20 @@ def flag_value(toks, flags):
             if tok.startswith(flag + "="):
                 return tok.split("=", 1)[1]
     return None
+
+
+def gh_merge_base(top, head):
+    """gh's own default for a `pr create` without `--base`: the head branch's
+    `branch.<head>.gh-merge-base` config (set by `gh pr create` itself, or by
+    a repo whose feature branches target a spec branch), else the repository
+    default branch — `origin/HEAD` here (codex review, PR #143: judging
+    against the default branch alone diffs a different pair than the CR
+    being opened). `head` is the `--head` value, else the current branch."""
+    branch = head or (git_out("-C", top, "rev-parse", "--abbrev-ref", "HEAD") or "").strip()
+    if not branch or branch == "HEAD":
+        return None
+    return (git_out("-C", top, "config", "--get",
+                    "branch.%s.gh-merge-base" % branch) or "").strip() or None
 
 
 def resolve_ref(top, ref):
