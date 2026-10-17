@@ -390,6 +390,13 @@ management under one rule: **you move gate labels — a gate label is an
 authorization; agents and commands move transient labels — a transient label is
 a status report. Neither ever moves the other's.**
 
+The hook holds the reference client to this; a foreign agent it cannot
+reach is held by **detection**: patrol's scanner reads the forge's label
+events (ISSUE-LABEL-EVENTS) for every gate label worn, and one applied by
+a bot identity is an **illegal state** — reported in the pass and the
+queue, never acted on, never repaired. A human's application, holder or
+not, is the authorization.
+
 | Transition | Owner |
 |---|---|
 | `track:` label at intake | `/roz-gate:to-issues` (interactive) or the (1b) proposal comment (async) proposes — **you** confirm either way |
@@ -422,7 +429,8 @@ classification rules; the forge reads stay in the scanner's context, not the
 main agent's) and invokes the right command per that table; it acts on one in-loop issue per pass (closest
 to done) and then triages the **whole inbox** (intake is comment-only, so
 every batch of questions lands in a single pass), treats `processing` as a
-lock, never applies a gate label, and stops to report anything unexpected.
+lock, never applies a gate label — and never acts on one a bot identity
+applied — and stops to report anything unexpected.
 
 **Command lifecycle & the STOP protocol.** Every state-mutating command takes
 the `processing` lock on entry and leaves through exactly one of two exits.

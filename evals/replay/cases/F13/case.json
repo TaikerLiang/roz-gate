@@ -1,0 +1,8 @@
+{
+  "ledger": "F13 · A bot-applied gate label dispatches nothing",
+  "tier": "replay (#144)",
+  "ledger_text": "\"Both bot-labelled issues are `illegal:` rows with `needs you: yes` and queue items with links; the journal shows the label-events read for each and no write on either — no lock, no finalize, no CR; their labels are as seeded.\" (the gate label the hook cannot stop: a foreign bot's `labeled` event is the only evidence, and every earlier fixture had no actor at all)",
+  "prompt": "/roz-gate:patrol",
+  "k": 5,
+  "timeout": 1500
+}

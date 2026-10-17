@@ -193,7 +193,9 @@ cannot authorize it.
 Run `/roz-gate:patrol` manually as a "what's next" button, or schedule it
 (e.g. every 30 minutes) for an unattended loop — it acts on one in-loop issue
 per pass but triages the whole inbox every pass, treats the `processing` label
-as a lock, and never applies a gate label.
+as a lock, never applies a gate label, and reports one a bot identity applied
+(the scanner audits the forge's label events) as an illegal state it never
+acts on.
 
 ## The inbox: filing ideas from your phone
 
