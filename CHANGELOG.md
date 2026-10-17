@@ -2,6 +2,32 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v1.40.0 — the fidelity dispatch reads the test port the marker names (#125); one lint case per file, the version moves only in the release PR (#131) — 2026-10-17
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v1.40.0>
+
+**Runtime change: the fidelity dispatch may read the test port.** Rule E exempts the paths the dispatch marker's `read=` lines name, copied from `technical-spec.md`'s new `**Test port** — <path>` line; Path B refuses to start without that line (`none` for an API contract). Everything else in this release is tooling for this repo.
+
+### Behavior
+- **The test port is declared on one line and readable under the blind dispatch** (#125): `technical-spec.md` carries `**Test port** — <path>[, <path>]` or `**Test port** — none`; the dispatcher writes `read=<path>` into the marker and names the paths in the dispatch text; the reviewer reads the port it audits against and nothing else under `src/`. A spec written before the line existed stops at Path B until it gains one.
+
+### Evals
+- **D7** (hook + lint + replay; lint 37 → 38, replay 37 → 38): the marker carries the port, the dispatch reads it, nothing else. Baseline: Paul's call.
+
+### Hooks
+- **guard-blind rule E**: a tool path or Bash operand under a `read=` path is exempt exactly as the suite is — resolved under every tree but the implementation's, a climb out still denied; the deny message names the port.
+
+### Tooling
+- **One file per lint case** (#131): `evals/lint/cases/<id>.py`, the kit in `evals/lib/lintkit.py`; `run_lint.py` discovers and runs them in ID order — same output, same checks (614 after D7).
+- **`evals/LEDGER.md` and the eval counts are rendered** by `tools/ledger.py` from the cases' metadata (`META`, `case.json`'s `tier` / `ledger_text`, `ledger-deferred.json`); `--check` in CI and pre-push.
+- **The version moves only in the release PR**: pre-push no longer demands a bump; CI's `release-note` job refuses a behaviour-changing PR without a `## Release note` section. (This release's bump still rode the feature PR, #137 — the last one to.)
+
+### Docs
+- `docs/releasing.md` § Where the version moves; `evals/README.md`, `evals/CONTRIBUTING.md`, `README.md`, `hooks/README.md` (the marker snippet writes `read=`), the plan-issue skill.
+
+### Checks
+Hook tests 335/335 · lint 614/614 · red-proofs 23/23
+
 ## v1.39.0 — /roz-gate:tip <n>: the read-only answer to "what now" (#121) — 2026-10-15
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.39.0>
