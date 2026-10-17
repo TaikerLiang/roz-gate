@@ -2,6 +2,41 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.0.0 — QA starts after the implementation lands; protocol v1 published — 2026-10-17
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.0.0>
+
+**Behavior: QA starts after the implementation lands on `<spec-branch>`, tests the as-built contract, and may run its suite — blind by the hook, no longer by topology.** `status: ready-for-dev` launches (3)+(5) only; next-stage merges the review-clean implementation CR into `<spec-branch>` and launches (4)+(5q) off the new tip; (6) merges `<qa-branch>` alone. Adopters mid-flight on 1.x: an issue with both CRs open integrates as before (integrate still merges what is open) once its implementation CR carries the code-review record. And a spec is published: `docs/protocol.md` carries **protocol v1** — the forge conventions are the protocol, Roz Gate is its reference client.
+
+### Behavior
+- **(3) lands before (4) starts** (#140): the parallel launch retires; `next-stage` Path B runs the implementer and the code review, Path B2 merges the review-clean implementation CR into `<spec-branch>` (a push; a conflict is a STOP) and dispatches QA off the new tip; no new gate label.
+- **The (5) review has a record** (#140, ruling 9): `**[reviewer] · code-review**` with `reviewed-sha`; review-clean = record current + zero threads, never zero threads alone; patrol's `code-review` action runs the review that never ran; integrate requires it on the implementation side as it does on the QA side since 1.33.2 (#95); the fast track posts and reads the same record.
+- **The as-built contract**: the implementer corrects `technical-spec.md` on `<feat-branch>`; the implementation CR declares each change under `## Contract deviations`; the reviewer checks them against `spec.md`; an R-level change takes the backward transition.
+- **QA reviews the contract first**: its findings are `[qa]` threads on the spec CR (`in-spec-review`); the QA CR stays draft until they resolve.
+- **QA runs its suite** in its worktree: a harness red is QA's to fix, an assertion red is a finding — never an assertion edit (audited at (5q)).
+- **Given-state control points** are part of the port (§5); QA never touches the persistence layer.
+- **QA's level**: through the port only, in `<acceptance_dir>`, no unit tests, no implementation imports; the port is the API for HTTP features, never "always HTTP".
+- **Intake footer** (#142): the summary's footer ends with `https://taikerliang.github.io/roz-gate/participating.html`, so a counterpart learns the four moves without the operator explaining them.
+
+### Evals
+- **C20, C22, C23, D8, D9, E9, E10, B8** new (#140; lint 614 → 757, replay 38 → 44, red-proofs 23 → 29); **D2** re-stated (blind by the hook); **F4, C16, C17, D4, D7, D2, D6** seeds moved to the 2.0 shape, the code-review record added to **C12, C13, D5**; the forge stub expands `{{sha:<ref>}}` in fixture comments. Baselines: Paul's call.
+- **C20** also sweeps three more parallel-era phrasings (`∥`, "meet for the first time", 互相看不見) that the first sweep did not know (#145).
+- **L7** new (#142; lint 757 → 784, 45 case files): the wire spec names exactly the labels the state machine has, states the STOP and summary rules in the client's literals, binds no reference-client internal as a MUST, and every entry point links the pages.
+
+### Hooks
+- **guard-blind rule E** guards the QA dispatch too (`seat=qa`); the deny message names the dispatch and its brief; regexes unchanged.
+- **guard-gate rule H**: a CR-OPEN whose diff touches `technical-spec.md` must carry `## Contract deviations`; an uncomputable diff fails closed and says so.
+
+### Docs
+- **`docs/protocol.md` — protocol v1**, the wire spec (#142): labels and the state machine, the comment markers, the gate holder, identity and capability containment, "many participants, one driver" and the interop checklist. Any agent or human following the page interoperates with the loop; the stamp is decoupled from plugin semver and v1 changes are additive only.
+- **`docs/participating.md`** — the human guide: answer, `summary`, label, and the (7) review conversation; what to do when the loop stops.
+- **README and the Pages site** link both; `docs/ROADMAP.md`'s frozen 2.0.0 items are resolved (the patrol timeline audit → #144).
+- **README's loop banner and Why paragraph**, and **the stage map** (`images/loop-stage-map.svg`, inlined in the Pages site and the onboarding page) draw 2.0.0's order: (3) → (5) → lands on `spec/{n}` → (4) → (5q) → (6) (#145).
+- `references/qa-brief.md` (new); `references/workflow.md`, `docs/index.html`, `docs/onboarding.html`, `docs/learn/quiz.json`, `hooks/README.md`, `docs/releasing.md`, `templates/implementer.md`, `agents/qa.md` (#143).
+
+### Checks
+Hook tests 398/398 · lint 784/784 · red-proofs 29/29
+
 ## v1.40.0 — the fidelity dispatch reads the test port the marker names (#125); one lint case per file, the version moves only in the release PR (#131) — 2026-10-17
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v1.40.0>
