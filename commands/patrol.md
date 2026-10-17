@@ -303,7 +303,8 @@ in the scanner's order, nothing else in it:
   `acted: <action> — <outcome>` · `queued: <action>` · `waits on you: <what>`
   · `blocked: <the STOP comment's title>` · `locked: <phase> · <age>` ·
   `illegal: <why>` · `shipped` · `in progress`. Never a list, never a commit
-  log — that is Details material.
+  log — that is Details material. The scanner's gate-label audit reads
+  `illegal: gate label applied by <login>`.
 - `needs you` — `yes` or `—`; `yes` whenever the next move is a human's: a
   wait, a `blocked`, an illegal row, a stale lock, an intake batch or a
   `· question` posted this pass, a review to merge.
@@ -315,7 +316,8 @@ inbox is never a mystery.
 **The queue** — `Your queue:` then exactly the `needs you` rows, in table
 order, one line each, `- #n — <verb phrase> — <link>` (answer the threads,
 answer the intake questions, say `summary`, apply the gate label, decide
-the STOP, review & merge, needs an assignee, clear a stale lock). A row
+the STOP, review & merge, needs an assignee, clear a stale lock, remove
+the gate label `<login>` applied — or apply it yourself). A row
 that does not need them is not a queue item; a queue item without its link
 is not written. What §0 flags for the **whole loop**, not an issue — the
 workflow stamp missing or outdated, a legacy config block — is a queue item
@@ -324,7 +326,8 @@ to open); the effective branch names §0 has the report state go under
 Details.
 
 **A row the pass cannot act on as written** — a verdict outside the brief's
-list, a missing `cr` for an actionable row (§2), a scan that contradicts
+list, a missing `cr` for an actionable row (§2), a gate label the scanner's
+audit found applied by a bot identity (`references/patrol-scan.md`), a scan that contradicts
 what this session read earlier (`blocked` now, `illegal state` a pass ago)
 — is `illegal: <why>` with `needs you: yes` and a queue item (`decide:
 <why>`); never a note under Details, never re-derived.
