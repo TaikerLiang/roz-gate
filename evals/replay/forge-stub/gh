@@ -85,6 +85,28 @@ def body_arg(argv):
     return flag_val(argv, "--body", "-b")
 
 
+def expand_shas(text):
+    """`{{sha:<ref>}}` in a fixture's comment body → the sandbox's SHA for
+    that ref (`origin/<ref>` first, then `<ref>`), at read time. A fixture
+    cannot know a seeded commit's SHA (seed.sh makes it at run time), and
+    the code-review record's `reviewed-sha:` must equal the CR's head
+    (#140, 2.0.0): the stub resolves it the way `pulls/<n>`'s `head.sha`
+    is resolved. An unresolvable ref is left as written — a visible
+    fixture defect, never a silently empty field."""
+    def sub(m):
+        ref = m.group(1)
+        for cand in ("origin/%s" % ref, ref):
+            try:
+                rp = subprocess.run(["git", "rev-parse", "--verify", "-q", cand + "^{commit}"],
+                                    capture_output=True, text=True, timeout=10)
+            except (OSError, subprocess.TimeoutExpired):
+                rp = None
+            if rp is not None and rp.returncode == 0:
+                return rp.stdout.strip()
+        return m.group(0)
+    return re.sub(r"\{\{sha:([^}\s]+)\}\}", sub, text or "")
+
+
 def out(obj):
     print(json.dumps(obj, ensure_ascii=False))
 
@@ -221,6 +243,7 @@ def pr_shape(pr, want):
         "state": pr.get("state", "OPEN"),
         "headRefName": pr.get("headRefName", ""),
         "baseRefName": pr.get("baseRefName", ""),
+        "body": pr.get("body", ""),
     }
     return {k: v for k, v in full.items() if not want or k in want}
 
@@ -901,7 +924,7 @@ def main():
             if src is None:
                 unknown("comments: %s not in fixture" % n)
             journal("cr-comments-list", target=n)
-            rows = [{"id": c.get("id"), "body": c.get("body", ""),
+            rows = [{"id": c.get("id"), "body": expand_shas(c.get("body", "")),
                      "author": c.get("author", ""),
                      "created_at": c.get("created_at", c.get("createdAt", "")),
                      "html_url": "https://github.com/x/y/pull/%s#issuecomment-%s"
@@ -1006,7 +1029,7 @@ def main():
                     for c in item.get("comments", []):
                         if c.get("id") == cid:
                             journal("issue-comment-view", comment=cid)
-                            obj = {"id": cid, "body": c.get("body", ""),
+                            obj = {"id": cid, "body": expand_shas(c.get("body", "")),
                                    "user": {"login": c.get("author", "")},
                                    "created_at": c.get("created_at",
                                                        c.get("createdAt", "")),

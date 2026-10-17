@@ -1,0 +1,8 @@
+{
+  "ledger": "C23 · Patrol runs the review that never ran",
+  "tier": "replay (#140 ruling 9, 2.0.0)",
+  "ledger_text": "\"The scanner's row reads `actionable: code-review`, never `next-stage (qa)`; patrol dispatches `reviewer` once with the spec docs; the implementation CR gains one `**[reviewer] · code-review**` comment carrying `reviewed-sha:` equal to its head, posted after every finding thread; nothing is merged, no `<qa-branch>` is cut, the lock is released.\" (the mirror of C17: a thread-clean implementation CR would otherwise read as a reviewed one and land on the spec branch unreviewed)",
+  "prompt": "/roz-gate:patrol",
+  "k": 5,
+  "timeout": 1800
+}

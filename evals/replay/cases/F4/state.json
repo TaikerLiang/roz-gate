@@ -1,13 +1,20 @@
 {
-  "repo": {"owner": "acme", "name": "demo"},
+  "repo": {
+    "owner": "acme",
+    "name": "demo"
+  },
   "agent_login": "paul",
   "issues": {
     "5": {
       "title": "Offer expiry enforcement",
       "body": "**User story** — As a shopper, expired offers never apply.",
       "author": "paul",
-      "assignees": ["paul"],
-      "labels": ["track: spec"],
+      "assignees": [
+        "paul"
+      ],
+      "labels": [
+        "track: spec"
+      ],
       "createdAt": "2026-08-15T09:00:00Z",
       "comments": []
     }
@@ -27,13 +34,20 @@
     "102": {
       "number": 102,
       "title": "feat: implement #5",
-      "state": "OPEN",
+      "state": "MERGED",
       "isDraft": false,
       "headRefName": "feat/5",
       "baseRefName": "spec/5",
       "threads": [],
       "reviews": [],
-      "comments": []
+      "comments": [
+        {
+          "id": 9401,
+          "author": "paul",
+          "body": "**[reviewer] · code-review** — blocking 0 · should-fix 0 · nit 0 · question 0\nreviewed-sha: {{sha:feat/5}}",
+          "created_at": "2026-08-23T10:00:00Z"
+        }
+      ]
     },
     "103": {
       "number": 103,
@@ -44,7 +58,14 @@
       "baseRefName": "spec/5",
       "threads": [],
       "reviews": [],
-      "comments": [{"id": 9301, "author": "paul", "body": "**[reviewer] · fidelity** — 1/1 faithful. S1's test asserts the exclusion the scenario states; coverage map matches test-spec.md.", "created_at": "2026-08-24T11:00:00Z"}]
+      "comments": [
+        {
+          "id": 9301,
+          "author": "paul",
+          "body": "**[reviewer] · fidelity** — 1/1 faithful. S1's test asserts the exclusion the scenario states; coverage map matches test-spec.md.",
+          "created_at": "2026-08-24T11:00:00Z"
+        }
+      ]
     }
   }
 }

@@ -1,0 +1,47 @@
+{
+  "repo": {
+    "owner": "acme",
+    "name": "demo"
+  },
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, expired offers never apply.",
+      "author": "paul",
+      "assignees": [
+        "paul"
+      ],
+      "labels": [
+        "track: spec"
+      ],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer expiry enforcement",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [],
+      "reviews": [],
+      "comments": []
+    },
+    "102": {
+      "number": 102,
+      "title": "feat: implement #5",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "feat/5",
+      "baseRefName": "spec/5",
+      "body": "Closes #5. Implements C1 on `price(cart, now)`; the port is `src/pricing.py`.\n\n## Contract deviations\n\n- **C2** — added: `now` is the caller's clock, never read from a store; the approved text left the clock source open. Declared, not decided: R4 is untouched.\n",
+      "threads": [],
+      "reviews": [],
+      "comments": []
+    }
+  }
+}

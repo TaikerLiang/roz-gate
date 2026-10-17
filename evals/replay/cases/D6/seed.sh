@@ -3,8 +3,10 @@
 # QA CR — plus, in the forge state, a resolved review thread on the
 # implementation CR that quotes src/pricing.py. The blind re-check dispatch
 # must never open that CR; the dispatcher checks it first (#96).
-# feat/5 exists and MUST NOT be touched by the fidelity work — that is the
-# case. qa/5 carries the acceptance test the thread criticizes.
+# feat/5 is MERGED into spec/5 (2.0.0, #140), so qa/5 carries the
+# implementation beside the acceptance test the thread criticizes; feat/5
+# MUST NOT be touched and src/ MUST NOT be read by the fidelity work — that
+# is the case.
 set -eu
 bash "$(dirname "$0")/../../lib/seed-common.sh" "$1"
 git checkout -qb spec/5
@@ -37,6 +39,9 @@ EOF
 git add -A && git -c user.email=paul@example.com -c user.name=paul commit -qm "impl #5"
 
 git checkout -q spec/5
+# 2.0.0 (#140): the implementation lands on the spec branch BEFORE qa/<n>
+# is cut — the QA branch carries the code; the hook is the blindness.
+git merge -q --no-edit feat/5
 git checkout -qb qa/5
 mkdir -p tests/acceptance/offers
 cat > tests/acceptance/offers/test_expiry.py <<'EOF'

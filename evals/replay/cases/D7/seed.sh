@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# D7 sandbox: C17's shape — spec/5 (docs), feat/5 (impl), qa/5 (suite), the
+# D7 sandbox: C17's shape (2.0: feat/5 merged into spec/5 before qa/5 is
+# cut) — spec/5 (docs + impl), qa/5 (suite), the
 # QA CR without a fidelity summary so patrol runs the audit — plus the
 # contract's TEST PORT: a driver that lives in an existing unit-test file
 # under src/test/… (ADMC #11's layout), outside acceptance_dir, declared on
@@ -70,6 +71,9 @@ EOF
 git add -A && git -c user.email=paul@example.com -c user.name=paul commit -qm "impl #5"
 
 git checkout -q spec/5
+# 2.0.0 (#140): the implementation lands on the spec branch BEFORE qa/<n>
+# is cut — the QA branch carries the code; the hook is the blindness.
+git merge -q --no-edit feat/5
 git checkout -qb qa/5
 mkdir -p tests/acceptance/offers
 cat > tests/acceptance/offers/test_expiry.py <<'EOF'
