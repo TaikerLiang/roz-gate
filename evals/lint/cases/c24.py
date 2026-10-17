@@ -33,7 +33,7 @@ src("C24: the GitHub op reads the actor's type", "references/forge-github.md",
 src("C24: the GitHub identity note names the timeline actor shape", "references/forge-github.md",
     "The issue timeline's `actor` for an App is `<slug>[bot]`\n    with `type` `Bot`")
 src("C24: the GitLab adapter has the op", "references/forge-gitlab.md",
-    "| ISSUE-LABEL-EVENTS | `glab api \"projects/:id/issues/<n>/resource_label_events")
+    "| ISSUE-LABEL-EVENTS | `glab api --paginate \"projects/:id/issues/<n>/resource_label_events")
 src("C24: the GitLab op names both bot shapes", "references/forge-gitlab.md",
     "`project_<id>_bot_<hash>`, a group token's `group_<id>_bot_<hash>`")
 src("C24: the scanner audits every gate label worn", "references/patrol-scan.md",
@@ -60,7 +60,8 @@ src("C24: the evidence column carries the event", "references/patrol-scan.md",
 src("C24: patrol's clause", "commands/patrol.md",
     "The scanner's gate-label audit reads\n  `illegal: gate label applied by <login>`.")
 src("C24: patrol's queue verb", "commands/patrol.md",
-    "remove\nthe gate label `<login>` applied — or apply it yourself")
+    "remove\nthe gate label `<login>` applied — then reapply it yourself to authorize:\n"
+    "re-adding a label already worn records no new event")
 src("C24: patrol names the audit among the rows it cannot act on", "commands/patrol.md",
     "a gate label the scanner's\naudit found applied by a bot identity "
     "(`references/patrol-scan.md`)")

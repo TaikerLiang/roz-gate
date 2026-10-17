@@ -317,7 +317,9 @@ inbox is never a mystery.
 order, one line each, `- #n — <verb phrase> — <link>` (answer the threads,
 answer the intake questions, say `summary`, apply the gate label, decide
 the STOP, review & merge, needs an assignee, clear a stale lock, remove
-the gate label `<login>` applied — or apply it yourself). A row
+the gate label `<login>` applied — then reapply it yourself to authorize:
+re-adding a label already worn records no new event, so the bot's stays
+the latest). A row
 that does not need them is not a queue item; a queue item without its link
 is not written. What §0 flags for the **whole loop**, not an issue — the
 workflow stamp missing or outdated, a legacy config block — is a queue item

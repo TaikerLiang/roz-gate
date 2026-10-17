@@ -33,9 +33,9 @@ FILTER = "inbox filter: discuss / none · 0 track-less issues not in the inbox f
 QUEUE = [
     "Your queue:",
     "- #5 — review & merge — https://github.com/x/y/pull/101",
-    "- #6 — remove the gate label roz-bot[bot] applied, or apply it yourself — "
+    "- #6 — remove the gate label roz-bot[bot] applied, then reapply it yourself — "
     "https://github.com/x/y/issues/6",
-    "- #7 — remove the gate label roz-bot[bot] applied, or apply it yourself — "
+    "- #7 — remove the gate label roz-bot[bot] applied, then reapply it yourself — "
     "https://github.com/x/y/issues/7",
 ]
 # The scan's reads: the list, the two audits, #5's CR.
