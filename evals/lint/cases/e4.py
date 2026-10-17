@@ -10,7 +10,7 @@ META = {
     "ledger": None,
 }
 
-b5 = section(read("commands/next-stage.md"), r"^### B5\. ", r"^### B5b\. ")
+b5 = section(read("commands/next-stage.md"), r"^### B5\. ", r"^### B6\. ")
 c.expect("pattern", "E4: a contract-ambiguity finding routes to the spec CR",
          "contract ambiguity routes to a spec-CR" in b5)
 c.expect("pattern", "E4: reviewer-to-implementer settlement is forbidden explicitly",

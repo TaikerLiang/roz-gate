@@ -85,7 +85,7 @@
    {
     "n": "4",
     "name": "black-box QA",
-    "zh": "qa 在 qa/{n}：test plan + acceptance suite，只從 spec + contract 寫，看不到實作；與 (3) 平行",
+    "zh": "qa 在 qa/{n}：實作落到 spec/{n} 之後才開工；先審 as-built 合約（發現變成 spec CR 的 [qa] threads），再只從 spec + contract、只走 port 寫 test plan + acceptance suite；看不到實作靠 hook rule E，自己跑套件，red 只能是 harness 修正或 finding，從不改 assertion",
     "gate": null
    },
    {
@@ -469,17 +469,17 @@
    "m": "M3",
    "l": "L2",
    "t": "single",
-   "q": "為什麼說 `qa/{n}` 分支「結構性地」讓 QA 盲測，而不只是靠 prompt？",
+   "q": "2.0.0 起 `qa/{n}` 從已經帶著實作的 `spec/{n}` 切出。QA 的盲測現在靠什麼，而不只是靠 prompt？",
    "o": [
     "qa 的 dispatch prompt 裡明確寫了「Do NOT read src/」——夠明確的 prompt 就等於結構性的保證。",
-    "`qa/{n}` 只存在於 CI 的臨時環境，本機看不到實作檔案，所以 QA 從一開始就無從讀起、也無從作弊。",
     "`qa/{n}` 從 `spec/{n}` 分出、不帶任何 implementation code，在那裡看不到實作。",
+    "guard-blind rule E：QA dispatch 期間 marker（`seat=qa`）在，hook 擋下 `<acceptance_dir>` 與 test port 以外所有 `src/` 的讀取，以及對實作分支的 git 操作。",
     "`qa/{n}` 分支有 branch protection，只有 qa seat 的身分可以 push，其他 seat 完全碰不到它。"
    ],
    "a": 2,
-   "why": "「blindness asserted in a prompt is a request; blindness enforced by which branch is checked out is a fact」（ledger D2）。1.16.0 之後 rule E 再在 tool layer 加一道牆。",
-   "src": "references/workflow.md (4) · evals/replay/cases/D2/check.py",
-   "bg": "Stage (4) black-box QA 的 QA 在 `qa/{n}` 分支上工作，這個分支從 `spec/{n}` 分出來，只放 test plan 與 acceptance suite。README 說這個安排「structurally enforces the black box」；D2 這條 ledger case 的原話是「blindness asserted in a prompt is a request; blindness enforced by which branch is checked out is a fact」。"
+   "why": "「blindness asserted in a prompt is a request」（ledger D2）；1.x 時靠分支拓撲，2.0.0 起 QA 在實作落地後才開工，分支帶著程式碼，拓撲不再保護——D2 重述為「blind by the hook」。rule E 自 1.16.0 起就在 tool layer，現在它就是那道牆。",
+   "src": "references/workflow.md (4) · hooks/README.md rule E · evals/replay/cases/D2/check.py",
+   "bg": "1.x 的 stage (4) 與 (3) 平行，`qa/{n}` 從 `spec/{n}` 分出來、不帶實作，README 說這個安排「structurally enforces the black box」。#140（2.0.0）改成實作先落到 `spec/{n}`、QA 再開工，好讓 QA 測「實際建成」的合約並自己跑套件；代價是分支帶著程式碼，所以盲測的保證換成了 hook rule E，D2 這條 ledger case 跟著重述。"
   },
   {
    "id": 18,

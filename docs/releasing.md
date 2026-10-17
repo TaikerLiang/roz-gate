@@ -24,7 +24,10 @@ A judgment, and the release history is the guide:
   E), a new command, or a body of work worth its own line (1.17.0: D4, the
   red-proof requirement, the ledger index — no runtime change);
 - **patch** — fixes and clarifications (1.16.1, 1.16.2), docs catch-up
-  (1.16.3).
+  (1.16.3);
+- **major** — the loop's stage order or a stage's meaning changes for every
+  adopter (2.0.0: QA starts after the implementation lands, #140). Rare,
+  and never for a hook rule alone.
 
 ## Steps
 

@@ -1,10 +1,11 @@
 ---
-description: Advance one gated issue to its next stage — spec refinement (2), parallel impl+QA (3+4+5), or the fast track — routed by its labels; prints the workflow map first
+description: Advance one issue to its next stage — spec refinement (2), implementation + review (3+5), validation once the implementation has landed (4+5q), or the fast track — routed by its labels and CR state; prints the workflow map first
 argument-hint: "[issue-number]"
 ---
 
 Advance **one** issue to its next stage (see
-`${CLAUDE_PLUGIN_ROOT}/references/workflow.md`). Route by the issue's labels;
+`${CLAUDE_PLUGIN_ROOT}/references/workflow.md`). Route by the issue's labels —
+and, for the one path that starts from an in-flight issue (B2), by its CRs;
 follow the matched path's steps exactly and do nothing beyond them.
 
 ## 0. Load config & forge adapter
@@ -44,11 +45,14 @@ another command holds it → STOP.
 
 ## 1. Select the issue
 - If an issue number was passed (`$ARGUMENTS`), target that issue. Verify it
-  carries a gate label (`status: ready-for-spec` or `status: ready-for-dev`);
-  if not, stop and say so.
+  carries a gate label (`status: ready-for-spec` or `status: ready-for-dev`)
+  — or is **in flight on `track: spec` with no `status:`**, the entry of
+  Path B2 (its CRs decide, §4); anything else → stop and say so.
 - Otherwise ISSUE-LIST filtered by each gate label, excluding any issue that
   also carries `status: processing`.
-  - None → report "no gated issues" and stop.
+  - None → report "no gated issues" and stop. (Path B2 is reached by
+    number only — patrol's `next-stage (qa)` row passes it; this command
+    never scans for it.)
   - Several → list them, pick the **oldest**.
 
 ## 2. Validate the label invariants (before anything else)
@@ -63,7 +67,7 @@ will do, THEN act:
 
 `track: spec`:
 ```
-(1) intake → (2) spec → (2a) Q&A → (3)(4) impl+QA → (5) review → (6) integrate → (7) main
+(1) intake → (2) spec → (2a) Q&A → (3) impl → (5) review → (4) QA → (5q) → (6) integrate → (7) main
                 ▲ #<n> is here — ready-for-spec: running spec refinement now
 ```
 `track: fast`:
@@ -76,7 +80,8 @@ will do, THEN act:
 | Labels | Path |
 |---|---|
 | `track: spec` + `status: ready-for-spec` | **A — spec refinement (2)** |
-| `track: spec` + `status: ready-for-dev` | **B — impl + validation (3)+(4)+(5)** |
+| `track: spec` + `status: ready-for-dev` | **B — implementation + review (3)+(5)** |
+| `track: spec`, no `status:`, the implementation CR **review-clean or merged**, no QA CR (CR-FIND, all-states form) | **B2 — validation (4)+(5q)** — the one route read from CR state; the scanner computes it (`actionable: next-stage (qa)`), a human may run it |
 | `track: fast` + `status: ready-for-dev` | **C — fast track** |
 
 ---
@@ -294,10 +299,12 @@ applies `status: ready-for-dev`.
 
 ---
 
-## Path B — implementation + validation (3)+(4)+(5)
+## Path B — implementation + review (3)+(5)
 
 The spec CR (`<spec-branch>`) must already exist and be approved (its Q&A threads
-resolved). If `<spec-branch>` does not exist, stop and say so.
+resolved). If `<spec-branch>` does not exist, stop and say so. Since 2.0.0 this
+path builds and reviews the implementation **only**; QA starts in Path B2
+once the implementation has landed on `<spec-branch>` (#140).
 
 **Unverified-claim check (before anything else):**
 `grep -nwi unverified <specs_dir>/<n>/*.md` — the whole word, anywhere:
@@ -323,81 +330,61 @@ exactly one hit, reading `none` or a comma-separated list of repo-relative
 paths (A3's line). Zero hits, two or more, or a value that is neither →
 the STOP exit, naming the line's shape; the remedy is the implementer's at
 (2) cost — a spec written before the line existed (1.40.0-) has none and
-gains one here. Its paths are what B5b writes into the dispatch marker as
-`read=` lines (#125).
+gains one here. Its paths are what the QA dispatch (B2.4) and the fidelity dispatch
+(B2.7) write into the marker as `read=` lines (#125).
 
 ### B1. Lock
 LABEL-ADD `status: processing`.
 
-### B2. Stamp the approval + two sibling branches off the spec branch
+### B2. Stamp the approval + cut the implementation branch off the spec branch
 The gate label just applied is the human's approval of `<spec-branch>` **as it
 stands**: COMMENT-EDIT the spec-gate kit to append one line —
 `approved at <<spec-branch> HEAD SHA>` — the anchor for the final-gate kit's
 since-you-approved diff. Also note in the report whether the spec changed
 after the kit's last update (the gate-produced-change signal,
 gate-kit.md § Instrumentation).
-`git fetch` first, then create both off `<spec-branch>`, **each in its own
-worktree** (`<feat-branch>` and `<qa-branch>`: Lookup — a previous B run's
+`git fetch` first, then create `<feat-branch>` off `<spec-branch>` **in its own
+worktree** (`<feat-branch>`: Lookup — a previous B run's
 branch is reused — else Expand):
 - `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<feat-branch> -B <feat-branch> origin/<spec-branch>`
-  (implementer) and
-  `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<qa-branch> -B <qa-branch> origin/<spec-branch>`
-  (qa). They are **independent siblings** — `<qa-branch>` must contain NO
-  implementation code; that is what enforces the black box. Each seat is
-  dispatched **into its worktree** (its cwd); neither ever sees the user's
-  checkout.
+  (implementer). The seat is dispatched **into its worktree** (its cwd); it
+  never sees the user's checkout. No `<qa-branch>` is cut here: QA's branch
+  is cut from the spec tip **after** the implementation lands (B2.3).
 
-### B3. Dispatch implementer AND qa IN PARALLEL
-Launch both at once (they never see each other):
+### B3. Dispatch the implementer
 - **implementer** on `<feat-branch>`: implement per
   `<specs_dir>/<n>/technical-spec.md` + write **unit** tests. For a non-API
   feature, also provide the documented test **port** QA tests against, at
-  the path(s) `technical-spec.md`'s `**Test port**` line names.
+  the path(s) `technical-spec.md`'s `**Test port**` line names — **with the
+  Given-state control points** §5 lists for every scenario's setup: QA never
+  persists entities or touches the persistence layer, so a Given with no
+  control point is a contract defect it will report (#140).
+  **The contract as built**: correct `technical-spec.md` on `<feat-branch>`
+  as you build — a `G<k>` / `C<k>` clause, a §5 row — in the same CR as the
+  code, and return the list of every change (clause, what changed, why) for
+  the CR's `## Contract deviations` section; `none` when nothing changed. A
+  correction that would move what a **rule** (`R<k>`) means is not a
+  deviation to declare: it is the ambiguity below.
   **A contract gap you cannot resolve from the spec docs → stop and report
   to the main agent; never decide unilaterally in code** — the same
   mid-flight route QA has, and the ambiguity takes the same backward
   transition through the spec CR.
-- **qa** on `<qa-branch>`: write black-box acceptance tests in
-  `<acceptance_dir>/<feature>/` (`<feature>` = the project's layout unit —
-  config `acceptance_layout`; absent → one folder per feature) from
-  `spec.md` + the contract ONLY. **`test-spec.md` required shape**: its
-  scenario→test map must be **derivable from machine-readable trace
-  markers in the test source** (marker syntax = config `trace_marker`;
-  absent → qa picks one idiomatic to the language and declares it at the
-  top of `test-spec.md`) — never hand-maintained; each scenario maps to
-  ≥1 test or an explicit `uncovered` row with a reason. These run
-  post-integration and will NOT pass on `<qa-branch>` by design — write them against
-  the contract, do not chase green here.
-  **The §5 observability map is a claim to verify, never a fact to
-  inherit:** walk every scenario against the port yourself, then
-  reconcile with the implementer's §5 table — every mismatch, both
-  directions, is a mandatory reported finding (map says observable, you
-  cannot drive it → contract defect; map says not-observable, you can →
-  an over-declared limitation shrinking the testable surface). Each
-  `uncovered / not testable through the port` row in `test-spec.md`
-  cites the §5 limitation row it corresponds to; a row with no §5
-  citation is a contract defect and takes the ambiguity route — never a
-  silent `uncovered` entry. `test-spec.md` keeps the **must-read on top**
-  — the marker declaration, the scenario→test map, the `uncovered` rows —
-  and folds per-test narrative and fixture notes into a trailing
-  `## Supplement` section whose body is one
-  `<details><summary>Supplement — <what it holds></summary>` block.
 
-### B4. Commit + push + open both CRs (target = the spec branch)
-- Commit each branch's files through the **commit** sub-agent — one dispatch
-  per branch, on `helper_model` when set,
-  `${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus that
-  branch's worktree path, branch, files and message (the hook rules and the
+### B4. Commit + push + open the implementation CR (target = the spec branch)
+- Commit the branch's files through the **commit** sub-agent — one dispatch,
+  on `helper_model` when set,
+  `${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the
+  worktree path, branch, files and message (the hook rules and the
   `branch · sha · hook` return live in the brief, nowhere else) — then push
-  each from its returned `sha`. A `no-verify:` row is said so in the report;
+  from its returned `sha`. A `no-verify:` row is said so in the report;
   a `failed:` row is a STOP with its excerpt in the report.
-- CR-OPEN for `<feat-branch>` targeting `<spec-branch>`, title `feat: implement #<n>`;
-  CR-OPEN-DRAFT for `<qa-branch>` targeting `<spec-branch>`, title
-  `test: #<n> black-box (QA)`. **Both target `<spec-branch>`.**
-- **The QA CR opens as a draft.** CR-READY only if `qa` reported its suite
-  complete; a partial — or paused — deliverable stays draft. Draft = QA still
-  working/paused; ready = complete. This is the machine-readable signal
-  `/roz-gate:patrol` and `/roz-gate:integrate` key on.
+- CR-OPEN for `<feat-branch>` targeting `<spec-branch>`, title `feat: implement #<n>`.
+  The body carries a fixed section **`## Contract deviations`** — the
+  implementer's list, one bullet per changed clause (`G<k>` / `C<k>` / a §5
+  row): what changed and why; or the single line `none`. Guard-gate rule H
+  denies a CR-OPEN whose diff touches `<specs_dir>/*/technical-spec.md` and
+  whose body lacks the heading — the section is where the (5) reviewer and
+  the (4) and (5q) dispatches learn what the contract became.
 
 ### B5. Code review (5) on the implementation CR
 - Dispatch the **reviewer** agent on the CR's diff
@@ -405,12 +392,28 @@ Launch both at once (they never see each other):
   `<specs_dir>/<n>/spec.md` and `technical-spec.md`** — the reviewer's
   mandate is "does it do what it claims", so it receives the claim; it
   never reviews code against its own inference of intent. It wraps
-  `/code-review` where available.
+  `/code-review` where available. Attach too the **as-built contract
+  diff** (`git diff origin/<spec-branch>...<feat-branch> -- <specs_dir>/<n>/technical-spec.md`)
+  and the CR's `## Contract deviations`: the reviewer checks every deviation
+  against `spec.md`'s rules — a deviation the list omits, or one that moves
+  an `R<k>`, is a finding.
 - Post its findings as severity-graded inline threads on the implementation CR —
   THREAD-POST-INLINE, body starts
   `**[reviewer] · blocking|should-fix|nit|question**`, anchored to file:line.
   Rule/scenario IDs in a finding follow the citation convention (A3): first
   mention carries the ID's title and a link to its definition.
+- **The record — posted last, even with zero findings**: one top-level
+  CR-COMMENT opening with `**[reviewer] · code-review**`, carrying
+  `reviewed-sha: <the CR head SHA reviewed>` on its own line and the finding
+  count by severity (`blocking 1 · should-fix 0 · nit 2 · question 0`). It is
+  the **record that the review ran**: zero threads because nobody reviewed
+  is not zero findings (#95's lesson, now on the implementation side —
+  #140 ruling 9). **Review-clean** is defined in `workflow.md` (5) and read
+  everywhere else: the record present **and** its `reviewed-sha` equal to
+  the CR head **and** zero open review threads. A head pushed after
+  `reviewed-sha` without a re-check is a stale record — patrol's
+  `code-review` action re-runs the review; its address-review re-check
+  re-stamps `reviewed-sha` (COMMENT-EDIT) when the last thread resolves.
 - **A finding that is really a contract ambiguity routes to a spec-CR
   thread through the main agent** (the (2a) machinery) — never settled
   reviewer-to-implementer on the implementation CR, where the contract
@@ -418,36 +421,174 @@ Launch both at once (they never see each other):
   testing the old text. (The fidelity brief already routes
   scenario-meaning disputes this way; the same rule applies here.)
 
-### B5b. QA fidelity review (5q) on the QA CR
-- **Contract currency, by you — not blind.** Before the dispatch:
-  THREADS-LIST on the implementation CR and on the spec CR. A thread that
-  settled a contract question on the implementation CR is the (5) breach —
-  route it to a spec-CR thread through you, LABEL-ADD
+### B6. Remove the worktree, flip labels + report
+- `git worktree remove --force` `…/roz-gate/wt/<feat-branch>`, then
+  `git worktree prune`.
+- LABEL-REMOVE `status: ready-for-dev` and `status: processing` (the open CR
+  is now the in-flight state).
+- Report the implementation CR, its open threads and its record.
+  **Next:** `implementer` addresses the threads (patrol's address-review
+  engine; the reviewer re-checks, resolves what satisfies it, re-stamps the
+  record). **Review-clean** — the record current, zero threads — is the
+  scanner's `actionable: next-stage (qa)` row: `/roz-gate:next-stage <n>`
+  runs **Path B2**, which lands the implementation on `<spec-branch>` and
+  launches (4)+(5q). A CR with no `**[reviewer] · code-review**` record, or a
+  stale one, is patrol's `code-review` action first.
+
+---
+
+## Path B2 — validation (4)+(5q), once the implementation has landed
+
+Entered from an in-flight `track: spec` issue (no `status:`) whose
+implementation CR is **review-clean or merged** and which has **no QA CR**
+yet — the row the scanner computes as `actionable: next-stage (qa)`. This
+path merges the review-clean implementation into `<spec-branch>`, cuts
+`<qa-branch>` off the new tip, dispatches `qa` under
+`${CLAUDE_PLUGIN_ROOT}/references/qa-brief.md` with guard-blind rule E on,
+posts QA's contract-review findings as `[qa]` threads on the spec CR, opens
+the QA CR as a draft, and runs the fidelity review (5q). The spec CR
+(`<spec-branch>`) must exist; the two Path B checks above already passed at
+`ready-for-dev` and are not re-run.
+
+### B2.1 Lock + preconditions
+LABEL-ADD `status: processing`. Then, read-only: CR-FIND **in its all-states
+form** (`--state all` / `--all`) for `<feat-branch>` and `<qa-branch>`.
+- A QA CR exists in any state → not this path's entry: unlock and report
+  (an open one is address-review / fidelity-audit / integrate territory).
+- No implementation CR → unlock and report (Path B never ran, or its CR was
+  closed unmerged).
+- The implementation CR `merged` → the implementation is already in
+  `<spec-branch>`; B2.2 merges nothing.
+- The implementation CR `open` → it must be **review-clean**
+  (`workflow.md` (5)): CR-COMMENTS-LIST carries a `**[reviewer] · code-review**`
+  comment whose `reviewed-sha:` equals the CR's head (`git ls-remote --heads origin <feat-branch>`),
+  **and** THREADS-LIST shows zero open review threads. Any of the three
+  missing → unlock and report which: no record or a stale one is patrol's
+  `code-review` action, open threads are address-review — never merge on
+  zero threads alone (#95; #140 ruling 9).
+
+### B2.2 Land the implementation on the spec branch
+`git fetch`, then
+`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<spec-branch> <spec-branch>`
+and work **in that worktree** (`cd` there or `git -C`); a refusal (the branch
+is checked out elsewhere) → the STOP exit. First `git merge --ff-only origin/<spec-branch>`:
+the worktree starts at the **remote's** tip, never at a stale local ref (a
+ref that cannot fast-forward → the STOP exit, naming both SHAs). Then, unless
+the implementation CR is already merged, `git merge --no-edit origin/<feat-branch>`
+— the implementation and its as-built `technical-spec.md` land together. **Any
+conflict** (the usual one: an as-built edit of `technical-spec.md` on
+`<feat-branch>` against a `spec-answers` fold on `<spec-branch>`), or a failure
+of config `env_sync` → the **STOP exit**: the conflicting files in the
+must-read, nothing pushed. Then push `<spec-branch>` — the forge marks the
+implementation CR merged. This is the one remote write of the loop that lands
+code before a verdict: the verdict is (6)'s, and `<spec-branch>` is the
+feature's umbrella, merged to the default branch only at (7).
+
+### B2.3 Cut the QA branch off the new tip
+`git fetch`, then create `<qa-branch>` off `<spec-branch>` **in its own
+worktree** (`<qa-branch>`: Lookup — a previous run's branch is reused — else
+Expand):
+`git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<qa-branch> -B <qa-branch> origin/<spec-branch>`.
+The branch **carries the implementation** — that is the point of the order,
+and it is why the next step's blindness is the hook's, not the topology's.
+
+### B2.4 The QA dispatch procedure
+- **Contract currency, by you — not blind** (the same step the fidelity
+  dispatch takes): THREADS-LIST on the implementation CR and on the spec
+  CR. A thread that settled a contract question on the implementation CR is
+  the (5) breach — route it to a spec-CR thread through you, LABEL-ADD
   `status: in-spec-review` (the backward transition), and **do not
-  dispatch**; the paused side resumes through (2a). Otherwise assemble the
-  **amendment list** — every amendment agreed in spec-CR threads and issue
-  comments since `technical-spec.md`'s last commit — and put it in the
-  dispatch text **in this shape**: the heading `Amendment list:`, then one
+  dispatch**; the paused side resumes through (2a). Otherwise assemble two
+  lists for the dispatch text: the **amendment list** — every amendment
+  agreed in spec-CR threads and issue comments since `technical-spec.md`'s
+  last commit, under the heading `Amendment list:`, one line per amendment,
+  `<what> — folded at <ID>` or `<what> — unfolded`, or the single line
+  `Amendment list: none since <sha>` — and the **deviations**: the
+  implementation CR's `## Contract deviations` section, copied **verbatim**
+  from its body (CR-VIEW with `body` among the fields) under the heading
+  `Contract deviations:` (or `Contract deviations: none`). QA never opens the
+  implementation CR — its threads quote the code QA must not see — so the
+  copy is how the as-built changes reach it.
+- **Blindness is hook-enforced while the dispatch runs** (guard-blind,
+  rule E): immediately before the dispatch, write the marker
+  `mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\nfeat=<feat-branch>\nread=<path>\nseat=<seat>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`
+  — `feat=` is the bound implementation branch, the ref the hook denies by
+  name; one `read=<path>` line per path the `**Test port**` line
+  of `technical-spec.md` names (none when it says `none`); `seat=qa` here
+  (the hook names the dispatch in its deny message). The dispatch text
+  carries the same paths on a line of its own, `Test port: <path>[, <path>]`
+  or `Test port: none`. Immediately after it returns,
+  `rm -f "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`.
+  While the marker exists, every read of `src/` outside
+  `<acceptance_dir>` and the port the marker names, and every git action on
+  `<feat-branch>` (or any `feat/` ref), is denied mechanically, with the
+  remedy in the message — QA may run `acceptance_test` in its worktree all
+  it likes; it may not read the code it runs against.
+- Dispatch **qa** in the `<qa-branch>` worktree with
+  `${CLAUDE_PLUGIN_ROOT}/references/qa-brief.md` as its contract, the seat's
+  R&R row, the two lists and the `Test port:` line. It returns: the
+  step-zero **finding batch** (contradictions, untestable clauses, port
+  gaps — or `none`), the suite, `test-spec.md`, the result of its last run,
+  and whether the suite is **complete**. A red it classified as an assertion
+  that disagrees with observed behaviour arrives as a finding, never as an
+  edited assertion (the brief's rule; the fidelity audit checks it).
+
+### B2.5 QA's findings → threads on the spec CR
+For a non-empty batch: append each item to `spec.md`'s `## Open Questions`
+in the `<spec-branch>` worktree — A3's shape, `Q<k>` assigned append-only by
+you, role `[qa]` — commit it through the **commit** sub-agent and push
+`<spec-branch>`; then THREAD-POST-INLINE each item verbatim on the spec CR,
+anchored to its line (every agent question comment starts with `**[`; the
+options are `- (a)` / `- (b)` bullets — rule F). LABEL-ADD
+`status: in-spec-review`: the backward transition. The answers fold through
+`/roz-gate:spec-answers`, whose mid-flight re-entry re-dispatches `qa` with
+the amended contract. QA did not stop — the scenarios the batch does not
+touch are already written — so B2.6 still opens its CR. An empty batch
+writes nothing here.
+
+### B2.6 Commit + push + open the QA CR (target = the spec branch)
+- Commit the QA branch's files through the **commit** sub-agent — one
+  dispatch, on `helper_model` when set,
+  `${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the worktree path,
+  branch, files and message — then push from its returned `sha`; a
+  `no-verify:` row is said so in the report; a `failed:` row is a STOP with
+  its excerpt in the report.
+- CR-OPEN-DRAFT for `<qa-branch>` targeting `<spec-branch>`, title
+  `test: #<n> black-box (QA)`. **The QA CR opens as a draft.** CR-READY only
+  if `qa` reported its suite complete **and** B2.5 posted no thread (no
+  `[qa]` thread is open); a partial deliverable, or one waiting on a
+  `Q<k>`, stays draft. Draft = QA still working/paused; ready = complete.
+  This is the machine-readable signal `/roz-gate:patrol` and
+  `/roz-gate:integrate` key on.
+
+### B2.7 QA fidelity review (5q) on the QA CR
+- **Contract currency, by you — not blind.** B2.4's listing is yours and
+  stands; re-run THREADS-LIST on the spec CR if B2.5 posted threads — an
+  item still open is not an amendment yet. Put the **amendment list** in
+  the dispatch text **in this shape**: the heading `Amendment list:`, then one
   line per amendment, `<what> — folded at <ID>` or `<what> — unfolded`; or
-  the single line `Amendment list: none since <sha>` when there is none. A
+  the single line `Amendment list: none since <sha>` when there is none —
+  and the `Contract deviations:` block B2.4 copied. A
   mention is not a list — the reviewer aborts on anything else. The
-  reviewer verifies it against the contract and never opens the
+  reviewer verifies them against the contract and never opens the
   implementation CR (its threads quote the code the reviewer must not see).
   The listing is **yours**, in your own context — the scanner's read of the
   CRs while classifying is not this check.
-- Dispatch the **reviewer** seat a second time, in a **fresh context**
-  (never a continuation of B5's), with
+- Dispatch the **reviewer** seat in a **fresh context** (never a
+  continuation of B5's), with
   `${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md` as its contract,
-  in the `<qa-branch>` worktree — that branch contains no implementation code,
-  which is what makes this dispatch structurally implementation-blind.
+  in the `<qa-branch>` worktree — a branch that, since 2.0.0, carries the
+  implementation, which is why the marker below is what makes the dispatch
+  implementation-blind.
 - **Blindness is hook-enforced while the dispatch runs** (guard-blind,
   rule E): immediately before the dispatch, write the marker
-  `mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\nfeat=<feat-branch>\nread=<path>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`
+  `mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\nfeat=<feat-branch>\nread=<path>\nseat=<seat>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`
   — the `feat=` line is the bound implementation branch, the ref the hook
   denies by name; one `read=<path>` line per path the `**Test port**` line
   of `technical-spec.md` names (Path B's check read it; no `read=` line
   when it says `none`) — the port the hook lets the dispatch read beside
-  the suite (#125); the dispatch text carries the same paths on a line of
+  the suite (#125); `seat=reviewer` here; the dispatch text carries the same
+  paths on a line of
   its own, `Test port: <path>[, <path>]` or `Test port: none`. Immediately
   after it returns,
   `rm -f "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`.
@@ -460,29 +601,33 @@ Launch both at once (they never see each other):
   brief's "you never read the implementation" stays in the dispatch text —
   the marker is what makes it a fact. This is **the fidelity-dispatch
   procedure** — the contract-currency step, the marker, the dispatch, the
-  marker off; every implementation-blind dispatch on `<qa-branch>` uses it.
+  marker off; every implementation-blind dispatch on `<qa-branch>` uses it
+  (the QA dispatch of B2.4 is the same procedure under the QA brief).
 - It audits the QA suite's fidelity to the spec (four questions:
   scenario fidelity, vacuous assertions, coverage honesty, over-assertion)
   and posts two-way-cited findings as inline threads on the **QA CR**
   plus one top-level summary comment opening with `**[reviewer] · fidelity**`
   — the record that the audit ran, which integrate requires and patrol's
-  `fidelity-audit` action produces when B5b never did. Its findings are
+  `fidelity-audit` action produces when B2.7 never did. Its findings are
   evidence for the human, never a verdict.
-- Runs alongside B5 — it needs only `<qa-branch>`, so it costs no wall-clock.
 
-### B6. Remove the worktrees, flip labels + report
-- `git worktree remove --force` both `…/roz-gate/wt/<feat-branch>` and
-  `…/roz-gate/wt/<qa-branch>`, then `git worktree prune` — after B5b's marker is
-  gone, never while it is on.
-- LABEL-REMOVE `status: ready-for-dev` and `status: processing` (the open CRs
-  are now the in-flight state).
-- Report the implementation CR, the QA CR, and the open threads on both.
-  **Next:** `implementer` addresses the implementation CR's threads; `qa`
-  addresses the QA CR's fidelity threads, and a **fresh implementation-blind
-  reviewer dispatch re-checks and resolves** what it is satisfied with
-  (patrol's address-review engine — the audited party never closes the
-  audit's findings). All resolved on both → `/roz-gate:integrate <n>`. A
-  QA CR with no `**[reviewer] · fidelity**` record is patrol's `fidelity-audit`.
+### B2.8 Remove the worktrees, unlock + report
+- `git worktree remove --force` both `…/roz-gate/wt/<spec-branch>` and
+  `…/roz-gate/wt/<qa-branch>`, then `git worktree prune` — after B2.7's marker
+  is gone, never while it is on.
+- LABEL-REMOVE `status: processing` only. `status: in-spec-review`, when B2.5
+  applied it, stays: the QA CR is the in-flight state and the threads are
+  the human's.
+- Report: the implementation landed at `<sha>` (or was already merged), the
+  QA CR (draft or ready), the `[qa]` threads posted, the open fidelity
+  threads. **Next:** the human answers the `[qa]` threads
+  (`/roz-gate:spec-answers` folds them and resumes `qa`); `qa` addresses the
+  QA CR's fidelity threads, and a **fresh implementation-blind reviewer
+  dispatch re-checks and resolves** what it is satisfied with (patrol's
+  address-review engine — the audited party never closes the audit's
+  findings). QA CR ready, audited and thread-clean → `/roz-gate:integrate <n>`
+  merges it and runs the recorded verdict. A QA CR with no
+  `**[reviewer] · fidelity**` record is patrol's `fidelity-audit`.
 
 ---
 
@@ -543,16 +688,21 @@ CR-OPEN from `<fast-branch>` targeting `<default_branch>`, title
 ### C6. Code review (5)
 - Dispatch the **reviewer** agent on `git diff origin/<default_branch>...<fast-branch>`,
   **attaching the issue body** (story + acceptance criteria — the claim the
-  diff is reviewed against) — same inline-thread mechanics as B5. The main
+  diff is reviewed against) — same inline-thread mechanics as B5, **and the
+  same record**: one top-level `**[reviewer] · code-review**` comment with
+  `reviewed-sha: <head>` and the counts, posted last, even with zero
+  findings — patrol's hand-off to `in-user-review` reads it (review-clean =
+  record current + zero threads, `workflow.md` (5)). The main
   agent wrote this code, so the reviewer is the independent check; it is NOT
-  skippable — except for **doc-only** diffs.
+  skippable — except for **doc-only** diffs (a doc-only CR carries the record
+  all the same, with `skipped: doc-only` in place of the counts).
 
 ### C7. Remove the worktree, flip labels + report
 - `git worktree remove --force $(git rev-parse --git-common-dir)/roz-gate/wt/<fast-branch>`
   then `git worktree prune`.
 - LABEL-REMOVE `status: ready-for-dev` and `status: processing`.
 - Report the CR and any review threads. **Next:** address review threads; once
-  all are resolved (review-clean), LABEL-ADD `status: in-user-review` — then
+  review-clean (the record current, zero threads), LABEL-ADD `status: in-user-review` — then
   the user reviews and merges the CR; merging closes the issue (patrol's
   close-out finishes it where the forge does not).
   `/roz-gate:integrate` does not apply.
@@ -575,5 +725,9 @@ continue; that is the must-read, the evidence folds under
 `**[next-stage] · blocked**` and ends with the resume line — **To resume:**
 clear `status: blocked`, apply the gate label this run consumed
 (`status: ready-for-spec` or `status: ready-for-dev`) — yourself, or tell the
-main agent; nothing to answer — run the remedy first, if there is one. The escalation valve (C3) is **not** a failure — it is a designed
+main agent; nothing to answer — run the remedy first, if there is one. Path
+B2 consumed no gate label (it entered from in flight): its line reads
+**To resume:** clear `status: blocked` — nothing else; patrol's next pass
+re-runs it, or run `/roz-gate:next-stage <n>`. A B2.2 STOP names the
+conflicting files and says nothing was pushed. The escalation valve (C3) is **not** a failure — it is a designed
 transition and never uses the STOP exit.

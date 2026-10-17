@@ -25,7 +25,8 @@ for _lit in ("No push, no rebase, no amend, no force", "**No dispatch.**", "`hel
     c.expect("pattern", "L3: the brief carries: %s" % _lit.replace("\n", " "), _lit in _cb)
 _commit_points = (
     ("commands/next-stage.md", "### A4. Commit + push\n"),
-    ("commands/next-stage.md", "### B4. Commit + push + open both CRs"),
+    ("commands/next-stage.md", "### B4. Commit + push + open the implementation CR"),
+    ("commands/next-stage.md", "### B2.6 Commit + push + open the QA CR"),
     ("commands/next-stage.md", "### C5. Commit + push + open the CR"),
     ("commands/spec-answers.md", "## 6. Commit the spec edits"),
     ("commands/review-answers.md", "One commit per turn"),

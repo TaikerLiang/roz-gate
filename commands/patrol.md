@@ -84,7 +84,8 @@ column.
 In-loop work: from the rows whose `verdict` starts with `actionable:`, pick the
 issue **closest to done** — priority:
 `/roz-gate:review-answers` > `/roz-gate:integrate` > address-review >
-fidelity-audit > `/roz-gate:spec-answers` > `/roz-gate:next-stage` (`ready-for-dev`) >
+fidelity-audit > code-review > `/roz-gate:next-stage` (`qa` — Path B2) >
+`/roz-gate:spec-answers` > `/roz-gate:next-stage` (`ready-for-dev`) >
 `/roz-gate:next-stage` (`ready-for-spec`) — and perform that action. The (7)
 conversation ranks first: it is definitionally the closest to done, and the
 person waiting there never queues behind machine work. If nothing is
@@ -96,8 +97,10 @@ and a multi-day conversation must not starve the rest of the loop. A turn that
 dispatches or commits consumes the pass.
 
 Then, for every row with verdict `hand-off: in-user-review` (a review-clean
-fast CR), LABEL-ADD `status: in-user-review` — a status report, not a stage
-advance, so exempt from the one-issue rule; the issue now waits on the user.
+fast CR — its `**[reviewer] · code-review**` record current and zero threads,
+never zero threads alone), LABEL-ADD `status: in-user-review` — a status
+report, not a stage advance, so exempt from the one-issue rule; the issue
+now waits on the user.
 
 Then **close out every** issue whose CR is merged (the rows with verdict
 `close-out`; the action below) — a
@@ -141,11 +144,12 @@ workspace).
    double-dispatch).
 2. Spec track: implementation CR threads → dispatch `implementer` on
    `<feat-branch>`; QA CR fidelity threads → dispatch `qa` on `<qa-branch>` **under
-   the fidelity-dispatch procedure** (next-stage.md B5b: marker on, carrying
-   `feat=<feat-branch>` and the test port's `read=` lines, dispatch, marker
+   the fidelity-dispatch procedure** (next-stage.md B2.7: marker on, carrying
+   `feat=<feat-branch>`, the test port's `read=` lines and `seat=qa`, dispatch, marker
    off — guard-blind denies any
    `src/` read outside `<acceptance_dir>` and the port, or git action on
-   `<feat-branch>`, while it runs) (it may
+   `<feat-branch>`, while it runs; the `<qa-branch>` carries the
+   implementation since 2.0.0, so the marker is the blindness) (it may
    decline a finding that lacks verbatim citations) — fix and/or reply.
    Fast track: the main agent addresses its own CR's threads directly
    (it wrote the code; `implementer` is never dispatched onto `<fast-branch>`).
@@ -158,6 +162,11 @@ workspace).
    the excerpt).
 3. Dispatch `reviewer` to re-check the addressed threads and THREAD-RESOLVE
    those it is satisfied with; what stays open waits for the next round.
+   On the implementation CR (spec or fast track), when the re-check resolves
+   the **last** open thread, it COMMENT-EDITs the CR's
+   `**[reviewer] · code-review**` record so its `reviewed-sha:` is the head
+   it re-checked — one record, re-stamped; a head it did not re-check keeps
+   the old SHA and the record reads stale (`workflow.md` (5)).
    Re-checks of QA-CR fidelity threads use a fresh implementation-blind
    dispatch under the fidelity brief, on `<qa-branch>` only — the same
    fidelity-dispatch procedure (contract currency by you, marker on,
@@ -168,23 +177,50 @@ workspace).
    — the `blocked` comment's evidence folds under
    `<details><summary>Evidence</summary>`.
 
+### The code-review action — the review that never ran (or never re-checked)
+For an in-flight implementation CR (`track: spec`, `<feat-branch>`) or fast CR
+(`track: fast`, `<fast-branch>`) whose `**[reviewer] · code-review**` record
+is missing, or whose `reviewed-sha:` is not the CR's head: B5 (or C6) stopped
+before the reviewer posted, or the head moved without a re-check — and a
+thread-clean CR would otherwise read as a reviewed one (#95's shape on the
+implementation side; #140 ruling 9). Patrol runs the review alone.
+1. Lock: LABEL-ADD `status: processing`.
+2. `git fetch`, then
+   `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<branch> <branch>`
+   for the CR's head branch — a refusal (the branch is checked out
+   elsewhere) → the STOP exit.
+3. Dispatch the **reviewer** as next-stage B5 does (C6 on the fast track):
+   the CR's diff against its base, `<specs_dir>/<n>/spec.md` and
+   `technical-spec.md` attached (the issue body on the fast track), the
+   as-built contract diff and the CR's `## Contract deviations` for a
+   `track: spec` CR. It posts its severity-graded threads and, **last**, the
+   `**[reviewer] · code-review**` record with `reviewed-sha: <head>` and the
+   counts — the record this action exists to produce; a stale record is
+   re-stamped by COMMENT-EDIT rather than duplicated. It never commits,
+   never resolves a thread.
+4. `git worktree remove --force` the worktree, `git worktree prune`, clear
+   the lock. Failures follow the STOP protocol — the `blocked` comment's
+   evidence folds under `<details><summary>Evidence</summary>`.
+
 ### The fidelity-audit action — the audit that never ran
 For a `track: spec` issue whose QA CR exists, is not a draft, and carries no
-`**[reviewer] · fidelity**` comment: B5b stopped before the reviewer posted (a
+`**[reviewer] · fidelity**` comment: B2.7 stopped before the reviewer posted (a
 denied read, a killed run), and a thread-clean suite would otherwise read as
-an audited one. Patrol runs the audit alone — nothing else of B5b.
+an audited one. Patrol runs the audit alone — nothing else of B2.7.
 1. Lock: LABEL-ADD `status: processing`.
 2. `git fetch`, then
    `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<qa-branch> <qa-branch>`
    — a refusal (the branch is checked out elsewhere) → the STOP exit.
-3. **The fidelity-dispatch procedure** (next-stage.md B5b, verbatim):
+3. **The fidelity-dispatch procedure** (next-stage.md B2.7, verbatim):
    contract currency by you first — THREADS-LIST on both CRs, the
-   amendment list into the dispatch text, no dispatch on a (5) breach —
+   amendment list and the implementation CR's `## Contract deviations`
+   (copied verbatim under `Contract deviations:`) into the dispatch text,
+   no dispatch on a (5) breach —
    then write the marker —
-   `mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\nfeat=<feat-branch>\nread=<path>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`
+   `mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\nfeat=<feat-branch>\nread=<path>\nseat=<seat>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`
    — one `read=<path>` line per path `technical-spec.md`'s `**Test port**`
-   line names, none for `none`, and the same paths on a line of their own
-   in the dispatch text, `Test port: …` (B5b, #125) — then dispatch the **reviewer** seat in a
+   line names, none for `none`, `seat=reviewer`, and the same paths on a line of their own
+   in the dispatch text, `Test port: …` (B2.7, #125) — then dispatch the **reviewer** seat in a
    **fresh context** with
    `${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md` as its contract, in
    the `<qa-branch>` worktree; immediately after it returns,

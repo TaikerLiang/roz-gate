@@ -54,8 +54,8 @@ for _nm, _s, _e in (("A2", r"^### A2\. Branch", r"^### A3\. "),
              "It carries **no\n`{seq}`**" in _blk and "git push origin --delete" in _blk)
 src("L4: B2 binds feat and qa by Lookup, else Expand", "commands/next-stage.md",
     "Lookup — a previous B run's\nbranch is reused — else Expand")
-src("L4: B5b's marker carries the bound implementation branch", "commands/next-stage.md",
-    "printf 'issue=<n>\\nfeat=<feat-branch>\\nread=<path>\\n'")
+src("L4: the dispatch marker carries the bound implementation branch", "commands/next-stage.md",
+    "printf 'issue=<n>\\nfeat=<feat-branch>\\nread=<path>\\nseat=<seat>\\n'")
 src("L4: patrol's fidelity dispatch names the same marker line", "commands/patrol.md",
     "feat=<feat-branch>")
 src("L4: patrol hands the scanner the remote's heads (the scanner may not run git — codex, PR #82)",

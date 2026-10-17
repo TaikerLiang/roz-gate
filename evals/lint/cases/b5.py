@@ -54,7 +54,7 @@ src("B5 conformance: A3 states the spec documents' must-read sections",
     "`## Rules`, `## Scenarios`, `## Open Questions`, with **at most 3 lines")
 src("B5 conformance: A3 names the spec supplement block",
     "commands/next-stage.md", "`## Supplement` section whose body is one")
-src("B5 conformance: B3 folds test-spec narrative",
-    "commands/next-stage.md", "`test-spec.md` keeps the **must-read on top**")
+src("B5 conformance: the QA brief folds test-spec narrative (B3's text until 2.0.0)",
+    "references/qa-brief.md", "`test-spec.md` keeps the **must-read on top**")
 src("B5 conformance: the patrol report keeps the table and queue as must-read",
     "commands/patrol.md", "trailing `## Details` heading after")

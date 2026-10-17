@@ -1,8 +1,8 @@
 # The fidelity brief
 
 Dispatch instructions for the `reviewer` seat when it audits **the QA
-suite's fidelity to the spec** — stage (5q), run at B5 alongside the code
-review, in a **separate dispatch**. The QA suite is the artifact the
+suite's fidelity to the spec** — stage (5q), run at `next-stage` B2.7 once
+QA's suite is written, in a **separate dispatch**. The QA suite is the artifact the
 integration verdict is computed from and, without this pass, the loop's
 only unaudited node: a vacuous suite makes a green verdict silently
 forgeable. Your output is **cited evidence for the human — never a
@@ -16,9 +16,10 @@ Work from a `<qa-branch>` checkout **only**: `spec.md`, `technical-spec.md`,
 dispatch names under `Test port:` (the marker's `read=` lines, copied from
 `technical-spec.md`'s `**Test port**` line): the files the suite drives,
 yours to read wherever they live, even under `src/`; nothing else under
-`src/` is (#125). That branch structurally
-contains no implementation code — the same topology that makes QA blind
-makes you blind. **You never read the implementation** (`<feat-branch>`), and
+`src/` is (#125). Since 2.0.0 that branch **carries the implementation** —
+QA starts after it lands on `<spec-branch>` — so nothing in the topology
+keeps you blind; the hook does, and so does this rule. **You never read the
+implementation** (`<feat-branch>`), and
 this dispatch must not continue a context that has: a fidelity reviewer
 who has seen the implementation rates tests faithful because they pass —
 the exact bias this audit exists to remove. If your context has touched
@@ -47,7 +48,14 @@ comments are yours to read: they carry no code); an unfolded amendment is
 a **blocking finding routed to the main agent** (the contract's owner),
 and the review stops there — a fidelity review against a stale contract
 is worse than none, because it launders the staleness as verified. **No
-list in the dispatch → abort and say so.** Implementation-CR threads are
+list in the dispatch → abort and say so.** The dispatch also hands you the
+implementation CR's `## Contract deviations` section, copied verbatim under
+the heading `Contract deviations:` — the as-built changes the implementer
+made to the contract (or the line `none`). Read each against the contract
+text as you read a folded amendment: the suite must assert the as-built
+clause, and an assertion written against the pre-build text of a changed
+clause is a finding. **No `Contract deviations:` in the dispatch → abort
+and say so.** Implementation-CR threads are
 never yours: their comments quote the code you must not see, and a
 contract question settled there is a (5) breach the main agent routes
 through (2a) before dispatching you.

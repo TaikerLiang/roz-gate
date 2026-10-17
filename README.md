@@ -91,10 +91,10 @@ template for mobile capture.
 | (1) Intake | main agent + you | one issue = one user story, with observable acceptance criteria and a `track:` label |
 | (2) Spec | em + product + implementer | `spec.md` (scenarios) + `technical-spec.md` (the contract), opened as the **spec CR** |
 | (2a) Q&A | you + role agents | every open question a thread on the spec CR; your answers folded back into the spec — and a thread **you** open is an amendment, folded the same way |
-| (3) Implementation | implementer | `feat/{n}`: code + unit tests |
-| (4) Black-box QA | qa | `qa/{n}`: test plan + acceptance suite — written blind, from spec + contract only |
-| (5) Review | reviewer | severity-graded inline threads (`blocking`/`should-fix`/`nit`/`question`) until review-clean |
-| (6) Integration | main agent | both branches merged locally, QA's suite runs against the code for the first time — **the verdict**; once both CRs are merged, a later run validates the current spec tip and merges nothing |
+| (3) Implementation | implementer | `feat/{n}`: code + unit tests + the test port's Given-state control points; `technical-spec.md` corrected as built, each change declared under the CR's `## Contract deviations` |
+| (5) Review | reviewer | severity-graded inline threads (`blocking`/`should-fix`/`nit`/`question`) plus the `**[reviewer] · code-review**` record (`reviewed-sha`); review-clean = record current + zero threads; then the implementation lands on `spec/{n}` |
+| (4) Black-box QA | qa | `qa/{n}`, cut after the implementation landed: a contract review first (`[qa]` threads on the spec CR), then test plan + acceptance suite from spec + the as-built contract only, through the port, blind by hook rule E; QA runs its suite and clears its harness — a red is a fix or a finding, never an edited assertion |
+| (6) Integration | main agent | the QA branch merged locally, QA's suite runs on the spec tip as the recorded run — **the verdict**; once both CRs are merged, a later run validates the current spec tip and merges nothing |
 | (7) Review | **you** + main agent | you review the spec CR (spec + code + tests + green verdict); the main agent answers your comments there and changes only what you confirm; you merge, or send it back |
 
 **The mental model: owner, contractor, inspector.** The loop is the
@@ -104,18 +104,22 @@ time-honoured commercial structure for buying work you cannot fully watch:
 |---|---|
 | (1) Intake | the **MOU** — intent, scope, roughly how big; no binding terms |
 | (2) Spec + (2a) Q&A | **contract** drafting + negotiation rounds — each open thread a clause you settle |
-| (3) Implementation | performance — the contractor builds |
-| (4) Black-box QA | the third-party inspector writes the acceptance procedure **in advance, from the contract alone** — never visiting the site |
-| (5) Review | site supervision — checks workmanship, not outcomes |
-| (6) Integration | **acceptance** — the procedure meets the finished work for the first time; the verdict |
+| (3) Implementation | performance — the contractor builds, and files every change order it had to make to the contract |
+| (5) Review | site supervision — checks workmanship, not outcomes, and signs the supervision log |
+| (4) Black-box QA | the third-party inspector, once the build is handed over: reads the contract **as built**, writes the acceptance procedure from it and drives the front door — never enters the building |
+| (6) Integration | **acceptance** — the procedure is run on the finished work for the record; the verdict |
 | (7) Review | the walk-through: the owner inspects, asks, gets answers, has snags fixed — then signs off, or sends it back |
 
-Two structural carry-overs give the verdict its credibility. The acceptance
-procedure is written in parallel with the build, blind — a standard agreed
-after construction, together with the builder, is theatre (the qa branch
-carrying no implementation code enforces this). And a contract ambiguity
+Two structural carry-overs give the verdict its credibility. The inspector
+never enters the building: the acceptance procedure is written from the
+contract as built and drives the front door only — a hook (rule E) denies QA
+every read of the implementation while it works, and an assertion is never
+edited to match what a run showed (the fidelity audit checks that every
+expected value has an origin in the contract). And a contract ambiguity
 mid-build is never interpreted by the contractor: it goes back through a
-**change order** — (2a), the loop's only backward transition. You are the
+**change order** — (2a), the loop's only backward transition — while a
+correction the contractor had to make is filed as a declared deviation the
+supervisor reads, never a silent edit. You are the
 owner throughout: you sign (gate labels, the merge) and never build. And when
 the spec stage shows *your* issue missed something, the size of the miss
 picks the route: the spec must cover more → open a thread on the spec CR,
@@ -139,9 +143,14 @@ deals (`track: fast`) skip the contract and close on the MOU alone.
 > (or `none` for an API contract) — which the fidelity dispatch's marker
 > copies, so the blind reviewer may read the port and nothing else under
 > `src/` (#125).
-> Because the port is promised in the contract at stage (2), QA can write its
-> suite in parallel with the build; because it exposes only observable
-> behaviour, the tests survive refactors and the black box stays sealed. In
+> Because the port is promised in the contract at stage (2), the human signs
+> the front door before anything is built; because it exposes only observable
+> behaviour, the tests survive refactors and the black box stays sealed.
+> Given-state is part of it: the seed/setup control points every scenario
+> needs are the implementer's, and QA never touches the persistence layer.
+> For an HTTP feature the port is the API itself; for anything else it is the
+> documented port, process-level where the feature is — "the port is the API"
+> never becomes "the port is always HTTP". In
 > hexagonal-architecture terms: a driving port whose actor is the acceptance
 > suite — the inspector's access hatch, reserved in the contract, never a
 > hole cut in the fence. A port that "conveniently" exposes internals defeats
@@ -164,7 +173,7 @@ cannot authorize it.
 |---|---|
 | `/roz-gate:init` | one-time repo bootstrap (labels, config, personas, templates) |
 | `/roz-gate:to-issues` | live intake: the `product` agent (under the intake brief) clarifies your idea one question at a time; the main agent only relays and publishes the confirmed story — one issue = one story |
-| `/roz-gate:next-stage [n]` | advance one gated issue — spec stage, parallel impl+QA+review, or fast track — routed by its labels; prints the workflow map first |
+| `/roz-gate:next-stage [n]` | advance one issue — spec stage, implementation + review, validation once the implementation has landed (Path B2), or fast track — routed by its labels and CR state; prints the workflow map first |
 | `/roz-gate:spec-answers [n]` | fold your answers on spec-CR threads back into the spec, resolve the threads |
 | `/roz-gate:integrate [n]` | run the stage-(6) verdict: merge what is open (never what is merged), run the acceptance suite, classify red (up to `fix_rounds` rounds), finalize green |
 | `/roz-gate:review-answers [n]` | host one turn of your stage-(7) review: answer your CR comments from the artifacts, dispatch a seat when judgment is needed, change only what you confirm |
@@ -243,9 +252,10 @@ discipline is the manners; the hook is the law.*
 | **B** | an agent applying `status: ready-for-spec` / `ready-for-dev` | a gate label is an authorization — only the human moves it | 1.5.0 |
 | **C** | a marker-carrying comment that opens with a quote block | patrol classifies by the opening token; a quote-opening agent comment reads as a human answer and the loop replies to itself | 1.14.0 |
 | **D** | a `git commit` while `technical-spec.md` still carries an open-questions section | a question outside the threaded surface resolves by silent interpretation; the prose measured 0/5 after it was made explicit | 1.15.0 |
-| **E** | inside a fidelity dispatch, any read of `src/` outside `<acceptance_dir>` (a suite under `src/test/…` stays readable, and so does the test port the marker's `read=` lines name — `technical-spec.md`'s `**Test port**` line), or a git action on a `feat/<n>` ref — or on the implementation branch the dispatch marker names, under a `branch_template` | the blindness the integration verdict rests on — a green looks identical either way | 1.16.0 |
+| **E** | inside an implementation-blind dispatch — the fidelity review, or QA's own (`seat=qa`) — any read of `src/` outside `<acceptance_dir>` (a suite under `src/test/…` stays readable, and so does the test port the marker's `read=` lines name — `technical-spec.md`'s `**Test port**` line), or a git action on a `feat/<n>` ref — or on the implementation branch the dispatch marker names, under a `branch_template` | the blindness the integration verdict rests on — a green looks identical either way; since 2.0.0 the QA branch carries the implementation, so the hook is the blindness | 1.16.0 |
 | **F** | a question comment (`**[<role>] · Q<k> · <label>**` / `**Q<n> · <label>**`) whose options are not `- (a)` / `- (b)` bullets | the forge renders consecutive lines as one paragraph — options as prose reach the holder's phone run together, and the `3a` shorthand has nothing to point at | 1.35.0 |
 | **G** | a STOP comment (`**[<command>] · blocked**`) without its **To resume:** line | the comment is what the holder reads on a phone — without the label move and the channel, they leave `blocked` on and answer where nothing listens | 1.36.0 |
+| **H** | a CR-OPEN (`gh pr create` / `glab mr create`) whose diff touches `<specs_dir>/*/technical-spec.md` and whose body has no `## Contract deviations` section | the contract is corrected during implementation; a correction nobody declared reaches QA and the reviewer as a silent edit | 2.0.0 |
 | **acceptance** | editing the acceptance suite on a spec branch (`spec/<n>`, or whatever `branch_template` renders) | a weakened assertion re-runs green and turns the verdict into an echo of the implementation | 1.11.0 |
 
 Details, the fidelity-dispatch marker, and how to add a rule: `hooks/README.md`.
@@ -516,8 +526,9 @@ work shaped like that, nothing about shapes never run.
    independent derivations.
 3. Contracts, not conversations: exchanges between agents are written and on
    the record, or don't happen at all (QA).
-4. Implementation and QA run in parallel, blind; the verdict at integration is
-   the only honest "does it match the spec".
+4. QA starts after the implementation lands and tests the contract as built —
+   blind by hook, never editing an assertion to what it observed; the
+   verdict at integration is the only honest "does it match the spec".
 5. Ambiguity stops the line — agents surface questions, never guess.
 6. Humans hold the gates; the machine cannot authorize itself.
 7. State lives in labels and CRs, never in a session — crash-safe, auditable,

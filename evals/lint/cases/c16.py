@@ -35,11 +35,11 @@ must_not_match("C16: the scan row's integrate clause never stands without the re
                r"`/roz-gate:integrate",
                read("references/patrol-scan.md"))
 src("C16: patrol ranks fidelity-audit after address-review", "commands/patrol.md",
-    "address-review >\nfidelity-audit > `/roz-gate:spec-answers`")
+    "address-review >\nfidelity-audit > code-review >")
 src("C16: patrol has the fidelity-audit action", "commands/patrol.md",
     "### The fidelity-audit action — the audit that never ran")
-src("C16: the action is B5b's dispatch procedure, marker with the bound ref", "commands/patrol.md",
-    "**The fidelity-dispatch procedure** (next-stage.md B5b, verbatim)")
+src("C16: the action is B2.7's dispatch procedure, marker with the bound ref", "commands/patrol.md",
+    "**The fidelity-dispatch procedure** (next-stage.md B2.7, verbatim)")
 src("C16: a re-check posts no second record", "commands/patrol.md",
     "A re-check\n   posts no second summary")
 src("C16: next-stage B5b names the marker", "commands/next-stage.md",

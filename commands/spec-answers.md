@@ -193,12 +193,17 @@ depends on where the issue is — decided by CR-FIND for `<feat-branch>` /
   Then report that #<n> is fully answered and ready for the user's approval
   to move to implementation. Do NOT touch the gate — applying `ready-for-dev`
   is the user's.
-- **Mid-flight re-entry** — open `<feat-branch>` / `<qa-branch>` CRs exist (the thread
-  was a contract ambiguity raised during (3)+(4)): LABEL-REMOVE both
+- **Mid-flight re-entry** — an open `<feat-branch>` or `<qa-branch>` CR exists
+  (the thread was a contract ambiguity raised during (3) or (4), or one of
+  QA's `[qa]` contract-review findings — since 2.0.0 the implementation CR
+  is normally already merged when QA's threads open): LABEL-REMOVE both
   `status: in-spec-review` and `status: processing`, then re-dispatch the
-  paused side (normally `qa`) with the amended contract so it resumes. When
-  `qa` reports its suite complete, CR-READY its CR — until then it stays
-  draft. Report the amendment and what resumed.
+  paused side (normally `qa`, under the QA dispatch procedure —
+  `next-stage.md` B2.4: marker on with `seat=qa`, the QA brief, marker off)
+  with the amended contract so it resumes. When
+  `qa` reports its suite complete **and no `[qa]` thread is still open**,
+  CR-READY its CR — until then it stays draft. Report the amendment and
+  what resumed.
 - **Post-integration re-entry** — `<feat-branch>` / `<qa-branch>` exist but are
   **merged** (the issue came back from (7): the user's review raised something
   that changed what a rule means). The work is built, so this never returns to

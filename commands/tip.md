@@ -58,7 +58,12 @@ it waits on or clears.
 - `git worktree list`: a worktree under `.git/roz-gate/wt/` on one of the
   bound branches is a leftover of a killed run when no command is running.
 - The fidelity record: on the QA CR, CR-COMMENTS-LIST for a
-  `**[reviewer] · fidelity**` comment — stage (6) requires it.
+  `**[reviewer] · fidelity**` comment — stage (6) requires it. The
+  code-review record: on the implementation CR (or the fast CR),
+  CR-COMMENTS-LIST for a `**[reviewer] · code-review**` comment and whether
+  its `reviewed-sha:` is the branch's head in the `ls-remote` output —
+  review-clean is that record current **and** zero open threads
+  (`workflow.md` (5)), never zero threads alone.
 
 No ISSUE-LIST, no other issue, no dispatch: one issue, read once. Everything
 you need to answer is in these reads and in
@@ -81,12 +86,14 @@ command, does if you do nothing):
 | inbox, the gate holder's latest comment requests `summary` (its first or last non-empty line, stripped of emphasis/backticks/quotes and case, is exactly `summary`; no `**[intake] · summary**` since) | nothing | the next pass posts the `**[intake] · summary**` (`patrol.md` → the async-intake action) |
 | inbox, `**[intake] · summary**` posted | the holder applies `ready-for-spec` (⇒ `track: spec`) or `ready-for-dev` (⇒ `track: fast`) — the label is the confirmation; corrections: reply, end with `summary` | finalize on the next pass after the label: body rewrite + the `track:` |
 | `spec` + `ready-for-spec`, or `fast` + `ready-for-dev`, no branch of that kind on the remote | nothing — you authorized it | `/roz-gate:next-stage <n>` cuts the branch on the next pass: (2) the spec stage, or the fast track |
-| `spec` + `ready-for-dev`, the spec CR open — the one you approved | nothing — you authorized it | `/roz-gate:next-stage <n>` launches (3)+(4)+(5) off `<spec-branch>` on the next pass |
+| `spec` + `ready-for-dev`, the spec CR open — the one you approved | nothing — you authorized it | `/roz-gate:next-stage <n>` launches (3)+(5) off `<spec-branch>` on the next pass (Path B); QA follows once the implementation lands |
 | `in-spec-review`, an unresolved thread whose last comment is yours (answered), or a thread you opened | nothing further | `/roz-gate:spec-answers <n>` folds it on the next pass |
 | `in-spec-review`, unresolved threads awaiting you | answer each inline on the spec CR — each is one contract clause with a recommendation; or open a thread yourself for a gap | nothing until you answer |
-| `in-spec-review`, every thread resolved, nothing unheard | apply `status: ready-for-dev` — all threads resolved is the (2) → (3) gate (`workflow.md` → owner table) | nothing until the label; then `next-stage` launches (3)+(4) |
-| no `status:`, `track: spec`, CRs open (in flight) | nothing — unless a CR thread is `· question` to you | address-review while either CR has open review threads; the fidelity audit when the QA CR lacks its record; `/roz-gate:integrate <n>` when both are thread-clean (or merged) and the record is there — the next pass does whichever applies |
-| no `status:`, `track: fast`, CR open | nothing | address-review while threads are open; review-clean → the pass applies `in-user-review` |
+| `in-spec-review`, every thread resolved, nothing unheard | apply `status: ready-for-dev` — all threads resolved is the (2) → (3) gate (`workflow.md` → owner table) | nothing until the label; then `next-stage` launches (3)+(5) |
+| no `status:`, `track: spec`, the implementation CR open, no QA CR (in flight, (3)) | nothing — unless a CR thread is `· question` to you | address-review while the CR has open review threads; patrol's `code-review` action when its `**[reviewer] · code-review**` record is missing or stale; **review-clean** (record current, zero threads) → `/roz-gate:next-stage <n>` runs Path B2: lands the implementation on `<spec-branch>` and launches (4)+(5q) — the next pass does whichever applies (`workflow.md` (3)/(5), `patrol-scan.md § Classify`) |
+| no `status:`, `track: spec`, the implementation CR merged, no QA CR | nothing | `/roz-gate:next-stage <n>` (Path B2) cuts `<qa-branch>` off the spec tip and launches (4)+(5q) on the next pass |
+| no `status:`, `track: spec`, the implementation CR merged (or review-clean), the QA CR open (in flight, (4)) | nothing — unless a CR thread is `· question` to you, or a `[qa]` thread on the spec CR is yours to answer (then the issue wears `in-spec-review`) | address-review while the QA CR has open fidelity threads; the fidelity audit when it lacks its record; `/roz-gate:integrate <n>` when it is ready, audited and thread-clean (or merged) — the next pass does whichever applies |
+| no `status:`, `track: fast`, CR open | nothing | address-review while threads are open; patrol's `code-review` action when the record is missing or stale; review-clean (record current, zero threads) → the pass applies `in-user-review` |
 | `in-user-review`, something unheard on the CR | nothing further — you were heard | `/roz-gate:review-answers <n>` on the next pass |
 | `in-user-review`, the last agent marker is `· question` | reply on the CR — that answer is what (7) waits on | nothing until you reply |
 | `in-user-review`, nothing unheard, no `· question` | review the CR: **merge it, change it (comment — `review-answers` hosts the turn), or send it back to intake** (strip `track:` + `status:`) | nothing until you move |

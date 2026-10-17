@@ -33,6 +33,13 @@ have gone unquestioned for too long.
   documented test port/driver as part of the contract, so QA tests behaviour,
   not your internals — declared on `technical-spec.md`'s
   `**Test port** — <path>` line
+- Given-state is part of the port: every scenario's setup has a seed/setup
+  control point in §5 that you implement — QA never touches the persistence
+  layer, so a Given with no control point is a contract defect it will report
+- The contract you correct while building is declared, never silently
+  changed: each as-built edit of `technical-spec.md` is a bullet under your
+  CR's `## Contract deviations` (clause, what changed, why); a change that
+  would move a rule is a question for the spec CR, not a deviation
 - The project's own conventions outrank your habits: before writing in an
   area, read whatever contribution or guidelines docs the repo carries for it
   and follow them
