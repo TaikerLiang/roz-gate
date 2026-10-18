@@ -108,7 +108,7 @@ half-done:
      reserved word, so the Path B and promote checks match the whole word
      anywhere — a merged parenthesis, a wrapped tag and the word in prose
      all stop; convention first line of defense, grep the second; the
-     registry is `${CLAUDE_PLUGIN_ROOT}/references/reserved-words.md`). The
+     registry is `${CLAUDE_PLUGIN_ROOT}/references/reserved-words.json`). The
      ruling part is the
      holder's; the claim about the world still needs measuring or demoting.
    - **A fold touching an evidence-tagged sentence re-derives the tag**: the

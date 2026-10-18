@@ -1,0 +1,12 @@
+{
+  "words": [
+    {
+      "word": "unverified",
+      "reserved_for": "the evidence tag on an empirical claim in a spec document (A3): asserted, load-bearing, and nobody has checked",
+      "form": "(unverified) as a tag in a spec document; in this plugin's files, code formatting only",
+      "since": "1.37.0",
+      "ruling": "#123",
+      "registered": "2.2.0 (#154)"
+    }
+  ]
+}

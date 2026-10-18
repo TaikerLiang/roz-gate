@@ -161,7 +161,8 @@ Base everything strictly on the issue body. Per the workflow's stage (2):
     so the word loose in a sentence stops the gate exactly as the tag
     does, and the remedy is to reword it, never to wave it through as a
     false positive (#123). The registry of reserved words is
-    `${CLAUDE_PLUGIN_ROOT}/references/reserved-words.md`.
+    `${CLAUDE_PLUGIN_ROOT}/references/reserved-words.json`; its rule is
+    `reserved-words.md` beside it.
   - `(assumed-empirical: <named risk>)` — the demotion: not measured,
     accepted as an assumption with its risk stated. Distinct from
     `(assumed)`, which marks an unconfirmed *decision*; this marks an

@@ -1,13 +1,15 @@
 """B9 · the reserved-word registry is the single source          (#154, 2.2.0)
-`references/reserved-words.md` lists the loop's reserved words, one row per
-word. Every listed word has its whole-word gate grep in Path B and promote,
-and appears in the four English-as-code directories only in code
-formatting. Before #154 the one word, `unverified`, was restated at two
-command sites and used bare twice in the runtime prose under a green
-suite (`references/workflow.md`, the Path B heading); a second word would
-have meant five hand edits and nothing to say which sites.
+`references/reserved-words.json` lists the loop's reserved words, one entry
+per word (its rule: `reserved-words.md` beside it). Every listed word has
+its whole-word gate grep in Path B and promote, and appears in the four
+English-as-code directories' Markdown only in code formatting. Before
+#154 the one word, `unverified`, was restated at two command sites and
+used bare twice in the runtime prose under a green suite
+(`references/workflow.md`, the Path B heading); a second word would have
+meant five hand edits and nothing to say which sites.
 """
 
+import json
 import os
 import re
 
@@ -17,17 +19,16 @@ META = {
     "id": 'B9',
     "title":
         'the reserved-word registry is the single source — every word in '
-        '`references/reserved-words.md` has a whole-word gate grep in Path B and promote, and '
-        'appears in `agents commands references templates` only in code formatting; a bare use, '
-        'a missing grep or an empty registry is red',
+        '`references/reserved-words.json` has a whole-word gate grep in Path B and promote, and '
+        'appears in the Markdown of `agents commands references templates` only in code '
+        'formatting; a bare use, a missing grep or an empty registry is red',
     "tier": 'lint (#154, 2.2.0)',
     "ledger": None,
 }
 
-REGISTRY = "references/reserved-words.md"
+REGISTRY = "references/reserved-words.json"
 RUNTIME_DIRS = ("agents", "commands", "references", "templates")
 GREP_SITES = ("commands/next-stage.md", "commands/spec-answers.md")
-ROW = re.compile(r"^\| `([^`]+)` \|", re.M)
 FENCE = re.compile(r"^(```|~~~)[^\n]*\n.*?^\1[^\n]*$", re.M | re.S)
 # CommonMark code span: a backtick run closes only at a run of the same length,
 # and never across a blank line — a span is inline, it cannot leave its block.
@@ -53,8 +54,11 @@ def bare_hits(word, text):
     return out
 
 
-words = ROW.findall(read(REGISTRY))
+entries = json.loads(read(REGISTRY)).get("words", [])
+words = [e["word"] for e in entries if isinstance(e, dict) and e.get("word")]
 c.expect("pattern", "B9 registry: at least one word is listed", len(words) >= 1)
+c.expect("pattern", "B9 registry: every entry carries word, reserved_for, form, since, ruling",
+         all({"word", "reserved_for", "form", "since", "ruling"} <= set(e) for e in entries))
 c.expect("pattern", "B9 registry: `unverified` is a row", "unverified" in words)
 
 # the masker itself, red-proofed on fixtures
@@ -77,6 +81,8 @@ for word in words:
             c.fail(name, "%s lacks the literal: %s" % (site, literal))
     hits = []
     for path in dir_files(*RUNTIME_DIRS):
+        if not path.endswith(".md"):
+            continue  # the registry itself is data, not prose
         with open(path, encoding="utf-8") as f:
             text = f.read()
         rel = os.path.relpath(path, R)
