@@ -253,7 +253,7 @@ issue body, and all comments), never patrol's own.
      body**. Obtain the summary — reuse the latest `**[intake] · summary**`
      comment **verbatim** if no gate-holder comment follows it (comments
      from anyone else are thread discussion: never folded in, never listed,
-     never blocking); if the holder commented after it, or no summary
+     never a reason to wait); if the holder commented after it, or no summary
      exists, dispatch for a fresh one whose fold-in scope is **the holder's
      words only** (bystander input is context, folded in solely through the
      holder's explicit endorsement) and ISSUE-COMMENT it, prefixed
@@ -289,7 +289,7 @@ state and its own wait, and no row cites another pass — "unchanged",
 "same as previous pass", "see last pass" are not clauses.
 
 **The table** — this header, one row per issue the scanner listed (open loop
-issues, close-out candidates, locked, blocked, inbox issues in the filter),
+issues, close-out candidates, locked, `blocked`, inbox issues in the filter),
 in the scanner's order, nothing else in it:
 
 `| issue | state | this pass | needs you |`

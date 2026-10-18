@@ -1,8 +1,10 @@
-"""B9 · the reserved-word registry is the single source          (#154, 2.2.0)
+"""B9 · the reserved-word registry is the single source    (#154 2.2.0, #160 2.2.1)
 `references/reserved-words.json` lists the loop's reserved words, one entry
-per word (its rule: `reserved-words.md` beside it). Every listed word has
-its whole-word gate grep in Path B and promote, and appears in the four
-English-as-code directories' Markdown only in code formatting. Before
+per word (its rule: `reserved-words.md` beside it). Every listed word
+appears in the four English-as-code directories' Markdown only in code
+formatting; every `spec_gate` word (only `unverified`) has its whole-word
+gate grep in Path B and promote. #160 added seven protocol literals that
+are reserved in the plugin's own files, never a spec-document gate. Before
 #154 the one word, `unverified`, was restated at two command sites and
 used bare twice in the runtime prose under a green suite
 (`references/workflow.md`, the Path B heading); a second word would have
@@ -19,10 +21,11 @@ META = {
     "id": 'B9',
     "title":
         'the reserved-word registry is the single source — every word in '
-        '`references/reserved-words.json` has a whole-word gate grep in Path B and promote, and '
-        'appears in the Markdown of `agents commands references templates` only in code '
-        'formatting; a bare use, a missing grep or an empty registry is red',
-    "tier": 'lint (#154, 2.2.0)',
+        '`references/reserved-words.json` appears in the Markdown of `agents commands references '
+        'templates` only in code formatting, and every `spec_gate` word (`unverified`) has a '
+        'whole-word gate grep in Path B and promote; a bare use, a missing grep or an empty '
+        'registry is red',
+    "tier": 'lint (#154, 2.2.0; #160, 2.2.1)',
     "ledger": None,
 }
 
@@ -59,10 +62,15 @@ def bare_hits(word, text):
 entries = json.loads(read(REGISTRY)).get("words", [])
 words = [e["word"] for e in entries if isinstance(e, dict) and e.get("word")]
 c.expect("pattern", "B9 registry: at least one word is listed", len(words) >= 1)
-FIELDS = {"word", "reserved_for", "form", "since", "ruling", "registered"}
+FIELDS = {"word", "reserved_for", "form", "spec_gate", "since", "ruling", "registered"}
 c.expect("pattern", "B9 registry: every entry carries %s" % ", ".join(sorted(FIELDS)),
          all(FIELDS <= set(e) for e in entries))
+c.expect("pattern", "B9 registry: `spec_gate` is a boolean on every entry",
+         all(isinstance(e.get("spec_gate"), bool) for e in entries))
 c.expect("pattern", "B9 registry: `unverified` is a row", "unverified" in words)
+c.expect("pattern", "B9 registry: `unverified` is a spec-document gate (Path B, promote)",
+         any(e.get("word") == "unverified" and e.get("spec_gate") is True for e in entries))
+gated = {e["word"] for e in entries if isinstance(e, dict) and e.get("spec_gate") is True}
 
 # the masker itself, red-proofed on fixtures
 c.expect("pattern", "B9 masker: three bare uses (prose, heading, bold) are three hits",
@@ -75,7 +83,7 @@ c.expect("pattern", "B9 masker: an indented fence with a blank line is code — 
          bare_hits("unverified", fixture("b9_indent.md")) == [])
 
 for word in words:
-    for site in GREP_SITES:
+    for site in GREP_SITES if word in gated else ():
         literal = "grep -nwi %s <specs_dir>/<n>/*.md" % word
         name = "B9 gate: %s carries the whole-word grep for `%s`" % (site, word)
         if literal in read(site):

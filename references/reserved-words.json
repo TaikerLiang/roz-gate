@@ -4,9 +4,73 @@
       "word": "unverified",
       "reserved_for": "the evidence tag on an empirical claim in a spec document (A3): asserted, load-bearing, and nobody has checked",
       "form": "(unverified) as a tag in a spec document; in this plugin's files, code formatting only",
+      "spec_gate": true,
       "since": "1.37.0",
       "ruling": "#123",
       "registered": "2.2.0 (#154)"
+    },
+    {
+      "word": "processing",
+      "reserved_for": "the lock label `status: processing`: a command holds the issue",
+      "form": "`processing` or `status: processing`, code formatting only",
+      "spec_gate": false,
+      "since": "2.2.1",
+      "ruling": "#160",
+      "registered": "2.2.1 (#160)"
+    },
+    {
+      "word": "blocked",
+      "reserved_for": "the label `status: blocked`: the loop waits on the human",
+      "form": "`blocked` or `status: blocked`, code formatting only",
+      "spec_gate": false,
+      "since": "2.2.1",
+      "ruling": "#160",
+      "registered": "2.2.1 (#160)"
+    },
+    {
+      "word": "blocking",
+      "reserved_for": "the review severity `blocking`: must fix before the CR moves",
+      "form": "`blocking` in a severity marker or list, code formatting only",
+      "spec_gate": false,
+      "since": "2.2.1",
+      "ruling": "#160",
+      "registered": "2.2.1 (#160)"
+    },
+    {
+      "word": "assumed",
+      "reserved_for": "the authority tag `(assumed)` on an unconfirmed decision, and the first token of the evidence tag `(assumed-empirical: <risk>)` (A3)",
+      "form": "`(assumed)` or `(assumed-empirical: <risk>)`, code formatting only",
+      "spec_gate": false,
+      "since": "2.2.1",
+      "ruling": "#160",
+      "registered": "2.2.1 (#160)"
+    },
+    {
+      "word": "labeled",
+      "reserved_for": "the forge event type `labeled`, read by the gate-label audit (#144)",
+      "form": "`labeled`, code formatting only",
+      "spec_gate": false,
+      "since": "2.2.1",
+      "ruling": "#160",
+      "registered": "2.2.1 (#160)"
+    },
+    {
+      "word": "uncovered",
+      "reserved_for": "the QA suite-map row value `uncovered`: a scenario with no test",
+      "form": "`uncovered`, code formatting only",
+      "spec_gate": false,
+      "since": "2.2.1",
+      "ruling": "#160",
+      "registered": "2.2.1 (#160)"
+    },
+    {
+      "word": "unfolded",
+      "reserved_for": "the amendment-line marker `unfolded`: an amendment not yet folded into the contract",
+      "form": "`unfolded`, code formatting only",
+      "spec_gate": false,
+      "since": "2.2.1",
+      "ruling": "#160",
+      "registered": "2.2.1 (#160)"
     }
   ]
 }

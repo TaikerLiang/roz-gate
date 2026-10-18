@@ -44,8 +44,8 @@ spec-CR threads and issue comments **since `technical-spec.md`'s last
 commit**, each marked `folded at <ID>` or `unfolded`, or the one line
 `none since <sha>` — assembled by the main agent, who is not blind. Verify each
 folded entry against the contract text yourself (spec-CR threads and issue
-comments are yours to read: they carry no code); an unfolded amendment is
-a **blocking finding routed to the main agent** (the contract's owner),
+comments are yours to read: they carry no code); an `unfolded` amendment is
+a **`blocking` finding routed to the main agent** (the contract's owner),
 and the review stops there — a fidelity review against a stale contract
 is worse than none, because it launders the staleness as verified. **No
 list in the dispatch → abort and say so.** The dispatch also hands you the

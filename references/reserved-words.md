@@ -15,15 +15,21 @@ and agents read. One entry per word:
 | `word` | the reserved word, lower case |
 | `reserved_for` | what the word means in the loop, and where |
 | `form` | the only form it takes in a spec document, and in this plugin's files |
+| `spec_gate` | `true` when a bare use blocks a spec document: Path B and promote grep for it |
 | `since` | the version that reserved it |
 | `ruling` | the issue that ruled it |
 | `registered` | the version and issue that added the entry |
 
 Lint B9 reads the registry and checks every entry: a bare use in the four
-directories' Markdown, a Path B or promote grep that does not cover the word,
-or an empty registry is red.
+directories' Markdown, a Path B or promote grep that does not cover a
+`spec_gate` word, or an empty registry is red.
 
+A word qualifies when it is a protocol literal — a label value, a tag, a
+review severity, a forge event type, a table-row value the loop reads or
+writes verbatim — and its ordinary English reading differs from that
+meaning (#160). A defined term is a glossary concept, not a reserved word.
 Adding a word takes one ruling by the maintainer and one entry in the
-registry, and the `grep -nwi` lines in `commands/next-stage.md` (Path B) and
-`commands/spec-answers.md` (promote) extended to the word; B9 names each site
-that still has to change. A candidate is never listed.
+registry; for a `spec_gate` word, the `grep -nwi` lines in
+`commands/next-stage.md` (Path B) and `commands/spec-answers.md` (promote)
+are extended to it too. B9 names each site that still has to change. A
+candidate is never listed.

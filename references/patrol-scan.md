@@ -38,7 +38,7 @@ suffix stripped); both non-empty, both must hold; an empty list is no
   report. The filter applies to the inbox alone; an issue carrying a
   `track:` label advances by its labels whoever holds it.
 - For issues with a `track:` label, validate the invariants (exactly one
-  `track:`; at most one `status:` besides the processing lock; `track: fast`
+  `track:`; at most one `status:` besides the `processing` lock; `track: fast`
   never with a spec-stage status). An issue in an illegal state: **skip it and
   report it** — never repair labels.
 - **Gate-label audit.** For every issue wearing a gate label (`status:
@@ -90,7 +90,7 @@ suffix stripped); both non-empty, both must hold; an empty list is no
 ## The table — your whole deliverable
 
 Return exactly one Markdown table — `issue · track · status · holder · cr · unheard · verdict · evidence` — one row per issue the scan saw (open loop
-issues, close-out candidates, locked, blocked, inbox issues in the filter),
+issues, close-out candidates, locked, `blocked`, inbox issues in the filter),
 then one line for the filtered-out count. Columns, in this order:
 
 | column | content |
