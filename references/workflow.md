@@ -288,7 +288,7 @@ partial run assert observed values nobody observed. What such a run licenses is
 one sentence and never more: *"green against the pre-rework spec, at SHA
 `<x>`"*. The acceptance suite derives from the spec as approved, so it can only
 fail on behaviour the spec described. Rework that *adds* behaviour no scenario
-describes ships green and unverified — nothing in the loop can verify it,
+describes ships green and unchecked — nothing in the loop can verify it,
 because verification needs a spec and by construction there is not one. That is
 what the other door is for, and why it stays visible. One re-application
 carries no run: the post-integration re-entry of a fold that **changed

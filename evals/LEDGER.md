@@ -74,6 +74,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | B6 | `unverified` is a reserved word — a spec document carries it only as the evidence tag; the Path B and promote checks match the whole word anywhere, so the word in prose (line-initial after a wrap, mid-sentence, capitalised) stops the gate like a tag and the remedy is to reword; `unverifiable` / `verified` are not hits | lint (defect 1.36.1-, #123) | — |
 | B7 | the patrol report is one fixed table — `\| issue \| state \| this pass \| needs you \|`, one row per scanned issue, one clause per cell, no row citing another pass; the queue is exactly the `needs you` rows with links; `## Details` trails and never hides what needs the human | lint (defect 1.37.0-, #124) | — |
 | B8 | QA's level is pinned — through the port only, in `<acceptance_dir>`, no unit tests, no implementation imports beyond the port's declared types; the port is the API for an HTTP feature and never "always HTTP" | lint (#140, 2.0.0) | — |
+| B9 | the reserved-word registry is the single source — every word in `references/reserved-words.md` has a whole-word gate grep in Path B and promote, and appears in `agents commands references templates` only in code formatting; a bare use, a missing grep or an empty registry is red | lint (#154, 2.2.0) | — |
 
 ### C · labels and exits
 
