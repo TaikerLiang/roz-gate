@@ -29,8 +29,9 @@ RUNTIME_DIRS = ("agents", "commands", "references", "templates")
 GREP_SITES = ("commands/next-stage.md", "commands/spec-answers.md")
 ROW = re.compile(r"^\| `([^`]+)` \|", re.M)
 FENCE = re.compile(r"^(```|~~~)[^\n]*\n.*?^\1[^\n]*$", re.M | re.S)
-# CommonMark code span: a backtick run closes only at a run of the same length.
-CODE = re.compile(r"(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)", re.S)
+# CommonMark code span: a backtick run closes only at a run of the same length,
+# and never across a blank line — a span is inline, it cannot leave its block.
+CODE = re.compile(r"(?<!`)(`+)(?!`)((?:(?!\n[ \t]*\n).)+?)(?<!`)\1(?!`)", re.S)
 
 
 def _blank(m):
@@ -61,6 +62,8 @@ c.expect("pattern", "B9 masker: three bare uses (prose, heading, bold) are three
          len(bare_hits("unverified", fixture("b9_bare.md"))) == 3)
 c.expect("pattern", "B9 masker: code span, fence, unverifiable, verified — zero hits",
          bare_hits("unverified", fixture("b9_code.md")) == [])
+c.expect("pattern", "B9 masker: unmatched backticks in other paragraphs do not hide the word",
+         len(bare_hits("unverified", fixture("b9_cross.md"))) == 1)
 
 for word in words:
     for site in GREP_SITES:
