@@ -160,7 +160,9 @@ Base everything strictly on the issue body. Per the workflow's stage (2):
     measured* or *asserted* — the checks match the whole word anywhere,
     so the word loose in a sentence stops the gate exactly as the tag
     does, and the remedy is to reword it, never to wave it through as a
-    false positive (#123).
+    false positive (#123). The registry of reserved words is
+    `${CLAUDE_PLUGIN_ROOT}/references/reserved-words.json`; its rule is
+    `reserved-words.md` beside it.
   - `(assumed-empirical: <named risk>)` — the demotion: not measured,
     accepted as an assumption with its risk stated. Distinct from
     `(assumed)`, which marks an unconfirmed *decision*; this marks an
@@ -306,7 +308,7 @@ resolved). If `<spec-branch>` does not exist, stop and say so. Since 2.0.0 this
 path builds and reviews the implementation **only**; QA starts in Path B2
 once the implementation has landed on `<spec-branch>` (#140).
 
-**Unverified-claim check (before anything else):**
+**Reserved-word check (before anything else):**
 `grep -nwi unverified <specs_dir>/<n>/*.md` — the whole word, anywhere:
 `unverified` is reserved for the evidence tag (A3), so its own parenthesis,
 a tag merged into another (`(from Q4, unverified)`), a wrap-split compound
