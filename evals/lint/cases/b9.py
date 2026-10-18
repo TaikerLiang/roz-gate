@@ -29,7 +29,9 @@ META = {
 REGISTRY = "references/reserved-words.json"
 RUNTIME_DIRS = ("agents", "commands", "references", "templates")
 GREP_SITES = ("commands/next-stage.md", "commands/spec-answers.md")
-FENCE = re.compile(r"^(```|~~~)[^\n]*\n.*?^\1[^\n]*$", re.M | re.S)
+# A fence may be indented (three spaces in CommonMark, more inside a list item);
+# an indented block is code either way, so any indentation opens and closes one.
+FENCE = re.compile(r"^[ \t]*(```|~~~)[^\n]*\n.*?^[ \t]*\1[^\n]*$", re.M | re.S)
 # CommonMark code span: a backtick run closes only at a run of the same length,
 # and never across a blank line — a span is inline, it cannot leave its block.
 CODE = re.compile(r"(?<!`)(`+)(?!`)((?:(?!\n[ \t]*\n).)+?)(?<!`)\1(?!`)", re.S)
@@ -57,8 +59,9 @@ def bare_hits(word, text):
 entries = json.loads(read(REGISTRY)).get("words", [])
 words = [e["word"] for e in entries if isinstance(e, dict) and e.get("word")]
 c.expect("pattern", "B9 registry: at least one word is listed", len(words) >= 1)
-c.expect("pattern", "B9 registry: every entry carries word, reserved_for, form, since, ruling",
-         all({"word", "reserved_for", "form", "since", "ruling"} <= set(e) for e in entries))
+FIELDS = {"word", "reserved_for", "form", "since", "ruling", "registered"}
+c.expect("pattern", "B9 registry: every entry carries %s" % ", ".join(sorted(FIELDS)),
+         all(FIELDS <= set(e) for e in entries))
 c.expect("pattern", "B9 registry: `unverified` is a row", "unverified" in words)
 
 # the masker itself, red-proofed on fixtures
@@ -68,6 +71,8 @@ c.expect("pattern", "B9 masker: code span, fence, unverifiable, verified — zer
          bare_hits("unverified", fixture("b9_code.md")) == [])
 c.expect("pattern", "B9 masker: unmatched backticks in other paragraphs do not hide the word",
          len(bare_hits("unverified", fixture("b9_cross.md"))) == 1)
+c.expect("pattern", "B9 masker: an indented fence with a blank line is code — zero hits",
+         bare_hits("unverified", fixture("b9_indent.md")) == [])
 
 for word in words:
     for site in GREP_SITES:
