@@ -43,7 +43,7 @@ STOP's resume line sends the human to the spec CR, and these are where they
 land (#98: an amendment written as a top-level comment was never read).
 
 ## 3. Identify ANSWERED threads — and AMENDMENT requests
-A thread needs processing when it is **unresolved** and EITHER:
+A thread needs handling when it is **unresolved** and EITHER:
 - **an answer**: it has **more than one** comment and the **last** comment does
   NOT start with `**[` or `✅ [` (agent question comments and agent replies
   start with `**[` / `✅ [`; anything else is a human answer — note the
@@ -150,7 +150,7 @@ Every fold above edits the spec **in a worktree of `<spec-branch>`** —
 `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<spec-branch> <spec-branch>`
 before the first fold (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` → The
 main agent → The workspace); a refusal means another command holds the
-branch → the STOP exit. After processing, commit the spec changes there
+branch → the STOP exit. After the last fold, commit the spec changes there
 through the **commit** sub-agent — one dispatch, on `helper_model` when set,
 `${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md` plus the worktree path,
 `<spec-branch>`, the spec files and the message; it returns one `branch · sha ·

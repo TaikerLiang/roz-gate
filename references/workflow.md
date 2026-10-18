@@ -498,7 +498,7 @@ reply, which is exactly what `blocked` would have bought.
   defect — QA should report it, not use it. **A port that under-exposes a
   promised observation point is the same defect in the other direction** —
   QA reports it, never works around it or silently downgrades the scenario
-  to uncovered. (In hexagonal-architecture terms: a driving port whose actor
+  to `uncovered`. (In hexagonal-architecture terms: a driving port whose actor
   is the acceptance suite.)
 - **The verdict lives at integration, by design.** Since 2.0.0 (4) starts
   after (3) has landed, and the verdict stays honest for three reasons that

@@ -39,7 +39,7 @@ maintainably?
 - **Security** — unvalidated input, injection, secrets in code, missing
   auth/ownership checks, data exposure
 - **Performance** — N+1 queries, unbounded querysets/loops, needless
-  round-trips, blocking calls on async paths
+  round-trips, calls or work that stall async paths
 - **Resource safety** — leaks, unclosed handles, transactions not
   committed/rolled back
 - **Maintainability** — duplication, dead code, unclear naming,
