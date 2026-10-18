@@ -2,6 +2,28 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.1.0 — the gate-label audit — 2026-10-18
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.1.0>
+
+**Behavior: patrol now reads who applied each gate label; one applied by a bot identity is reported as an illegal state and never acted on.** The detection layer protocol §4 promised, covering agents the hook cannot reach; a human's application, holder or not, stays the authorization.
+
+### Behavior
+- **Gate-label audit** (#144): the scanner reads the forge's label events (`ISSUE-LABEL-EVENTS`, new in both adapters) for every issue wearing `status: ready-for-spec` / `status: ready-for-dev`; a bot actor — a configured `bot_login`, a GitHub `[bot]`, a GitLab project/group bot — makes the row `illegal state: gate label applied by <login>`: no dispatch, no finalize, a queue item (remove the label, then reapply it yourself), never repaired.
+
+### Evals
+- **C24** (lint, #144): the op in both adapters, the scanner's audit rule, patrol's clause and queue verb, workflow's and protocol's sentences — red-proofed by mutation (lint 784 → 810, 46 case files).
+- **F13** (replay, #144): a pass over two bot-labelled issues dispatches nothing, locks nothing, finalizes nothing, and queues both with links; the forge stub gains the `label-events` route (synthesized for fixtures without a timeline). Replay 44 → 45; baseline is the maintainer's call.
+
+### Tooling
+- **Lint harness** (#149): `dir_files` yields only `.md`, `.html` and `.json`, so a binary dropped under `docs/` (an untracked PDF took the pre-push suite down at import) no longer crashes the suite. No case changed.
+
+### Docs
+- `README.md`, `docs/index.html`, `docs/onboarding.html`, `docs/protocol.md` §4 (detection), `docs/ROADMAP.md` item 4 (Detection) resolved (#144).
+
+### Checks
+Hook tests 398/398 · lint 810/810 · red-proofs 30/30
+
 ## v2.0.0 — QA starts after the implementation lands; protocol v1 published — 2026-10-17
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.0.0>
