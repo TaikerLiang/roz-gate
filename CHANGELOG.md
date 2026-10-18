@@ -2,6 +2,24 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.2.0 — the reserved-word registry — 2026-10-18
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.2.0>
+
+**Behavior:** the loop's reserved words have a registry, `references/reserved-words.json`; in every English-as-code file a reserved word appears only in code formatting or as its tag.
+
+### Behavior
+- **Reserved-word registry** (#154): `references/reserved-words.json` is the single source — one entry per word with what it is reserved for, its only form and the version it entered; `unverified` is its first and only entry. `references/reserved-words.md` states the rule and how a word is added. A3 and the fold rule point at it; the Path B and promote greps are unchanged.
+
+### Evals
+- **B9** (lint, #154): every registered word has its whole-word gate grep in both commands and appears bare nowhere in `agents commands references templates` (fenced and inline code masked) — red-proofed four ways by mutation. Two bare uses found and reworded (`references/workflow.md`, the Path B heading).
+
+### Docs
+- `commands/next-stage.md`, `commands/spec-answers.md`, `references/workflow.md`.
+
+### Checks
+Hook tests 398/398 · lint 823/823 · red-proofs 30/30
+
 ## v2.1.0 — the gate-label audit — 2026-10-18
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.1.0>
