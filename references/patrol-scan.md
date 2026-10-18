@@ -41,6 +41,23 @@ suffix stripped); both non-empty, both must hold; an empty list is no
   `track:`; at most one `status:` besides the processing lock; `track: fast`
   never with a spec-stage status). An issue in an illegal state: **skip it and
   report it** — never repair labels.
+- **Gate-label audit.** For every issue wearing a gate label (`status:
+  ready-for-spec` / `status: ready-for-dev` — in the loop, or track-less
+  inside the inbox filter), ISSUE-LABEL-EVENTS, and take the **latest
+  `labeled`** (GitLab: `add`) event for that label: who applied what the
+  issue wears now — earlier applications and removals are history.
+  Normalize the actor (`app/` prefix and `[bot]` suffix stripped). The
+  actor is a **bot** when it is in the `bot_login` list the main agent
+  handed you — the reference client's own bot included: the hook is
+  prevention, this is detection — or carries the forge's bot shape
+  (GitHub: `type` `Bot`, or a `[bot]` suffix; GitLab: a `project_<id>_bot_`
+  / `group_<id>_bot_` prefix). A bot actor is an **illegal state**: verdict
+  `illegal state: gate label applied by <login>`, skip classification,
+  report it — never repair the label, never route the row to `next-stage`
+  or to finalize. A **human** actor — the gate holder or any other
+  collaborator — is the authorization. No `labeled` event for the worn
+  label (the forge returned none) → classify normally and say so in
+  `evidence`.
 - **Close-out scan.** For every issue wearing a `track:` label — the open
   ones above, plus ISSUE-LIST-CLOSED per track label (the forge closes an
   issue on merge where its own rule fires, and leaves the loop labels on) —
@@ -67,7 +84,7 @@ suffix stripped); both non-empty, both must hold; an empty list is no
 | no `status:`, `track: fast` | in flight: its CR has **open review threads** → actionable → **address-review**; its CR carries **no `**[reviewer] · code-review**` record, or a stale one** (`reviewed-sha` ≠ head) → actionable → **code-review**; review-clean (record current, zero threads) → verdict `hand-off: in-user-review` (the main agent applies the label — you write nothing) |
 | `status: in-user-review` | its CR (`<spec-branch>` for `track: spec`, `<fast-branch>` for `track: fast`) was found **merged** by the close-out scan → actionable → **close-out** (below): the human signed, the loop finishes the paperwork. Otherwise the user is reviewing — and reviewing produces comments. Its open CR (missing or closed-unmerged → report, act on nothing) is read on **all three channels**: THREADS-LIST, REVIEWS-LIST, CR-COMMENTS-LIST. Any item whose latest entry does **not** start with `**[` or `✅ [` is **unheard** → actionable → `/roz-gate:review-answers <n>`. Otherwise → waiting on the user: say which wait, from the last agent marker — `· question` (your answer) / `· addressed` (your re-review) / none since the verdict (idle, N days) |
 | `status: blocked` | waiting on the user — never re-invoke anything on it |
-| no `track:` label, in the inbox filter (inbox) | actionable → **async intake** (below) when a gate label is present (finalize), the gate holder's latest comment requests a summary, or no questions batch exists yet; otherwise the discussion is the humans' — waiting on the user |
+| no `track:` label, in the inbox filter (inbox) | actionable → **async intake** (below) when a gate label is present (finalize — never one the audit flagged: that row is illegal), the gate holder's latest comment requests a summary, or no questions batch exists yet; otherwise the discussion is the humans' — waiting on the user |
 
 
 ## The table — your whole deliverable
@@ -85,7 +102,7 @@ then one line for the filtered-out count. Columns, in this order:
 | `cr` | the loop CR: number, state (`open` / `draft` / `merged` / `closed` / `none`), url |
 | `unheard` | count of unheard items, each with its url (0 when none) |
 | `verdict` | one of: `actionable: review-answers` · `actionable: integrate` · `actionable: address-review` · `actionable: fidelity-audit` · `actionable: code-review` · `actionable: next-stage (qa)` · `actionable: spec-answers` · `actionable: next-stage (ready-for-dev)` · `actionable: next-stage (ready-for-spec)` · `close-out` · `hand-off: in-user-review` · `intake: questions` · `intake: summary` · `intake: finalize` · `waiting on user: <which wait>` · `in progress` · `illegal state: <why>` · `locked: <phase> · <age>` · `blocked` |
-| `evidence` | what decided the verdict — thread/comment urls, the last agent marker, the fidelity record's url or its absence, the code-review record's url and its `reviewed-sha` against the head (or its absence), the missing CR — enough for the report to cite without another forge read |
+| `evidence` | what decided the verdict — thread/comment urls, the last agent marker, the gate label's latest `labeled` event (label · actor · time) on every gated row, the fidelity record's url or its absence, the code-review record's url and its `reviewed-sha` against the head (or its absence), the missing CR — enough for the report to cite without another forge read |
 
 Then: `inbox filter: <label list> / <assignee list> · N track-less
 issues not in the inbox filter` (`none` when no filter is set). Nothing else: no advice,

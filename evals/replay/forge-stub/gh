@@ -917,6 +917,36 @@ def main():
             out({"id": cid})
             return
 
+        # ---- gh api repos/o/r/issues/<n>/timeline — the issue's events, for
+        # patrol's gate-label audit (#144): who applied each label. A fixture
+        # states `timeline` explicitly when the actor matters (`event`,
+        # `label`, `actor`, `type`, `created_at` per entry); otherwise one
+        # `labeled` event per worn label is synthesized, by the issue's
+        # author (`type` User), so every earlier fixture reads as it did.
+        # GET only; `--paginate` is accepted; an absent issue stays UNKNOWN.
+        m_tl = re.match(r"/?repos/[^/]+/[^/]+/issues/(\d+)/timeline$", target)
+        if m_tl and method == "GET":
+            n = m_tl.group(1)
+            iss = st.get("issues", {}).get(n)
+            if iss is None:
+                unknown("timeline: issue %s not in fixture" % n)
+            journal("label-events", issue=n, explicit="timeline" in iss)
+            if "timeline" in iss:
+                events = [{"event": e.get("event", "labeled"),
+                           "actor": {"login": e.get("actor", ""),
+                                     "type": e.get("type", "User")},
+                           "label": {"name": e.get("label", "")},
+                           "created_at": e.get("created_at", "")}
+                          for e in iss["timeline"]]
+            else:
+                events = [{"event": "labeled",
+                           "actor": {"login": iss.get("author", ""), "type": "User"},
+                           "label": {"name": lab},
+                           "created_at": iss.get("createdAt", "2026-08-01T00:00:00Z")}
+                          for lab in iss.get("labels", [])]
+            jq_project(events, flag_val(argv, "--jq", "-q"))
+            return
+
         m = re.match(r"repos/[^/]+/[^/]+/issues/(\d+)/comments$", target)
         if m:
             n = m.group(1)

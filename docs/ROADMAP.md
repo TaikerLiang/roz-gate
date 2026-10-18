@@ -318,7 +318,7 @@ semantics become breaking changes.
    - *Detection*: patrol audits gate-label events via the timeline API
      (`labeled` events carry the actor) — a bot applying a gate label is
      reported as a violation, **including foreign agents the hook can't
-     reach.**
+     reach.** (Shipped: #144.)
    - *Honesty*: a per-client conformance disclaimer — the reference
      client self-enforces; for anything else, review its code and contain
      its token.
@@ -426,4 +426,4 @@ the "Design decisions" section above — it is the complete outline.
 2.0.0 workflow and ship in `docs/` — `docs/protocol.md` (protocol v1) and
 `docs/participating.md` (four moves: the (7) review conversation joined the
 three). The drafts in memory are superseded. The timeline audit (item 4,
-*Detection*) is #144.
+*Detection*) shipped as #144.

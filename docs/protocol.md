@@ -111,6 +111,11 @@ mechanism** — text markers are presentation, not authority.
 - When comparing GitHub logins, strip the `app/` prefix and the `[bot]`
   suffix — one App surfaces as `app/<slug>`, `<slug>` and `<slug>[bot]`
   depending on the API path.
+- A gate label applied by a **bot identity is not an authorization**,
+  whichever client applied it. The forge records who applied each label; a
+  client that audits those events (the reference client's patrol does)
+  reports such a label as a violation and acts on nothing until a human
+  moves it.
 - **Containment is the token's scope.** The forge has no per-label
   permissions, so the only forge-side control is what each agent's token can
   do: an intake-only agent with issue write access alone physically cannot

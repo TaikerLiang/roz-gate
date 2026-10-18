@@ -32,7 +32,8 @@ Two modes, set by `agent_identity` in the Roz Gate config (key absent →
     commits in the same clone stay theirs).
   - Author shapes differ by API path (`app/<slug>`, `<slug>[bot]`, bare
     `<slug>`) — when comparing, strip the `app/` prefix and `[bot]`
-    suffix first.
+    suffix first. The issue timeline's `actor` for an App is `<slug>[bot]`
+    with `type` `Bot` — what ISSUE-LABEL-EVENTS reads.
 
 ## Issues & labels
 
@@ -49,6 +50,7 @@ Two modes, set by `agent_identity` in the Roz Gate config (key absent →
 | ISSUE-EDIT-BODY | `gh issue edit <n> --body "..."` (async intake only, at finalize — after the gate holder's gate label) |
 | ISSUE-LIST-CLOSED | `gh issue list --state closed --label "<track label>" --json number,title,labels` (patrol's close-out scan only: an issue the forge closed on merge still wears its loop labels) |
 | ISSUE-CLOSE | `gh issue close <n>` (patrol's close-out only — after the CR is merged; GitHub closes on `Closes #<n>` itself only when the CR targets the repository's default branch) |
+| ISSUE-LABEL-EVENTS | `gh api --paginate "repos/<owner>/<repo>/issues/<n>/timeline" --jq '.[] \| {event, label: .label.name, actor: .actor.login, type: .actor.type, created_at}'` (patrol's gate-label audit only — `references/patrol-scan.md`: one line per event; the scanner keeps the `labeled` lines whose `label` is the gate label worn, and the latest of them is who applied it. A GitHub App's actor is `<slug>[bot]` with `type` `Bot`; a human's is `User`) |
 | WHOAMI | `gh api user --jq .login` — the login of the account running the command, the `{user}` slot of `branch_template` when `branch_user` is unset (`references/branch-names.md`); in bot mode the slot is the first `bot_login`, never a forge call |
 
 Label names use the **space form**: `track: spec`, `track: fast`,

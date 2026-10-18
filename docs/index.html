@@ -448,7 +448,7 @@ function setTrack(t){
 }
 const GATES = {
  g1:{t:B('Gate: design this','Gate:授權設計'),
-   who:B('A gate label is an <b>authorization</b>. Commands and agents can run the pipeline but can never authorize it — structurally.','gate label 是一種<b>授權</b>。指令與 agents 能運轉流水線,但在結構上永遠無法授權它。'),
+   who:B('A gate label is an <b>authorization</b>. Commands and agents can run the pipeline but can never authorize it — structurally. One applied by a bot identity is reported by patrol as an illegal state and never acted on.','gate label 是一種<b>授權</b>。指令與 agents 能運轉流水線,但在結構上永遠無法授權它。由 bot 身分貼上的 gate label,patrol 會回報為非法狀態,永不據此行動。'),
    labels:'<code>status: ready-for-spec</code>',
    you:B('<span class="you">You apply it — whenever you\'re ready, from any device. Until then the issue simply waits.</span>','<span class="you">由你貼上——想好了就貼,任何裝置都行。在那之前 issue 就安靜等著。</span>'),
    out:B('The machine may now run stage (2).','機器獲准執行 (2)。')},
