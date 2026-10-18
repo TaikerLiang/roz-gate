@@ -2,6 +2,24 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.2.1 — reserved words, round 2, and the MIT licence — 2026-10-18
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.2.1>
+
+**No runtime change.** Seven protocol literals join the reserved-word registry; the runtime prose that used them loosely is code-formatted or reworded, meaning unchanged.
+
+### Behavior
+- **Reserved words, round 2** (#160): `processing`, `blocked`, `blocking`, `assumed`, `labeled`, `uncovered` and `unfolded` are reserved in this plugin's files. Each is a literal the loop reads or writes verbatim whose ordinary English reading differs. Entries gain `spec_gate`; only `unverified` blocks a spec document, as before.
+
+### Evals
+- **B9** (#160): the gate-grep check runs for `spec_gate` words only; `unverified` must stay a spec gate; red-proofed five ways by mutation.
+
+### Docs
+- **MIT licence** (#158): `LICENSE` at the root, named in the README's License / provenance section and declared as `license` in `.claude-plugin/plugin.json`.
+
+### Checks
+Hook tests 398/398 · lint 832/832 · red-proofs 30/30
+
 ## v2.2.0 — the reserved-word registry — 2026-10-18
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.2.0>
