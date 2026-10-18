@@ -572,6 +572,8 @@ work shaped like that, nothing about shapes never run.
 
 ## License / provenance
 
+Released under the MIT License — see [`LICENSE`](LICENSE).
+
 Extracted from a working single-repo implementation of the methodology
 described in *AI-Native Software Development: The Roz Gate* — role charters,
 label state machine, STOP protocol, and the integration-verdict design are
