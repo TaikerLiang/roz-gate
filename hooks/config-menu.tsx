@@ -18,7 +18,9 @@ const HINT: Record<string, string> = {
 }
 
 type Values = Record<string, string | string[]>
-type Answer = { text: string; exitCode: number }
+// `text` is stdout on success, the diagnostic on failure; `notice` is what a
+// successful run said on stderr (the one-time migration of a pre-1.23 block).
+type Answer = { text: string; exitCode: number; notice: string }
 
 let values: Values = {}
 let selected = 'default_branch'
@@ -33,21 +35,28 @@ async function tool($: EngineInterface, args: string[]): Promise<Answer> {
   const path = $.plugin.root + '/bin/roz-config'
   try {
     const r = await $.process.run(['python3', path, ...args])
-    const out = (r.exitCode === 0 ? r.stdout : r.stderr || r.stdout).trim()
-    return { text: out, exitCode: r.exitCode }
+    if (r.exitCode !== 0) return { text: (r.stderr || r.stdout).trim(), exitCode: r.exitCode, notice: '' }
+    return { text: r.stdout.trim(), exitCode: 0, notice: r.stderr.trim() }
   } catch (err) {
     const why = err instanceof Error ? err.message : String(err)
     return {
       text: `roz-gate: could not run bin/roz-config (${why}) — run \`python3 ${path} ${args.join(' ')}\` yourself`,
       exitCode: 1,
+      notice: '',
     }
   }
+}
+
+// What the person reads: a success's notice first, then the tool's line.
+function reply(r: Answer) {
+  return { text: [r.notice, r.text].filter(Boolean).join('\n'), exitCode: r.exitCode }
 }
 
 async function load($: EngineInterface) {
   const r = await tool($, ['--json'])
   if (r.exitCode === 0) {
     values = JSON.parse(r.text)
+    if (r.notice) last = r.notice
   } else {
     // Never show stale values as current: the tool's diagnostic instead.
     values = {}
@@ -63,7 +72,7 @@ export const register: Register = on => {
       const gap = typed.search(/\s/)
       const key = gap < 0 ? typed : typed.slice(0, gap)
       const rest = gap < 0 ? '' : typed.slice(gap).trim()
-      return tool($, rest ? [key, rest] : [key])
+      return reply(await tool($, rest ? [key, rest] : [key]))
     }
     last = ''
     await load($)
@@ -71,7 +80,10 @@ export const register: Register = on => {
     if (opened.isPlaced) return {}
     // Nothing draws here (claude -p, a cloud session): print the values.
     await $.ui.close({ id: PANE })
-    return tool($, [])
+    // The load ran first: its notice (a one-time migration) leads, once.
+    const listed = reply(await tool($, []))
+    const lead = last !== '' && last !== listed.text ? last + '\n' : ''
+    return { ...listed, text: lead + listed.text }
   }).catch(() => ({ text: 'roz-gate: the config menu failed — run bin/roz-config yourself', exitCode: 1 }))
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
@@ -92,7 +104,7 @@ export const register: Register = on => {
       // Trimmed: a one-value key is stored verbatim (` main ` is no branch).
       const value = typed.trim()
       const r = await tool($, value ? [selected, value] : [selected])
-      last = r.text
+      last = reply(r).text
       await load($)
       $.ui.invalidate('ui.render')
     }

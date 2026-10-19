@@ -159,3 +159,35 @@ test("a failed load shows the tool's diagnostic, not stale values — on mobile 
     await ui.unmount()
   }
 })
+
+test("a successful run's stderr notice is shown, before the tool's line", async ($, on) => {
+  const calls: string[][] = []
+  tool(on, calls, () => ({ exitCode: 0, stdout: 'inbox_label set → discuss\n', stderr: 'roz-config: seeded from the CLAUDE.md block once\n' }))
+  const r = await $.command.run(run('inbox_label discuss'))
+  expect(r.text).toBe('roz-config: seeded from the CLAUDE.md block once\ninbox_label set → discuss')
+})
+
+test("the load's stderr notice is shown in the pane", async ($, on) => {
+  on('process.run', () => ({
+    value: { exitCode: 0, stdout: JSON_OUT + '\n', stderr: 'roz-config: seeded from the CLAUDE.md block once\n',
+             isStdoutTruncated: false, isStderrTruncated: false },
+  }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  await $.command.run(run(''))
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect(await ui.find({ type: 'Text', text: 'roz-config: seeded from the CLAUDE.md block once' })).toBeDefined()
+})
+
+test("where nothing draws, the load's notice leads the listing, once", async ($, on) => {
+  let first = true
+  on('process.run', ($, e) => {
+    const notice = first ? 'roz-config: seeded from the CLAUDE.md block once\n' : ''
+    first = false
+    const stdout = e.argv[2] === '--json' ? JSON_OUT + '\n' : 'inbox_label      discuss\n'
+    return { value: { exitCode: 0, stdout, stderr: notice, isStdoutTruncated: false, isStderrTruncated: false } }
+  })
+  on('ui.open', () => ({ value: { isPlaced: false, reason: 'no-surface' } }))
+  on('ui.close', () => ({ value: undefined }))
+  const r = await $.command.run(run(''))
+  expect(r.text).toBe('roz-config: seeded from the CLAUDE.md block once\ninbox_label      discuss')
+})
