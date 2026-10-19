@@ -46,8 +46,13 @@ async function tool($: EngineInterface, args: string[]): Promise<Answer> {
 
 async function load($: EngineInterface) {
   const r = await tool($, ['--json'])
-  if (r.exitCode === 0) values = JSON.parse(r.text)
-  else last = r.text
+  if (r.exitCode === 0) {
+    values = JSON.parse(r.text)
+  } else {
+    // Never show stale values as current: the tool's diagnostic instead.
+    values = {}
+    last = r.text
+  }
 }
 
 export const register: Register = on => {
@@ -77,13 +82,16 @@ export const register: Register = on => {
       return (
         <Box flexDirection="column">
           {KEYS.map(k => <Text>{`${k}  ${shown(values[k])}`}</Text>)}
+          {last !== '' && <Text>{last}</Text>}
           <Text dimColor>{"Set one with /roz-gate:config <key> <value>."}</Text>
         </Box>
       )
     }
     const { Select, Input } = table
     const set = async (typed: string) => {
-      const r = await tool($, typed.trim() ? [selected, typed] : [selected])
+      // Trimmed: a one-value key is stored verbatim (` main ` is no branch).
+      const value = typed.trim()
+      const r = await tool($, value ? [selected, value] : [selected])
       last = r.text
       await load($)
       $.ui.invalidate('ui.render')

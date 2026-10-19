@@ -132,3 +132,30 @@ test('a surface with no fields lists the values and the argument form', async ($
   expect(await ui.find({ type: 'Text', text: 'inbox_label  discuss' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /\/roz-gate:config <key> <value>/ })).toBeDefined()
 })
+
+test('a submitted value is trimmed before the tool sees it', async ($, on) => {
+  const calls: string[][] = []
+  tool(on, calls)
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  await $.command.run(run(''))
+  calls.length = 0
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await ui.select({ key: 'key', value: 'default_branch' })
+  await ui.input({ key: 'value', text: '  release/20261020 ' })
+  expect(calls[0]).toEqual(['default_branch', 'release/20261020'])
+})
+
+test("a failed load shows the tool's diagnostic, not stale values — on mobile too", async ($, on) => {
+  on('process.run', () => ({
+    value: { exitCode: 1, stdout: '', stderr: 'roz-config: not inside a git repository\n',
+             isStdoutTruncated: false, isStderrTruncated: false },
+  }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  await $.command.run(run(''))
+  for (const surface of ['terminal', 'mobile'] as const) {
+    const ui = await $.ui.mount({ ...PANE, surface })
+    expect(await ui.find({ type: 'Text', text: 'roz-config: not inside a git repository' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /discuss/ })).toBeUndefined()
+    await ui.unmount()
+  }
+})
