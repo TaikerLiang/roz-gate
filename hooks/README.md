@@ -37,6 +37,8 @@ The files:
 | `tests/run_tests.py` | the runner: one PASS/FAIL line per case, then the tally |
 | `tests/bin/gh`, `tests/bin/glab` | fake forge CLIs on `PATH` — rule A reads comments, tests never touch the network |
 | `tests/fx/*.json` | what the fake CLIs return: "the holder asked for `summary`", "nobody did", … |
+| `config-menu.tsx` | the `/roz-gate:config` mod (`hooks.json` `modules`) — see [The mod](#the-mod) |
+| `tests/config-menu.test.ts` | the mod's cases, run by `claude plugin test` |
 
 Should this be a hook? All three must be yes:
 
@@ -126,6 +128,8 @@ version moves only in the release PR — `docs/releasing.md`).
 ```sh
 python3 hooks/tests/run_tests.py                # one PASS/FAIL line per case — the hooks and bin/roz-config
 python3 -m unittest discover -s hooks/tests     # same tests, unittest's own output
+claude plugin validate --strict .               # the manifest and the mod, as the engine reads them
+claude plugin test .                            # the mod's cases (hooks/tests/config-menu.test.ts)
 ```
 
 Synthetic `PreToolUse` JSON is piped into each hook's `.sh` shim — the
@@ -241,3 +245,20 @@ actually used. Audit every new predicate for the class, not the instance:
   cwd and denied from another, and the audit that #95 made mandatory could
   not read what it audits. A path belongs to the tree it is in, not the
   tree the hook runs from: resolve against every worktree of the repo.
+
+## The mod
+
+`hooks.json` also names one Claude Code mod (2.1.287 or later),
+`config-menu.tsx`: it answers `/roz-gate:config` itself, so a config change
+costs no model turn (#164). With arguments it runs `bin/roz-config <key>
+<rest>` — the rest as one argument, the tool splits list keys on commas;
+without, it opens a pane with a `Select` for the key and an `Input` for the
+value; where nothing draws (`claude -p`) it prints the values, and on a
+surface with no fields (mobile) the pane lists them. It runs nothing but
+`python3 bin/roz-config`, through `$.process.run` with an argument list —
+no shell — and never writes a file, reaches the network or a model, or
+hooks a tool call (lint L8). Where mods do not load — an older Claude Code,
+`--safe-mode`, `disableAllHooks` — `commands/config.md` runs as the
+fallback. A Claude Code that predates mods ignores the `modules` key and
+still loads the guards (checked on 2.1.200 and 2.1.286).
+

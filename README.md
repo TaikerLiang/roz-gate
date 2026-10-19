@@ -41,7 +41,8 @@ agents are forbidden to guess.
 
 ## Requirements
 
-- Claude Code with this plugin installed
+- Claude Code with this plugin installed — 2.1.287 or later for
+  `/roz-gate:config` without a model turn (earlier versions run its prompt)
 - `gh` (GitHub) **or** `glab` (GitLab) authenticated for the repo's host
 - A git repo on that forge, with issues and PRs/MRs enabled
 - A test runner invocable from the CLI
@@ -186,7 +187,7 @@ cannot authorize it.
 | `/roz-gate:integrate [n]` | run the stage-(6) verdict: merge what is open (never what is merged), run the acceptance suite, classify red (up to `fix_rounds` rounds), finalize green |
 | `/roz-gate:review-answers [n]` | host one turn of your stage-(7) review: answer your CR comments from the artifacts, dispatch a seat when judgment is needed, change only what you confirm |
 | `/roz-gate:tip <n>` | what does #n need next? reads its labels, CRs, threads and branches and answers in the terminal — your move (with links and the `workflow.md` passage), the loop's move if you do nothing, and what is off when a label pair or a branch is wrong; read-only — no label, no comment, no commit, no lock |
-| `/roz-gate:config` | set one of your four loop keys — the base branch, the inbox label list, the inbox assignee list, the helper model — from a menu; the write is `bin/roz-config`'s, per clone, never committed |
+| `/roz-gate:config` | set one of your five loop keys — the base branch, the inbox label list, the inbox assignee list, the helper model, the branch user — from a menu; on Claude Code 2.1.287 or later the plugin's mod answers it with no model turn, the prompt is the fallback; the write is `bin/roz-config`'s, per clone, never committed |
 | `/roz-gate:patrol` | one supervisory pass: a read-only scanner sub-agent classifies every open issue into one table (the main agent's context never holds the forge reads); the main agent invokes whichever command the table authorizes, triages the inbox, reports what waits on you |
 | `/roz-gate:uninit` | retire the loop from this repo: verify nothing is in flight, remove the scaffolding `init` installed, keep every work product — run before `/plugin uninstall` |
 
@@ -369,8 +370,11 @@ the first integration red is a harness issue, not a verdict.
 
 Five keys are **yours, per clone** — never in the block, never committed.
 `/roz-gate:config` shows them and sets one from a menu; with arguments it
-skips the menu. The prompt is only the menu: the write is done by the
-plugin's `bin/roz-config`, a stdlib Python tool, never by the model.
+skips the menu. On Claude Code 2.1.287 or later the plugin's mod
+(`hooks/config-menu.tsx`) answers the command itself — a pane to pick the
+key and type the value, no model turn; where mods do not load, the prompt
+runs as the menu. Either way the write is done by the plugin's
+`bin/roz-config`, a stdlib Python tool, never by the model or the mod.
 
 ```
 /roz-gate:config                                  # menu: pick the key, enter the value
@@ -471,7 +475,7 @@ Retirement is two steps, **in this order**:
 | `references/` | protocol docs, seat briefs, forge adapters | the agent, on every invocation | runtime |
 | `agents/` | the built-in personas (product, em, qa, reviewer) — referenced, never copied | the agent, at dispatch | dispatch |
 | `templates/` | target-repo scaffolding, instantiated by `init` and removed by `uninit` | the target repo | install time |
-| `hooks/` | deterministic enforcement and its tests ([hooks/README.md](hooks/README.md)) | the machine, before a tool runs | tool time |
+| `hooks/` | deterministic enforcement, the `/roz-gate:config` mod, and their tests ([hooks/README.md](hooks/README.md)) | the machine, before a tool runs or a command answers | tool time |
 | `evals/` | the eval ledger — lint, replay, judgment ([evals/README.md](evals/README.md)) | developers of the plugin | dev time; lint on pre-push and CI |
 | `.githooks/` | this repo's own gates (thin entry points) | git, on commit and push | commit / push |
 | `docs/` | human-facing pages (roadmap, site) | humans | never loaded by the agent |
