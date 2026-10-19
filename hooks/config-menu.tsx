@@ -26,6 +26,9 @@ let values: Values = {}
 let selected = 'default_branch'
 let last = ''
 
+// POSIX single quotes, so the fallback line pastes as the same arguments.
+const quote = (a: string) => "'" + a.replace(/'/g, "'\\''") + "'"
+
 const shown = (v: string | string[] | undefined) =>
   (Array.isArray(v) ? v.join(', ') : v) || '-'
 
@@ -40,7 +43,7 @@ async function tool($: EngineInterface, args: string[]): Promise<Answer> {
   } catch (err) {
     const why = err instanceof Error ? err.message : String(err)
     return {
-      text: `roz-gate: could not run bin/roz-config (${why}) — run \`python3 ${path} ${args.join(' ')}\` yourself`,
+      text: `roz-gate: could not run bin/roz-config (${why}) — run \`python3 ${[path, ...args].map(quote).join(' ')}\` yourself`,
       exitCode: 1,
       notice: '',
     }

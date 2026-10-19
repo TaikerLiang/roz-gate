@@ -67,8 +67,8 @@ test("the tool's refusal is shown with its exit code", async ($, on) => {
 
 test('a tool that cannot start names the fallback', async ($, on) => {
   on('process.run', () => ({ deny: 'python3: not found' }))
-  const r = await $.command.run(run('inbox_label discuss'))
-  expect(r.text).toMatch(/could not run bin\/roz-config .*run `python3 .*\/bin\/roz-config inbox_label discuss` yourself/)
+  const r = await $.command.run(run("inbox_label good first issue, Paul's"))
+  expect(r.text).toMatch(/could not run bin\/roz-config .*run `python3 '[^`]*\/bin\/roz-config' 'inbox_label' 'good first issue, Paul'\\''s'` yourself/)
   expect(r.exitCode).toBe(1)
 })
 
