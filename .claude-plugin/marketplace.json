@@ -1,5 +1,6 @@
 {
   "name": "roz-gate-marketplace",
+  "description": "The Roz Gate plugin: a role-driven, human-gated AI development workflow.",
   "owner": {
     "name": "Paul Liang"
   },

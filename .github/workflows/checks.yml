@@ -20,6 +20,15 @@ jobs:
         run: python3 evals/replay/run_redproofs.py
       - name: naming convention (repo hygiene, tools/ — not the ledger)
         run: python3 tools/naming.py $(git ls-files)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Claude Code CLI, pinned (validate and plugin test need no sign-in)
+        run: npm install -g @anthropic-ai/claude-code@2.1.303
+      - name: plugin manifests and the /roz-gate:config mod, as the engine reads them
+        run: claude plugin validate --strict .
+      - name: the /roz-gate:config mod's tests (no session, no network)
+        run: claude plugin test .
       - uses: astral-sh/setup-uv@v5
       - name: ruff (code lint, dev dependency — not the ledger)
         run: uv run ruff check .

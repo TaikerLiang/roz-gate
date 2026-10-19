@@ -8,6 +8,10 @@ Your five loop keys are per person, per clone, never committed
 reading and the writing are done by `${CLAUDE_PLUGIN_ROOT}/bin/roz-config`,
 and nothing here validates, edits a file, or looks anything up on the forge.
 
+Where this plugin's mod loads (Claude Code 2.1.287 or later), the mod
+`hooks/config-menu.tsx` answers this command itself, with no model turn,
+and this prompt never runs; it is the fallback where the mod does not load.
+
 Current values (the tool's own output, resolved with defaults):
 
 ```

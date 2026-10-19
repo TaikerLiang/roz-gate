@@ -169,6 +169,7 @@ text follows the experiment; the driver's citation was updated to match.
 | L5 | the config block has two homes — `CLAUDE.md`, then `CLAUDE.local.md`, in the toplevel, then in the main checkout; the hooks' one reader (`hooks/config_block.py`), the acceptance prefilter, every command's step 0 and the docs agree | lint (defect 1.31.1-, #94) |
 | L6 | `test` and `acceptance_test` are documented as running in a linked worktree, never in the checkout, on every surface an adopter fills them in — README's config block, init's prompt, the onboarding builder — with the `.git`-as-a-directory failure named | lint (defect 1.36.0-, #99) |
 | L7 | the wire spec names exactly the labels the state machine has, states the STOP and summary rules in the client's literals, binds no reference-client internal as a MUST, and every entry point links the pages | lint (preventive) |
+| L8 | `/roz-gate:config` is answered by a mod that only reads and runs `bin/roz-config`; `commands/config.md` stays as the fallback where mods do not load | lint (#164, 2.3.0) |
 
 ## The judgment corpus
 
