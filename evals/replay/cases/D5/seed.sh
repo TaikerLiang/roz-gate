@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
-# D5 sandbox: D2's shape under a branch_template — `{type}/{user}/{n}/{seq}`,
+# D5 sandbox: D2's shape under a branch_template (the local file's, 2.4.0) — `{type}/{user}/{n}/{seq}`,
 # issue #5 labelled `type: fix`, branch_user paul. The implementation branch
 # is fix/paul/5/1 (not a feat/ ref — D2's literal alone would read every
 # touch of it as blind); the QA branch is test/paul/5/1; the spec branch
 # spec/paul/5/1. fix/paul/5/1 MUST NOT be touched by the fidelity work.
 set -eu
 bash "$(dirname "$0")/../../lib/seed-common.sh" "$1"
-printf -- '- branch_template: {type}/{user}/{n}/{seq}\n' >> CLAUDE.md
-grep -q '^- branch_template: {type}/{user}/{n}/{seq}$' CLAUDE.md
-mkdir -p .claude && printf '{"branch_user": "paul"}\n' > .claude/roz-gate.local.json
+mkdir -p .claude && printf '{"branch_user": "paul", "branch_template": "{type}/{user}/{n}/{seq}"}\n' > .claude/roz-gate.local.json
 grep -q '"branch_user": "paul"' .claude/roz-gate.local.json
+grep -q '"branch_template": "{type}/{user}/{n}/{seq}"' .claude/roz-gate.local.json
 printf '.claude/roz-gate.local.json\n' >> .git/info/exclude
 git add -A
-git -c user.email=paul@example.com -c user.name=paul commit -qm "seed (branch_template)"
+git -c user.email=paul@example.com -c user.name=paul commit -q --allow-empty -m "seed (branch_template)"
 git checkout -qb spec/paul/5/1
 mkdir -p docs/specs/5
 cat > docs/specs/5/spec.md <<'EOF'
