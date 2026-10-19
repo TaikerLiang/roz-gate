@@ -30,6 +30,8 @@ cat > docs/specs/5/technical-spec.md <<'EOF'
 
 ## Contract
 - `GET /price?cart=<id>` returns the priced cart; expired offers excluded.
+
+**Test port** — none
 EOF
 git add -A && git -c user.email=paul@example.com -c user.name=paul commit -qm "spec docs #5"
 
