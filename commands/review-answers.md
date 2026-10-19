@@ -12,17 +12,17 @@ confirm. Follow these steps; do nothing beyond them.
 
 Read the `### Roz Gate config` block in the project's CLAUDE.md (or CLAUDE.local.md) (`forge`,
 `test`, `acceptance_test`, `env_sync`, `specs_dir`, `acceptance_dir`,
-`branch_template`, `fix_rounds`). `fix_rounds` is optional — a non-negative integer, the fix-and-rerun
+`fix_rounds`). `fix_rounds` is optional — a non-negative integer, the fix-and-rerun
 budget; **absent → 3; any other value → stop here, before the lock**, a
 config error like a missing block: name the key and the value, default
 nothing. **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee`,
-`helper_model`, `branch_user` are per person,
+`helper_model`, `branch_user`, `branch_template` are per person,
 per clone, never in the block: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`
 and use its values (`.claude/roz-gate.local.json`, defaults resolved — the
 remote's HEAD branch, empty lists, empty strings). **Branch names**: bind `<spec-branch>`,
 `<feat-branch>`, `<qa-branch>`, `<fast-branch>` per
-`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md` (the block's
-`branch_template`, absent → `{kind}/{n}`; an existing branch is found by
+`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md` (the local key
+`branch_template`, `""` → `{kind}/{n}`; an existing branch is found by
 Lookup, never guessed). Nothing below spells a branch name. Then
 `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the concrete CLI behind
 every CAPITALIZED-OP. Missing config → stop; tell the user to run

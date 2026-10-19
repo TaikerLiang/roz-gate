@@ -12,13 +12,13 @@ Read the `### Roz Gate config` block in the project's CLAUDE.md (or CLAUDE.local
 `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the concrete CLI behind
 every CAPITALIZED-OP. Missing config → stop; tell the user to run
 `/roz-gate:init`. **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee`,
-`helper_model`, `branch_user` are per person,
+`helper_model`, `branch_user`, `branch_template` are per person,
 per clone, never in the block: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`
 and use its values (`.claude/roz-gate.local.json`, defaults resolved — the
 remote's HEAD branch, empty lists, empty strings). **Branch names**: bind `<spec-branch>`,
 `<feat-branch>`, `<qa-branch>`, `<fast-branch>` per
-`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md` (the block's
-`branch_template`, absent → `{kind}/{n}`; an existing branch is found by
+`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md` (the local key
+`branch_template`, `""` → `{kind}/{n}`; an existing branch is found by
 Lookup, never guessed). Nothing below spells a branch name. **Personas**: the role re-spawns in step 5 resolve through
 the `### Roz Gate personas` block — dispatch the mapped subagent, attaching
 the seat's R&R row from `${CLAUDE_PLUGIN_ROOT}/references/workflow.md` as its

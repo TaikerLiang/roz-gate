@@ -22,15 +22,14 @@ user, one compact block, not twenty questions:
   clone: the remote's HEAD branch unless set with `/roz-gate:config
   default_branch <branch>` (`.claude/roz-gate.local.json`, never committed).
   Say so in the report; write nothing.
-- `branch_template` — optional: the project's branch-naming convention,
+- (not in the block) `branch_template` — your branch-naming convention,
   one template over `{kind}`, `{type}`, `{user}`, `{n}`, `{seq}`
   (`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md`; e.g.
   `{type}/{user}/{n}/{seq}` → `spec/pwliangc/5/1`, `fix/pwliangc/5/1`,
-  `test/pwliangc/5/1`). Absent → `{kind}/{n}`, the names every release
-  before 1.29.0 used. Write it only when the project has a convention;
-  it is committed — the hooks and every teammate's commands read it. The
-  `{user}` slot is per person: `/roz-gate:config branch_user <login>`,
-  default = the forge login. Say so in the report.
+  `test/pwliangc/5/1`) — is per person, per clone: `{kind}/{n}` unless set
+  with `/roz-gate:config branch_template <template>`, and its `{user}` slot
+  with `/roz-gate:config branch_user <login>` (default = the forge login).
+  Say so in the report; write nothing.
 - `test` — command that runs the full suite (e.g. `uv run pytest`, `npm test`)
 - `acceptance_dir` (default `tests/acceptance`) and `acceptance_test` — command
   for one feature's acceptance dir
@@ -148,8 +147,8 @@ map:
 2. You apply the gate label (`status: ready-for-spec` / `ready-for-dev`).
 3. Run `/roz-gate:patrol` (manually, on a loop, or scheduled) — it advances
    whatever the labels authorize and reports what waits on you.
-4. Your own loop keys — the base branch and the inbox filter — are set
-   from a menu with `/roz-gate:config` (`.claude/roz-gate.local.json`,
+4. Your own loop keys — the base branch, the inbox filter, your branch
+   names — are set from a menu with `/roz-gate:config` (`.claude/roz-gate.local.json`,
    never committed; the write is `bin/roz-config`'s). Everything else in
    the block is edited by hand.
 

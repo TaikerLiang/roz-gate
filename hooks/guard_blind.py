@@ -46,7 +46,7 @@ deny message names the file to remove; under-blocking a fidelity read is
 the invisible failure this rule closes. ``agent_type`` is reported in the
 message when present, never relied on.
 
-The marker's content (1.29.0, references/branch-names.md): a repo whose
+The marker's content (1.29.0, references/branch-names.md): a clone whose
 ``branch_template`` names the implementation branch ``fix/pwliangc/5/1``
 has no ``feat/`` ref to deny, so the dispatching command writes
 ``feat=<the bound implementation branch>`` into the marker and a git

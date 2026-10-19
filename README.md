@@ -187,7 +187,7 @@ cannot authorize it.
 | `/roz-gate:integrate [n]` | run the stage-(6) verdict: merge what is open (never what is merged), run the acceptance suite, classify red (up to `fix_rounds` rounds), finalize green |
 | `/roz-gate:review-answers [n]` | host one turn of your stage-(7) review: answer your CR comments from the artifacts, dispatch a seat when judgment is needed, change only what you confirm |
 | `/roz-gate:tip <n>` | what does #n need next? reads its labels, CRs, threads and branches and answers in the terminal — your move (with links and the `workflow.md` passage), the loop's move if you do nothing, and what is off when a label pair or a branch is wrong; read-only — no label, no comment, no commit, no lock |
-| `/roz-gate:config` | set one of your five loop keys — the base branch, the inbox label list, the inbox assignee list, the helper model, the branch user — from a menu; on Claude Code 2.1.287 or later the plugin's mod answers it with no model turn, the prompt is the fallback; the write is `bin/roz-config`'s, per clone, never committed |
+| `/roz-gate:config` | set one of your six loop keys — the base branch, the inbox label list, the inbox assignee list, the helper model, the branch user, the branch template — from a menu; on Claude Code 2.1.287 or later the plugin's mod answers it with no model turn, the prompt is the fallback; the write is `bin/roz-config`'s, per clone, never committed |
 | `/roz-gate:patrol` | one supervisory pass: a read-only scanner sub-agent classifies every open issue into one table (the main agent's context never holds the forge reads); the main agent invokes whichever command the table authorizes, triages the inbox, reports what waits on you |
 | `/roz-gate:uninit` | retire the loop from this repo: verify nothing is in flight, remove the scaffolding `init` installed, keep every work product — run before `/plugin uninstall` |
 
@@ -358,7 +358,6 @@ checkout and in the main worktree:
 - agent_identity: bot            # optional — see "Agent identity"; absent = user
 - bot_login: <bot username>      # optional
 - operator: <your forge login>   # optional
-- branch_template: {type}/{user}/{n}/{seq}   # optional — your branch convention; absent = {kind}/{n}, see "Branch names"
 - fix_rounds: 3                   # optional — fix-and-rerun rounds at (6) and in a (7) hand-back; absent = 3, 0 = every red stops
 ```
 
@@ -368,7 +367,7 @@ resolves `.git` as a directory (Maven's git-commit-id plugin, some version
 plugins) needs its worktree-safe flag (`-Dmaven.gitcommitid.skip=true`), or
 the first integration red is a harness issue, not a verdict.
 
-Five keys are **yours, per clone** — never in the block, never committed.
+Six keys are **yours, per clone** — never in the block, never committed.
 `/roz-gate:config` shows them and sets one from a menu; with arguments it
 skips the menu. On Claude Code 2.1.287 or later the plugin's mod
 (`hooks/config-menu.tsx`) answers the command itself — a pane to pick the
@@ -383,6 +382,7 @@ runs as the menu. Either way the write is done by the plugin's
 /roz-gate:config inbox_assignee <login>           # inbox filter: any of these logins (default: none)
 /roz-gate:config helper_model <model id>          # patrol's scanner and every command's commit sub-agent (default: the runtime's; seats are never configured)
 /roz-gate:config branch_user <login>              # the {user} slot of branch_template (default: your forge login)
+/roz-gate:config branch_template {type}/{user}/{n}/{seq}  # your branch names (default: {kind}/{n}); see "Branch names"
 /roz-gate:config inbox_label                      # no value = back to the default
 ```
 
@@ -398,10 +398,11 @@ block keys are init-time facts, edited by hand.
 ### Branch names
 
 The loop cuts four branches per issue — spec, feat, qa, fast — named by one
-template, `branch_template` in the block. Absent, it is `{kind}/{n}`:
-`spec/<n>`, `feat/<n>`, `qa/<n>`, `fast/<n>`, as every release before 1.29.0.
-A repo with a convention sets it once, committed, and every teammate's
-commands and the hooks render the same names:
+template, `branch_template`: a local key, yours per clone, set with
+`/roz-gate:config branch_template <template>` (since 2.4.0; a block line
+from an earlier release moves into the local file once). Unset, it is
+`{kind}/{n}`: `spec/<n>`, `feat/<n>`, `qa/<n>`, `fast/<n>`, as every release
+before 1.29.0. Your commands and the hooks render the same names from it:
 
 | placeholder | renders as |
 |---|---|
@@ -413,9 +414,11 @@ commands and the hooks render the same names:
 
 `{type}/{user}/{n}/{seq}` renders `spec/pwliangc/5/1`, `fix/pwliangc/5/1`,
 `test/pwliangc/5/1`. A template needs `{n}` and one of `{kind}` / `{type}`;
-anything else stops the cut. Because another person's `{user}` and an
-attempt's `{seq}` cannot be computed, a command **finds** an existing
-branch on the remote by pattern and never guesses its name. Without
+`bin/roz-config` refuses anything else, and a hand-edited one stops the
+cut. Because another person's `{user}` and an attempt's `{seq}` cannot be
+computed, a command **finds** an existing branch on the remote by pattern
+and never guesses its name — the branches your template renders; one cut
+under another developer's template is not found. Without
 `{seq}` a re-entered spec stage still stops and hands you the delete
 command, as before. Details: `references/branch-names.md`.
 

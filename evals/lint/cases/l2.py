@@ -6,6 +6,7 @@ a key read from the block is a team value pretending to be yours
 commit sub-agent's model; patrol_model (the block, patrol's seats) is
 retired and must survive nowhere in the prose. 1.29.0 (#75):
 branch_user is the fifth — the {user} slot of branch_template (L4).
+2.4.0 (#165): branch_template itself is the sixth — per developer.
 """
 
 import re
@@ -16,18 +17,19 @@ META = {
     "id": 'L2',
     "title":
         'the local keys `roz-config` accepts are the ones the commands read and README '
-        'documents — five since 1.29.0: `helper_model` governing the scanner and the commit '
-        'sub-agent only, `branch_user` the `{user}` slot of `branch_template`',
+        'documents — six since 2.4.0: `helper_model` governing the scanner and the commit '
+        'sub-agent only, `branch_user` the `{user}` slot of `branch_template`, '
+        '`branch_template` itself per developer',
     "tier": 'lint (defect 1.18.0)',
     "ledger": None,
 }
 
 _tool = read("bin/roz-config")
-_m = re.search(r'^KEYS = \((.*?)\)$', _tool, re.M)
+_m = re.search(r'^KEYS = \((.*?)\)$', _tool, re.M | re.S)
 _tool_keys = tuple(re.findall(r'"([a-z_]+)"', _m.group(1))) if _m else ()
-c.expect("pattern", "L2: bin/roz-config accepts exactly the five local keys",
+c.expect("pattern", "L2: bin/roz-config accepts exactly the six local keys",
          _tool_keys == ("default_branch", "inbox_label", "inbox_assignee", "helper_model",
-                        "branch_user"))
+                        "branch_user", "branch_template"))
 _readers = ("commands/patrol.md", "commands/next-stage.md", "commands/integrate.md",
             "commands/spec-answers.md", "commands/review-answers.md")
 for _f in _readers:
@@ -76,8 +78,8 @@ c.expect("pattern", "L2: patrol's Model paragraph: helper_model is the scanner's
          and re.search(r"seats?\b.*runtime", _model, re.S | re.I) is not None)
 c.expect("pattern", "L2: patrol dispatches the scanner on helper_model",
          "helper_model" in section(_pm, r"^## 1\. Dispatch the scanner", r"^## 2\. "))
-c.expect("pattern", "L2: README's block has no patrol_model line; the per-clone section has five",
-         "- patrol_model" not in read("README.md") and "Five keys are **yours" in read("README.md"))
+c.expect("pattern", "L2: README's block has no patrol_model line; the per-clone section has six",
+         "- patrol_model" not in read("README.md") and "Six keys are **yours" in read("README.md"))
 c.expect("pattern", "L2: patrol_model survives nowhere in the prose or the docs",
          "patrol_model" not in dirs_text("commands", "references", "templates", "docs")
          and "patrol_model" not in read("README.md"))

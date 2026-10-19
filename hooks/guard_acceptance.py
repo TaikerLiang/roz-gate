@@ -3,9 +3,10 @@
 spec branch.
 
 Invoked by guard-acceptance.sh only when HEAD is a ``spec/<n>`` branch — or,
-when the config block sets ``branch_template`` (references/branch-names.md),
-on every branch: the spec kind is then whatever the template renders, and
-this script decides by matching HEAD against it. One rule (the acceptance
+when the local file sets ``branch_template`` (``.claude/roz-gate.local.json``,
+bin/roz-config's; references/branch-names.md), on every branch: the spec
+kind is then whatever the template renders, and this script decides by
+matching HEAD against it. One rule (the acceptance
 rule — no letter; rule C is guard-gate's quote-open rule), the mechanical
 form of existing protocol text:
 
@@ -19,7 +20,8 @@ form of existing protocol text:
   assertion re-runs green and the evidence cards regenerate clean.
 
 The config block is read from ``CLAUDE.md``, else ``CLAUDE.local.md``, in
-the checkout or the main worktree (``hooks/config_block.py``, #94).
+the checkout or the main worktree (``hooks/config_block.py``, #94); the
+template from the local file, in the checkout or the main worktree (#165).
 
 The guard is deliberately branch-and-path only: no stage detection, no
 label lookup, no dispatch-identity check, no exemption list. That is what
@@ -42,7 +44,7 @@ import sys
 # this dir already); the lint tier and the D5 checker load it by
 # spec_from_file_location, from elsewhere — the reader must still import.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from config_block import find_block  # noqa: E402
+from config_block import find_block, main_checkout  # noqa: E402
 
 DEFAULT_ACCEPTANCE_DIR = "tests/acceptance"
 
@@ -73,26 +75,51 @@ def git(*args):
     return out.stdout.strip() if out.returncode == 0 else None
 
 
+LOCAL_FILE = os.path.join(".claude", "roz-gate.local.json")
+
+
+def local_template(top):
+    """`branch_template` from bin/roz-config's local file — this toplevel's,
+    else the main checkout's: an edit in a linked worktree (the loop's
+    `.git/roz-gate/wt/<branch>`) reads the clone's file, as the block is
+    read. The first file that holds the key wins: a stored "" is a chosen
+    default (→ None); a file without the key — a worktree's own, holding
+    only another key — passes to the next (codex review, PR #169). The
+    block's old `- branch_template:` line is never read here: roz-config
+    moves it into the file once (#165).
+    """
+    for root in (top, main_checkout()):
+        if not root:
+            continue
+        try:
+            with open(os.path.join(root, LOCAL_FILE), encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, ValueError):
+            continue
+        if not isinstance(data, dict) or "branch_template" not in data:
+            continue
+        t = data["branch_template"]
+        return t.strip() if isinstance(t, str) and t.strip() else None
+    return None
+
+
 def load_config(top):
-    """(`acceptance_dir`, `branch_template`) from the project's Roz Gate
-    config block — `CLAUDE.md`, else `CLAUDE.local.md`, here or in the main
-    checkout (config_block.py).
+    """(`acceptance_dir`, `branch_template`): the dir from the project's Roz
+    Gate config block — `CLAUDE.md`, else `CLAUDE.local.md`, here or in the
+    main checkout (config_block.py) — the template from the local file.
 
     None → not a roz-gate project (no config block anywhere): nothing to
     enforce. Config block present but `acceptance_dir` absent → the
     documented default, the same fallback /roz-gate:init writes.
-    `branch_template` absent → None: the spec branch is `spec/*`, the
+    `branch_template` unset → None: the spec branch is `spec/*`, the
     prefilter's own test.
     """
     block = find_block(top)
     if block is None:
         return None
-    # The block only: a `- branch_template:` bullet in some later Notes
-    # section must not switch the spec-branch predicate (codex review, PR #82).
     m = re.search(r"^-\s*acceptance_dir:\s*(.+)$", block, re.M)
-    t = re.search(r"^-\s*branch_template:\s*(\S+)", block, re.M)
     return (m.group(1).strip().strip("`") if m else DEFAULT_ACCEPTANCE_DIR,
-            t.group(1).strip("`") if t else None)
+            local_template(top))
 
 
 # The placeholders as patterns, for the spec kind (references/branch-names.md

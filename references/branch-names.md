@@ -16,10 +16,15 @@ The four kinds, and what each is cut from:
 
 ## The template
 
-`branch_template` in the `### Roz Gate config` block — **committed,
-team-wide**: everyone's commands and the hooks render the same names.
-Absent → `{kind}/{n}`, which is `spec/<n>`, `feat/<n>`, `qa/<n>`, `fast/<n>`
-— the names every release before 1.29.0 hardcoded.
+`branch_template` is a **local key — yours, per clone** (since 2.4.0,
+#165): `.claude/roz-gate.local.json`, set with `/roz-gate:config
+branch_template <template>` and read by every command through
+`bin/roz-config --json` and by the acceptance hook from the same file.
+Absent or `""` → `{kind}/{n}`, which is `spec/<n>`, `feat/<n>`, `qa/<n>`,
+`fast/<n>` — the names every release before 1.29.0 hardcoded. A clone
+whose `### Roz Gate config` block still carries a `- branch_template:`
+line has it moved into the local file once, on the first `bin/roz-config`
+run; the block line is ignored from then on.
 
 | placeholder | renders as |
 |---|---|
@@ -31,9 +36,11 @@ Absent → `{kind}/{n}`, which is `spec/<n>`, `feat/<n>`, `qa/<n>`, `fast/<n>`
 
 A template is **valid** when it contains `{n}` and at least one of `{kind}`
 / `{type}` (without one, the spec and qa branches of an issue collide), and
-every `{…}` in it is one of the five. Anything else → **STOP** before any
-branch is cut; the `blocked` comment quotes the template and names what is
-missing or unknown — the block is edited by hand, never by a command.
+every `{…}` in it is one of the five. `bin/roz-config` refuses an invalid
+one on write; a hand-edited file can still hold one, so anything else →
+**STOP** before any branch is cut; the `blocked` comment quotes the
+template and names what is missing or unknown — fixed with
+`/roz-gate:config branch_template …`, never by a command.
 
 Example — the convention `{type}/{user}/{n}/{seq}` renders, for issue #5
 labelled `type: fix`, `branch_user` = `pwliangc`, first attempt:
@@ -56,7 +63,8 @@ and so on. The result is the bound name; the worktree is
 
 A command that did not cut a branch cannot compute its name: another
 person's `{user}` and the attempt's `{seq}` are not knowable from the
-config. So a branch is **found, never guessed**:
+config. Lookup matches **your** template: a branch cut under another
+person's template is not found (#165 — templates are per developer). So a branch is **found, never guessed**:
 `git ls-remote --heads origin` (a query of the remote — no fetch, no local
 ref touched), and match every `refs/heads/…` against the
 template rendered with `{user}` → any single path segment (`[^/]+`),
@@ -102,8 +110,10 @@ its CR:
 ## The hooks
 
 - **guard-acceptance** decides "is HEAD a spec branch" by the template:
-  the spec kind rendered with `{user}` / `{seq}` / `{n}` as patterns. No
-  `branch_template` line in the block → `spec/*`, as before.
+  the spec kind rendered with `{user}` / `{seq}` / `{n}` as patterns, the
+  template read from the local file in the toplevel, else the main checkout
+  (an edit in a linked worktree reads the clone's file). Unset →
+  `spec/*`, as before.
 - **guard-blind** reads the forbidden implementation ref from the marker:
   the dispatching command writes `feat=<feat-branch>` into
   `roz-gate/fidelity-dispatch` (next-stage B5b, patrol's address-review);

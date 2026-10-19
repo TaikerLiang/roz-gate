@@ -4,14 +4,14 @@
 # Runs on every file-writing tool call in every repo where the plugin is
 # enabled, so it must be near-zero cost. The rule can only ever fire on a
 # spec branch — one cheap git call decides that, and only there do we pay
-# for a python startup plus the config read. A repo whose block sets
-# `branch_template` (references/branch-names.md) may name its spec branch
-# anything, so there the one extra grep hands every branch to python,
-# which matches HEAD against the rendered template. The block has two
-# homes — CLAUDE.md, else CLAUDE.local.md — in this toplevel or in the main
-# checkout (core.worktree when set, else the parent of the common git dir:
-# CLAUDE.local.md is untracked and absent in a linked worktree);
-# hooks/config_block.py is the python side of the same lookup (#94).
+# for a python startup plus the config read. A clone whose local file
+# (.claude/roz-gate.local.json, bin/roz-config's) sets `branch_template`
+# (references/branch-names.md, #165) may name its spec branch anything, so
+# there the one extra grep hands every branch to python, which matches HEAD
+# against the rendered template. The file is read in this toplevel or in
+# the main checkout (core.worktree when set, else the parent of the common
+# git dir: the file is untracked and absent in a linked worktree), the
+# lookup hooks/config_block.py does for the block (#94).
 set -u
 
 input=$(cat)
@@ -29,8 +29,8 @@ case "$branch" in
      else
        main="$gitdir/.."
      fi
-     grep -qs '^- *branch_template:' "$top/CLAUDE.md" "$top/CLAUDE.local.md" \
-       "$main/CLAUDE.md" "$main/CLAUDE.local.md" || exit 0 ;;
+     grep -qs '"branch_template" *: *"[^"]' "$top/.claude/roz-gate.local.json" \
+       "$main/.claude/roz-gate.local.json" || exit 0 ;;
 esac
 
 exec python3 "${BASH_SOURCE[0]%/*}/guard_acceptance.py" <<EOF

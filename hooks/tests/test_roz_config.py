@@ -61,7 +61,7 @@ class RozConfigTest(unittest.TestCase):
             self.assertEqual(json.loads(self.run_tool("--json").stdout),
                              {"default_branch": "release/20261006",
                               "inbox_label": [], "inbox_assignee": [], "helper_model": "",
-                              "branch_user": ""})
+                              "branch_user": "", "branch_template": ""})
 
     # ---- writes ---------------------------------------------------------
     def test_set_replace_remove_default_branch(self):
@@ -117,6 +117,57 @@ class RozConfigTest(unittest.TestCase):
             p = self.run_tool("inbox_label", "discuss", "good first issue")
             self.assertIn("inbox_label set → discuss, good first issue", p.stdout)
             self.assertIn("inbox_label      discuss, good first issue", self.run_tool().stdout)
+
+    # ---- branch_template: your branch names (#165) ------------------------
+    def test_branch_template_set_show_remove(self):
+        with self.subTest(
+                'roz-config: branch_template set, shown, removed back to {kind}/{n} ("" stored)'):
+            self.assertIn("branch_template  -  (default: {kind}/{n})", self.run_tool().stdout)
+            p = self.run_tool("branch_template", "{type}/{user}/{n}/{seq}")
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(self.stored(), {"branch_template": "{type}/{user}/{n}/{seq}"})
+            self.assertEqual(json.loads(self.run_tool("--json").stdout)["branch_template"],
+                             "{type}/{user}/{n}/{seq}")
+            self.run_tool("branch_template")
+            self.assertEqual(self.stored(), {"branch_template": ""})
+            self.assertEqual(json.loads(self.run_tool("--json").stdout)["branch_template"], "")
+
+    def test_branch_template_validated_on_write(self):
+        for bad, why in (("{user}/{seq}", "no {n}"),
+                         ("{user}/{n}", "neither {kind} nor {type}"),
+                         ("{kind}/{n}/{ticket}", "unknown placeholder {ticket}")):
+            with self.subTest('roz-config: an invalid branch_template is refused, nothing '
+                              'written — ' + why):
+                p = self.run_tool("branch_template", bad)
+                self.assertEqual(p.returncode, 2)
+                self.assertIn(why, p.stderr)
+                self.assertFalse((self.root / REL).exists())
+
+    def test_branch_template_never_split(self):
+        with self.subTest('roz-config: branch_template is one value — a comma stays literal'):
+            p = self.run_tool("branch_template", "{kind}/{n},x")
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(self.stored(), {"branch_template": "{kind}/{n},x"})
+
+    def test_branch_template_moves_from_the_block_once(self):
+        with self.subTest(
+                'roz-config: a block branch_template moves into an existing local file once; '
+                'removed, it never comes back'):
+            self.run_tool("branch_user", "paul")               # the file exists already
+            (self.root / "CLAUDE.md").write_text(
+                "### Roz Gate config\n\n- forge: github\n"
+                "- branch_template: `{type}/{user}/{n}/{seq}`   # the convention\n")
+            p = self.run_tool("--json")
+            self.assertIn("seeded", p.stderr)
+            self.assertIn("branch_template", p.stderr)
+            self.assertEqual(self.stored(), {"branch_user": "paul",
+                                             "branch_template": "{type}/{user}/{n}/{seq}"})
+            self.assertNotIn("seeded", self.run_tool("--json").stderr)
+            self.run_tool("branch_template")                   # back to the default …
+            p = self.run_tool("--json")
+            self.assertEqual(json.loads(p.stdout)["branch_template"], "",
+                             "… and the block line does not seed it again")
+            self.assertNotIn("seeded", p.stderr)
 
     def test_default_branch_takes_one_value(self):
         with self.subTest(
@@ -234,7 +285,7 @@ class RozConfigTest(unittest.TestCase):
             self.assertEqual(json.loads(p.stdout),
                              {"default_branch": "release/20261006",
                               "inbox_label": ["discuss", "idea"], "inbox_assignee": ["paul"],
-                              "helper_model": "", "branch_user": ""})
+                              "helper_model": "", "branch_user": "", "branch_template": ""})
             self.assertTrue((self.root / REL).exists())
             self.run_tool("default_branch")        # remove the override …
             p = self.run_tool("--json")

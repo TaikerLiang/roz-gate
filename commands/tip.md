@@ -22,15 +22,15 @@ Read the `### Roz Gate config` block in the project's CLAUDE.md (or
 CLAUDE.local.md), then `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md`
 for the concrete CLI behind every CAPITALIZED-OP. Missing config → stop; tell
 the user to run `/roz-gate:init`. **Local keys** — `default_branch`,
-`branch_user`, and the inbox filter `inbox_label` / `inbox_assignee` — from
+`branch_user`, `branch_template`, and the inbox filter `inbox_label` / `inbox_assignee` — from
 `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`; the block's `bot_login`
 list (normalized as patrol does: `app/` prefix and `[bot]` suffix stripped)
 tells a human holder from a bot.
 **Branch names**: run one `git ls-remote --heads origin` (a query of the
 remote; it touches no checkout and no local ref) and bind `<spec-branch>`,
 `<feat-branch>`, `<qa-branch>`, `<fast-branch>` by **Lookup** over it per
-`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md` (the block's
-`branch_template`, absent → `{kind}/{n}`; several attempts → the highest
+`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md` (the local key
+`branch_template`, `""` → `{kind}/{n}`; several attempts → the highest
 `{seq}` is the live one, the others are earlier attempts). Nothing below
 spells a branch name.
 

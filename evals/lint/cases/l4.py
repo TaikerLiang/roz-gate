@@ -25,7 +25,8 @@ META = {
 }
 
 _bn = read("references/branch-names.md")
-for _lit in ("Absent → `{kind}/{n}`", "| `{kind}` |", "| `{type}` |", "| `{user}` |", "| `{n}` |",
+for _lit in ("Absent or `\"\"` → `{kind}/{n}`", "| `{kind}` |", "| `{type}` |", "| `{user}` |",
+             "| `{n}` |",
              "| `{seq}` |", "qa branch → `test`", "no `type:` label → `feat`", "`branch_user`",
              "WHOAMI", "git ls-remote --heads origin", "highest `{seq}`",
              "git push origin --delete <branch>",
@@ -68,18 +69,38 @@ src("L4: init creates the three type labels", "commands/init.md",
     "`type: feat`, `type: fix`, `type: chore`")
 src("L4: init never applies a type label", "commands/init.md",
     "no command ever\napplies, removes or validates one")
-src("L4: init documents branch_template as optional", "commands/init.md",
-    "- `branch_template` — optional")
+src("L4: init writes no branch_template — it is the developer's local key (#165)",
+    "commands/init.md", "- (not in the block) `branch_template` — your branch-naming convention")
 for _f in ("references/forge-github.md", "references/forge-gitlab.md"):
     src("L4: %s carries WHOAMI" % _f, _f, "| WHOAMI |")
 src("L4: guard-blind reads the marker's feat= line", "hooks/guard_blind.py",
     'line.startswith("feat=")')
 src("L4: guard-acceptance renders the template for the spec kind", "hooks/guard_acceptance.py",
     "def spec_branch_re(template):")
-src("L4: guard-acceptance's prefilter escalates every branch under a template",
-    "hooks/guard-acceptance.sh", "grep -qs '^- *branch_template:'")
+src("L4: guard-acceptance's prefilter escalates every branch under a local template",
+    "hooks/guard-acceptance.sh", "grep -qs '\"branch_template\" *: *\"[^\"]'")
+src("L4: guard-acceptance reads the template from the local file, here or in the main "
+    "checkout (#165)", "hooks/guard_acceptance.py", "for root in (top, main_checkout()):")
 src("L4: hooks/README's rule E names the marker's ref", "hooks/README.md", "marker's `feat=` line")
-src("L4: README states the template", "README.md", "- branch_template:")
+src("L4: README sets the template with /roz-gate:config", "README.md",
+    "/roz-gate:config branch_template ")
+c.expect("pattern", "L4: README's block example carries no branch_template line (#165)",
+         "- branch_template:" not in read("README.md"))
+src("L4: branch-names.md: the template is a local key, yours per clone (#165)",
+    "references/branch-names.md", "`branch_template` is a **local key — yours, per clone**")
+for _f in ("commands/next-stage.md", "commands/integrate.md", "commands/spec-answers.md",
+           "commands/review-answers.md", "commands/patrol.md", "commands/tip.md"):
+    _s = re.sub(r"\s+", " ", read(_f))
+    c.expect("pattern", "L4: %s binds names from the local key, never the block's (#165)" % _f,
+             "the local key `branch_template`" in _s and "block's `branch_template`" not in _s)
+    c.expect("pattern", "L4: %s lists branch_template among the local keys (#165)" % _f,
+             re.search(r"`branch_user`, `branch_template`(,| are per person)", _s) is not None)
 src("L4: workflow.md states the names are the template's", "references/workflow.md",
     "**The branch names.**")
 src("L4: the onboarding builder offers branch_template", "docs/onboarding.html", "branch_template")
+_ob = read("docs/onboarding.html")
+_loc = _ob[_ob.find("const LOCAL = ["):_ob.find("];", _ob.find("const LOCAL = ["))]
+_opt = _ob[_ob.find("const OPT = ["):_ob.find("];", _ob.find("const OPT = ["))]
+c.expect("pattern", "L4: the onboarding builder renders branch_template as a /roz-gate:config "
+         "line, not a block line (#165)",
+         "'branch_template'" in _loc and "'branch_template'" not in _opt)

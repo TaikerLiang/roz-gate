@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""roz-config — the five loop keys that are yours, per repo, never committed.
+"""roz-config — the six loop keys that are yours, per repo, never committed.
 
     roz-config                                  # effective values, (default) marked
     roz-config --json                           # the same as JSON (what commands read)
@@ -9,6 +9,7 @@
     roz-config inbox_assignee TaikerLiang       # set a list (any of these logins)
     roz-config helper_model claude-haiku-4-5    # the scanner's and the commit sub-agent's model
     roz-config branch_user pwliangc             # the {user} slot of branch_template
+    roz-config branch_template {type}/{user}/{n}/{seq}  # your branch names (references/branch-names.md)
     roz-config inbox_label                      # no value: remove the override
 
 Stored in `.claude/roz-gate.local.json` at the repository root — one file per
@@ -39,8 +40,14 @@ import re
 import subprocess
 import sys
 
-KEYS = ("default_branch", "inbox_label", "inbox_assignee", "helper_model", "branch_user")
-EMPTY_DEFAULT = ("helper_model", "branch_user")   # absent = "" — the runtime / WHOAMI decides
+KEYS = ("default_branch", "inbox_label", "inbox_assignee", "helper_model", "branch_user",
+        "branch_template")
+EMPTY_DEFAULT = ("helper_model", "branch_user", "branch_template")  # absent = "": the runtime /
+                                                 # WHOAMI / `{kind}/{n}` decides
+# Keys that joined after the local file was born: a block line seeds them once
+# into an existing file, and removing one stores "" so it cannot seed again.
+LATE_KEYS = ("helper_model", "branch_template")
+PLACEHOLDERS = ("{kind}", "{type}", "{user}", "{n}", "{seq}")
 RENAMED = {"patrol_model": "helper_model"}   # pre-1.28 block line → local key
 LIST_KEYS = ("inbox_label", "inbox_assignee")
 REL = ".claude/roz-gate.local.json"
@@ -101,6 +108,8 @@ def block_values(root):
             lm = re.match(r"^- (%s):\s*(.*?)\s*$" % "|".join(KEYS + tuple(RENAMED)), line)
             if lm and lm.group(2) and RENAMED.get(lm.group(1), lm.group(1)) not in found:
                 k, v = RENAMED.get(lm.group(1), lm.group(1)), lm.group(2)
+                if k == "branch_template":     # the first word, as the hook read it
+                    v = v.split()[0].strip("`")
                 found[k] = [x.strip() for x in v.split(",") if x.strip()] if k in LIST_KEYS else v
     return found
 
@@ -109,16 +118,16 @@ def migrate(root, path, stored):
     """The block still carries keys the local file has never held → seed once.
 
     No local file: every block key seeds it (the 1.23 upgrade). A file that
-    exists but has never held `helper_model` (a 1.27 clone that set another
-    key) takes the block's `patrol_model` line once — and only that key: the
-    three others were seeded or deliberately left at their defaults when the
-    file was born. "Never held" is the key's absence; removing the override
+    exists but has never held a late key takes the block's line for it once:
+    `helper_model` from `patrol_model` (a 1.27 clone), `branch_template`
+    (2.4.0, #165: the template left the block) — and only those: the others
+    were seeded or deliberately left at their defaults when the file was born. "Never held" is the key's absence; removing the override
     stores "" (the default) rather than dropping the key, so a block line
     that is still there cannot seed it again.
     """
     found = block_values(root)
     if os.path.exists(path):
-        found = {k: v for k, v in found.items() if k == "helper_model" and k not in stored}
+        found = {k: v for k, v in found.items() if k in LATE_KEYS and k not in stored}
     if not found:
         return stored
     stored = dict(stored, **found)
@@ -188,9 +197,23 @@ def show(eff, as_json):
         if dflt:
             note = "  (default: no filter)" if k in LIST_KEYS else "  (default: runtime)" \
                 if k == "helper_model" else "  (default: the forge login)" \
-                if k == "branch_user" else (
+                if k == "branch_user" else "  (default: {kind}/{n})" \
+                if k == "branch_template" else (
                 "  (default: origin/HEAD)" if has_head else "  (default: origin/HEAD unset, assuming main)")
         print("%-16s %s%s" % (k, shown or "-", note))
+
+
+def template_problem(t):
+    """Why `t` is not a valid branch template, or None (references/branch-names.md
+    § The template): `{n}`, one of `{kind}` / `{type}`, no other placeholder."""
+    unknown = [p for p in re.findall(r"\{[^{}]*\}", t) if p not in PLACEHOLDERS]
+    if unknown:
+        return "unknown placeholder %s — the five are %s" % (", ".join(unknown), " ".join(PLACEHOLDERS))
+    if "{n}" not in t:
+        return "it has no {n}, so two issues would share a branch"
+    if "{kind}" not in t and "{type}" not in t:
+        return "it has neither {kind} nor {type}, so an issue's spec and qa branches would collide"
+    return None
 
 
 def main(argv):
@@ -210,17 +233,23 @@ def main(argv):
     if key not in LIST_KEYS and len(values) > 1:
         sys.stderr.write("roz-config: %s takes one value\n" % key)
         return 2
+    if key == "branch_template" and values and values[0].strip():
+        why = template_problem(values[0].strip())
+        if why:
+            sys.stderr.write("roz-config: branch_template %r is invalid — %s "
+                             "(references/branch-names.md)\n" % (values[0], why))
+            return 2
     if key in LIST_KEYS:                # a label may hold spaces, never a comma
         values = [part.strip() for v in values for part in v.split(",")]
     values = [v for v in values if v.strip()]
     if not values:
-        if key == "helper_model":
+        if key in LATE_KEYS:
             stored[key] = ""           # the tombstone: see migrate()
         else:
             stored.pop(key, None)
         action = "removed the override"
     else:
-        stored[key] = values if key in LIST_KEYS else values[0]
+        stored[key] = values if key in LIST_KEYS else values[0].strip()
         action = "set"
     write(root, path, stored)
     v, dflt = effective(stored)[key]

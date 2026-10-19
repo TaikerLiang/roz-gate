@@ -258,13 +258,13 @@ bare name is a CR target only. A base the remote does not have stops the cut
 (`blocked`).
 
 **The branch names.** `spec/{n}`, `feat/{n}`, `qa/{n}`, `fast/{n}` are the
-**default** names — the block's `branch_template` renders them for a repo
-with its own convention (`{type}/{user}/{n}/{seq}` → `spec/pwliangc/5/1`,
+**default** names — your `branch_template` (a local key, per clone:
+`/roz-gate:config branch_template …`) renders them for your own convention (`{type}/{user}/{n}/{seq}` → `spec/pwliangc/5/1`,
 `fix/pwliangc/5/1`, `test/pwliangc/5/1`): `{type}` is `spec` / `test` / the
 issue's `type:` label, `{user}` your `branch_user` (or your forge login),
 `{seq}` the attempt. Every command binds its names once from the template
-and finds an existing branch on the remote by pattern — it never guesses
-another person's `{user}`; the hooks read the same template
+and finds an existing branch on the remote by pattern — the branches your
+template renders, never another person's guessed; the hooks read the same template
 (`references/branch-names.md`). Like the base, a template change is yours
 to carry for an issue already cut.
 
