@@ -8,13 +8,16 @@ import type { EngineInterface, Register } from 'claude-code'
 
 const COMMAND = 'roz-gate:config'
 const PANE = 'roz-gate-config'
-const KEYS = ['default_branch', 'inbox_label', 'inbox_assignee', 'helper_model', 'branch_user']
+const KEYS = [
+  'default_branch', 'inbox_label', 'inbox_assignee', 'helper_model', 'branch_user', 'branch_template',
+]
 const HINT: Record<string, string> = {
   default_branch: "one branch; empty = the remote's HEAD",
   inbox_label: 'labels, comma-separated; empty = no filter',
   inbox_assignee: 'logins, comma-separated; empty = no filter',
   helper_model: "one model id; empty = the runtime's",
   branch_user: 'one forge login; empty = yours',
+  branch_template: 'e.g. {type}/{user}/{n}/{seq}; empty = {kind}/{n}',
 }
 
 type Values = Record<string, string | string[]>

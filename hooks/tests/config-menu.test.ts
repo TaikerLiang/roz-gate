@@ -191,3 +191,15 @@ test("where nothing draws, the load's notice leads the listing, once", async ($,
   const r = await $.command.run(run(''))
   expect(r.text).toBe('roz-config: seeded from the CLAUDE.md block once\ninbox_label      discuss')
 })
+
+test('the pane offers branch_template, and a template goes to the tool whole', async ($, on) => {
+  const calls: string[][] = []
+  tool(on, calls)
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  await $.command.run(run(''))
+  calls.length = 0
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await ui.select({ key: 'key', value: 'branch_template' })
+  await ui.input({ key: 'value', text: '{type}/{user}/{n}/{seq}' })
+  expect(calls[0]).toEqual(['branch_template', '{type}/{user}/{n}/{seq}'])
+})
