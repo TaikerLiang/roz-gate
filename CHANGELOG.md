@@ -2,6 +2,30 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.4.0 — branch_template is yours, per clone — 2026-10-19
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.4.0>
+
+**Behavior:** `branch_template` is yours, per clone — set with `/roz-gate:config branch_template <template>`; a clone's existing block line moves into the local file once, on the first run.
+
+### Behavior
+- **`branch_template` is a local key** (#165): `.claude/roz-gate.local.json`, read by every command through `bin/roz-config --json` and by the acceptance hook from the same file (this checkout, else the main one); unset → `{kind}/{n}`. `bin/roz-config` refuses an invalid template on write (exit 2); the commands still STOP on one. Lookup finds the branches your template renders.
+- **One-time move** (#165): a block `- branch_template:` line with no local key is seeded into the local file once, said on stderr; the block line is ignored from then on.
+- **`/roz-gate:config`** (#165): the sixth key in the mod's pane and in the prompt fallback; `init` no longer writes a block line.
+
+### Evals
+- **L2 / L4 / L5 / C14** (#165): six local keys (L2 reads a multi-line `KEYS`); the six commands bind from the local key; the prefilter and the hook read the local file; the onboarding builder renders a `/roz-gate:config` line. Replay seeds F10, C11, D5 carry the template in the local file.
+
+### Hooks
+- **guard-acceptance** (#165): the template from the local file, here or in the main checkout; `test_roz_config.py` and `test_guard_acceptance.py` gain the migration, validation and worktree cases (402 → 412); a worktree's own local file without the key passes to the main checkout's.
+
+### Docs
+- README, `references/branch-names.md`, `workflow.md`, `patrol-scan.md`, `hooks/README.md`, the onboarding builder, the index stage card, the quiz.
+
+
+### Checks
+Hook tests 412/412 · lint 859/859 · red-proofs 30/30 · plugin tests 15/15 · `plugin validate --strict` clean
+
 ## v2.3.0 — /roz-gate:config without a model turn — 2026-10-19
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.3.0>
