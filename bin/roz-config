@@ -5,6 +5,7 @@
     roz-config --json                           # the same as JSON (what commands read)
     roz-config default_branch release/20261006  # set
     roz-config inbox_label discuss idea         # set a list (any of these labels)
+    roz-config inbox_label "discuss, good first issue"  # commas split a list key
     roz-config inbox_assignee TaikerLiang       # set a list (any of these logins)
     roz-config helper_model claude-haiku-4-5    # the scanner's and the commit sub-agent's model
     roz-config branch_user pwliangc             # the {user} slot of branch_template
@@ -182,7 +183,7 @@ def show(eff, as_json):
     _, has_head = default_branch()
     for k in KEYS:
         v, dflt = eff[k]
-        shown = " ".join(v) if isinstance(v, list) else v
+        shown = ", ".join(v) if isinstance(v, list) else v
         note = ""
         if dflt:
             note = "  (default: no filter)" if k in LIST_KEYS else "  (default: runtime)" \
@@ -209,6 +210,8 @@ def main(argv):
     if key not in LIST_KEYS and len(values) > 1:
         sys.stderr.write("roz-config: %s takes one value\n" % key)
         return 2
+    if key in LIST_KEYS:                # a label may hold spaces, never a comma
+        values = [part.strip() for v in values for part in v.split(",")]
     values = [v for v in values if v.strip()]
     if not values:
         if key == "helper_model":
@@ -221,7 +224,7 @@ def main(argv):
         action = "set"
     write(root, path, stored)
     v, dflt = effective(stored)[key]
-    shown = " ".join(v) if isinstance(v, list) else v
+    shown = ", ".join(v) if isinstance(v, list) else v
     print("%s %s → %s%s  [%s]" % (key, action, shown or "-", " (default)" if dflt else "", REL))
     return 0
 

@@ -89,6 +89,35 @@ class RozConfigTest(unittest.TestCase):
             self.run_tool("inbox_label")
             self.assertEqual(self.stored(), {"inbox_assignee": ["TaikerLiang"]})
 
+    def test_list_key_splits_on_commas(self):
+        with self.subTest(
+                'roz-config: a list key splits one argument on commas, trims, drops empties'):
+            p = self.run_tool("inbox_label", "discuss, good first issue,, ")
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(self.stored(), {"inbox_label": ["discuss", "good first issue"]})
+
+    def test_commas_and_arguments_agree(self):
+        with self.subTest(
+                'roz-config: commas and separate arguments store the same list'):
+            self.run_tool("inbox_label", "discuss", "good first issue")
+            by_args = self.stored()
+            self.run_tool("inbox_label", "discuss,good first issue")
+            self.assertEqual(self.stored(), by_args)
+
+    def test_one_value_key_keeps_its_comma(self):
+        with self.subTest(
+                'roz-config: a one-value key is never split — a comma stays literal'):
+            p = self.run_tool("default_branch", "release/a,b")
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(self.stored(), {"default_branch": "release/a,b"})
+
+    def test_report_joins_a_list_with_commas(self):
+        with self.subTest(
+                'roz-config: the report line and the listing join a list with ", "'):
+            p = self.run_tool("inbox_label", "discuss", "good first issue")
+            self.assertIn("inbox_label set → discuss, good first issue", p.stdout)
+            self.assertIn("inbox_label      discuss, good first issue", self.run_tool().stdout)
+
     def test_default_branch_takes_one_value(self):
         with self.subTest(
                 'roz-config: default_branch refuses two values, writes nothing'):
