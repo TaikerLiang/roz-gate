@@ -29,7 +29,7 @@ _READ_RULE = ("**absent → 3; any other value → stop here, before the lock**,
               "like a missing block")
 for _nm, _s in (("integrate", _ig0), ("review-answers", _ra0)):
     c.expect("pattern", "C14: %s §0 reads `fix_rounds` from the block" % _nm,
-             "`branch_template`, `fix_rounds`)" in _s)
+             "`acceptance_dir`, `fix_rounds`)" in _s)
     c.expect("pattern", "C14: %s §0 — absent is 3, anything else is a config error, never a "
              "default" % _nm, _READ_RULE in _s)
 c.expect("pattern", "C14: integrate step 5 caps by config `fix_rounds`",

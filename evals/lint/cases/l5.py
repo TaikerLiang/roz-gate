@@ -6,8 +6,9 @@ CLAUDE.local.md (ADMC, its PR #62) was "not a roz-gate project" to four
 rules — guard-acceptance and rule D off, rule A in user mode, rule E
 without its suite exemption — while the commands, which read the block
 from Claude Code's context where both files land, ran the loop. One reader
-(hooks/config_block.py) for every loader, the acceptance prefilter's grep
-names both homes in both places, and the prose says what the hooks do.
+(hooks/config_block.py) for every loader, and the prose says what the hooks
+do. 2.4.0 (#165): the acceptance prefilter's grep is for the template, now
+the local file's — in both places, this toplevel and the main checkout.
 """
 
 from lib.lintkit import must_match, must_not_match, read, src
@@ -32,10 +33,10 @@ for _f in _HOMES:
     src("L5: %s imports the reader" % _f, _f, "from config_block import find_block")
     must_not_match("L5: %s never opens a CLAUDE.md of its own" % _f, r'CLAUDE\.md"', read(_f))
 _pre = read("hooks/guard-acceptance.sh")
-must_match("L5: guard-acceptance's prefilter greps CLAUDE.local.md beside CLAUDE.md",
-           r'"\$top/CLAUDE\.md" "\$top/CLAUDE\.local\.md"', _pre)
-must_match("L5: guard-acceptance's prefilter reaches the main checkout's two homes",
-           r'"\$main/CLAUDE\.md" "\$main/CLAUDE\.local\.md"', _pre)
+must_match("L5: guard-acceptance's prefilter greps this toplevel's local file",
+           r'"\$top/\.claude/roz-gate\.local\.json"', _pre)
+must_match("L5: guard-acceptance's prefilter reaches the main checkout's local file",
+           r'"\$main/\.claude/roz-gate\.local\.json"', _pre)
 src("L5: the prefilter honours core.worktree, as the reader does (codex, PR #100)",
     "hooks/guard-acceptance.sh", 'core.worktree')
 src("L5: the reader honours core.worktree", "hooks/config_block.py", '"core.worktree"')

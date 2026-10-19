@@ -14,13 +14,13 @@ every CAPITALIZED-OP. Missing config → stop; tell the user to run
 `/roz-gate:init`. A legacy `### Gated Loop config` block (the plugin's
 pre-1.0 name) counts as present — use its values and flag the re-init in the
 report. **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee`,
-`helper_model`, `branch_user` are per person,
+`helper_model`, `branch_user`, `branch_template` are per person,
 per clone, never in the block: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`
 and use its values (`.claude/roz-gate.local.json`, defaults resolved — the
 remote's HEAD branch, empty lists, empty strings). **Branch names**: bind `<spec-branch>`,
 `<feat-branch>`, `<qa-branch>`, `<fast-branch>` per
-`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md` (the block's
-`branch_template`, absent → `{kind}/{n}`; an existing branch is found by
+`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md` (the local key
+`branch_template`, `""` → `{kind}/{n}`; an existing branch is found by
 Lookup, never guessed). Nothing below spells a branch name. The report names the
 effective values of the four.
 
@@ -59,7 +59,7 @@ local keys from `bin/roz-config --json` (`helper_model` is the dispatch's
 model, not a value the scanner reads), and the config block's
 `bot_login` list (normalized: `app/` prefix and `[bot]` suffix stripped;
 empty in user mode) so the scanner can tell a human holder from a bot, the
-block's `branch_template` (absent → `{kind}/{n}`), and **the remote's
+local `branch_template` (`""` → `{kind}/{n}`), and **the remote's
 heads** — the output of one `git ls-remote --heads origin`, run by you
 here (a query of the remote; it touches no checkout and no local ref) —
 so the scanner can bind every issue's branch names by Lookup

@@ -11,9 +11,9 @@ follow the matched path's steps exactly and do nothing beyond them.
 ## 0. Load config & forge adapter
 
 Read the `### Roz Gate config` block in the project's CLAUDE.md (or CLAUDE.local.md) (`forge`,
-`test`, `env_sync`, `lockfile`, `specs_dir`, `acceptance_dir`,
-`branch_template`). **Local keys** — `default_branch`, `inbox_label`,
-`inbox_assignee`, `helper_model`, `branch_user` are per person,
+`test`, `env_sync`, `lockfile`, `specs_dir`, `acceptance_dir`).
+**Local keys** — `default_branch`, `inbox_label`,
+`inbox_assignee`, `helper_model`, `branch_user`, `branch_template` are per person,
 per clone, never in the block: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`
 and use its values (`.claude/roz-gate.local.json`, defaults resolved — the
 remote's HEAD branch, empty lists, empty strings).
@@ -21,8 +21,8 @@ remote's HEAD branch, empty lists, empty strings).
 it and their CRs target it; `<feat-branch>` and `<qa-branch>` stay siblings off
 `<spec-branch>`. **Bind the branch names** — `<spec-branch>`, `<feat-branch>`,
 `<qa-branch>`, `<fast-branch>` — per
-`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md`: the block's
-`branch_template` (absent → `{kind}/{n}`), an existing branch found by
+`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md`: the local key
+`branch_template` (`""` → `{kind}/{n}`), an existing branch found by
 **Lookup**, a new one rendered by **Expand**; an invalid template is a STOP
 before any cut. Nothing below spells a branch name. Then read `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md`
 and use its concrete CLI for every CAPITALIZED-OP below. Label names follow the

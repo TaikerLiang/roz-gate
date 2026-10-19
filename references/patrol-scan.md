@@ -14,7 +14,8 @@ CAPITALIZED-OP you run is a read from the forge adapter the main agent named
 in your dispatch (`references/forge-<forge>.md`). The inbox filter's two
 lists and `default_branch` are the values the main agent handed you from
 `bin/roz-config --json`; never re-derive them. **Branch names**: the main
-agent handed you `branch_template` and **the remote's heads** (its one
+agent handed you `branch_template` (from `bin/roz-config --json`; `""` →
+`{kind}/{n}`) and **the remote's heads** (its one
 `git ls-remote --heads origin`); every `<spec-branch>` / `<feat-branch>` /
 `<qa-branch>` / `<fast-branch>` below is bound by **Lookup** over that
 list — the template rendered for the kind and issue with `{user}` and
