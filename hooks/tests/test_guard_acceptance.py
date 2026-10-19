@@ -177,6 +177,16 @@ class AcceptanceSuiteIsNotEditableOnSpecBranch(HookTest):
         with self.case("homes: worktree cwd on pwliangc/spec/9, {user}/{kind}/{n} only in the "
                        "main checkout's local file — denied"):
             self.assertDenied(self.edit(lead_wt, "Edit", ACCEPTANCE_FILE), "acceptance suite")
+        # The worktree's own file without the key passes to the main checkout's
+        # (codex, PR #169); a stored "" there is a chosen default and stops.
+        self.write(lead_wt / LOCAL, json.dumps({"branch_user": "pwliangc"}) + "\n")
+        with self.case("homes: the worktree's own local file holds only branch_user — the main "
+                       "checkout's template still applies, denied"):
+            self.assertDenied(self.edit(lead_wt, "Edit", ACCEPTANCE_FILE), "acceptance suite")
+        self.write(lead_wt / LOCAL, local_template(""))
+        with self.case('homes: the worktree\'s own file stores branch_template "" — the default, '
+                       "so pwliangc/spec/9 is not a spec branch there"):
+            self.assertAllowed(self.edit(lead_wt, "Edit", ACCEPTANCE_FILE))
         # A separate git dir (codex, PR #100): git records the main work tree
         # nowhere a linked worktree can read — `core.worktree` is the one hint.
         sgd_main, sgd_git = self.new_dir() / "repo", self.new_dir() / "gitdir"

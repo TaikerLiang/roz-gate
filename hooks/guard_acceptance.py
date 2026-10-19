@@ -82,9 +82,11 @@ def local_template(top):
     """`branch_template` from bin/roz-config's local file — this toplevel's,
     else the main checkout's: an edit in a linked worktree (the loop's
     `.git/roz-gate/wt/<branch>`) reads the clone's file, as the block is
-    read. The first file found wins, whole; "" or absent → None. The block's
-    old `- branch_template:` line is never read here: roz-config moves it
-    into the file once (#165).
+    read. The first file that holds the key wins: a stored "" is a chosen
+    default (→ None); a file without the key — a worktree's own, holding
+    only another key — passes to the next (codex review, PR #169). The
+    block's old `- branch_template:` line is never read here: roz-config
+    moves it into the file once (#165).
     """
     for root in (top, main_checkout()):
         if not root:
@@ -94,7 +96,9 @@ def local_template(top):
                 data = json.load(f)
         except (OSError, ValueError):
             continue
-        t = data.get("branch_template") if isinstance(data, dict) else None
+        if not isinstance(data, dict) or "branch_template" not in data:
+            continue
+        t = data["branch_template"]
         return t.strip() if isinstance(t, str) and t.strip() else None
     return None
 
