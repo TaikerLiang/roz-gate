@@ -1,4 +1,7 @@
 {
+  "modules": [
+    "./config-menu.tsx"
+  ],
   "hooks": {
     "PreToolUse": [
       {
