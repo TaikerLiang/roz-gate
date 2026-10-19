@@ -2,6 +2,32 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.3.0 — /roz-gate:config without a model turn — 2026-10-19
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.3.0>
+
+**Behavior:** `/roz-gate:config` runs with no model turn on Claude Code 2.1.287 or later — a mod in this plugin answers it; older versions and sessions with mods off run the prompt as before.
+
+### Behavior
+- **`/roz-gate:config` mod** (#164): `hooks/config-menu.tsx` takes over the command. With arguments it runs `bin/roz-config` directly; without, it opens a pane with a key `Select` and a value `Input`; where nothing draws it prints the current values. `bin/roz-config` stays the only writer; the mod never writes a file or calls the forge or a model. A successful run's stderr notice (the one-time migration of a pre-1.23 block) is shown, a pane value is trimmed, and the hand-run fallback line is shell-quoted. `commands/config.md` is the fallback.
+- **Comma lists in `bin/roz-config`** (#164): list keys split every argument on commas (`"discuss, good first issue"` is two labels); one-value keys never split; the report line joins a list with `, `.
+
+### Evals
+- **L8** (#164): the mod only reads and runs `bin/roz-config`, takes over `roz-gate:config` alone, and `commands/config.md` stays as the fallback.
+
+### Hooks
+- **`test_roz_config.py`** +4 cases: comma splitting.
+
+### Tooling
+- **CI**: Node 22 and the Claude Code CLI (pinned 2.1.303); `claude plugin validate --strict` and `claude plugin test` (`hooks/tests/config-menu.test.ts`, 14 cases).
+- **`.claude-plugin/marketplace.json`** gains a description (a `validate --strict` warning).
+
+### Docs
+- README (the command table, the per-clone section, Requirements, Repository layout) and `hooks/README.md` (the files table, the test commands, a "The mod" section).
+
+### Checks
+Hook tests 402/402 · lint 841/841 · red-proofs 30/30 · plugin tests 14/14 · `plugin validate --strict` clean
+
 ## v2.2.1 — reserved words, round 2, and the MIT licence — 2026-10-18
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.2.1>
