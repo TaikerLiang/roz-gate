@@ -2,6 +2,37 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.5.0 — 2026-10-20
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.5.0>
+
+**Runtime change: patrol answers intake comments.** After the questions batch, every new human comment on a track-less issue gets one `**[intake] · reply**` on the next pass, until the gate label. The holder's `summary` line and gate label are still the only things that act.
+
+### Behavior
+- **Patrol replies on intake threads** (#174, #175): one reply per issue per pass covers every human comment since the last `**[intake]` comment, from anyone, attributed by name, with no @-mention. A non-holder's answer is recorded as input. New questions are asked only for decisions those comments opened (rule F bullets), and the batch is never re-asked. The reply never edits the body or labels. Bots and agent-marker comments never trigger it, and an issue without a human holder still gets the batch only.
+- **A forge bot never holds the gate** (#177): the scan's `holder` column and patrol's holder rule exclude the forge's bot shape, configured or not.
+
+### Hooks
+- **guard-gate rule I** (#175, #177): a comment body opening with `**[intake] · reply**` is denied unless a human comment follows the latest agent `**[intake]` comment, a human holder exists and no gate label is present.
+  - "Human" is decided the same way on GitHub (REST `user.type`, `[bot]` login) and GitLab (system notes dropped, `project_<id>_bot_` / `group_<id>_bot_`), plus `bot_login` and the agent marker.
+  - Both forges' reads paginate.
+  - A forge-shaped bot author or assignee is never the holder.
+  - One command carrying two replies to one forge issue (`7` / `07`) is denied.
+  - Forge failures fail closed.
+
+### Evals
+- Replay **A9**, with checker and a 19-shape red-proof (baseline pending).
+- Lint **A9** and **L9**; **A8** gains the new verdict.
+- Hook tests 412 → 467.
+- The forge stub's REST comments rows carry `user.type`.
+
+### Docs
+- `README.md`, `references/workflow.md`, `docs/protocol.md`, `docs/participating.md`, `docs/index.html`, `docs/onboarding.html` and `docs/learn/quiz.json` describe the reply.
+- `references/forge-github.md` / `forge-gitlab.md` gain ISSUE-COMMENTS-LIST.
+
+### Checks
+Hook tests 467/467 · lint 991/991 · red-proofs 31/31 · plugin tests 15/15 · `plugin validate --strict` clean
+
 ## v2.4.0 — branch_template is yours, per clone — 2026-10-19
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.4.0>
