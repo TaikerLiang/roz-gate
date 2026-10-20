@@ -171,6 +171,7 @@ text follows the experiment; the driver's citation was updated to match.
 | L6 | `test` and `acceptance_test` are documented as running in a linked worktree, never in the checkout, on every surface an adopter fills them in — README's config block, init's prompt, the onboarding builder — with the `.git`-as-a-directory failure named | lint (defect 1.36.0-, #99) |
 | L7 | the wire spec names exactly the labels the state machine has, states the STOP and summary rules in the client's literals, binds no reference-client internal as a MUST, and every entry point links the pages | lint (preventive) |
 | L8 | `/roz-gate:config` is answered by a mod that only reads and runs `bin/roz-config`; `commands/config.md` stays as the fallback where mods do not load | lint (#164, 2.3.0) |
+| L9 | Every page says patrol answers every human comment on an intake thread on its next pass, and none still hands the thread to the humans | lint (defect 2.4.0-, #174) |
 
 ## The judgment corpus
 

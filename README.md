@@ -210,8 +210,11 @@ carrying any of those labels / assigned to any of those logins are the inbox
 its report and never comments on. Three beats — **ask once, summarize on demand, the label confirms**:
 
 1. Patrol posts **one** batch of clarifying questions (numbered, each option
-   with a marked recommendation), then leaves the thread to the humans —
-   free-form discussion, anyone may weigh in, from any device.
+   with a marked recommendation), then answers every human comment on its
+   next pass — one `**[intake] · reply**` per pass covering everything said
+   since, whoever said it (a bot never triggers one); a reply never re-asks
+   the batch and decides nothing. Free-form discussion, anyone may weigh in,
+   from any device.
 2. The **issue assignee** (unassigned → the author) ends a comment with the
    line **`summary`** whenever the discussion feels settled — or
    immediately, if the recommendations look right; corrections and the

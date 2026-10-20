@@ -311,7 +311,7 @@
    "q": "把 inbox 的「三個節拍」排成正確順序。",
    "o": [
     "assignee 套上 gate label（ready-for-spec 或 ready-for-dev）——label 本身就是確認，patrol 才改寫 body 並交給 loop。",
-    "patrol 看到這個沒有 track label 的 issue，貼出一批（只有一批）編號問題，每題都附上推薦選項，討論與最後的決定全都留給人類。",
+    "patrol 看到這個沒有 track label 的 issue，貼出一批（只有一批）編號問題，每題都附上推薦選項；之後每則人類留言都會在下一輪得到回覆，但討論與最後的決定全都留給人類。",
     "assignee 在某則 comment 的最後一行寫 `summary`——agent 把 body 加所有 comment 濃縮成 story、AC、track、決策紀錄。"
    ],
    "a": [
@@ -321,7 +321,7 @@
    ],
    "why": "ask once → summarize on demand → the label confirms。只有 assignee 說的話會寫進 issue body；旁觀者的 comment 不會被併進去。",
    "src": "README.md § The inbox",
-   "bg": "Inbox 的 intake 流程被設計成「ask once, summarize on demand, the label confirms」三個節拍：agent 只問一次、人類決定何時要 summary、最後由 label 確認。這個順序刻意把「何時往前走」的決定權留給 assignee。（summary 裡的 AC 是 acceptance criteria。）"
+   "bg": "Inbox 的 intake 流程被設計成「ask once, summarize on demand, the label confirms」三個節拍：agent 只問一次（之後只回覆、不再重問）、人類決定何時要 summary、最後由 label 確認。這個順序刻意把「何時往前走」的決定權留給 assignee。（summary 裡的 AC 是 acceptance criteria。）"
   },
   {
    "id": 9,

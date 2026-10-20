@@ -14,9 +14,11 @@ issue and pull-request comments, and you only ever need **four moves**.
 An agent posts one batch of numbered questions (it starts with
 `**[intake]**`), each with (a)/(b) options and a marked recommendation.
 Reply free-form — `1a 2b` shorthand is welcome, so is disagreeing in prose.
-**Anyone may weigh in**; it is a normal discussion thread. The batch is asked
-once: whatever stays unanswered resolves to its recommendation and is listed
-as an assumption.
+**Anyone may weigh in**; it is a normal discussion thread, and the agent
+answers every human comment on its next pass with one `**[intake] · reply**`
+— an answer, never a decision: only the gate holder's label decides. The
+batch is asked once: whatever stays unanswered resolves to its
+recommendation and is listed as an assumption.
 
 ## 2. Say `summary` (gate holders only)
 
