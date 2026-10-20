@@ -1,0 +1,18 @@
+[
+ {
+  "user": {
+   "login": "TaikerLiang",
+   "type": "User"
+  },
+  "body": "**[intake]**\n\n**Q1 · Format** — which format?\n- (a) CSV ← ✅ recommended\n- (b) CSV and XLSX\n\n*why: CSV opens everywhere.*",
+  "created_at": "2026-08-20T11:00:00Z"
+ },
+ {
+  "user": {
+   "login": "stale-helper",
+   "type": "Bot"
+  },
+  "body": "This issue has had no activity for 30 days.",
+  "created_at": "2026-08-21T10:00:00Z"
+ }
+]

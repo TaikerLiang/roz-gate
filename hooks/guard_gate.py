@@ -2,7 +2,7 @@
 """Roz Gate enforcement — layer 2: trigger validation.
 
 Invoked by guard-gate.sh only when a Bash command mentions a guarded
-pattern. Seven rules, each the mechanical form of existing protocol text:
+pattern. Eight rules, each the mechanical form of existing protocol text:
 
   A. An ``**[intake] · summary**`` comment may be posted only when the
      async-intake trigger holds (commands/patrol.md step 2): a gate label
@@ -61,6 +61,23 @@ pattern. Seven rules, each the mechanical form of existing protocol text:
      ``gh-merge-base`` config, else the repository default branch; a
      diff that cannot be computed fails CLOSED, and the message says it is
      the diff that failed, not the protocol.
+  I. An ``**[intake] · reply**`` answers a human (commands/patrol.md,
+     async-intake; issue #174). Since 2.5.0 patrol replies to the humans
+     on an intake thread until the gate label — one reply per pass, every
+     comment since the latest agent ``**[intake]`` comment. A comment body
+     OPENING with the reply marker (a mention is not a write of one) is
+     allowed only when a human comment follows the latest agent
+     ``**[intake]`` comment, the issue has a human gate holder, and no
+     gate label is present (finalize owns that). Not human: a body opening
+     with an agent marker (the only test in user mode, where the agent
+     posts as the holder's own login), a ``bot_login``, or the forge's bot
+     shape — the gate-label audit's (references/patrol-scan.md): GitHub
+     REST ``user.type`` ``Bot`` or a ``[bot]`` login, GitLab a
+     ``project_<id>_bot_`` / ``group_<id>_bot_`` username, system notes
+     dropped. GitHub reads REST ``issues/<n>/comments``: ``gh issue view
+     --json comments`` carries neither the type nor the suffix. A second
+     reply in one pass is denied by construction — the first is the latest
+     ``**[intake]`` comment.
 
 Exit 0 allows the tool call; exit 2 blocks it and feeds stderr to the
 model. Forge API failures fail closed, with a message that says it is an
@@ -108,6 +125,12 @@ OPEN_QUESTIONS_SECTION = re.compile(r"^#+ .*open questions", re.I | re.M)
 DEFAULT_SPECS_DIR = "docs/specs"
 SUMMARY_MARKER = re.compile(r"\[intake\]\**\s*[·•\-–—:|]\s*summary", re.IGNORECASE)
 ROZ_MARKER = re.compile(r"\*\*\[|✅ \[")
+# Rule I: the reply opens its body; the batch, the summary and the reply
+# all open with the intake tag; the forge's bot shape (patrol-scan.md's
+# gate-label audit) — GitHub's `[bot]` login, GitLab's project/group bot.
+REPLY_OPEN = re.compile(r"^\s*\*\*\[intake\] · reply\*\*")
+INTAKE_OPEN = re.compile(r"^\s*\*\*\[intake\]")
+FORGE_BOT = re.compile(r"\[bot\]$|^(?:project|group)_\d+_bot_")
 API_TIMEOUT = 20
 
 RULE_B_MSG = (
@@ -196,7 +219,7 @@ BODY_FILE_MSG = (
 )
 
 UNPARSEABLE_MSG = (
-    "Roz Gate: cannot verify the intake-summary trigger — the issue number "
+    "Roz Gate: cannot verify the intake trigger — the issue number "
     "was not found in the command. Use the adapter form "
     "(`gh issue comment <number> ...` / `glab issue note <number> ...`) so "
     "the guard can check the issue."
@@ -237,6 +260,30 @@ NO_HOLDER_MSG = (
     "and unassigned; a bot identity never holds a gate. A human assignee "
     "must exist before an intake summary can be posted — assign the issue "
     "and retry."
+)
+
+
+REPLY_MSG = (
+    "Roz Gate: blocked — no human comment to answer. An `**[intake] · reply**` "
+    "comment is allowed only when a human comment follows the latest agent "
+    "`**[intake]` comment on the issue (commands/patrol.md, async-intake). Not "
+    "human: a comment opening with an agent marker, a `bot_login`, or a forge "
+    "bot (GitHub `type` Bot or a `[bot]` login; GitLab a `project_<id>_bot_` / "
+    "`group_<id>_bot_` username, or a system note). Do not retry: the thread "
+    "is waiting on the humans."
+)
+
+REPLY_GATE_MSG = (
+    "Roz Gate: blocked — a gate label is on this issue, so finalize owns it, "
+    "not a reply (commands/patrol.md, async-intake: the gate-label route "
+    "comes first). Run the finalize route instead."
+)
+
+REPLY_NO_HOLDER_MSG = (
+    "Roz Gate: blocked — no human gate holder. The issue is bot-authored "
+    "and unassigned; only the questions batch may be posted on it, never a "
+    "reply (commands/patrol.md, async-intake). A human assignee must exist "
+    "first — report the issue as needing one."
 )
 
 
@@ -459,14 +506,16 @@ def cr_body(cmd, toks, gh_pr):
 
 def deny_api_failure(detail):
     deny(
-        "Roz Gate: could not verify the intake-summary trigger — the forge "
+        "Roz Gate: could not verify the intake trigger — the forge "
         "API call failed (%s). This is NOT a protocol block: the command may "
         "be legitimate. Retry it shortly; if the forge stays unreachable, "
         "stop and report per the STOP protocol." % detail
     )
 
 
-def forge_json(argv):
+def forge_json(argv, pages=False):
+    """One forge call's JSON. `pages`: `gh api --paginate` prints one JSON
+    array per page, back to back — their rows, flattened."""
     try:
         out = subprocess.run(argv, capture_output=True, text=True, timeout=API_TIMEOUT)
     except (OSError, subprocess.TimeoutExpired) as exc:
@@ -475,7 +524,16 @@ def forge_json(argv):
         err = out.stderr.strip().splitlines()
         deny_api_failure(err[-1] if err else "exit %d" % out.returncode)
     try:
-        return json.loads(out.stdout)
+        if not pages:
+            return json.loads(out.stdout)
+        rows, text, i, dec = [], out.stdout, 0, json.JSONDecoder()
+        while True:
+            while i < len(text) and text[i].isspace():
+                i += 1
+            if i == len(text):
+                return rows
+            page, i = dec.raw_decode(text, i)
+            rows.extend(page)
     except ValueError as exc:
         deny_api_failure("unparseable response: %s" % exc)
 
@@ -716,7 +774,7 @@ def is_summary_request(body):
     return "summary" in (lines[0].casefold(), lines[-1].casefold())
 
 
-def resolve_holders(assignee_logins, author_login, bots):
+def resolve_holders(assignee_logins, author_login, bots, no_holder_msg=None):
     """Gate holders: assignees, unassigned → author — humans only. A bot
     is never a gate holder; bot-authored + unassigned = no holder."""
     holders = {normalize_login(a) for a in assignee_logins if a} - bots
@@ -725,7 +783,7 @@ def resolve_holders(assignee_logins, author_login, bots):
         if author and author not in bots:
             holders = {author}
     if not holders:
-        deny(NO_HOLDER_MSG)
+        deny(no_holder_msg or NO_HOLDER_MSG)
     return holders
 
 
@@ -803,6 +861,85 @@ def check_gitlab_summary(cmd, bots):
     )
 
 
+def is_human(login, body, forge_type, bots):
+    """Rule I's human-comment test — the scanner's (references/patrol-scan.md
+    § The human-comment test): an agent-marker opening, a `bot_login`, or
+    the forge's bot shape is not a human."""
+    if ROZ_MARKER.match(ansi_c(body or "").lstrip()):
+        return False
+    if forge_type == "Bot" or FORGE_BOT.search(login or ""):
+        return False
+    return normalize_login(login or "") not in bots
+
+
+def check_reply_trigger(comments, bots):
+    """comments: oldest-first (login, body, forge type). In bot mode the
+    latest agent `**[intake]` comment must also BE the bot's, as rule A's
+    already-posted test."""
+    last = None
+    for i, (login, body, _type) in enumerate(comments):
+        if INTAKE_OPEN.match(ansi_c(body or "")) and (
+            not bots or normalize_login(login or "") in bots
+        ):
+            last = i
+    if last is None or not any(is_human(*c, bots) for c in comments[last + 1:]):
+        deny(REPLY_MSG)
+
+
+def reply_target(seg):
+    """(forge, issue number) of a comment-shaped segment: `gh issue comment
+    <n>` / `glab issue note <n>`, or an api route on issues/<n>/comments|notes."""
+    forge = "glab" if "glab" in seg else "gh"
+    if "api" in seg:
+        for tok in seg:
+            m = re.search(r"issues/([^/\s]+)/(?:comments|notes)\b", tok)
+            if m:
+                return forge, m.group(1)
+        return forge, None
+    verb = "note" if forge == "glab" else "comment"
+    i = seg.index(verb) if verb in seg else -1
+    return forge, (seg[i + 1] if 0 <= i < len(seg) - 1 else None)
+
+
+def check_intake_reply(cmd, toks):
+    """Rule I (#174): a body opening with `**[intake] · reply**` answers a
+    human, on an issue with a human holder and no gate label."""
+    if toks is None:
+        return
+    for seg in shell_segments(toks):
+        if not any(b and REPLY_OPEN.match(ansi_c(b)) for b in segment_bodies(cmd, seg)):
+            continue
+        forge, number = reply_target(seg)
+        if not (number or "").isdigit():
+            deny(UNPARSEABLE_MSG)
+        bots = load_bot_logins()
+        if forge == "gh":
+            issue = forge_json(["gh", "issue", "view", number, "--json",
+                                "assignees,author,labels"])
+            labels = [lab.get("name", "") for lab in issue.get("labels") or []]
+            assignees = (a.get("login") for a in issue.get("assignees") or [])
+            author = (issue.get("author") or {}).get("login")
+            rows = forge_json(["gh", "api", "repos/{owner}/{repo}/issues/%s/comments" % number,
+                               "--paginate"], pages=True)
+            comments = [((c.get("user") or {}).get("login"), c.get("body", ""),
+                         (c.get("user") or {}).get("type"))
+                        for c in sorted(rows, key=lambda c: c.get("created_at", ""))]
+        else:
+            issue = forge_json(["glab", "issue", "view", number, "--output", "json"])
+            labels = issue.get("labels") or []
+            assignees = (a.get("username") for a in issue.get("assignees") or [])
+            author = (issue.get("author") or {}).get("username")
+            notes = forge_json(
+                ["glab", "api", "projects/:id/issues/%s/notes?per_page=100" % number])
+            comments = [((n.get("author") or {}).get("username"), n.get("body", ""), None)
+                        for n in sorted((n for n in notes if not n.get("system")),
+                                        key=lambda n: n.get("created_at", ""))]
+        if any(GATE.search(name) for name in labels):
+            deny(REPLY_GATE_MSG)
+        resolve_holders(assignees, author, bots, REPLY_NO_HOLDER_MSG)
+        check_reply_trigger(comments, bots)
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -828,6 +965,7 @@ def main():
     check_comment_writes(cmd, toks)
     check_open_questions_commit(toks)
     check_cr_open(cmd, toks)
+    check_intake_reply(cmd, toks)
     if SUMMARY_MARKER.search(cmd):
         bots = load_bot_logins()
         check_github_summary(cmd, bots)
