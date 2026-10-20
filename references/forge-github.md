@@ -41,6 +41,7 @@ Two modes, set by `agent_identity` in the Roz Gate config (key absent →
 |---|---|
 | ISSUE-LIST | `gh issue list --state open --json number,title,labels,assignees,author,createdAt` (add `--label "<label>"` to filter; `assignees` and `author` are what the inbox filter and the gate-holder fallback read; `assignees` is what the inbox filter reads) |
 | ISSUE-VIEW | `gh issue view <n> --json title,body,labels,assignees,author,comments` |
+| ISSUE-COMMENTS-LIST | `gh api --paginate "repos/<owner>/<repo>/issues/<n>/comments" --jq '.[] \| {id, body, author: .user.login, type: .user.type, created_at}'` (async intake's human-comment test — `references/patrol-scan.md`: one line per comment, oldest first. ISSUE-VIEW's comments carry neither the type nor the `[bot]` suffix — `gh` prints a GitHub App as its bare slug; here it is `<slug>[bot]` with `type` `Bot`, a human `User`) |
 | LABEL-ADD | `gh issue edit <n> --add-label "<label>"` |
 | LABEL-REMOVE | `gh issue edit <n> --remove-label "<label>"` |
 | ISSUE-COMMENT | `gh issue comment <n> --body "..."` |

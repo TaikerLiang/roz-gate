@@ -272,10 +272,20 @@ issue body, and all comments), never patrol's own.
      triggers.
    - **No `**[intake]**` questions comment exists yet** → dispatch for the
      question batch; ISSUE-COMMENT it verbatim as **one comment**, prefixed
-     `**[intake]**`. Asked **once** — patrol never re-batches; unanswered
-     questions surface later as assumptions in the summary.
-   - **Otherwise** → not actionable: the thread belongs to the humans until
-     the gate holder requests a summary or applies a gate label.
+     `**[intake]**`. The batch is asked **once** — patrol never re-batches;
+     unanswered questions surface later as assumptions in the summary.
+   - **A human comment follows the latest agent `**[intake]` comment** (the
+     scan's human-comment test, `patrol-scan.md` — from anyone, not only
+     the holder; a bot or an agent-marker comment never counts) → dispatch
+     for a **reply** (the brief's reply deliverable); ISSUE-COMMENT it
+     verbatim as **one comment**, prefixed `**[intake] · reply**` — one per
+     issue per pass, covering every human comment since that `**[intake]`
+     comment. A reply answers; it never re-asks the batch, never edits the
+     body or a label, never @-mentions anyone, and decides nothing — only
+     the holder's `summary` line and gate label act. guard-gate rule I
+     denies a reply with no human comment to answer (#174).
+   - **Otherwise** → not actionable: no human has spoken since the latest
+     `**[intake]` comment — the thread waits on the humans.
 3. Clear the lock. Never apply a gate label. Failures follow the STOP
    protocol — the `blocked` comment's evidence folds under
    `<details><summary>Evidence</summary>`.
@@ -306,8 +316,8 @@ in the scanner's order, nothing else in it:
   log — that is Details material. The scanner's gate-label audit reads
   `illegal: gate label applied by <login>`.
 - `needs you` — `yes` or `—`; `yes` whenever the next move is a human's: a
-  wait, a `blocked`, an illegal row, a stale lock, an intake batch or a
-  `· question` posted this pass, a review to merge.
+  wait, a `blocked`, an illegal row, a stale lock, an intake batch, an
+  intake reply or a `· question` posted this pass, a review to merge.
 
 Then the filter line, when an inbox filter is configured — `inbox filter:
 label discuss · N track-less issues not in the inbox filter` — so a quiet
@@ -315,8 +325,9 @@ inbox is never a mystery.
 
 **The queue** — `Your queue:` then exactly the `needs you` rows, in table
 order, one line each, `- #n — <verb phrase> — <link>` (answer the threads,
-answer the intake questions, say `summary`, apply the gate label, decide
-the STOP, review & merge, needs an assignee, clear a stale lock, remove
+answer the intake questions, read the intake reply, say `summary`, apply
+the gate label, decide the STOP, review & merge, needs an assignee, clear
+a stale lock, remove
 the gate label `<login>` applied — then reapply it yourself to authorize:
 re-adding a label already worn records no new event, so the bot's stays
 the latest). A row

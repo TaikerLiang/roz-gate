@@ -59,6 +59,7 @@ Wherever a command names a label like `status: ready-for-spec`, read it as
 |---|---|
 | ISSUE-LIST | `glab issue list --output json` (add `--label "<label>"` to filter; the JSON carries `assignees`, which the inbox filter reads) |
 | ISSUE-VIEW | `glab issue view <n> --output json` (comments: `glab api "projects/:id/issues/<n>/notes"`) |
+| ISSUE-COMMENTS-LIST | `glab api --paginate "projects/:id/issues/<n>/notes?per_page=100" --jq '[.[] \| select(.system == false) \| {id, body, author: .author.username, created_at}]'` (async intake's human-comment test — `references/patrol-scan.md`. System notes — label, assignee and state changes — are not comments; a project access token bot's username is `project_<id>_bot_<hash>`, a group token's `group_<id>_bot_<hash>`) |
 | LABEL-ADD | `glab issue update <n> --label "<label>"` |
 | LABEL-REMOVE | `glab issue update <n> --unlabel "<label>"` |
 | ISSUE-COMMENT | `glab issue note <n> --message "..."` |

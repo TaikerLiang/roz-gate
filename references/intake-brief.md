@@ -29,7 +29,8 @@ of:
      assumption in the summary.
      **Async batch format** — optimized for a phone read:
      - Header: question count + the flow in one line — *"Discuss freely below
-       (`1a 2b` shorthand welcome). When it settles, the assignee ends a
+       (`1a 2b` shorthand welcome) — patrol answers each comment on its next
+       pass. When it settles, the assignee ends a
        comment with the line `summary` (corrections and the request can share
        one comment) — or, if the recommendations all look right, applies the
        gate label directly: that alone confirms them."*
@@ -55,8 +56,8 @@ of:
    - acceptance criteria: observable, testable checkboxes — things an outside
      observer could verify, never implementation tasks
    - proposed track, with one line of reasoning
-   - **assumptions**: every question nobody answered, resolved to your
-     recommendation and listed plainly
+   - **assumptions**: every question nobody answered — a batch's or a
+     reply's — resolved to your recommendation and listed plainly
    - **contested points**: where the discussion disagreed, present both sides
      in one line each and say which one the summary takes and why — never
      silently pick; the assignee flips it with one reply
@@ -71,6 +72,26 @@ of:
      holding **context** (background for whoever picks this up; **no file
      paths, no implementation detail**) and the **decision trail** (who said
      what, attributed — the MOU's signature page), closed with `</details>`.
+3. **A reply** (async only) — produced when a human comment follows the
+   latest agent `**[intake]` comment; patrol posts it as one comment
+   prefixed `**[intake] · reply**`. You are handed every comment since that
+   `**[intake]` comment; answer those, whoever wrote them:
+   - **One section per commenter**, opening with their name in bold — never
+     an @-mention: the forge already notifies everyone in the thread. Answer
+     their question, or acknowledge their answer or correction, in a line
+     or two.
+   - **Authority stays where it is.** An answer from anyone but the gate
+     holder is **recorded as input**, never as settled: say that the holder,
+     by name, confirms it with the gate label. The reply decides nothing.
+   - **New questions only for decisions these comments opened** — numbered
+     after the batch's, in the batch format (option bullets, the
+     recommended one marked, one italic why, at most 6 visible lines each).
+     **Never a batch question again**: an unanswered one resolves to its
+     recommendation in the summary.
+   - It never edits the issue body or a label, and it is not the summary —
+     the story, the criteria and the track wait for the holder's `summary`.
+   - Close with one line naming the flow: the holder ends a comment with the
+     line `summary`, or applies the gate label directly.
 
 Multiple distinct stories in one idea → say so in the summary and give one
 story block per issue (siblings — never parent/child, never task-splitting).
@@ -81,7 +102,8 @@ Intake threads are open to anyone, but authority is not. The **gate holder**
 is the issue's **assignee** (unassigned → the issue author, **if human** —
 a bot identity never holds a gate).
 
-- **Anyone may reply**; the discussion is free-form. Attribute every input to
+- **Anyone may reply**; the discussion is free-form, and every human comment
+  gets an answer — a reply, on patrol's next pass. Attribute every input to
   its author in the summary's decision trail.
 - **Only the gate holder's summary request** — a comment whose first or last
   non-empty line is exactly `summary` — triggers a summary, and only the
