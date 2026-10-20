@@ -1,0 +1,31 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "7": {
+      "title": "Export search results",
+      "body": "Support keeps asking to export search results. Maybe CSV?",
+      "author": "kai",
+      "assignees": ["paul"],
+      "labels": [],
+      "createdAt": "2026-08-20T09:00:00Z",
+      "comments": [
+        {"id": 701, "author": "paul", "body": "**[intake]**\n\n2 questions — discuss freely below (`1a 2b` shorthand welcome). When it settles, the assignee ends a comment with the line `summary` — or, if the recommendations all look right, applies the gate label directly: that alone confirms them.\n\n**Q1 · Format** — which file format does the export produce?\n- (a) CSV ← ✅ recommended\n- (b) CSV and XLSX\n\n*why: CSV opens everywhere; XLSX doubles the writer.*\n\n**Q2 · Scope** — which rows does an export contain?\n- (a) the rows on the current results page ← ✅ recommended\n- (b) every row the search matched\n\n*why: (b) needs a background job for large result sets.*", "createdAt": "2026-08-20T11:00:00Z"},
+        {"id": 702, "author": "kai", "body": "1a. And should archived records be in the export too? Support asks for those all the time.", "createdAt": "2026-08-21T09:30:00Z"}
+      ]
+    },
+    "8": {
+      "title": "Dark mode for the dashboard",
+      "body": "The dashboard is too bright at night. Dark mode?",
+      "author": "kai",
+      "assignees": ["paul"],
+      "labels": [],
+      "createdAt": "2026-08-20T09:10:00Z",
+      "comments": [
+        {"id": 801, "author": "paul", "body": "**[intake]**\n\n1 question — discuss freely below. When it settles, the assignee ends a comment with the line `summary` — or, if the recommendation looks right, applies the gate label directly: that alone confirms it.\n\n**Q1 · Trigger** — how does the dashboard switch to dark?\n- (a) follow the operating system's setting ← ✅ recommended\n- (b) a toggle in the dashboard\n\n*why: (a) needs no new control.*", "createdAt": "2026-08-20T11:05:00Z"},
+        {"id": 802, "author": "github-actions[bot]", "author_type": "Bot", "body": "This issue has had no activity for 30 days. It will be closed in 7 days unless someone comments.", "createdAt": "2026-08-21T10:00:00Z"}
+      ]
+    }
+  },
+  "prs": {}
+}
