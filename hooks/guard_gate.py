@@ -924,7 +924,9 @@ def check_intake_reply(cmd, toks):
             deny(UNPARSEABLE_MSG)
         # Every segment is judged against the same pre-command forge state:
         # a second reply to one issue in one command would pass on the
-        # first one's human comment (codex review, PR #175).
+        # first one's human comment (codex review, PR #175). The CLIs read
+        # the number as an integer — `07` is #7 (codex review, PR #177).
+        number = str(int(number))
         if number in seen:
             deny(REPLY_TWICE_MSG)
         seen.add(number)

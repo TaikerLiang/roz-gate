@@ -767,6 +767,11 @@ class RuleI_IntakeReplyAnswersAHuman(HookTest):
         with self.case("rule I: two replies to one issue in one command — denied"), \
                 self.fixture(gh="gh_issue_reply.json", gh_comments="gh_rest_reply_human.json"):
             self.assertDenied(self.bash(twice), "posts two")
+        spelled = "%s && %s" % (REPLY_CMD, REPLY_CMD.replace("comment 7", "comment 07"))
+        with self.case("rule I: one issue spelled `7` and `07` in one command — denied "
+                       "(codex review, PR #177)"), \
+                self.fixture(gh="gh_issue_reply.json", gh_comments="gh_rest_reply_human.json"):
+            self.assertDenied(self.bash(spelled), "posts two")
         two = "%s && %s" % (REPLY_CMD, REPLY_CMD.replace("comment 7", "comment 8"))
         with self.case("rule I: replies to two issues in one command — allowed"), \
                 self.fixture(gh="gh_issue_reply.json", gh_comments="gh_rest_reply_human.json"):
