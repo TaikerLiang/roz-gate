@@ -237,7 +237,8 @@ an audited one. Patrol runs the audit alone — nothing else of B2.7.
 For an open issue with no `track:` label. **Gate holder** = the row's
 `holder` column — the issue's assignee (unassigned → the issue author, **if
 human**), read from the table, never re-listed. A bot identity
-(`bot_login`) never holds a gate: a bot-authored, unassigned issue has **no
+(`bot_login`, or the forge's bot shape — `patrol-scan.md`'s human-comment
+test) never holds a gate: a bot-authored, unassigned issue has **no
 gate holder** — only the questions batch may be posted on it, and the
 report lists it in the user's queue as "needs an assignee". The thread is
 free-form and open to

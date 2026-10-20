@@ -754,6 +754,35 @@ class RuleI_IntakeReplyAnswersAHuman(HookTest):
             self.assertAllowed(self.bash(
                 'gh issue comment 7 --body "the next pass posts an **[intake] · reply** here"'))
             self.assertEqual(self.api_calls(), [])
+        # Codex review, PR #175: an unconfigured forge bot never holds a gate.
+        for name, issue in (("an unassigned issue by a GitHub App (`is_bot`)",
+                             "gh_issue_reply_app_author.json"),
+                            ("an unassigned issue by a `[bot]` login",
+                             "gh_issue_reply_suffix_author.json")):
+            with self.case("rule I: %s has no holder — denied (user mode)" % name), \
+                    self.fixture(gh=issue, gh_comments="gh_rest_reply_human.json"):
+                self.assertDenied(self.bash(REPLY_CMD), "never a reply")
+        # Codex review, PR #175: each segment sees the pre-command state.
+        twice = "%s && %s" % (REPLY_CMD, REPLY_CMD)
+        with self.case("rule I: two replies to one issue in one command — denied"), \
+                self.fixture(gh="gh_issue_reply.json", gh_comments="gh_rest_reply_human.json"):
+            self.assertDenied(self.bash(twice), "posts two")
+        spelled = "%s && %s" % (REPLY_CMD, REPLY_CMD.replace("comment 7", "comment 07"))
+        with self.case("rule I: one issue spelled `7` and `07` in one command — denied "
+                       "(codex review, PR #177)"), \
+                self.fixture(gh="gh_issue_reply.json", gh_comments="gh_rest_reply_human.json"):
+            self.assertDenied(self.bash(spelled), "posts two")
+        both = "%s && %s" % (REPLY_CMD, GLAB_REPLY_CMD)
+        with self.case("rule I: GitHub #7 and GitLab #7 in one command — allowed "
+                       "(codex review, PR #177)"), \
+                self.fixture(gh="gh_issue_reply.json", gh_comments="gh_rest_reply_human.json",
+                             glab_issue="glab_issue_reply.json",
+                             glab_notes="glab_notes_reply_human.json"):
+            self.assertAllowed(self.bash(both))
+        two = "%s && %s" % (REPLY_CMD, REPLY_CMD.replace("comment 7", "comment 8"))
+        with self.case("rule I: replies to two issues in one command — allowed"), \
+                self.fixture(gh="gh_issue_reply.json", gh_comments="gh_rest_reply_human.json"):
+            self.assertAllowed(self.bash(two))
         with self.case("rule I: unparseable issue ref blocked"):
             self.assertDenied(self.bash(
                 'gh issue comment https://github.com/x/y/issues/7 --body "%s"' % REPLY_BODY),
@@ -792,6 +821,12 @@ class RuleI_IntakeReplyAnswersAHuman(HookTest):
              "glab_notes_reply_human.json", "finalize owns it"),
             ("glab: the human note on a later page (--paginate) — allowed",
              "glab_issue_reply.json", "glab_notes_reply_paged.json", None),
+            ("glab: an unassigned issue by a `project_<id>_bot_` — no holder, denied",
+             "glab_issue_reply_projbot_author.json", "glab_notes_reply_human.json",
+             "never a reply"),
+            ("glab: a bot assignee and a `group_<id>_bot_` author — no holder, denied",
+             "glab_issue_reply_projbot_assignee.json", "glab_notes_reply_human.json",
+             "never a reply"),
         ]
         for name, issue, notes, says in cases:
             with self.case("rule I: " + name), \

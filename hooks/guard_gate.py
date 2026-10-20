@@ -279,10 +279,18 @@ REPLY_GATE_MSG = (
     "comes first). Run the finalize route instead."
 )
 
+REPLY_TWICE_MSG = (
+    "Roz Gate: blocked — this command posts two `**[intake] · reply**` "
+    "comments on one issue. One reply per issue per pass, covering every "
+    "human comment since the latest agent `**[intake]` comment "
+    "(commands/patrol.md, async-intake): post one."
+)
+
 REPLY_NO_HOLDER_MSG = (
     "Roz Gate: blocked — no human gate holder. The issue is bot-authored "
-    "and unassigned; only the questions batch may be posted on it, never a "
-    "reply (commands/patrol.md, async-intake). A human assignee must exist "
+    "(a `bot_login` or a forge bot) and unassigned; only the questions "
+    "batch may be posted on it, never a reply (commands/patrol.md, "
+    "async-intake). A human assignee must exist "
     "first — report the issue as needing one."
 )
 
@@ -907,19 +915,30 @@ def check_intake_reply(cmd, toks):
     human, on an issue with a human holder and no gate label."""
     if toks is None:
         return
+    seen = set()
     for seg in shell_segments(toks):
         if not any(b and REPLY_OPEN.match(ansi_c(b)) for b in segment_bodies(cmd, seg)):
             continue
         forge, number = reply_target(seg)
         if not (number or "").isdigit():
             deny(UNPARSEABLE_MSG)
+        # Every segment is judged against the same pre-command forge state:
+        # a second reply to one issue in one command would pass on the
+        # first one's human comment (codex review, PR #175). The CLIs read
+        # the number as an integer — `07` is #7; the key is per forge
+        # (codex review, PR #177).
+        number = str(int(number))
+        if (forge, number) in seen:
+            deny(REPLY_TWICE_MSG)
+        seen.add((forge, number))
         bots = load_bot_logins()
         if forge == "gh":
             issue = forge_json(["gh", "issue", "view", number, "--json",
                                 "assignees,author,labels"])
             labels = [lab.get("name", "") for lab in issue.get("labels") or []]
-            assignees = (a.get("login") for a in issue.get("assignees") or [])
-            author = (issue.get("author") or {}).get("login")
+            assignees = [a.get("login") for a in issue.get("assignees") or []]
+            author = issue.get("author") or {}
+            author = None if author.get("is_bot") else author.get("login")
             rows = forge_json(["gh", "api", "repos/{owner}/{repo}/issues/%s/comments" % number,
                                "--paginate"], pages=True)
             comments = [((c.get("user") or {}).get("login"), c.get("body", ""),
@@ -938,6 +957,11 @@ def check_intake_reply(cmd, toks):
                                         key=lambda n: n.get("created_at", ""))]
         if any(GATE.search(name) for name in labels):
             deny(REPLY_GATE_MSG)
+        # A forge-shaped bot never holds a gate either — configured or not
+        # (codex review, PR #175): gh's `author.is_bot` above, the shape here.
+        assignees = [a for a in assignees if not FORGE_BOT.search(a or "")]
+        if FORGE_BOT.search(author or ""):
+            author = None
         resolve_holders(assignees, author, bots, REPLY_NO_HOLDER_MSG)
         check_reply_trigger(comments, bots)
 

@@ -56,6 +56,10 @@ for _clause in ("its body opens with an agent marker, `**[` or `✅ [`",
                 "guard-gate rule I applies this same test"):
     has("A9: the human-comment test states: %s" % _clause[:48], "references/patrol-scan.md",
         _clause)
+has("A9: the scan's holder excludes the forge's bot shape (codex review, PR #175)",
+    "references/patrol-scan.md", "and any login with the forge's bot shape")
+has("A9: patrol's holder rule names the forge's bot shape", "commands/patrol.md",
+    "(`bot_login`, or the forge's bot shape")
 has("A9: the scan reads comments with ISSUE-COMMENTS-LIST", "references/patrol-scan.md",
     "An inbox row's comments are read with ISSUE-COMMENTS-LIST")
 
@@ -67,7 +71,14 @@ for _lit in ('ROZ_MARKER = re.compile(r"\\*\\*\\[|✅ \\[")',
              'if forge_type == "Bot" or FORGE_BOT.search(login or ""):',
              'return normalize_login(login or "") not in bots',
              'REPLY_OPEN = re.compile(r"^\\s*\\*\\*\\[intake\\] · reply\\*\\*")',
-             '"repos/{owner}/{repo}/issues/%s/comments" % number'):
+             '"repos/{owner}/{repo}/issues/%s/comments" % number',
+             # codex review, PR #175: a forge bot never holds the gate; one
+             # command never carries two replies to one issue
+             'author = None if author.get("is_bot") else author.get("login")',
+             'assignees = [a for a in assignees if not FORGE_BOT.search(a or "")]',
+             "number = str(int(number))",
+             "if (forge, number) in seen:",
+             '"glab", "api", "--paginate",'):
     c.expect("pattern", "A9: rule I implements: %s" % _lit[:56], _lit in _gg)
 
 for _clause in ("3. **A reply** (async only)",

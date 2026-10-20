@@ -36,6 +36,7 @@ def check_gh_issue(d):  # gh issue view <n> --json assignees,author,labels (rule
     for a in d["assignees"]:
         user(a, "login", "assignees[]")
     user(d["author"], "login", "author")
+    assert isinstance(d["author"].get("is_bot", False), bool), "author.is_bot: bool"
     for label in d["labels"]:
         assert isinstance(label.get("name"), str), "labels[]: needs {'name': str}"
 
