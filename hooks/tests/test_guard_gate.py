@@ -11,6 +11,9 @@ from hooktest import HookTest, config_block
 SUMMARY_CMD = '''gh issue comment 54 --body "**[intake] · summary**
 
 **Story** — As a user, I want ..."'''
+GLAB_SUMMARY_CMD = '''glab issue note 7 --message "**[intake] · summary**
+
+**Story** ..."'''
 
 
 class FastPath(HookTest):
@@ -684,9 +687,36 @@ class RuleA_IntakeSummaryTrigger(HookTest):
 
     def test_gitlab(self):
         with self.case("glab summary after 'summary' allowed"):
-            self.assertAllowed(self.bash('''glab issue note 7 --message "**[intake] · summary**
+            self.assertAllowed(self.bash(GLAB_SUMMARY_CMD))
+        # #176: every notes page — a page is 100 notes.
+        with self.case("glab: the holder's `summary` on page 2 — allowed (#176)"), \
+                self.fixture(glab_notes="glab_notes_summary_paged.json"):
+            self.assertAllowed(self.bash(GLAB_SUMMARY_CMD))
+        with self.case("glab: a summary already posted on page 2 — denied (#176)"), \
+                self.fixture(glab_notes="glab_notes_summary_already_paged.json"):
+            self.assertDenied(self.bash(GLAB_SUMMARY_CMD), "already")
+        with self.case("glab: rule A reads every notes page (#176)"):
+            self.bash(GLAB_SUMMARY_CMD)
+            self.assertIn("glab api --paginate projects/:id/issues/7/notes?per_page=100",
+                          self.api_calls())
 
-**Story** ..."'''))
+    def test_forge_bot_holder(self):
+        """#176: a forge-shaped bot never holds the gate — user mode, no
+        `bot_login` configured (rule I's helper, PR #177)."""
+        for name, fx in (("an unassigned issue by a GitHub App (`is_bot`)",
+                          "gh_summary_app_author.json"),
+                         ("an unassigned issue by a `[bot]` login",
+                          "gh_summary_suffix_author.json")):
+            with self.case("rule A: %s has no holder — denied (#176)" % name), \
+                    self.fixture(gh=fx):
+                self.assertDenied(self.bash(SUMMARY_CMD), "no human gate holder")
+        for name, fx in (("an unassigned issue by a `project_<id>_bot_`",
+                          "glab_issue_summary_projbot.json"),
+                         ("a bot assignee and a `group_<id>_bot_` author",
+                          "glab_issue_summary_botassignee.json")):
+            with self.case("rule A: glab: %s has no holder — denied (#176)" % name), \
+                    self.fixture(glab_issue=fx):
+                self.assertDenied(self.bash(GLAB_SUMMARY_CMD), "no human gate holder")
 
 
 REPLY_BODY = ("**[intake] · reply**\n\n**kai** — Q1 → (a) is recorded as your input; "

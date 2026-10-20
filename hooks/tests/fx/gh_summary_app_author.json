@@ -1,0 +1,24 @@
+{
+ "assignees": [],
+ "author": {
+  "login": "github-actions",
+  "is_bot": true
+ },
+ "labels": [],
+ "comments": [
+  {
+   "author": {
+    "login": "TaikerLiang"
+   },
+   "body": "**[intake]**\n\n**Q1 · Scope** ...",
+   "createdAt": "2026-08-06T07:54:00Z"
+  },
+  {
+   "author": {
+    "login": "kai"
+   },
+   "body": "1a\n\nsummary",
+   "createdAt": "2026-08-06T10:39:00Z"
+  }
+ ]
+}

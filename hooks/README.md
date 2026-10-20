@@ -55,7 +55,7 @@ Any "no" → a replay case, not a hook, and never prose alone.
 
 | rule | file · matcher | predicate | deny says | fail direction |
 |---|---|---|---|---|
-| **A** intake-summary trigger | `guard-gate` · Bash | an `**[intake] · summary**` write is allowed only if the gate holder's latest comment requests `summary` (first or last line) or a gate label is present, and no summary was posted after that request | wait for the gate holder; do not retry or work around | forge API failure fails **closed**, with a message that says it is an API failure, not a protocol block |
+| **A** intake-summary trigger | `guard-gate` · Bash | an `**[intake] · summary**` write is allowed only if the gate holder's latest comment requests `summary` (first or last line) or a gate label is present, and no summary was posted after that request | wait for the gate holder; do not retry or work around | forge API failure fails **closed**, with a message that says it is an API failure, not a protocol block; GitLab's notes are read with `--paginate` (a page is 100 notes — a request or an already-posted summary past the first was missed, #176); the holder comes from `forge_holders`, shared with rule I: a forge-shaped bot (gh's `author.is_bot`, a `[bot]` login, `project_<id>_bot_` / `group_<id>_bot_`) never holds the gate, configured or not (#176) |
 | **B** human-only gate labels | `guard-gate` · Bash | `--add-label` (gh) / `issue update --label` (glab) naming `ready-for-spec` or `ready-for-dev`; a command shlex cannot tokenize is judged on the add flag's value alone — after `=`, whitespace or a `\`-newline continuation — never on a gate word elsewhere in it | the gate holder applies the label themselves | static, no API |
 | **C** quote-open guard | `guard-gate` · Bash | a comment-shaped forge write whose body carries a roz-gate marker and opens with `>` (per shell segment; `--body-file` read back, heredoc parsed) | put the marker on line one | an unreadable marker-carrying `--body-file` fails **closed** |
 | **D** open questions have one home | `guard-gate` · Bash | a `git commit` while any `<specs_dir>/*/technical-spec.md` — working tree **or** index — carries a heading matching `^#+ .*open questions` | move it to `spec.md`'s Open Questions, delete it here, `git add`, commit | index checked too: a fixed file never re-staged would commit the stale section |
@@ -179,8 +179,10 @@ from a live issue rather than writing it by hand:
 | prefix | captured from |
 |---|---|
 | `gh_` | `gh issue view <n> --json assignees,author,labels,comments` |
+| `gh_issue_` | `gh issue view <n> --json assignees,author,labels` (rule I) |
+| `gh_rest_` | `gh api --paginate repos/<owner>/<repo>/issues/<n>/comments` (rule I; pages back to back) |
 | `glab_issue_` | `glab issue view <n> --output json` |
-| `glab_notes_` | `glab api projects/:id/issues/<n>/notes?per_page=100` |
+| `glab_notes_` | `glab api --paginate projects/:id/issues/<n>/notes?per_page=100` (pages back to back) |
 
 `tests/test_fixtures.py` checks every fixture carries the fields
 `guard_gate.py` reads, typed as it reads them: the guard reads with

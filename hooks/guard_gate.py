@@ -257,7 +257,8 @@ OPEN_QUESTIONS_MSG = (
 
 NO_HOLDER_MSG = (
     "Roz Gate: blocked — no human gate holder. The issue is bot-authored "
-    "and unassigned; a bot identity never holds a gate. A human assignee "
+    "(a `bot_login` or a forge bot) and unassigned; a bot identity never "
+    "holds a gate. A human assignee "
     "must exist before an intake summary can be posted — assign the issue "
     "and retry."
 )
@@ -796,6 +797,21 @@ def resolve_holders(assignee_logins, author_login, bots, no_holder_msg=None):
     return holders
 
 
+def forge_holders(forge, issue, bots, no_holder_msg=None):
+    """Rules A and I resolve the holder here, from one issue view: a
+    forge-shaped bot never holds a gate either, configured or not — gh's
+    `author.is_bot`, and FORGE_BOT on every assignee and the author (codex
+    review, PR #175; #176)."""
+    key = "login" if forge == "gh" else "username"
+    assignees = [a.get(key) for a in issue.get("assignees") or []
+                 if not FORGE_BOT.search(a.get(key) or "")]
+    author = issue.get("author") or {}
+    login = author.get(key)
+    if author.get("is_bot") or FORGE_BOT.search(login or ""):
+        login = None
+    return resolve_holders(assignees, login, bots, no_holder_msg)
+
+
 def check_trigger(holders, comments, bots):
     """comments: oldest-first list of (author_login, body); logins are
     compared normalized."""
@@ -827,11 +843,7 @@ def check_github_summary(cmd, bots):
     labels = [lab.get("name", "") for lab in issue.get("labels") or []]
     if any(GATE.search(name) for name in labels):
         return  # finalize path: the gate holder's label authorizes the summary
-    holders = resolve_holders(
-        (a.get("login") for a in issue.get("assignees") or []),
-        (issue.get("author") or {}).get("login"),
-        bots,
-    )
+    holders = forge_holders("gh", issue, bots)
     comments = sorted(issue.get("comments") or [], key=lambda c: c.get("createdAt", ""))
     check_trigger(
         holders,
@@ -851,14 +863,11 @@ def check_gitlab_summary(cmd, bots):
     labels = issue.get("labels") or []
     if any(GATE.search(name) for name in labels):
         return
-    holders = resolve_holders(
-        (a.get("username") for a in issue.get("assignees") or []),
-        (issue.get("author") or {}).get("username"),
-        bots,
-    )
-    notes = forge_json(
-        ["glab", "api", "projects/:id/issues/%s/notes?per_page=100" % number]
-    )
+    holders = forge_holders("glab", issue, bots)
+    # Every page: a page is 100 notes, and the request or an already-posted
+    # summary may sit past the first (#176).
+    notes = forge_json(["glab", "api", "--paginate",
+                        "projects/:id/issues/%s/notes?per_page=100" % number], pages=True)
     notes = sorted(
         (n for n in notes if not n.get("system")),
         key=lambda n: n.get("created_at", ""),
@@ -936,9 +945,6 @@ def check_intake_reply(cmd, toks):
             issue = forge_json(["gh", "issue", "view", number, "--json",
                                 "assignees,author,labels"])
             labels = [lab.get("name", "") for lab in issue.get("labels") or []]
-            assignees = [a.get("login") for a in issue.get("assignees") or []]
-            author = issue.get("author") or {}
-            author = None if author.get("is_bot") else author.get("login")
             rows = forge_json(["gh", "api", "repos/{owner}/{repo}/issues/%s/comments" % number,
                                "--paginate"], pages=True)
             comments = [((c.get("user") or {}).get("login"), c.get("body", ""),
@@ -947,8 +953,6 @@ def check_intake_reply(cmd, toks):
         else:
             issue = forge_json(["glab", "issue", "view", number, "--output", "json"])
             labels = issue.get("labels") or []
-            assignees = (a.get("username") for a in issue.get("assignees") or [])
-            author = (issue.get("author") or {}).get("username")
             notes = forge_json(["glab", "api", "--paginate",
                                 "projects/:id/issues/%s/notes?per_page=100" % number],
                                pages=True)
@@ -957,12 +961,7 @@ def check_intake_reply(cmd, toks):
                                         key=lambda n: n.get("created_at", ""))]
         if any(GATE.search(name) for name in labels):
             deny(REPLY_GATE_MSG)
-        # A forge-shaped bot never holds a gate either — configured or not
-        # (codex review, PR #175): gh's `author.is_bot` above, the shape here.
-        assignees = [a for a in assignees if not FORGE_BOT.search(a or "")]
-        if FORGE_BOT.search(author or ""):
-            author = None
-        resolve_holders(assignees, author, bots, REPLY_NO_HOLDER_MSG)
+        forge_holders(forge, issue, bots, REPLY_NO_HOLDER_MSG)
         check_reply_trigger(comments, bots)
 
 

@@ -10,6 +10,8 @@ guard-gate rule I, from one definition (the gate-label audit's bot shape).
 hooks/tests prove rule I; replay A9 measures a pass.
 """
 
+import re
+
 from lib.lintkit import c, read
 
 META = {
@@ -74,8 +76,8 @@ for _lit in ('ROZ_MARKER = re.compile(r"\\*\\*\\[|✅ \\[")',
              '"repos/{owner}/{repo}/issues/%s/comments" % number',
              # codex review, PR #175: a forge bot never holds the gate; one
              # command never carries two replies to one issue
-             'author = None if author.get("is_bot") else author.get("login")',
-             'assignees = [a for a in assignees if not FORGE_BOT.search(a or "")]',
+             'if author.get("is_bot") or FORGE_BOT.search(login or ""):',
+             'if not FORGE_BOT.search(a.get(key) or "")]',
              "number = str(int(number))",
              "if (forge, number) in seen:",
              '"glab", "api", "--paginate",'):
@@ -97,3 +99,11 @@ has("A9: GitHub's op reads the REST type", "references/forge-github.md",
     "type: .user.type")
 has("A9: GitLab's op drops system notes", "references/forge-gitlab.md",
     "select(.system == false)")
+
+# #176: rules A and I resolve the holder through one helper, so a forge bot
+# is excluded the same way by both — none calls resolve_holders itself.
+for _fn in ("check_github_summary", "check_gitlab_summary", "check_intake_reply"):
+    _m = re.search(r"^def %s\(.*?(?=^def )" % _fn, _gg, re.S | re.M)
+    _body = _m.group(0) if _m else ""
+    c.expect("pattern", "A9: %s resolves the holder through forge_holders (#176)" % _fn,
+             "forge_holders(" in _body and "resolve_holders(" not in _body)
