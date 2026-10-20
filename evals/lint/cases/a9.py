@@ -77,7 +77,7 @@ for _lit in ('ROZ_MARKER = re.compile(r"\\*\\*\\[|✅ \\[")',
              'author = None if author.get("is_bot") else author.get("login")',
              'assignees = [a for a in assignees if not FORGE_BOT.search(a or "")]',
              "number = str(int(number))",
-             "if number in seen:",
+             "if (forge, number) in seen:",
              '"glab", "api", "--paginate",'):
     c.expect("pattern", "A9: rule I implements: %s" % _lit[:56], _lit in _gg)
 

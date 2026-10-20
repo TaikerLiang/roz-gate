@@ -925,11 +925,12 @@ def check_intake_reply(cmd, toks):
         # Every segment is judged against the same pre-command forge state:
         # a second reply to one issue in one command would pass on the
         # first one's human comment (codex review, PR #175). The CLIs read
-        # the number as an integer — `07` is #7 (codex review, PR #177).
+        # the number as an integer — `07` is #7; the key is per forge
+        # (codex review, PR #177).
         number = str(int(number))
-        if number in seen:
+        if (forge, number) in seen:
             deny(REPLY_TWICE_MSG)
-        seen.add(number)
+        seen.add((forge, number))
         bots = load_bot_logins()
         if forge == "gh":
             issue = forge_json(["gh", "issue", "view", number, "--json",
