@@ -514,8 +514,9 @@ def deny_api_failure(detail):
 
 
 def forge_json(argv, pages=False):
-    """One forge call's JSON. `pages`: `gh api --paginate` prints one JSON
-    array per page, back to back — their rows, flattened."""
+    """One forge call's JSON. `pages`: `gh api --paginate` / `glab api
+    --paginate` print one JSON array per page, back to back — their rows,
+    flattened."""
     try:
         out = subprocess.run(argv, capture_output=True, text=True, timeout=API_TIMEOUT)
     except (OSError, subprocess.TimeoutExpired) as exc:
@@ -929,8 +930,9 @@ def check_intake_reply(cmd, toks):
             labels = issue.get("labels") or []
             assignees = (a.get("username") for a in issue.get("assignees") or [])
             author = (issue.get("author") or {}).get("username")
-            notes = forge_json(
-                ["glab", "api", "projects/:id/issues/%s/notes?per_page=100" % number])
+            notes = forge_json(["glab", "api", "--paginate",
+                                "projects/:id/issues/%s/notes?per_page=100" % number],
+                               pages=True)
             comments = [((n.get("author") or {}).get("username"), n.get("body", ""), None)
                         for n in sorted((n for n in notes if not n.get("system")),
                                         key=lambda n: n.get("created_at", ""))]

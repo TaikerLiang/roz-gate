@@ -50,7 +50,8 @@ def check_gh_rest(d):  # gh api repos/{owner}/{repo}/issues/<n>/comments --pagin
 
 
 def load_pages(text):
-    """`gh api --paginate` prints one JSON array per page, back to back."""
+    """`gh api --paginate` / `glab api --paginate` print one JSON array per
+    page, back to back."""
     rows, i, dec = [], 0, json.JSONDecoder()
     while True:
         while i < len(text) and text[i].isspace():
@@ -91,4 +92,5 @@ class FixtureShapes(unittest.TestCase):
                 self.assertIsNotNone(check, "unknown prefix — gh_ / gh_issue_ / gh_rest_ / "
                                             "glab_issue_ / glab_notes_")
                 text = path.read_text()
-                check(load_pages(text) if check is check_gh_rest else json.loads(text))
+                paged = check in (check_gh_rest, check_glab_notes)
+                check(load_pages(text) if paged else json.loads(text))

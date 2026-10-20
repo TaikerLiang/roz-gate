@@ -790,11 +790,19 @@ class RuleI_IntakeReplyAnswersAHuman(HookTest):
              "glab_issue_reply.json", "glab_notes_reply_projbot.json", "no human comment"),
             ("glab: a gate label present — denied", "glab_issue_reply_gate.json",
              "glab_notes_reply_human.json", "finalize owns it"),
+            ("glab: the human note on a later page (--paginate) — allowed",
+             "glab_issue_reply.json", "glab_notes_reply_paged.json", None),
         ]
         for name, issue, notes, says in cases:
             with self.case("rule I: " + name), \
                     self.fixture(glab_issue=issue, glab_notes=notes):
                 self.check(self.bash(GLAB_REPLY_CMD), says)
+        with self.case("rule I: glab reads every notes page (codex review, PR #175)"), \
+                self.fixture(glab_issue="glab_issue_reply.json",
+                             glab_notes="glab_notes_reply_human.json"):
+            self.bash(GLAB_REPLY_CMD)
+            self.assertIn("glab api --paginate projects/:id/issues/7/notes?per_page=100",
+                          self.api_calls())
 
 
 TS_V1 = ("# Technical spec #5\n\n## Contract\n- **C1 (R4)** — `price(cart, now)` excludes "
