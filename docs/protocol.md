@@ -64,6 +64,8 @@ at the tool layer).
   reference client uses are examples, not requirements.
   - `**[intake]**` — the one-time intake question batch
   - `**[intake] · summary**` — an intake summary
+  - `**[intake] · reply**` — an answer to the human comments since the
+    latest `**[intake]` comment
   - `**[<role>] · Q<k> · <label>**` — an open-question thread on the spec CR
   - `**[<command>] · blocked**` — a stopped step (below)
 - **The `summary` request.** A comment by the gate holder whose first or last
@@ -73,6 +75,9 @@ at the tool layer).
 - **Question batches are asked once**; answers are free-form replies
   (`1a 2b` shorthand welcome), from anyone, on any device. Unanswered
   questions resolve to their recommendation and are listed as assumptions.
+  The agent answers every human comment on its next pass — one
+  `**[intake] · reply**` per pass, never triggered by a bot; a reply never
+  re-asks the batch, never edits the body or a label, and decides nothing.
 - **Answers on a spec CR are read from three channels**: the inline review
   thread, the review summary body, and a top-level CR comment — the one a
   phone offers. A thread the human opened is an amendment request.

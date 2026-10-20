@@ -1,0 +1,8 @@
+{
+  "ledger": "A9 · Patrol answers every human comment on an intake thread",
+  "tier": "replay + hook (guard-gate rule I) + lint (#174)",
+  "ledger_text": "\"On #7 (author kai, assignee paul): one `**[intake] · reply**` comment, after kai's comment, naming kai, no @-mention, no batch question re-asked, the holder's label named as the decision; no label writes beyond the lock, no body edit, no summary. On #8 (only a `[bot]` comment after the batch): no comment.\" (until 2.4.0 the Otherwise route left every comment after the batch unanswered until `summary` or a label — #174)",
+  "prompt": "/roz-gate:patrol",
+  "k": 5,
+  "timeout": 1500
+}

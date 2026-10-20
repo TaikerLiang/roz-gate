@@ -1,0 +1,15 @@
+{
+ "assignees": [
+  {
+   "login": "TaikerLiang"
+  }
+ ],
+ "author": {
+  "login": "kai"
+ },
+ "labels": [
+  {
+   "name": "status: ready-for-spec"
+  }
+ ]
+}

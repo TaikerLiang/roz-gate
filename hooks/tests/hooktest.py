@@ -91,11 +91,19 @@ class HookTest(unittest.TestCase):
         return self.stub_log.read_text().splitlines()
 
     @contextmanager
-    def fixture(self, gh=None, fail=False):
-        """Point the fake gh at fx/<gh>; fail=True makes every forge call fail."""
+    def fixture(self, gh=None, fail=False, gh_comments=None, glab_issue=None, glab_notes=None):
+        """Point the fake gh at fx/<gh> (`gh api` at fx/<gh_comments>, else the
+        same file), the fake glab at fx/<glab_issue> / fx/<glab_notes>;
+        fail=True makes every forge call fail."""
         saved = dict(self.env)
         if gh:
             self.env["GH_FIXTURE"] = str(FX / gh)
+        if gh_comments:
+            self.env["GH_COMMENTS_FIXTURE"] = str(FX / gh_comments)
+        if glab_issue:
+            self.env["GLAB_ISSUE_FIXTURE"] = str(FX / glab_issue)
+        if glab_notes:
+            self.env["GLAB_NOTES_FIXTURE"] = str(FX / glab_notes)
         if fail:
             self.env["STUB_FAIL"] = "1"
         try:

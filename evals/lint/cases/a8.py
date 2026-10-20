@@ -41,7 +41,8 @@ src("A8: the holder falls back to the author, never a bot", "references/patrol-s
 src("A8: intake reads the gate holder from the row, never re-lists (F9 run-3)",
     "commands/patrol.md", "read from the table, never re-listed")
 for _v in ("actionable: review-answers", "actionable: fidelity-audit", "close-out",
-           "hand-off: in-user-review", "intake: questions", "waiting on user", "illegal state",
+           "hand-off: in-user-review", "intake: questions", "intake: reply", "waiting on user",
+           "illegal state",
            "locked:"):
     src("A8: the verdict vocabulary carries `%s`" % _v, "references/patrol-scan.md", "`%s" % _v)
 src("A8: the inbox filter lives in the brief", "references/patrol-scan.md",

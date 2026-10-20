@@ -170,6 +170,15 @@ def api_fields(argv):
     return fields
 
 
+def gql_login(c):
+    """gh's --json (GraphQL) login: a bot's `[bot]` suffix is dropped and no
+    type travels with it — `github-actions`, as live gh prints it (#174)."""
+    login = c.get("author", "")
+    if c.get("author_type") == "Bot" and login.endswith("[bot]"):
+        return login[:-5]
+    return login
+
+
 def issue_shape(n, iss, want):
     full = {
         "number": int(n),
@@ -180,7 +189,7 @@ def issue_shape(n, iss, want):
         "author": {"login": iss.get("author", "")},
         "createdAt": iss.get("createdAt", "2026-08-01T00:00:00Z"),
         "comments": [
-            {"id": c.get("id"), "author": {"login": c.get("author", "")},
+            {"id": c.get("id"), "author": {"login": gql_login(c)},
              "body": c.get("body", ""), "createdAt": c.get("createdAt", "")}
             for c in iss.get("comments", [])
         ],
@@ -954,8 +963,14 @@ def main():
             if src is None:
                 unknown("comments: %s not in fixture" % n)
             journal("cr-comments-list", target=n)
+            # `user` is REST's shape: `type` `Bot` and the `[bot]` suffix are
+            # what ISSUE-COMMENTS-LIST and guard-gate rule I read (#174);
+            # `author`/`type` stand in for the adapters' --jq projections.
             rows = [{"id": c.get("id"), "body": expand_shas(c.get("body", "")),
                      "author": c.get("author", ""),
+                     "type": c.get("author_type", "User"),
+                     "user": {"login": c.get("author", ""),
+                              "type": c.get("author_type", "User")},
                      "created_at": c.get("created_at", c.get("createdAt", "")),
                      "html_url": "https://github.com/x/y/pull/%s#issuecomment-%s"
                                  % (n, c.get("id"))}

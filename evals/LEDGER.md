@@ -61,6 +61,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | A6 | notification | deferred | no channel stub in the headless sandbox — see `replay/README.md`, cannot-see #1 |
 | A7 | A merged CR closes the issue out | replay | "Issue closed; every `track:`/`status:` label gone; exactly one shipped comment naming the CR; exactly one close; nothing written to the CR — and an issue the forge already closed on merge loses its labels and gets its comment, with no second close." (an OPEN CR at in-user-review is F1/A4/A5's fixture — zero label writes there) (GitLab and any CR against a release branch leave the issue open wearing `in-user-review` after the merge — the loop's last step never happened — issue #41) |
 | A8 | The scan is one read-only sub-agent and the rules exist once | lint (defect 1.24.0-) | — |
+| A9 | Patrol answers every human comment on an intake thread | replay + hook (guard-gate rule I) + lint (#174) | "On #7 (author kai, assignee paul): one `**[intake] · reply**` comment, after kai's comment, naming kai, no @-mention, no batch question re-asked, the holder's label named as the decision; no label writes beyond the lock, no body edit, no summary. On #8 (only a `[bot]` comment after the batch): no comment." (until 2.4.0 the Otherwise route left every comment after the batch unanswered until `summary` or a label — #174) |
 
 ### B · agent-written text conventions
 
@@ -170,6 +171,7 @@ text follows the experiment; the driver's citation was updated to match.
 | L6 | `test` and `acceptance_test` are documented as running in a linked worktree, never in the checkout, on every surface an adopter fills them in — README's config block, init's prompt, the onboarding builder — with the `.git`-as-a-directory failure named | lint (defect 1.36.0-, #99) |
 | L7 | the wire spec names exactly the labels the state machine has, states the STOP and summary rules in the client's literals, binds no reference-client internal as a MUST, and every entry point links the pages | lint (preventive) |
 | L8 | `/roz-gate:config` is answered by a mod that only reads and runs `bin/roz-config`; `commands/config.md` stays as the fallback where mods do not load | lint (#164, 2.3.0) |
+| L9 | Every page says patrol answers every human comment on an intake thread on its next pass, and none still hands the thread to the humans | lint (defect 2.4.0-, #174) |
 
 ## The judgment corpus
 

@@ -1,4 +1,4 @@
-"""guard-gate (Bash): rules A-D, F-H. See hooks/README.md for each rule's predicate.
+"""guard-gate (Bash): rules A-D, F-I. See hooks/README.md for each rule's predicate.
 
 A case table is (name, command) for allowed cases and (name, command,
 stderr substring) for denied ones.
@@ -687,6 +687,122 @@ class RuleA_IntakeSummaryTrigger(HookTest):
             self.assertAllowed(self.bash('''glab issue note 7 --message "**[intake] · summary**
 
 **Story** ..."'''))
+
+
+REPLY_BODY = ("**[intake] · reply**\n\n**kai** — Q1 → (a) is recorded as your input; "
+              "TaikerLiang confirms it with the gate label.")
+REPLY_CMD = 'gh issue comment 7 --body "%s"' % REPLY_BODY
+GLAB_REPLY_CMD = 'glab issue note 7 --message "%s"' % REPLY_BODY
+
+
+class RuleI_IntakeReplyAnswersAHuman(HookTest):
+    """2.5.0 (#174): patrol replies on an intake thread until the gate label —
+    a body opening with `**[intake] · reply**` is allowed only when a human
+    comment follows the latest agent `**[intake]` comment, a human holder
+    exists and no gate label is present. GitHub reads REST
+    `issues/<n>/comments` (fx/gh_rest_*: `user.type`, the `[bot]` login);
+    the issue view is fx/gh_issue_*."""
+
+    guard = "guard-gate"
+
+    # (name, issue fixture, comments fixture, stderr substring or None)
+    GITHUB = [
+        ("a human comment after the batch — allowed", "gh_issue_reply.json",
+         "gh_rest_reply_human.json", None),
+        ("pages back to back (--paginate) — allowed", "gh_issue_reply.json",
+         "gh_rest_reply_human_paged.json", None),
+        ("nothing after the batch — denied", "gh_issue_reply.json",
+         "gh_rest_reply_none.json", "no human comment"),
+        ("the human spoke only before the batch — denied", "gh_issue_reply.json",
+         "gh_rest_reply_before_batch.json", "no human comment"),
+        ("only a `type: Bot` comment after the batch — denied", "gh_issue_reply.json",
+         "gh_rest_reply_bot_type.json", "no human comment"),
+        ("only a `[bot]` login after the batch — denied", "gh_issue_reply.json",
+         "gh_rest_reply_bot_suffix.json", "no human comment"),
+        ("only a non-intake agent-marker comment by the holder's own login (user mode) — denied",
+         "gh_issue_reply.json", "gh_rest_reply_marker.json", "no human comment"),
+        ("a second reply after the first — denied", "gh_issue_reply.json",
+         "gh_rest_reply_after_reply.json", "no human comment"),
+        ("a gate label present — denied (finalize owns it)", "gh_issue_reply_gate.json",
+         "gh_rest_reply_human.json", "finalize owns it"),
+    ]
+
+    def check(self, result, says):
+        if says is None:
+            self.assertAllowed(result)
+        else:
+            self.assertDenied(result, says)
+
+    def test_github(self):
+        for name, issue, comments, says in self.GITHUB:
+            with self.case("rule I: " + name), self.fixture(gh=issue, gh_comments=comments):
+                self.check(self.bash(REPLY_CMD), says)
+        with self.case("rule I: the comments are read over REST, paginated"), \
+                self.fixture(gh="gh_issue_reply.json", gh_comments="gh_rest_reply_human.json"):
+            self.bash(REPLY_CMD)
+            self.assertIn("gh api repos/{owner}/{repo}/issues/7/comments --paginate",
+                          self.api_calls())
+        heredoc = "gh issue comment 7 --body-file - <<'EOF'\n%s\nEOF" % REPLY_BODY
+        with self.case("rule I: a --body-file heredoc is judged"), \
+                self.fixture(gh="gh_issue_reply.json", gh_comments="gh_rest_reply_none.json"):
+            self.assertDenied(self.bash(heredoc), "no human comment")
+        api = "gh api repos/o/r/issues/7/comments -f body='%s'" % REPLY_BODY
+        with self.case("rule I: the api comments route is judged"), \
+                self.fixture(gh="gh_issue_reply.json", gh_comments="gh_rest_reply_none.json"):
+            self.assertDenied(self.bash(api), "no human comment")
+        with self.case("rule I: a mention of the marker is not a reply — no forge call"):
+            self.assertAllowed(self.bash(
+                'gh issue comment 7 --body "the next pass posts an **[intake] · reply** here"'))
+            self.assertEqual(self.api_calls(), [])
+        with self.case("rule I: unparseable issue ref blocked"):
+            self.assertDenied(self.bash(
+                'gh issue comment https://github.com/x/y/issues/7 --body "%s"' % REPLY_BODY),
+                "adapter form")
+
+    def test_api_failure_fails_closed(self):
+        with self.case("rule I: API failure fails closed with retry wording"), \
+                self.fixture(fail=True):
+            self.assertDenied(self.bash(REPLY_CMD), "NOT a protocol block")
+
+    def test_bot_mode(self):
+        config = config_block(forge="github", agent_identity="bot", bot_login="roz-bot")
+        repo = self.new_repo({"CLAUDE.md": "## Development Workflow (Roz Gate)\n\n" + config})
+        cases = [
+            ("bot mode: the bot's batch, a human, then a human's `**[intake]` paste — allowed "
+             "(the paste is not the agent's)", "gh_issue_reply.json",
+             "gh_rest_reply_bot_mode_human.json", None),
+            ("bot mode: only a `bot_login` author after the batch — denied",
+             "gh_issue_reply.json", "gh_rest_reply_bot_mode_bot_login.json", "no human comment"),
+            ("bot mode: bot-authored unassigned issue — denied", "gh_issue_reply_orphan.json",
+             "gh_rest_reply_bot_mode_human.json", "never a reply"),
+        ]
+        for name, issue, comments, says in cases:
+            with self.case("rule I: " + name), self.fixture(gh=issue, gh_comments=comments):
+                self.check(self.bash(REPLY_CMD, repo), says)
+
+    def test_gitlab(self):
+        cases = [
+            ("glab: a human note after the batch — allowed", "glab_issue_reply.json",
+             "glab_notes_reply_human.json", None),
+            ("glab: only a system note after the batch — denied", "glab_issue_reply.json",
+             "glab_notes_reply_system.json", "no human comment"),
+            ("glab: only a `project_<id>_bot_` note after the batch — denied",
+             "glab_issue_reply.json", "glab_notes_reply_projbot.json", "no human comment"),
+            ("glab: a gate label present — denied", "glab_issue_reply_gate.json",
+             "glab_notes_reply_human.json", "finalize owns it"),
+            ("glab: the human note on a later page (--paginate) — allowed",
+             "glab_issue_reply.json", "glab_notes_reply_paged.json", None),
+        ]
+        for name, issue, notes, says in cases:
+            with self.case("rule I: " + name), \
+                    self.fixture(glab_issue=issue, glab_notes=notes):
+                self.check(self.bash(GLAB_REPLY_CMD), says)
+        with self.case("rule I: glab reads every notes page (codex review, PR #175)"), \
+                self.fixture(glab_issue="glab_issue_reply.json",
+                             glab_notes="glab_notes_reply_human.json"):
+            self.bash(GLAB_REPLY_CMD)
+            self.assertIn("glab api --paginate projects/:id/issues/7/notes?per_page=100",
+                          self.api_calls())
 
 
 TS_V1 = ("# Technical spec #5\n\n## Contract\n- **C1 (R4)** — `price(cart, now)` excludes "

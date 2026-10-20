@@ -67,9 +67,13 @@ it. You may narrow your inbox (`inbox_label`, `inbox_assignee` — lists, yours
 per clone, set with `/roz-gate:config`): a track-less issue outside the filter
 is a plain issue patrol only counts. Three beats — ask once, summarize on demand, the label confirms:
 1. Patrol posts **one** batched questions comment (prefixed `**[intake]**`,
-   numbered, each option with a marked recommendation) — then leaves the
-   thread to the humans: free-form discussion, anyone may weigh in, from any
-   device. Patrol never re-batches.
+   numbered, each option with a marked recommendation) — then answers every
+   human comment on its next pass: one `**[intake] · reply**` per pass
+   covering every human comment since the latest `**[intake]` comment, from
+   anyone (a bot or an agent-marker comment never triggers one). Free-form
+   discussion, anyone may weigh in, from any device. A reply answers and
+   decides nothing: it never re-asks the batch — patrol never re-batches —
+   and never touches the body or a label.
 2. When the **gate holder** — the issue's assignee (unassigned → the author,
    if human; a bot identity never holds a gate) —
    ends a comment with the line **`summary`** (corrections and the request

@@ -1,0 +1,13 @@
+{
+ "assignees": [
+  {
+   "username": "TaikerLiang"
+  }
+ ],
+ "author": {
+  "username": "kai"
+ },
+ "labels": [
+  "status::ready-for-spec"
+ ]
+}
