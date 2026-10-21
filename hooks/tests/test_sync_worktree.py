@@ -208,6 +208,18 @@ class WorktreeCopy(HookTest):
             self.assertFalse(os.path.lexists(os.path.join(wt, "config/local")))
             self.assertIn("config/local (config/local/public.txt)", self.context(r))
             self.assertEqual(self.git_out(wt, "status", "--porcelain"), "")
+        with self.case("worktree_copy: a listed .gitignore that unignores another listed file "
+                       "— that file is removed and reported (codex review, PR #184)"):
+            repo = self.repo({"config/local/a.txt": "a\n", "config/local/.gitignore": "!a.txt\n",
+                              LOCAL: json.dumps({"worktree_copy": ["config/local/a.txt",
+                                                                   "config/local/.gitignore"]})},
+                             ignore=".env\nconfig/local/*\n.claude/\n")
+            wt = self.add(repo)
+            r = self.run_hook(repo)
+            self.assertFalse(os.path.lexists(os.path.join(wt, "config/local/a.txt")))
+            self.assertTrue(os.path.exists(os.path.join(wt, "config/local/.gitignore")))
+            self.assertIn("config/local/a.txt (config/local/a.txt)", self.context(r))
+            self.assertEqual(self.git_out(wt, "status", "--porcelain"), "")
         with self.case("worktree_copy: outside any git repository — nothing, exit 0"):
             r = self.run_hook(self.new_dir())
             self.assertEqual((r.rc, r.stdout), (0, ""))

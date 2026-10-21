@@ -140,10 +140,11 @@ that mentions `worktree add` (`sync-worktree.sh`, the prefilter),
 - It reports a path git does not ignore in the worktree and does not copy
   it: there, an untracked file is one a commit could pick up. For a
   directory, every file in it is checked, since an ignore rule's `!`
-  exception can unignore one. The directory is checked again with `git
-  status` once it is in place, under the rules it brought with it (its own
-  `.gitignore` can unignore a file), and removed if anything shows
-  untracked.
+  exception can unignore one. Once every entry is in place, the copy is
+  checked again with `git status`, under the rules it brought: a copied
+  `.gitignore`, inside a directory or listed on its own, can unignore a
+  file. Every copied entry that shows an untracked file is removed, and
+  the check repeats until nothing does.
 - What it copied, or why not, goes back to the agent as PostToolUse
   `additionalContext`, and the exit is 0 either way.
 
