@@ -2,6 +2,25 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.5.1 — 2026-10-21
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.5.1>
+
+**Runtime change: guard-gate rule A reads every GitLab notes page, and a forge bot is never its gate holder.**
+
+### Hooks
+- **Rule A reads every GitLab notes page** (#176): the intake-summary trigger's notes read is `glab api --paginate`. On a thread longer than 100 notes, a `summary` request on a later page was missed (a legitimate summary denied), and so was a summary already posted there (a duplicate allowed).
+- **A forge bot is never rule A's gate holder** (#176): an unassigned issue authored by an unconfigured forge bot has no holder. That covers GitHub `author.is_bot` or a `[bot]` login, and GitLab `project_<id>_bot_` / `group_<id>_bot_`. Rules A and I now resolve the holder through one helper, `forge_holders`.
+
+### Evals
+- 13 new hook tests (7 rule A cases, 6 fixture shapes). Lint A9 anchors the shared helper.
+
+### Docs
+- `hooks/README.md`: the rule A row, and the fixture-prefix table (`gh_issue_`, `gh_rest_`, the paged `glab_notes_` capture).
+
+### Checks
+Hook tests 480/480 · lint 994/994 · red-proofs 31/31 · plugin tests 15/15 · `plugin validate --strict` clean
+
 ## v2.5.0 — 2026-10-20
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.5.0>
