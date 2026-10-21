@@ -7,7 +7,9 @@ file, never reaches the network or a model, never submits a prompt and
 never hooks a tool call. Where mods do not load, `commands/config.md`
 runs as before — deleting it would leave those sessions with no command.
 Red-proofed by adding a `$.fs.write`, matching `config` instead of
-`roz-gate:config`, and deleting `commands/config.md`.
+`roz-gate:config`, and deleting `commands/config.md`. Since #172 the plugin's
+one hooks module is the entry `hooks/mods.tsx` (Claude Code refuses a second
+`modules` entry), which registers this mod; red-proofed by dropping its call.
 """
 
 import json
@@ -27,8 +29,12 @@ META = {
 
 _MOD = "hooks/config-menu.tsx"
 _mods = json.loads(read("hooks/hooks.json")).get("modules", [])
-c.expect("pattern", "L8: hooks/hooks.json names the mod module",
-         _mods == ["./config-menu.tsx"])
+c.expect("pattern", "L8: hooks/hooks.json names the one entry module",
+         _mods == ["./mods.tsx"])
+_entry = read("hooks/mods.tsx") if os.path.exists(os.path.join(R, "hooks/mods.tsx")) else ""
+c.expect("pattern", "L8: the entry imports and calls the config mod's register",
+         "import { register as config } from './config-menu'" in _entry
+         and "  config(on, options)\n" in _entry)
 c.expect("pattern", "L8: hooks/hooks.json keeps the guard hooks beside it",
          "PreToolUse" in json.loads(read("hooks/hooks.json")).get("hooks", {}))
 _src = read(_MOD) if os.path.exists(os.path.join(R, _MOD)) else ""

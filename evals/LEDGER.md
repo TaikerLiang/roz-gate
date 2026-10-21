@@ -173,6 +173,7 @@ text follows the experiment; the driver's citation was updated to match.
 | L8 | `/roz-gate:config` is answered by a mod that only reads and runs `bin/roz-config`; `commands/config.md` stays as the fallback where mods do not load | lint (#164, 2.3.0) |
 | L9 | Every page says patrol answers every human comment on an intake thread on its next pass, and none still hands the thread to the humans | lint (defect 2.4.0-, #174) |
 | L10 | Every surface that says where `test` runs says your gitignored files (`worktree_copy`, default `.env`) are copied into the loop's worktrees, and `hooks.json` registers the PostToolUse hook that does it | lint (defect 2.5.1-, #122) |
+| L11 | the seat pane is a mod that only watches: the entry module registers `seat-pane.tsx`; `seat-sprites.ts` draws exactly the five seats the personas template names, no more; the mod never writes, runs a process or denies a spawn; README says a seat linked to your own agent is not shown | lint (#172, 2.7.0) |
 
 ## The judgment corpus
 
