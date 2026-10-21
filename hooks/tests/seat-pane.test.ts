@@ -124,6 +124,20 @@ test('the first seat opens the pane, once', async ($, on) => {
   expect(seen.opens).toBe(1)
 })
 
+test('a failed open is tried again by the next seat (codex review, PR #187)', async ($, on) => {
+  mock.clock(on)
+  let opens = 0
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('agent.spawn', (_, e) => ({ model: 'claude-opus-5-5', agentId: e.tool_use_id.slice(3) }))
+  on('agent.list', () => ({ value: [agent('a1', 'roz-gate:qa'), agent('a2', 'roz-gate:em')] }))
+  on('ui.open', () => (++opens === 1 ? { deny: 'the surface is busy' } : { value: { isPlaced: true } }))
+  await start($)
+  const r = await $.agent.spawn(spawn('roz-gate:qa', 'a1'))
+  expect(r).toEqual({ model: 'claude-opus-5-5', agentId: 'a1' })
+  await $.agent.spawn(spawn('roz-gate:em', 'a2'))
+  expect(opens).toBe(2)
+})
+
 test('closed by hand: never reopened, and the timer stops (A2)', async () => {
   const { fire, calls } = direct()
   await fire('session.start', { cwd: '/' }, { cwd: '/' })

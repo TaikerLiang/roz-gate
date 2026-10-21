@@ -92,10 +92,16 @@ export const register: Register = on => {
       seats.set(r.agentId, { seat, description: e.description, since: now, status: 'running' })
       if (!opened && !closed) {
         opened = true
-        const placed = await $.ui.open({ id: PANE, title: 'Roz Gate' })
-        // A narrow terminal places it later; no surface never does
-        // (codex review, PR #187).
-        headless = !placed.isPlaced && placed.reason.startsWith('no-surface')
+        try {
+          const placed = await $.ui.open({ id: PANE, title: 'Roz Gate' })
+          // A narrow terminal places it later; no surface never does
+          // (codex review, PR #187).
+          headless = !placed.isPlaced && placed.reason.startsWith('no-surface')
+        } catch (err) {
+          // A failed open is tried again by the next seat (codex review, PR #187).
+          opened = false
+          throw err
+        }
       }
       run($)
       $.ui.invalidate('ui.render')
