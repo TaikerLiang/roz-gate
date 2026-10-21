@@ -1109,7 +1109,8 @@ def check_worktree_add_alone(cmd):
     # codex review PR #186); an unrelated add beside a mention elsewhere (a
     # heredoc, a later echo) is not judged
     names = {n for seg in segs if "roz-gate/wt" in seg
-             for n in re.findall(r"(?:^|\s)(\w+)=", seg)}
+             for n, v in re.findall(r"""(?:^|\s)(\w+)=((?:"[^"]*"|'[^']*'|\$\([^)]*\)|[^\s"'])*)""",
+                                    seg) if "roz-gate/wt" in v}
     loop = re.compile("|".join([r"roz-gate/wt"] + [r"\$\{?%s\b" % n for n in names]))
     found = next((m for m in (WT_ADD_ANYWHERE.search(unquoted(seg))
                               for seg in segs if loop.search(seg)) if m), None)

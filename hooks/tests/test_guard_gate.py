@@ -1104,6 +1104,8 @@ class RuleJ_LoopWorktreeAddRunsAlone(HookTest):
          "sync-worktree copies into .git/roz-gate/wt/<branch>\nEOF"),
         ("rule J: your own worktree, the loop's path in a later segment",
          "git worktree add ../mine -b mine && ls .git/roz-gate/wt"),
+        ("rule J: your own add's variable beside a loop-path one (codex review, PR #186)",
+         'dest=../mine log=.git/roz-gate/wt/log; git worktree add "$dest" -b mine && cd ../mine'),
     ]
 
     def test_denied(self):
