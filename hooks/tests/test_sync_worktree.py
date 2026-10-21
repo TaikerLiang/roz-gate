@@ -247,6 +247,22 @@ class WorktreeCopy(HookTest):
             self.assertFalse(os.path.lexists(os.path.join(wt, "config/a.txt")))
             self.assertIn("config/a.txt (config/a.txt)", self.context(r))
             self.assertEqual(self.git_out(wt, "status", "--porcelain"), "")
+        with self.case("worktree_copy: a later run's .gitignore that would unignore an earlier "
+                       "copy is taken back; the earlier copy stays (codex review, PR #184)"):
+            repo = self.repo({"config/local/a.txt": "a\n", "config/local/.gitignore": "!a.txt\n",
+                              LOCAL: json.dumps({"worktree_copy": ["config/local/a.txt"]})},
+                             ignore=".env\nconfig/local/*\n.claude/\n")
+            wt = self.add(repo)
+            self.run_hook(repo)
+            self.assertTrue(os.path.exists(os.path.join(wt, "config/local/a.txt")))
+            self.write(repo / LOCAL, json.dumps({"worktree_copy": ["config/local/a.txt",
+                                                                   "config/local/.gitignore"]}))
+            r = self.run_hook(repo)
+            self.assertTrue(os.path.exists(os.path.join(wt, "config/local/a.txt")))
+            self.assertFalse(os.path.lexists(os.path.join(wt, "config/local/.gitignore")))
+            self.assertIn("config/local/.gitignore (with it, git would stop ignoring "
+                          "config/local/a.txt)", self.context(r))
+            self.assertEqual(self.git_out(wt, "status", "--porcelain"), "")
         with self.case("worktree_copy: outside any git repository — nothing, exit 0"):
             r = self.run_hook(self.new_dir())
             self.assertEqual((r.rc, r.stdout), (0, ""))

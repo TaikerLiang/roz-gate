@@ -148,7 +148,9 @@ that mentions `worktree add` (`sync-worktree.sh`, the prefilter),
   checked again with `git status`, under the rules it brought: a copied
   `.gitignore`, inside a directory or listed on its own, can unignore a
   file. Every copied entry that shows an untracked file is removed, and
-  the check repeats until nothing does.
+  the check repeats until nothing does. Entries an earlier run copied are
+  checked too. If this run's copies would unignore one of them, this run's
+  copies are all taken back, and an earlier copy is never deleted.
 - What it copied, or why not, goes back to the agent as PostToolUse
   `additionalContext`, and the exit is 0 either way.
 - The copy lands when the whole Bash call returns, so the loop's `git

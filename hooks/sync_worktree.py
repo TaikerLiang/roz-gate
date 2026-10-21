@@ -21,7 +21,10 @@ checkout into every such worktree that lacks them:
   under the rules the copy brought — a copied `.gitignore`, inside a
   directory or listed on its own, can unignore a file the first check
   passed — and every copied entry that shows an untracked file is removed,
-  until nothing does;
+  until nothing does. Entries an earlier run copied are checked too: if
+  this run's copies make one of them show a new untracked file, this run's
+  copies are all taken back (an earlier copy is never deleted — it may
+  carry the worktree's own edits);
 - a missing source is skipped; an existing destination is never
   overwritten (a directory that exists is left whole); a path that is
   absolute, climbs with `..`, or sits outside the main checkout is ignored —
@@ -144,6 +147,31 @@ def under(path, rel):
     return path == rel or path.startswith(rel + "/")
 
 
+def remove_ours(wt, rel):
+    dst = os.path.join(wt, rel)
+    if os.path.isdir(dst) and not os.path.islink(dst):
+        shutil.rmtree(dst, ignore_errors=True)
+    elif os.path.lexists(dst):
+        os.remove(dst)
+
+
+def take_back_if_rules_changed(wt, present, before, copied, unignored):
+    """Entries an earlier run copied (`present`) showed `before` as their
+    untracked files. If this run's copies — a `.gitignore` among them —
+    unignored one more, take this run's copies back, all of them: an
+    earlier copy is never deleted (codex review, PR #184)."""
+    if not present or not copied:
+        return
+    fresh = sorted(set(untracked_after(wt, present)) - before)
+    if not fresh:
+        return
+    for rel in list(copied):
+        remove_ours(wt, rel)
+        copied.remove(rel)
+        unignored.append("%s (with it, git would stop ignoring %s)"
+                         % (rel, ", ".join(fresh[:3]) + (", …" if len(fresh) > 3 else "")))
+
+
 def unwind_untracked(wt, copied, unignored):
     """Remove every entry this run copied into `wt` that shows an untracked
     file now that all of them are in place, and say so; repeat, because
@@ -154,11 +182,7 @@ def unwind_untracked(wt, copied, unignored):
         if not bad:
             return
         for rel in bad:                      # ours: this run installed it
-            dst = os.path.join(wt, rel)
-            if os.path.isdir(dst) and not os.path.islink(dst):
-                shutil.rmtree(dst, ignore_errors=True)
-            elif os.path.lexists(dst):
-                os.remove(dst)
+            remove_ours(wt, rel)
             copied.remove(rel)
             names = [p for p in loose if under(p, rel)]
             unignored.append("%s (%s)" % (rel, ", ".join(names[:3])
@@ -218,7 +242,10 @@ def entries(paths):
 
 def copy_into(main, wt, paths):
     copied, errors, unignored = [], [], []
-    for rel in entries(paths):
+    todo = entries(paths)
+    present = [rel for rel in todo if os.path.lexists(os.path.join(wt, rel))]
+    before = None                       # their untracked files, read before the first install
+    for rel in todo:
         src, dst = os.path.join(main, rel), os.path.join(wt, rel)
         if not written_inside(src, main) or not os.path.exists(src) or os.path.lexists(dst):
             continue
@@ -234,6 +261,8 @@ def copy_into(main, wt, paths):
                 unignored.append("%s (%s)" % (rel, ", ".join(loose[:3])
                                               + (", …" if len(loose) > 3 else "")))
                 continue
+        if before is None:
+            before = set(untracked_after(wt, present)) if present else set()
         try:
             os.makedirs(os.path.dirname(dst) or wt, exist_ok=True)
             if (install_dir if os.path.isdir(src) else install_file)(src, dst):
@@ -241,6 +270,7 @@ def copy_into(main, wt, paths):
         except OSError as exc:
             errors.append("%s (%s)" % (rel, exc))
     unwind_untracked(wt, copied, unignored)
+    take_back_if_rules_changed(wt, present, before or set(), copied, unignored)
     return copied, errors, unignored
 
 
