@@ -213,6 +213,29 @@ test("with no seat running the list is not polled; the person's close stops the 
   expect([calls.timers, calls.cancels]).toEqual([1, 1])
 })
 
+// Codex review, PR #187: no surface never places the pane — no timer; a
+// narrow terminal places it later — the timer runs.
+for (const [where, reason, lists] of [
+  ['where nothing draws, no timer runs', 'no-surface: a -p run', 0],
+  ['a terminal too narrow for now keeps the timer', '144 columns unasked, 100 now', 2],
+] as const) {
+  test(where, async ($, on) => {
+    const clock = mock.clock(on)
+    const seen = { lists: 0 }
+    on('session.start', (_, e) => ({ cwd: e.cwd }))
+    on('agent.spawn', (_, e) => ({ model: 'claude-opus-5-5', agentId: e.tool_use_id.slice(3) }))
+    on('agent.list', () => {
+      seen.lists++
+      return { value: [agent('a1', 'roz-gate:qa')] }
+    })
+    on('ui.open', () => ({ value: { isPlaced: false, reason } }))
+    await start($)
+    await $.agent.spawn(spawn('roz-gate:qa', 'a1'))
+    await clock.advance(1000)
+    expect(seen.lists).toBe(lists)
+  })
+}
+
 test('every grid is rectangular and drawn in the palette', async () => {
   const grids: [string, string[], number][] = [
     ['big', BIG[0], 16], ['big blink', BIG[1], 16], ['base', BASE, 8],

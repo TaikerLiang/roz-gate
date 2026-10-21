@@ -26,6 +26,8 @@ type Seat = { seat: string; description: string; since: number; status: AgentSta
 let seats = new Map<string, Seat>()
 let opened = false
 let closed = false
+// Nowhere to draw (`claude -p`, no surface attached): nothing to animate.
+let headless = false
 let tick = 0
 let now = 0
 let timer: { cancel: () => void } | undefined
@@ -34,7 +36,7 @@ function reset() {
   timer?.cancel()
   timer = undefined
   seats = new Map()
-  opened = closed = false
+  opened = closed = headless = false
   tick = now = 0
 }
 
@@ -66,7 +68,7 @@ async function step($: EngineInterface) {
 
 // The timer runs while the pane is open; the person's close stops it.
 function run($: EngineInterface) {
-  if (timer || !opened || closed) return
+  if (timer || !opened || closed || headless) return
   timer = $.clock.every(TICK, () => void step($))
 }
 
@@ -81,14 +83,23 @@ export const register: Register = on => {
     const seat = SEAT_OF[e.subagentType]
     // A spawn another hook refused carries no agent id: nothing started.
     if (!seat || !('agentId' in r) || !r.agentId) return r
-    now = await $.clock.now()
-    seats.set(r.agentId, { seat, description: e.description, since: now, status: 'running' })
-    if (!opened && !closed) {
-      opened = true
-      await $.ui.open({ id: PANE, title: 'Roz Gate' })
+    // The spawn has started: the pane's bookkeeping never fails it
+    // (codex review, PR #187).
+    try {
+      now = await $.clock.now()
+      seats.set(r.agentId, { seat, description: e.description, since: now, status: 'running' })
+      if (!opened && !closed) {
+        opened = true
+        const placed = await $.ui.open({ id: PANE, title: 'Roz Gate' })
+        // A narrow terminal places it later; no surface never does
+        // (codex review, PR #187).
+        headless = !placed.isPlaced && placed.reason.startsWith('no-surface')
+      }
+      run($)
+      $.ui.invalidate('ui.render')
+    } catch {
+      // A pane that cannot draw leaves the spawn as it was.
     }
-    run($)
-    $.ui.invalidate('ui.render')
     return r
   }).catch(($, e, next) => next(e))
 
