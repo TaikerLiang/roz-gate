@@ -2,6 +2,36 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.6.0 — 2026-10-21
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.6.0>
+
+**Runtime change: the loop's worktrees get your gitignored local files.** After a loop command creates its worktree, the plugin's new PostToolUse hook copies `worktree_copy` (default `.env`) from your checkout into it. Nothing is overwritten and nothing is written back.
+
+### Behavior
+- **`.env` reaches the worktree** (#122): `test` and `acceptance_test` run in `<git-common-dir>/roz-gate/wt/<branch>`, where gitignored files never were, so a repo that loads `.env` went red for harness reasons. Each copy is a snapshot per command. A missing source is skipped, and a file git does not ignore (or tracks) is reported, not copied.
+- **`worktree_copy`, your seventh local key** (#122): a comma-separated list of repo-relative **files**, set with `/roz-gate:config worktree_copy …`. Unset means `.env`, and `""` means none. Absolute and `..` entries, directories and `.gitignore` files are refused: a copied directory or ignore file could unignore something a commit then picks up.
+
+### Hooks
+- **`sync-worktree`** (PostToolUse · Bash, #122): the plugin's first post-hook. It never blocks, and reports what it copied as context.
+  - A symlinked file arrives as its contents.
+  - A copy is staged and published with a hard link, so it never replaces anything and never lands half-written.
+  - It copies only from a checkout that proves itself (its own common dir and top level).
+- **guard-gate rule J** (#122): the loop's `git worktree add …/roz-gate/wt/…` runs alone, as its own Bash call, from inside the repository: never chained, wrapped (`{ …; }`, `if`, a subshell), backgrounded, or `git -C <dir>`. The copy lands when the call returns, so anything else in the call would run without your files.
+
+### Tooling
+- **One release PR** (#183): `tools/changelog.py --pending v<x.y.z> "$NOTES"` lets the release PR carry its own changelog entry, so there is no second changelog PR (`docs/releasing.md`).
+
+### Evals
+- Hook tests 480 → 548: sync-worktree cases on real repos and worktrees, rule J's shell shapes, and `roz-config` and mod-pane cases. Plugin tests 15 → 16.
+- Lint L2 (seven keys) and L10, new (the copy and rule J on every surface): lint 994 → 1008.
+
+### Docs
+- `README.md`, `references/workflow.md`, `commands/config.md`, `commands/init.md`, `docs/onboarding.html`, `docs/releasing.md` and `hooks/README.md`.
+
+### Checks
+Hook tests 548/548 · lint 1008/1008 · red-proofs 31/31 · plugin tests 16/16 · `plugin validate --strict` clean
+
 ## v2.5.1 — 2026-10-21
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.5.1>
