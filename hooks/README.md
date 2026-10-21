@@ -125,11 +125,15 @@ that mentions `worktree add` (`sync-worktree.sh`, the prefilter),
   the local key `worktree_copy` (`bin/roz-config`; absent → `.env`, `""` →
   none) from the main checkout, `config_block.main_checkout()`, when the
   source exists and the destination does not.
-- It copies files and directories whole, and never links.
+- It copies files and directories whole, and never links: a symlinked
+  `.env`, or a link inside a copied directory, arrives as the file it
+  points to. Each copy is staged beside its destination and renamed into
+  place, so a failure leaves nothing half-copied (codex review, PR #184).
 - It never overwrites, never writes back, and never touches a worktree of
   yours. A bare repository is skipped.
-- It drops an absolute path, a `..` path, or a path that resolves outside
-  the checkout, silently.
+- It drops an absolute path, a `..` path, or a path outside the checkout,
+  silently. It judges the path as written, so a `.env` linked to a shared
+  file elsewhere is still copied.
 - It reports a path git does not ignore in the worktree and does not copy
   it: there, an untracked file is one a commit could pick up.
 - What it copied, or why not, goes back to the agent as PostToolUse

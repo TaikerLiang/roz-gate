@@ -77,6 +77,32 @@ class WorktreeCopy(HookTest):
             self.run_hook(repo, cwd=first)
             for wt in (first, second):
                 self.assertEqual(self.read(os.path.join(wt, ".env")), "SECRET=1\n")
+        with self.case("worktree_copy: a symlinked .env arrives as its contents, never as a "
+                       "link to the tracked file it names (codex review, PR #184)"):
+            repo = self.repo({"config/default.env": "DEFAULT=1\n"})
+            os.remove(repo / ".env")
+            os.symlink("config/default.env", repo / ".env")
+            self.git(repo, "add", "config/default.env")
+            self.git(repo, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "d")
+            wt = self.add(repo)
+            self.run_hook(repo)
+            dst = os.path.join(wt, ".env")
+            self.assertFalse(os.path.islink(dst))
+            self.assertEqual(self.read(dst), "DEFAULT=1\n")
+            with open(dst, "a", encoding="utf-8") as f:
+                f.write("WRITTEN=1\n")
+            self.assertEqual(self.read(os.path.join(wt, "config/default.env")), "DEFAULT=1\n")
+        with self.case("worktree_copy: a .env linked to a shared file outside the repo is "
+                       "copied — containment is judged on the path as written"):
+            repo = self.repo()
+            shared = repo.parent / "shared.env"
+            self.write(shared, "SHARED=1\n")
+            os.remove(repo / ".env")
+            os.symlink(str(shared), repo / ".env")
+            wt = self.add(repo)
+            self.run_hook(repo)
+            self.assertFalse(os.path.islink(os.path.join(wt, ".env")))
+            self.assertEqual(self.read(os.path.join(wt, ".env")), "SHARED=1\n")
         with self.case("worktree_copy: the list as the local file stores it — a comma string"):
             repo = self.repo({"config/local/db.yml": "url: x\n",
                               LOCAL: json.dumps({"worktree_copy": ".env, config/local"})})
@@ -140,6 +166,21 @@ class WorktreeCopy(HookTest):
             r = self.run_hook(repo)
             self.assertEqual(r.rc, 0)
             self.assertIn("could not copy config/local", self.context(r))
+        with self.case("worktree_copy: a failed directory copy leaves nothing behind, and the "
+                       "next run completes it (codex review, PR #184)"):
+            repo = self.repo({"config/local/a.yml": "a\n", "config/local/b.yml": "b\n",
+                              LOCAL: json.dumps({"worktree_copy": ["config/local"]})})
+            wt = self.add(repo)
+            unreadable = repo / "config/local/b.yml"
+            os.chmod(unreadable, 0)
+            self.addCleanup(os.chmod, unreadable, 0o600)
+            r = self.run_hook(repo)
+            self.assertIn("could not copy config/local", self.context(r))
+            self.assertFalse(os.path.lexists(os.path.join(wt, "config/local")))
+            self.assertEqual(os.listdir(os.path.join(wt, "config")), [])
+            os.chmod(unreadable, 0o600)
+            self.run_hook(repo)
+            self.assertEqual(self.read(os.path.join(wt, "config/local/b.yml")), "b\n")
         with self.case("worktree_copy: outside any git repository — nothing, exit 0"):
             r = self.run_hook(self.new_dir())
             self.assertEqual((r.rc, r.stdout), (0, ""))

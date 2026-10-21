@@ -18,10 +18,15 @@ checkout into every such worktree that lacks them:
   copied);
 - a missing source is skipped; an existing destination is never
   overwritten (a directory that exists is left whole); a path that is
-  absolute, climbs with `..`, or resolves outside the main checkout is
-  ignored;
-- it copies, never links, and never writes back — a test that writes to
-  `.env` in the worktree cannot touch your checkout's copy;
+  absolute, climbs with `..`, or sits outside the main checkout is ignored —
+  judged on the path as written, so a `.env` that is a link to a shared file
+  elsewhere is still yours to copy;
+- it copies contents, never links, and never writes back — a symlinked
+  `.env` (or a link inside a copied directory) arrives as the file it points
+  to, so a test that writes to `.env` in the worktree touches neither your
+  checkout's copy nor a tracked file the link named (codex review, PR #184);
+- a copy is staged beside its destination and renamed into place, so a
+  failure leaves nothing half-copied for a later run to mistake for done;
 - worktrees anywhere else — your own — are never touched.
 
 It never blocks (exit 0 always: the command has already run). What it
@@ -73,6 +78,13 @@ def inside(path, root):
     return path == root or path.startswith(root + os.sep)
 
 
+def written_inside(path, root):
+    """`path` lies under `root` as written — links not resolved: the entry is
+    a name in your checkout, whatever it points at."""
+    path, root = os.path.normpath(os.path.abspath(path)), os.path.normpath(os.path.abspath(root))
+    return path == root or path.startswith(root + os.sep)
+
+
 def loop_worktrees(common):
     """Linked worktrees under `<common>/roz-gate/wt/`."""
     listing = git("worktree", "list", "--porcelain") or ""
@@ -88,7 +100,7 @@ def copy_into(main, wt, paths):
         if os.path.isabs(rel) or ".." in rel.replace("\\", "/").split("/"):
             continue
         src, dst = os.path.join(main, rel), os.path.join(wt, rel)
-        if not inside(src, main) or not os.path.lexists(src) or os.path.lexists(dst):
+        if not written_inside(src, main) or not os.path.exists(src) or os.path.lexists(dst):
             continue
         # The destination does not exist yet, so git cannot tell a directory:
         # a `dir/` pattern matches only the path written with its slash.
@@ -96,14 +108,20 @@ def copy_into(main, wt, paths):
         if git("-C", wt, "check-ignore", "-q", "--no-index", probe) is None:
             unignored.append(rel)
             continue
+        tmp = "%s.roz-gate-%d.tmp" % (dst.rstrip("/"), os.getpid())
         try:
             os.makedirs(os.path.dirname(dst) or wt, exist_ok=True)
             if os.path.isdir(src):
-                shutil.copytree(src, dst, symlinks=True)
+                shutil.copytree(src, tmp)  # symlinks=False: a link arrives as its target
             else:
-                shutil.copy2(src, dst, follow_symlinks=False)
+                shutil.copy2(src, tmp)     # follows a symlinked file: its contents
+            os.rename(tmp, dst)
             copied.append(rel)
-        except OSError as exc:
+        except OSError as exc:            # shutil.Error is an OSError
+            if os.path.isdir(tmp) and not os.path.islink(tmp):
+                shutil.rmtree(tmp, ignore_errors=True)
+            elif os.path.lexists(tmp):
+                os.remove(tmp)
             errors.append("%s (%s)" % (rel, exc))
     return copied, errors, unignored
 
