@@ -90,8 +90,10 @@ pattern. Nine rules, each the mechanical form of existing protocol text:
      Top level: outside quotes and ``$(…)`` / backticks; ``2>&1`` and
      ``&>`` are redirects, and a backslash-newline continues the line. An
      add found anywhere outside quotes — inside ``{ …; }``, ``if …; then``,
-     a subshell — passes only as the call's one and only command (codex
-     review, PR #184).
+     a subshell — passes only as the call's one and only command, and never
+     backgrounded with a trailing ``&`` (the call would return before the
+     worktree exists). Shell continuations are joined first, so ``git
+     worktree <backslash-newline>add`` is the add it runs as (codex review, PR #184).
 
 Exit 0 allows the tool call; exit 2 blocks it and feeds stderr to the
 model. Forge API failures fail closed, with a message that says it is an
@@ -1035,6 +1037,8 @@ def top_level_segments(cmd):
             cur = []
             if cmd.startswith(ch * 2, i) and ch in "&|":
                 i += 1
+            elif ch == "&":                   # backgrounded: kept as a segment of
+                segs.append("&")              # its own, so `add &` is not alone
         else:
             cur.append(ch)
         i += 1
@@ -1070,6 +1074,7 @@ def check_worktree_add_alone(cmd):
     holds one (a chain, `{ …; }`, `if …; then`, a subshell) is a deny."""
     if "worktree" not in cmd or "roz-gate/wt" not in cmd:
         return
+    cmd = cmd.replace("\\\n", " ")          # the shell joins a continuation first
     if not WT_ADD_ANYWHERE.search(unquoted(cmd)):
         return
     segs = top_level_segments(cmd)

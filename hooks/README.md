@@ -117,44 +117,40 @@ Not a guard: it never blocks. Every loop command works in a linked worktree
 under `$(git rev-parse --git-common-dir)/roz-gate/wt/<branch>`, and a
 gitignored file such as `.env` is not in a fresh one, so a repo whose `test`
 loads it went red there for harness reasons (#122). After any Bash command
-that mentions `worktree add` (`sync-worktree.sh`, the prefilter),
+that mentions `worktree` (`sync-worktree.sh`, the prefilter; the word alone,
+so a shell continuation inside `git worktree add` still escalates),
 `sync_worktree.py` does the following:
 
 - It reads `git worktree list --porcelain`, never the command text, whose
   path is the unexpanded `$(git rev-parse --git-common-dir)/…`.
-- For every worktree under `<common>/roz-gate/wt/`, it copies each path of
-  the local key `worktree_copy` (`bin/roz-config`; absent → `.env`, `""` →
+- For every worktree under `<common>/roz-gate/wt/`, it copies each file the
+  local key `worktree_copy` lists (`bin/roz-config`; absent → `.env`, `""` →
   none) from the main checkout, `config_block.main_checkout()`, when the
   source exists and the destination does not.
-- It copies files and directories whole, and never links: a symlinked
-  `.env`, or a link inside a copied directory, arrives as the file it
-  points to. Installing never replaces anything, even against a concurrent
-  run: a file is created exclusively (`O_EXCL`), and a directory is staged
-  beside its destination and renamed onto a name that must not hold
-  anything. A failure removes what the run created, so nothing half-copied
-  is left (codex review, PR #184).
+- **Files only.** A directory or a `.gitignore` is reported, never copied,
+  and `bin/roz-config` refuses either on write. A plain file changes no
+  ignore rule, so the check before the copy still holds after it. A
+  directory or an ignore file could unignore something a commit then picks
+  up; Codex found that class six times over on PR #184 before the key was
+  narrowed (ruling (a), 2026-10-21).
+- It copies a file only if git ignores it in the worktree. An unignored
+  file would sit there untracked for a commit to pick up, so it is
+  reported instead.
+- It copies contents and never links: a symlinked `.env` arrives as the
+  file it points to. A file is created exclusively (`O_EXCL`), so a
+  concurrent run never replaces another's copy, and a failed copy removes
+  what it created.
 - It never overwrites, never writes back, and never touches a worktree of
   yours. A bare repository is skipped.
-- It normalizes each entry as git names it (`./x` → `x`), drops duplicates,
-  and drops an entry under another listed one, because the parent's copy
-  carries it.
-- It drops an absolute path, a `..` path, or a path outside the checkout,
-  silently. It judges the path as written, so a `.env` linked to a shared
+- It normalizes each entry as git names it (`./x` → `x`) and drops
+  duplicates. It silently drops an absolute path, a `..` path or a path
+  outside the checkout, judged as written, so a `.env` linked to a shared
   file elsewhere is still copied.
-- It reports a path git does not ignore in the worktree and does not copy
-  it: there, an untracked file is one a commit could pick up. For a
-  directory, every file in it is checked, since an ignore rule's `!`
-  exception can unignore one. Once every entry is in place, the copy is
-  checked again with `git status`, under the rules it brought: a copied
-  `.gitignore`, inside a directory or listed on its own, can unignore a
-  file. Every copied entry that shows an untracked file is removed, and
-  the check repeats until nothing does. Entries an earlier run copied are
-  checked too. If this run's copies would unignore one of them, this run's
-  copies are all taken back, and an earlier copy is never deleted.
 - What it copied, or why not, goes back to the agent as PostToolUse
   `additionalContext`, and the exit is 0 either way.
 - The copy lands when the whole Bash call returns, so the loop's `git
-  worktree add` must be the call's only command: rule J denies a chain.
+  worktree add` must be the call's only command: rule J denies a chain, a
+  wrapped add, and a backgrounded one.
 
 `tests/test_sync_worktree.py` runs each case on a real repo and a real
 `git worktree add`.

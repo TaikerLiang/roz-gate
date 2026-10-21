@@ -19,7 +19,7 @@ const HINT: Record<string, string> = {
   helper_model: "one model id; empty = the runtime's",
   branch_user: 'one forge login; empty = yours',
   branch_template: 'e.g. {type}/{user}/{n}/{seq}; empty = {kind}/{n}',
-  worktree_copy: 'repo paths, comma-separated; empty = .env; "" = none',
+  worktree_copy: 'repo files, comma-separated; empty = .env; "" = none',
 }
 
 type Values = Record<string, string | string[]>

@@ -10,7 +10,7 @@
     roz-config helper_model claude-haiku-4-5    # the scanner's and the commit sub-agent's model
     roz-config branch_user pwliangc             # the {user} slot of branch_template
     roz-config branch_template {type}/{user}/{n}/{seq}  # your branch names (references/branch-names.md)
-    roz-config worktree_copy .env config/local  # gitignored files copied into the loop's worktrees
+    roz-config worktree_copy .env config/db.yml # gitignored files copied into the loop's worktrees
     roz-config worktree_copy ""                 # copy nothing
     roz-config inbox_label                      # no value: remove the override
 
@@ -28,8 +28,8 @@ default model for patrol's scanner and every command's commit sub-agent
 fill `{user}` with the forge login of the account running them (WHOAMI;
 `references/branch-names.md`), `worktree_copy` is `.env` — the gitignored
 files the plugin's `sync-worktree` hook copies from your checkout into each
-worktree the loop creates (`""` copies nothing; an absolute or `..` path is
-refused). This tool never asks the forge.
+worktree the loop creates (files only: `""` copies nothing; an absolute or
+`..` path, a directory or a `.gitignore` is refused). This tool never asks the forge.
 
 Upgrade (pre-1.23 repos kept these keys in CLAUDE.md's `### Roz Gate config`
 block; pre-1.28 ones kept `patrol_model` there): the first run that finds no
@@ -221,12 +221,18 @@ def show(eff, as_json):
         print("%-16s %s%s" % (k, shown or "-", note))
 
 
-def copy_problem(paths):
-    """Why a `worktree_copy` entry is refused, or None: each is a path under
-    the repo root — never absolute, never climbing out with `..`."""
+def copy_problem(paths, root):
+    """Why a `worktree_copy` entry is refused, or None: each is a file under
+    the repo root — never absolute, never climbing out with `..`, never a
+    directory or a `.gitignore` (a copied directory or ignore file can
+    unignore something a commit then picks up; #122, codex review PR #184)."""
     for p in paths:
         if os.path.isabs(p) or p.startswith("~") or ".." in re.split(r"[\\/]", p):
             return "%r is not a path inside the repository" % p
+        if os.path.basename(p.rstrip("/\\")) == ".gitignore":
+            return "%r is an ignore-rule file — worktree_copy never copies one" % p
+        if p.endswith(("/", "\\")) or os.path.isdir(os.path.join(root, p)):
+            return "%r is a directory — worktree_copy lists files" % p
     return None
 
 
@@ -275,7 +281,7 @@ def main(argv):
         values = [part.strip() for v in values for part in v.split(",")]
     values = [v for v in values if v.strip()]
     if key == "worktree_copy":
-        why = copy_problem(values)
+        why = copy_problem(values, root)
         if why:
             sys.stderr.write("roz-config: worktree_copy %s — list paths relative to the "
                              "repository root\n" % why)

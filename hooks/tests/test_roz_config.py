@@ -350,11 +350,11 @@ class RozConfigTest(unittest.TestCase):
         with self.subTest('roz-config: worktree_copy defaults to .env, sets a list, "" = none, '
                           'removed back to .env'):
             self.assertIn("worktree_copy    .env  (default: .env)", self.run_tool().stdout)
-            p = self.run_tool("worktree_copy", ".env, config/local")
+            p = self.run_tool("worktree_copy", ".env, config/db.yml")
             self.assertEqual(p.returncode, 0, p.stderr)
-            self.assertEqual(self.stored(), {"worktree_copy": [".env", "config/local"]})
+            self.assertEqual(self.stored(), {"worktree_copy": [".env", "config/db.yml"]})
             self.assertEqual(json.loads(self.run_tool("--json").stdout)["worktree_copy"],
-                             [".env", "config/local"])
+                             [".env", "config/db.yml"])
             for none in ("", '""'):      # the shell's empty argument; the pane's two quotes
                 p = self.run_tool("worktree_copy", none)
                 self.assertEqual(p.returncode, 0, p.stderr)
@@ -365,6 +365,18 @@ class RozConfigTest(unittest.TestCase):
             self.assertIn("removed the override", p.stdout)
             self.assertEqual(json.loads(self.run_tool("--json").stdout)["worktree_copy"],
                              [".env"])
+
+    def test_worktree_copy_lists_files_only(self):
+        (self.root / "config").mkdir()
+        for bad, why in (("config", "is a directory"), ("config/", "is a directory"),
+                         (".gitignore", "ignore-rule file"),
+                         ("config/.gitignore", "ignore-rule file")):
+            with self.subTest("roz-config: worktree_copy refuses %s (files only), writes "
+                              "nothing" % bad):
+                p = self.run_tool("worktree_copy", ".env, " + bad)
+                self.assertEqual(p.returncode, 2)
+                self.assertIn(why, p.stderr)
+                self.assertFalse((self.root / REL).exists())
 
     def test_worktree_copy_refuses_paths_outside_the_repo(self):
         for bad in ("../secret", "/etc/hosts", "config/../../x", "~/.env"):

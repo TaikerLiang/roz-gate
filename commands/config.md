@@ -48,11 +48,12 @@ default). An unknown key is the tool's error to print.
      default = `{kind}/{n}`; the tool refuses an invalid one
    - `worktree_copy` — your gitignored files the plugin's `sync-worktree`
      hook copies from your checkout into each worktree the loop creates;
-     default = `.env`; `""` = none; the tool refuses a path outside the repo
+     files only (never a directory or a `.gitignore`); default = `.env`;
+     `""` = none; the tool refuses a path outside the repo
 2. Ask **the value**: one branch name for `default_branch`; one model id for
    `helper_model`; one forge login for `branch_user`; one template for
    `branch_template`; one or more labels / logins, comma-separated, for the
-   inbox keys; one or more repo-relative paths, comma-separated, for
+   inbox keys; one or more repo-relative files, comma-separated, for
    `worktree_copy` (`""` = none); empty = remove the override.
 3. Split on commas, quote each, run
    `python3 "${CLAUDE_PLUGIN_ROOT}/bin/roz-config" <key> "<v1>" "<v2>" …` and

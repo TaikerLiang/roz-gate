@@ -389,7 +389,7 @@ runs as the menu. Either way the write is done by the plugin's
 /roz-gate:config helper_model <model id>          # patrol's scanner and every command's commit sub-agent (default: the runtime's; seats are never configured)
 /roz-gate:config branch_user <login>              # the {user} slot of branch_template (default: your forge login)
 /roz-gate:config branch_template {type}/{user}/{n}/{seq}  # your branch names (default: {kind}/{n}); see "Branch names"
-/roz-gate:config worktree_copy .env, config/local  # gitignored files copied into the loop's worktrees (default: .env; "" = none)
+/roz-gate:config worktree_copy .env, config/db.yml  # gitignored files (files only) copied into the loop's worktrees (default: .env; "" = none)
 /roz-gate:config inbox_label                      # no value = back to the default
 ```
 

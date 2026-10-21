@@ -1,52 +1,41 @@
 #!/usr/bin/env python3
 """Roz Gate — the worktree copy (#122): layer 2, after a `git worktree add`.
 
-Invoked by sync-worktree.sh only when a Bash command mentions `worktree
-add`. Every loop command works in a linked worktree under
+Invoked by sync-worktree.sh only when a Bash command mentions `worktree`.
+Every loop command works in a linked worktree under
 `$(git rev-parse --git-common-dir)/roz-gate/wt/<branch>` (references/
 workflow.md § The workspace), and a gitignored file — `.env` first among
 them — is never in one: a repo whose `test` loads it went red there for
-harness reasons. This hook copies the paths bin/roz-config's local key
+harness reasons. This hook copies the files bin/roz-config's local key
 `worktree_copy` lists (absent → `.env`; "" → nothing) from the main
 checkout into every such worktree that lacks them:
 
+- **files only** — never a directory, never a `.gitignore` (both reported,
+  not copied). A plain file changes no ignore rule, so the one check below
+  still holds after the copy; a directory or an ignore file could unignore
+  something, the class of defect Codex found six times over on PR #184
+  until the maintainer narrowed the key (ruling (a), 2026-10-21);
+- only a file git ignores in the worktree is copied: an unignored one would
+  sit there untracked, for the commit to pick up (reported, not copied);
 - the worktrees are read from `git worktree list --porcelain`, never parsed
   from the command — the loop's command text carries the unexpanded
   `$(git rev-parse --git-common-dir)/…`;
-- only a path git ignores in the worktree is copied — for a directory,
-  every file in it (an ignore rule's `!` exception unignores one): an
-  unignored file would sit there untracked, for the commit to pick up
-  (reported, not copied; codex review, PR #184). Everything copied into a
-  worktree is checked again once all of it is in place, by `git status`,
-  under the rules the copy brought — a copied `.gitignore`, inside a
-  directory or listed on its own, can unignore a file the first check
-  passed — and every copied entry that shows an untracked file is removed,
-  until nothing does. Entries an earlier run copied are checked too: if
-  this run's copies make one of them show a new untracked file, this run's
-  copies are all taken back (an earlier copy is never deleted — it may
-  carry the worktree's own edits);
-- a missing source is skipped; an existing destination is never
-  overwritten (a directory that exists is left whole); a path that is
-  absolute, climbs with `..`, or sits outside the main checkout is ignored —
-  judged on the path as written, so a `.env` that is a link to a shared file
-  elsewhere is still yours to copy;
+- entries are normalized as git names them (`./x` → `x`); a missing source
+  is skipped; an existing destination is never overwritten; an absolute or
+  `..` path, or one outside the main checkout as written, is ignored — so a
+  `.env` that links to a shared file elsewhere is still yours to copy;
 - it copies contents, never links, and never writes back — a symlinked
-  `.env` (or a link inside a copied directory) arrives as the file it points
-  to, so a test that writes to `.env` in the worktree touches neither your
-  checkout's copy nor a tracked file the link named (codex review, PR #184);
-- installing never replaces anything, even against a concurrent run: a
-  file is created exclusively (`O_EXCL`), a directory is staged beside its
-  destination and renamed onto a name that must not exist — and a failure
-  removes what this run created, so nothing half-copied is left for a later
-  run to mistake for done (codex review, PR #184);
+  `.env` arrives as the file it points to, so writing to the worktree's
+  copy touches neither yours nor a tracked file the link named;
+- a file is created exclusively (`O_EXCL`), so a concurrent run never
+  replaces another's copy, and a failed copy removes what it created;
 - worktrees anywhere else — your own — are never touched.
 
 It never blocks (exit 0 always: the command has already run). What it
-copied, and any copy error, go back to the agent as PostToolUse
-`additionalContext`. Stdlib only, Python 3.9-compatible.
+copied, and why it skipped what it skipped, go back to the agent as
+PostToolUse `additionalContext`. Stdlib only, Python 3.9-compatible.
 """
 
-import errno
 import json
 import os
 import shutil
@@ -58,6 +47,7 @@ from config_block import main_checkout  # noqa: E402
 
 LOCAL_FILE = os.path.join(".claude", "roz-gate.local.json")
 DEFAULT = [".env"]
+IGNORE_FILES = (".gitignore",)
 
 
 def git(*args):
@@ -80,7 +70,7 @@ def wanted(main):
         return list(DEFAULT)
     value = data["worktree_copy"]
     if isinstance(value, str):
-        value = [part for part in value.split(",")]
+        value = value.split(",")
     if not isinstance(value, list):
         return list(DEFAULT)
     return [p.strip() for p in value if isinstance(p, str) and p.strip()]
@@ -98,6 +88,19 @@ def written_inside(path, root):
     return path == root or path.startswith(root + os.sep)
 
 
+def entries(paths):
+    """The list as git names it: each path normalized (`./x`, `x//y` → `x`,
+    `x/y`), absolute and `..` entries and duplicates dropped."""
+    rels = []
+    for raw in paths:
+        if os.path.isabs(raw) or ".." in raw.replace("\\", "/").split("/"):
+            continue
+        rel = os.path.normpath(raw).replace(os.sep, "/")
+        if rel not in (".", "") and rel not in rels:
+            rels.append(rel)
+    return rels
+
+
 def loop_worktrees(common):
     """Linked worktrees under `<common>/roz-gate/wt/`."""
     listing = git("worktree", "list", "--porcelain") or ""
@@ -105,88 +108,6 @@ def loop_worktrees(common):
     return [line[len("worktree "):] for line in listing.splitlines()
             if line.startswith("worktree ") and inside(line[len("worktree "):], base)
             and os.path.realpath(line[len("worktree "):]) != os.path.realpath(base)]
-
-
-def unignored_files(wt, rel, src):
-    """The files under directory `src` (entry `rel`) git would NOT ignore in
-    `wt` — one `check-ignore --stdin` for all of them. A directory with
-    none of its own is judged by its `rel/` probe alone (the caller's)."""
-    files = [os.path.join(rel.rstrip("/"), os.path.relpath(os.path.join(top, name), src))
-             for top, _dirs, names in os.walk(src, followlinks=True) for name in names]
-    if not files:
-        return []
-    try:
-        out = subprocess.run(["git", "-C", wt, "check-ignore", "--no-index", "--stdin", "-z"],
-                             input="\0".join(files) + "\0", capture_output=True, text=True,
-                             timeout=20)
-    except (OSError, subprocess.TimeoutExpired):
-        return files
-    if out.returncode not in (0, 1):     # 1: none ignored; anything else: git failed
-        return files
-    ignored = set(p for p in out.stdout.split("\0") if p)
-    return [f for f in files if f not in ignored]
-
-
-def untracked_after(wt, rels):
-    """Files under `rels` that `git status` shows untracked in `wt` once
-    they are there — under every rule then in force, the `.gitignore` files
-    the copy brought included. Unknown (git failed) counts as untracked."""
-    try:
-        out = subprocess.run(["git", "-C", wt, "status", "--porcelain=v1", "-z",
-                              "--untracked-files=all", "--"] + list(rels),
-                             capture_output=True, text=True, timeout=20)
-    except (OSError, subprocess.TimeoutExpired):
-        return list(rels)
-    if out.returncode != 0:
-        return list(rels)
-    return [e[3:] for e in out.stdout.split("\0") if e.startswith("?? ")]
-
-
-def under(path, rel):
-    rel = rel.rstrip("/")
-    return path == rel or path.startswith(rel + "/")
-
-
-def remove_ours(wt, rel):
-    dst = os.path.join(wt, rel)
-    if os.path.isdir(dst) and not os.path.islink(dst):
-        shutil.rmtree(dst, ignore_errors=True)
-    elif os.path.lexists(dst):
-        os.remove(dst)
-
-
-def take_back_if_rules_changed(wt, present, before, copied, unignored):
-    """Entries an earlier run copied (`present`) showed `before` as their
-    untracked files. If this run's copies — a `.gitignore` among them —
-    unignored one more, take this run's copies back, all of them: an
-    earlier copy is never deleted (codex review, PR #184)."""
-    if not present or not copied:
-        return
-    fresh = sorted(set(untracked_after(wt, present)) - before)
-    if not fresh:
-        return
-    for rel in list(copied):
-        remove_ours(wt, rel)
-        copied.remove(rel)
-        unignored.append("%s (with it, git would stop ignoring %s)"
-                         % (rel, ", ".join(fresh[:3]) + (", …" if len(fresh) > 3 else "")))
-
-
-def unwind_untracked(wt, copied, unignored):
-    """Remove every entry this run copied into `wt` that shows an untracked
-    file now that all of them are in place, and say so; repeat, because
-    removing a copied `.gitignore` changes the rules for the rest."""
-    for _ in range(len(copied) + 1):
-        loose = untracked_after(wt, copied) if copied else []
-        bad = [rel for rel in copied if any(under(p, rel) for p in loose)]
-        if not bad:
-            return
-        for rel in bad:                      # ours: this run installed it
-            remove_ours(wt, rel)
-            copied.remove(rel)
-            names = [p for p in loose if under(p, rel)]
-            unignored.append("%s (%s)" % (rel, ", ".join(names[:3])
-                                          + (", …" if len(names) > 3 else "")))
 
 
 def install_file(src, dst):
@@ -207,71 +128,29 @@ def install_file(src, dst):
     return True
 
 
-def install_dir(src, dst):
-    """Stage a copy beside `dst`, then rename it onto `dst` — a rename onto a
-    directory that holds anything fails, so nothing is replaced. False: it
-    exists (another run installed it first)."""
-    tmp = "%s.roz-gate-%d.tmp" % (dst.rstrip("/"), os.getpid())
-    try:
-        shutil.copytree(src, tmp)          # symlinks=False: a link arrives as its target
-        os.rename(tmp, dst)
-    except OSError as exc:                 # shutil.Error is an OSError
-        shutil.rmtree(tmp, ignore_errors=True)
-        if getattr(exc, "errno", None) in (errno.EEXIST, errno.ENOTEMPTY):
-            return False
-        raise
-    return True
-
-
-def entries(paths):
-    """The list as git will name it: each path normalized (`./x`, `x//y` →
-    `x`, `x/y` — `git status` reports canonical paths, and the final check
-    matches against them), absolute and `..` entries dropped, duplicates
-    dropped, and an entry under another listed one dropped — the parent's
-    copy carries it, and copying the child first would make the parent's
-    destination exist and skip the rest of it (codex review, PR #184)."""
-    rels = []
-    for raw in paths:
-        if os.path.isabs(raw) or ".." in raw.replace("\\", "/").split("/"):
-            continue
-        rel = os.path.normpath(raw).replace(os.sep, "/")
-        if rel not in (".", "") and rel not in rels:
-            rels.append(rel)
-    return [r for r in rels if not any(o != r and under(r, o) for o in rels)]
-
-
 def copy_into(main, wt, paths):
-    copied, errors, unignored = [], [], []
-    todo = entries(paths)
-    present = [rel for rel in todo if os.path.lexists(os.path.join(wt, rel))]
-    before = None                       # their untracked files, read before the first install
-    for rel in todo:
+    copied, errors, skipped = [], [], []
+    for rel in entries(paths):
         src, dst = os.path.join(main, rel), os.path.join(wt, rel)
         if not written_inside(src, main) or not os.path.exists(src) or os.path.lexists(dst):
             continue
-        # The destination does not exist yet, so git cannot tell a directory:
-        # a `dir/` pattern matches only the path written with its slash.
-        probe = rel.rstrip("/") + "/" if os.path.isdir(src) else rel
-        if git("-C", wt, "check-ignore", "-q", "--no-index", "--", probe) is None:
-            unignored.append(rel)
-            continue
         if os.path.isdir(src):
-            loose = unignored_files(wt, rel, src)
-            if loose:
-                unignored.append("%s (%s)" % (rel, ", ".join(loose[:3])
-                                              + (", …" if len(loose) > 3 else "")))
-                continue
-        if before is None:
-            before = set(untracked_after(wt, present)) if present else set()
+            skipped.append("%s (a directory — worktree_copy lists files)" % rel)
+            continue
+        if os.path.basename(rel) in IGNORE_FILES:
+            skipped.append("%s (an ignore-rule file — never copied)" % rel)
+            continue
+        if git("-C", wt, "check-ignore", "-q", "--no-index", "--", rel) is None:
+            skipped.append("%s (git does not ignore it there, so a commit could pick it up — "
+                           "add it to .gitignore, or drop it from worktree_copy)" % rel)
+            continue
         try:
             os.makedirs(os.path.dirname(dst) or wt, exist_ok=True)
-            if (install_dir if os.path.isdir(src) else install_file)(src, dst):
+            if install_file(src, dst):
                 copied.append(rel)
         except OSError as exc:
             errors.append("%s (%s)" % (rel, exc))
-    unwind_untracked(wt, copied, unignored)
-    take_back_if_rules_changed(wt, present, before or set(), copied, unignored)
-    return copied, errors, unignored
+    return copied, errors, skipped
 
 
 def main():
@@ -298,14 +177,12 @@ def main():
         return
     notes = []
     for wt in loop_worktrees(common):
-        copied, errors, unignored = copy_into(main_root, wt, paths)
+        copied, errors, skipped = copy_into(main_root, wt, paths)
         if copied:
             notes.append("[roz-gate] copied %s into %s (worktree_copy, #122)"
                          % (", ".join(copied), wt))
-        if unignored:
-            notes.append("[roz-gate] did not copy %s into %s: git does not ignore it there, so "
-                         "a commit could pick it up — add it to .gitignore, or drop it from "
-                         "worktree_copy" % (", ".join(unignored), wt))
+        if skipped:
+            notes.append("[roz-gate] did not copy into %s: %s" % (wt, "; ".join(skipped)))
         if errors:
             notes.append("[roz-gate] could not copy %s into %s — the worktree lacks them"
                          % (", ".join(errors), wt))
