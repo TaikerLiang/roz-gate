@@ -1064,6 +1064,10 @@ class RuleJ_LoopWorktreeAddRunsAlone(HookTest):
         ("rule J: `git worktree \\<newline>add`, chained — the shell joins it",
          ADD.replace("worktree add", "worktree \\\nadd") + " && pytest"),
         ("rule J: the add backgrounded with a trailing &", ADD + " >/dev/null 2>&1 &"),
+        ("rule J: a quoted command word — `'git' worktree add`, chained",
+         "'git' worktree add .git/roz-gate/wt/spec/5 -B spec/5 main && pytest"),
+        ("rule J: `\"worktree\"` / `g''it` spellings, chained",
+         'g\'\'it "worktree" add .git/roz-gate/wt/spec/5 -B spec/5 main && pytest'),
         ("rule J: the path quoted, chained",
          'git worktree add "$(git rev-parse --git-common-dir)/roz-gate/wt/qa/5" qa/5 && pytest'),
     ]

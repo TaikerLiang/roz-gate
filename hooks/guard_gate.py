@@ -1047,16 +1047,27 @@ def top_level_segments(cmd):
 
 
 def unquoted(cmd):
-    """`cmd` with every quoted string's contents removed — what the shell
-    runs as words, not what it passes as text."""
-    out, quote, i = [], None, 0
+    """`cmd` as words the shell runs: a quoted string holding one word (no
+    whitespace — `'git'`, `"add"`, the `''` in `g''it`) keeps its contents,
+    since the shell runs it the same; one holding text with spaces (a
+    comment body) is dropped (codex review, PR #184). Rule J guards against
+    a model's chained call, not an adversary: `$GIT worktree add` is out of
+    its reach."""
+    out, quote, i, held = [], None, 0, []
     while i < len(cmd):
         ch = cmd[i]
         if quote:
-            if ch == "\\" and quote == '"':
+            if ch == "\\" and quote == '"' and i + 1 < len(cmd):
+                held.append(cmd[i + 1])
                 i += 1
             elif ch == quote:
                 quote = None
+                word = "".join(held)
+                if not any(c.isspace() for c in word):
+                    out.append(word)
+                held = []
+            else:
+                held.append(ch)
         elif ch in "'\"":
             quote = ch
         elif ch == "\\" and i + 1 < len(cmd):
