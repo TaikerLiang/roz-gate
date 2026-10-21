@@ -1068,6 +1068,9 @@ class RuleJ_LoopWorktreeAddRunsAlone(HookTest):
          "'git' worktree add .git/roz-gate/wt/spec/5 -B spec/5 main && pytest"),
         ("rule J: `\"worktree\"` / `g''it` spellings, chained",
          'g\'\'it "worktree" add .git/roz-gate/wt/spec/5 -B spec/5 main && pytest'),
+        ("rule J: a quoted -C directory with spaces, chained",
+         'git -C "/tmp/repo with spaces" worktree add .git/roz-gate/wt/spec/5 -B spec/5 main '
+         "&& pytest"),
         ("rule J: the path quoted, chained",
          'git worktree add "$(git rev-parse --git-common-dir)/roz-gate/wt/qa/5" qa/5 && pytest'),
     ]

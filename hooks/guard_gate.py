@@ -1050,7 +1050,8 @@ def unquoted(cmd):
     """`cmd` as words the shell runs: a quoted string holding one word (no
     whitespace — `'git'`, `"add"`, the `''` in `g''it`) keeps its contents,
     since the shell runs it the same; one holding text with spaces (a
-    comment body) is dropped (codex review, PR #184). Rule J guards against
+    comment body, a `-C "/repo with spaces"`) becomes the one word `Q` — it
+    is still one argument, never words of its own (codex review, PR #184). Rule J guards against
     a model's chained call, not an adversary: `$GIT worktree add` is out of
     its reach."""
     out, quote, i, held = [], None, 0, []
@@ -1063,8 +1064,7 @@ def unquoted(cmd):
             elif ch == quote:
                 quote = None
                 word = "".join(held)
-                if not any(c.isspace() for c in word):
-                    out.append(word)
+                out.append("Q" if any(c.isspace() for c in word) else word)
                 held = []
             else:
                 held.append(ch)

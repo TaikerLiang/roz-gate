@@ -230,6 +230,23 @@ class WorktreeCopy(HookTest):
             r = self.run_hook(repo)
             self.assertEqual(r.rc, 0)
             self.assertIn("could not copy config/local/db.yml", self.context(r))
+        with self.case("worktree_copy: a separate git dir with no core.worktree — the guessed "
+                       "checkout is never a source (codex review, PR #184)"):
+            top = self.new_dir()
+            work, gitdir = top / "work", top / "store" / "repo.git"
+            self.write(top / "store" / ".env", "UNRELATED=1\n")   # beside the git dir
+            work.mkdir()
+            subprocess.run(["git", "init", "-q", "-b", "main", "--separate-git-dir", str(gitdir),
+                            str(work)], check=True, capture_output=True)
+            self.write(work / ".gitignore", ".env\n")
+            self.write(work / ".env", "MINE=1\n")
+            self.git(work, "add", ".gitignore")
+            self.git(work, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "i")
+            wt = str(gitdir / "roz-gate" / "wt" / "spec" / "5")
+            self.git(work, "worktree", "add", "-q", "-b", "spec/5", wt)
+            r = self.run_hook(work, cwd=Path(wt))
+            self.assertFalse(os.path.lexists(os.path.join(wt, ".env")))
+            self.assertEqual((r.rc, r.stdout), (0, ""))
         with self.case("worktree_copy: outside any git repository — nothing, exit 0"):
             r = self.run_hook(self.new_dir())
             self.assertEqual((r.rc, r.stdout), (0, ""))

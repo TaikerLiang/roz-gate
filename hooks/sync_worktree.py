@@ -35,7 +35,11 @@ checkout into every such worktree that lacks them:
   (codex review, PR #184);
 - `.gitignore` is matched in any case (`.GITIGNORE` is the same file on a
   case-insensitive volume);
-- worktrees anywhere else — your own — are never touched.
+- worktrees anywhere else — your own — are never touched;
+- the main checkout must prove itself: its own `--git-common-dir` is this
+  repository's. A separate git dir with no `core.worktree` leaves only a
+  guess (the git dir's parent), and a guess is never a source: no copy
+  (codex review, PR #184).
 
 It never blocks (exit 0 always: the command has already run). What it
 copied, and why it skipped what it skipped, go back to the agent as
@@ -181,6 +185,9 @@ def main():
     if (git("config", "--file", os.path.join(common, "config"), "--bool", "core.bare")
             or "").strip() == "true":
         return
+    proven = git("-C", main_root, "rev-parse", "--path-format=absolute", "--git-common-dir")
+    if not proven or os.path.realpath(proven.strip()) != os.path.realpath(common):
+        return                          # not this repository's checkout: copy nothing
     paths = wanted(main_root)
     if not paths:
         return

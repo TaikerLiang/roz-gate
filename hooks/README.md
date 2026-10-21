@@ -144,7 +144,10 @@ so a shell continuation inside `git worktree add` still escalates),
   never replaces another's copy, and a run cut off mid-copy leaves neither a
   truncated file nor a stray one in the worktree.
 - It never overwrites, never writes back, and never touches a worktree of
-  yours. A bare repository is skipped.
+  yours. A bare repository is skipped, and so is a checkout that cannot
+  prove itself: the main checkout's own `--git-common-dir` must be this
+  repository's. A separate git dir with no `core.worktree` leaves only a
+  guess, the git dir's parent, and a guess is never a source of files.
 - It normalizes each entry as git names it (`./x` → `x`) and drops
   duplicates. It silently drops an absolute path, a `..` path or a path
   outside the checkout, judged as written, so a `.env` linked to a shared
