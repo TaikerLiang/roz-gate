@@ -29,8 +29,8 @@ def config_block(**keys):
 
 
 class Result:
-    def __init__(self, rc, stderr):
-        self.rc, self.stderr = rc, stderr
+    def __init__(self, rc, stderr, stdout=""):
+        self.rc, self.stderr, self.stdout = rc, stderr, stdout
 
 
 class HookTest(unittest.TestCase):
@@ -81,7 +81,7 @@ class HookTest(unittest.TestCase):
             capture_output=True,
             text=True,
         )
-        return Result(proc.returncode, proc.stderr)
+        return Result(proc.returncode, proc.stderr, proc.stdout)
 
     def bash(self, command, cwd=None):
         return self.call("Bash", {"command": command}, cwd)

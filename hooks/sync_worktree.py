@@ -1,0 +1,151 @@
+#!/usr/bin/env python3
+"""Roz Gate — the worktree copy (#122): layer 2, after a `git worktree add`.
+
+Invoked by sync-worktree.sh only when a Bash command mentions `worktree
+add`. Every loop command works in a linked worktree under
+`$(git rev-parse --git-common-dir)/roz-gate/wt/<branch>` (references/
+workflow.md § The workspace), and a gitignored file — `.env` first among
+them — is never in one: a repo whose `test` loads it went red there for
+harness reasons. This hook copies the paths bin/roz-config's local key
+`worktree_copy` lists (absent → `.env`; "" → nothing) from the main
+checkout into every such worktree that lacks them:
+
+- the worktrees are read from `git worktree list --porcelain`, never parsed
+  from the command — the loop's command text carries the unexpanded
+  `$(git rev-parse --git-common-dir)/…`;
+- only a path git ignores in the worktree is copied: an unignored one would
+  sit there as an untracked file the commit could pick up (reported, not
+  copied);
+- a missing source is skipped; an existing destination is never
+  overwritten (a directory that exists is left whole); a path that is
+  absolute, climbs with `..`, or resolves outside the main checkout is
+  ignored;
+- it copies, never links, and never writes back — a test that writes to
+  `.env` in the worktree cannot touch your checkout's copy;
+- worktrees anywhere else — your own — are never touched.
+
+It never blocks (exit 0 always: the command has already run). What it
+copied, and any copy error, go back to the agent as PostToolUse
+`additionalContext`. Stdlib only, Python 3.9-compatible.
+"""
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from config_block import main_checkout  # noqa: E402
+
+LOCAL_FILE = os.path.join(".claude", "roz-gate.local.json")
+DEFAULT = [".env"]
+
+
+def git(*args):
+    try:
+        out = subprocess.run(["git"] + list(args), capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return out.stdout if out.returncode == 0 else None
+
+
+def wanted(main):
+    """`worktree_copy` from the main checkout's local file — the worktree
+    is the copy target and has none of its own."""
+    try:
+        with open(os.path.join(main, LOCAL_FILE), encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return list(DEFAULT)
+    if not isinstance(data, dict) or "worktree_copy" not in data:
+        return list(DEFAULT)
+    value = data["worktree_copy"]
+    if isinstance(value, str):
+        value = [part for part in value.split(",")]
+    if not isinstance(value, list):
+        return list(DEFAULT)
+    return [p.strip() for p in value if isinstance(p, str) and p.strip()]
+
+
+def inside(path, root):
+    path, root = os.path.realpath(path), os.path.realpath(root)
+    return path == root or path.startswith(root + os.sep)
+
+
+def loop_worktrees(common):
+    """Linked worktrees under `<common>/roz-gate/wt/`."""
+    listing = git("worktree", "list", "--porcelain") or ""
+    base = os.path.join(common, "roz-gate", "wt")
+    return [line[len("worktree "):] for line in listing.splitlines()
+            if line.startswith("worktree ") and inside(line[len("worktree "):], base)
+            and os.path.realpath(line[len("worktree "):]) != os.path.realpath(base)]
+
+
+def copy_into(main, wt, paths):
+    copied, errors, unignored = [], [], []
+    for rel in paths:
+        if os.path.isabs(rel) or ".." in rel.replace("\\", "/").split("/"):
+            continue
+        src, dst = os.path.join(main, rel), os.path.join(wt, rel)
+        if not inside(src, main) or not os.path.lexists(src) or os.path.lexists(dst):
+            continue
+        # The destination does not exist yet, so git cannot tell a directory:
+        # a `dir/` pattern matches only the path written with its slash.
+        probe = rel.rstrip("/") + "/" if os.path.isdir(src) else rel
+        if git("-C", wt, "check-ignore", "-q", "--no-index", probe) is None:
+            unignored.append(rel)
+            continue
+        try:
+            os.makedirs(os.path.dirname(dst) or wt, exist_ok=True)
+            if os.path.isdir(src):
+                shutil.copytree(src, dst, symlinks=True)
+            else:
+                shutil.copy2(src, dst, follow_symlinks=False)
+            copied.append(rel)
+        except OSError as exc:
+            errors.append("%s (%s)" % (rel, exc))
+    return copied, errors, unignored
+
+
+def main():
+    try:
+        payload = json.load(sys.stdin)
+    except ValueError:
+        return
+    if payload.get("tool_name") not in (None, "Bash"):
+        return
+    cwd = payload.get("cwd")
+    if cwd and os.path.isdir(cwd):
+        os.chdir(cwd)
+    common = (git("rev-parse", "--path-format=absolute", "--git-common-dir") or "").strip()
+    main_root = main_checkout()
+    if not common or not main_root:
+        return
+    # A bare repository has no checkout to copy from (its worktrees are all
+    # linked); `--is-bare-repository` says false from inside one of them.
+    if (git("config", "--file", os.path.join(common, "config"), "--bool", "core.bare")
+            or "").strip() == "true":
+        return
+    paths = wanted(main_root)
+    if not paths:
+        return
+    notes = []
+    for wt in loop_worktrees(common):
+        copied, errors, unignored = copy_into(main_root, wt, paths)
+        if copied:
+            notes.append("[roz-gate] copied %s into %s (worktree_copy, #122)"
+                         % (", ".join(copied), wt))
+        if unignored:
+            notes.append("[roz-gate] did not copy %s into %s: git does not ignore it there, so "
+                         "a commit could pick it up — add it to .gitignore, or drop it from "
+                         "worktree_copy" % (", ".join(unignored), wt))
+        if errors:
+            notes.append("[roz-gate] could not copy %s into %s — the worktree lacks them"
+                         % (", ".join(errors), wt))
+    if notes:
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse",
+                                                 "additionalContext": "\n".join(notes)}}))
+
+
+main()

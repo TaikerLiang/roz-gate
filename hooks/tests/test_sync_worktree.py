@@ -1,0 +1,145 @@
+"""sync-worktree (PostToolUse, Bash; #122): after a `git worktree add`, the
+gitignored files `worktree_copy` lists (default `.env`) are copied from the
+main checkout into every loop worktree under `<git-common-dir>/roz-gate/wt/`
+that lacks them — never overwriting, never outside the checkout, never into
+a worktree of yours, and never blocking. Each case is a real repo and a real
+`git worktree add`; the payload is the PostToolUse shape."""
+
+import json
+import os
+import subprocess
+from pathlib import Path
+
+from hooktest import HOOKS, HookTest, Result
+
+ADD = "git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/spec/5 -B spec/5 main"
+LOCAL = ".claude/roz-gate.local.json"
+
+
+class WorktreeCopy(HookTest):
+    guard = "sync-worktree"
+
+    def repo(self, files=None, ignore=".env\nconfig/local/\n.claude/\n"):
+        """A repo with `.env` gitignored and present in the checkout."""
+        files = dict({".gitignore": ignore, ".env": "SECRET=1\n"}, **(files or {}))
+        repo = self.new_repo(files)
+        self.git(repo, "add", ".gitignore")
+        self.git(repo, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "init")
+        return repo
+
+    def add(self, repo, branch="spec/5", where=None):
+        path = where or os.path.join(str(repo), ".git", "roz-gate", "wt", branch)
+        self.git(repo, "worktree", "add", "-q", "-b", branch, path)
+        return path
+
+    def run_hook(self, repo, command=ADD, cwd=None):
+        """The PostToolUse payload carries the session's cwd; the hook runs there."""
+        where = cwd or repo
+        payload = {"tool_name": "Bash", "tool_input": {"command": command},
+                   "tool_response": {"stdout": "", "stderr": ""}, "cwd": str(where)}
+        proc = subprocess.run([str(HOOKS / "sync-worktree.sh")], input=json.dumps(payload),
+                              cwd=str(where), env=self.env, capture_output=True, text=True)
+        return Result(proc.returncode, proc.stderr, proc.stdout)
+
+    def context(self, result):
+        return json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"] \
+            if result.stdout.strip() else ""
+
+    def read(self, path):
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+
+    def test_copies(self):
+        with self.case("worktree_copy: .env copied into the loop worktree by default"):
+            repo = self.repo()
+            wt = self.add(repo)
+            r = self.run_hook(repo)
+            self.assertEqual(r.rc, 0)
+            self.assertEqual(self.read(os.path.join(wt, ".env")), "SECRET=1\n")
+            self.assertIn("copied .env into", self.context(r))
+        with self.case("worktree_copy: a listed directory is copied whole"):
+            repo = self.repo({"config/local/db.yml": "url: x\n",
+                              LOCAL: json.dumps({"worktree_copy": [".env", "config/local"]})})
+            wt = self.add(repo)
+            self.run_hook(repo)
+            self.assertEqual(self.read(os.path.join(wt, "config/local/db.yml")), "url: x\n")
+            self.assertTrue(os.path.exists(os.path.join(wt, ".env")))
+        with self.case("worktree_copy: run from a subdirectory, the main checkout still found"):
+            repo = self.repo({"sub/README": "x\n"})
+            wt = self.add(repo)
+            self.run_hook(repo, cwd=repo / "sub")
+            self.assertTrue(os.path.exists(os.path.join(wt, ".env")))
+        with self.case("worktree_copy: run from inside another loop worktree — both filled, "
+                       "from the main checkout"):
+            repo = self.repo()
+            first = self.add(repo, "spec/5")
+            second = self.add(repo, "feat/5")
+            self.run_hook(repo, cwd=first)
+            for wt in (first, second):
+                self.assertEqual(self.read(os.path.join(wt, ".env")), "SECRET=1\n")
+        with self.case("worktree_copy: the list as the local file stores it — a comma string"):
+            repo = self.repo({"config/local/db.yml": "url: x\n",
+                              LOCAL: json.dumps({"worktree_copy": ".env, config/local"})})
+            wt = self.add(repo)
+            self.run_hook(repo)
+            self.assertTrue(os.path.exists(os.path.join(wt, "config/local/db.yml")))
+
+    def test_leaves_alone(self):
+        with self.case("worktree_copy: an existing destination is never overwritten"):
+            repo = self.repo()
+            wt = self.add(repo)
+            self.write(Path(wt) / ".env", "MINE=1\n")
+            r = self.run_hook(repo)
+            self.assertEqual(self.read(os.path.join(wt, ".env")), "MINE=1\n")
+            self.assertEqual(self.context(r), "")
+        with self.case("worktree_copy: a missing source is skipped silently"):
+            repo = self.repo({LOCAL: json.dumps({"worktree_copy": ["nope.env"]})})
+            wt = self.add(repo)
+            r = self.run_hook(repo)
+            self.assertFalse(os.path.exists(os.path.join(wt, "nope.env")))
+            self.assertEqual((r.rc, self.context(r)), (0, ""))
+        with self.case("worktree_copy: your own worktree outside roz-gate/wt is never touched"):
+            repo = self.repo()
+            mine = str(self.new_dir() / "mine")
+            self.add(repo, "mine", where=mine)
+            self.run_hook(repo)
+            self.assertFalse(os.path.exists(os.path.join(mine, ".env")))
+        with self.case('worktree_copy: "" copies nothing'):
+            repo = self.repo({LOCAL: json.dumps({"worktree_copy": ""})})
+            wt = self.add(repo)
+            self.run_hook(repo)
+            self.assertFalse(os.path.exists(os.path.join(wt, ".env")))
+        with self.case("worktree_copy: `..` and absolute entries are dropped, unreported"):
+            repo = self.repo()
+            outside = repo.parent / "secret"        # what `../secret` names from the repo
+            self.write(outside, "x\n")
+            self.write(repo / LOCAL, json.dumps({"worktree_copy": ["../secret", str(outside)]}))
+            wt = self.add(repo)
+            r = self.run_hook(repo)
+            self.assertEqual(sorted(os.listdir(wt)), [".git", ".gitignore"])
+            self.assertEqual(self.context(r), "")
+        with self.case("worktree_copy: a path git does not ignore is reported, not copied"):
+            repo = self.repo(ignore=".claude/\n")
+            wt = self.add(repo)
+            r = self.run_hook(repo)
+            self.assertFalse(os.path.exists(os.path.join(wt, ".env")))
+            self.assertIn("git does not ignore it", self.context(r))
+        with self.case("worktree_copy: a command without `worktree add` never reaches python"):
+            repo = self.repo()
+            wt = self.add(repo)
+            r = self.run_hook(repo, command="git status")
+            self.assertFalse(os.path.exists(os.path.join(wt, ".env")))
+            self.assertEqual((r.rc, r.stdout), (0, ""))
+        with self.case("worktree_copy: a copy error is reported and the exit is still 0"):
+            repo = self.repo({"config/local/db.yml": "url: x\n",
+                              LOCAL: json.dumps({"worktree_copy": ["config/local"]})})
+            wt = self.add(repo)
+            os.makedirs(os.path.join(wt, "config"))
+            os.chmod(os.path.join(wt, "config"), 0o500)
+            self.addCleanup(os.chmod, os.path.join(wt, "config"), 0o700)
+            r = self.run_hook(repo)
+            self.assertEqual(r.rc, 0)
+            self.assertIn("could not copy config/local", self.context(r))
+        with self.case("worktree_copy: outside any git repository — nothing, exit 0"):
+            r = self.run_hook(self.new_dir())
+            self.assertEqual((r.rc, r.stdout), (0, ""))

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""roz-config — the six loop keys that are yours, per repo, never committed.
+"""roz-config — the seven loop keys that are yours, per repo, never committed.
 
     roz-config                                  # effective values, (default) marked
     roz-config --json                           # the same as JSON (what commands read)
@@ -10,6 +10,8 @@
     roz-config helper_model claude-haiku-4-5    # the scanner's and the commit sub-agent's model
     roz-config branch_user pwliangc             # the {user} slot of branch_template
     roz-config branch_template {type}/{user}/{n}/{seq}  # your branch names (references/branch-names.md)
+    roz-config worktree_copy .env config/local  # gitignored files copied into the loop's worktrees
+    roz-config worktree_copy ""                 # copy nothing
     roz-config inbox_label                      # no value: remove the override
 
 Stored in `.claude/roz-gate.local.json` at the repository root — one file per
@@ -24,7 +26,10 @@ keys are empty lists — no filter, `helper_model` is empty — the runtime's
 default model for patrol's scanner and every command's commit sub-agent
 (seats are never model-configured), `branch_user` is empty — the commands
 fill `{user}` with the forge login of the account running them (WHOAMI;
-`references/branch-names.md`). This tool never asks the forge.
+`references/branch-names.md`), `worktree_copy` is `.env` — the gitignored
+files the plugin's `sync-worktree` hook copies from your checkout into each
+worktree the loop creates (`""` copies nothing; an absolute or `..` path is
+refused). This tool never asks the forge.
 
 Upgrade (pre-1.23 repos kept these keys in CLAUDE.md's `### Roz Gate config`
 block; pre-1.28 ones kept `patrol_model` there): the first run that finds no
@@ -41,7 +46,7 @@ import subprocess
 import sys
 
 KEYS = ("default_branch", "inbox_label", "inbox_assignee", "helper_model", "branch_user",
-        "branch_template")
+        "branch_template", "worktree_copy")
 EMPTY_DEFAULT = ("helper_model", "branch_user", "branch_template")  # absent = "": the runtime /
                                                  # WHOAMI / `{kind}/{n}` decides
 # Keys that joined after the local file was born: a block line seeds them once
@@ -49,7 +54,10 @@ EMPTY_DEFAULT = ("helper_model", "branch_user", "branch_template")  # absent = "
 LATE_KEYS = ("helper_model", "branch_template")
 PLACEHOLDERS = ("{kind}", "{type}", "{user}", "{n}", "{seq}")
 RENAMED = {"patrol_model": "helper_model"}   # pre-1.28 block line → local key
-LIST_KEYS = ("inbox_label", "inbox_assignee")
+LIST_KEYS = ("inbox_label", "inbox_assignee", "worktree_copy")
+COPY_DEFAULT = [".env"]  # worktree_copy absent; stored "" (or []) = copy nothing (#122)
+NONE = ('', '""', "''")  # how `worktree_copy` is told "nothing": an empty argument, or
+                         # the two quote characters the mod's pane passes through
 REL = ".claude/roz-gate.local.json"
 USAGE = __doc__.split("\n\n")[1]
 
@@ -151,6 +159,12 @@ def effective(stored):
     """(value, is_default) per key — lists for the inbox keys."""
     out = {}
     for k in KEYS:
+        if k == "worktree_copy" and k in stored and stored[k] in ("", []):
+            out[k] = ([], False)              # chosen: nothing
+            continue
+        if k == "worktree_copy" and stored.get(k) in (None, "", []):
+            out[k] = (list(COPY_DEFAULT), True)
+            continue
         if k in stored and stored[k] not in ("", [], None):
             v = stored[k]
             out[k] = ([v] if isinstance(v, str) else list(v), False) if k in LIST_KEYS \
@@ -194,13 +208,26 @@ def show(eff, as_json):
         v, dflt = eff[k]
         shown = ", ".join(v) if isinstance(v, list) else v
         note = ""
-        if dflt:
+        if k == "worktree_copy" and not dflt and not v:
+            shown = "none"
+        if dflt and k == "worktree_copy":
+            note = "  (default: .env)"
+        elif dflt:
             note = "  (default: no filter)" if k in LIST_KEYS else "  (default: runtime)" \
                 if k == "helper_model" else "  (default: the forge login)" \
                 if k == "branch_user" else "  (default: {kind}/{n})" \
                 if k == "branch_template" else (
                 "  (default: origin/HEAD)" if has_head else "  (default: origin/HEAD unset, assuming main)")
         print("%-16s %s%s" % (k, shown or "-", note))
+
+
+def copy_problem(paths):
+    """Why a `worktree_copy` entry is refused, or None: each is a path under
+    the repo root — never absolute, never climbing out with `..`."""
+    for p in paths:
+        if os.path.isabs(p) or p.startswith("~") or ".." in re.split(r"[\\/]", p):
+            return "%r is not a path inside the repository" % p
+    return None
 
 
 def template_problem(t):
@@ -239,9 +266,20 @@ def main(argv):
             sys.stderr.write("roz-config: branch_template %r is invalid — %s "
                              "(references/branch-names.md)\n" % (values[0], why))
             return 2
+    if key == "worktree_copy" and values and all(v.strip() in NONE for v in values):
+        stored[key] = ""               # chosen: nothing (absent would mean .env)
+        write(root, path, stored)
+        print("%s set → none  [%s]" % (key, REL))
+        return 0
     if key in LIST_KEYS:                # a label may hold spaces, never a comma
         values = [part.strip() for v in values for part in v.split(",")]
     values = [v for v in values if v.strip()]
+    if key == "worktree_copy":
+        why = copy_problem(values)
+        if why:
+            sys.stderr.write("roz-config: worktree_copy %s — list paths relative to the "
+                             "repository root\n" % why)
+            return 2
     if not values:
         if key in LATE_KEYS:
             stored[key] = ""           # the tombstone: see migrate()
