@@ -5,6 +5,7 @@ that lacks them — never overwriting, never outside the checkout, never into
 a worktree of yours, and never blocking. Each case is a real repo and a real
 `git worktree add`; the payload is the PostToolUse shape."""
 
+import importlib.util
 import json
 import os
 import subprocess
@@ -181,6 +182,50 @@ class WorktreeCopy(HookTest):
             os.chmod(unreadable, 0o600)
             self.run_hook(repo)
             self.assertEqual(self.read(os.path.join(wt, "config/local/b.yml")), "b\n")
+        with self.case("worktree_copy: a directory whose ignore rule has a `!` exception is "
+                       "reported, not copied (codex review, PR #184)"):
+            repo = self.repo({"config/local/a.yml": "a\n", "config/local/public.txt": "p\n",
+                              LOCAL: json.dumps({"worktree_copy": ["config/local"]})},
+                             ignore=".env\nconfig/local/*\n!config/local/public.txt\n.claude/\n")
+            wt = self.add(repo)
+            r = self.run_hook(repo)
+            self.assertFalse(os.path.lexists(os.path.join(wt, "config/local")))
+            self.assertIn("config/local (config/local/public.txt)", self.context(r))
+            self.assertIn("git does not ignore it", self.context(r))
         with self.case("worktree_copy: outside any git repository — nothing, exit 0"):
             r = self.run_hook(self.new_dir())
             self.assertEqual((r.rc, r.stdout), (0, ""))
+
+
+class InstallNeverReplaces(HookTest):
+    """The install primitives, against a run that got there first (codex
+    review, PR #184: two sessions can both see an absent destination)."""
+
+    guard = "sync-worktree"
+
+    def module(self):
+        spec = importlib.util.spec_from_file_location("sync_worktree",
+                                                      HOOKS / "sync_worktree.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    def test_install(self):
+        mod, d = self.module(), self.new_dir()
+        self.write(d / "src.env", "NEW=1\n")
+        with self.case("worktree_copy: a file another run installed first is kept, not replaced"):
+            self.write(d / "dst.env", "FIRST=1\n")
+            self.assertFalse(mod.install_file(str(d / "src.env"), str(d / "dst.env")))
+            self.assertEqual((d / "dst.env").read_text(), "FIRST=1\n")
+        with self.case("worktree_copy: a directory another run installed first is kept, and the "
+                       "stage is cleaned up"):
+            self.write(d / "src/a.yml", "new\n")
+            self.write(d / "dst/a.yml", "first\n")
+            self.assertFalse(mod.install_dir(str(d / "src"), str(d / "dst")))
+            self.assertEqual((d / "dst/a.yml").read_text(), "first\n")
+            self.assertEqual(sorted(p.name for p in d.iterdir()),
+                             ["dst", "dst.env", "src", "src.env"])
+        with self.case("worktree_copy: an absent destination is created, with the contents"):
+            self.assertTrue(mod.install_file(str(d / "src.env"), str(d / "fresh.env")))
+            self.assertEqual((d / "fresh.env").read_text(), "NEW=1\n")
+

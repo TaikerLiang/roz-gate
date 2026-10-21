@@ -13,9 +13,10 @@ checkout into every such worktree that lacks them:
 - the worktrees are read from `git worktree list --porcelain`, never parsed
   from the command — the loop's command text carries the unexpanded
   `$(git rev-parse --git-common-dir)/…`;
-- only a path git ignores in the worktree is copied: an unignored one would
-  sit there as an untracked file the commit could pick up (reported, not
-  copied);
+- only a path git ignores in the worktree is copied — for a directory,
+  every file in it (an ignore rule's `!` exception unignores one): an
+  unignored file would sit there untracked, for the commit to pick up
+  (reported, not copied; codex review, PR #184);
 - a missing source is skipped; an existing destination is never
   overwritten (a directory that exists is left whole); a path that is
   absolute, climbs with `..`, or sits outside the main checkout is ignored —
@@ -25,8 +26,11 @@ checkout into every such worktree that lacks them:
   `.env` (or a link inside a copied directory) arrives as the file it points
   to, so a test that writes to `.env` in the worktree touches neither your
   checkout's copy nor a tracked file the link named (codex review, PR #184);
-- a copy is staged beside its destination and renamed into place, so a
-  failure leaves nothing half-copied for a later run to mistake for done;
+- installing never replaces anything, even against a concurrent run: a
+  file is created exclusively (`O_EXCL`), a directory is staged beside its
+  destination and renamed onto a name that must not exist — and a failure
+  removes what this run created, so nothing half-copied is left for a later
+  run to mistake for done (codex review, PR #184);
 - worktrees anywhere else — your own — are never touched.
 
 It never blocks (exit 0 always: the command has already run). What it
@@ -34,6 +38,7 @@ copied, and any copy error, go back to the agent as PostToolUse
 `additionalContext`. Stdlib only, Python 3.9-compatible.
 """
 
+import errno
 import json
 import os
 import shutil
@@ -94,6 +99,60 @@ def loop_worktrees(common):
             and os.path.realpath(line[len("worktree "):]) != os.path.realpath(base)]
 
 
+def unignored_files(wt, rel, src):
+    """The files under directory `src` (entry `rel`) git would NOT ignore in
+    `wt` — one `check-ignore --stdin` for all of them. A directory with
+    none of its own is judged by its `rel/` probe alone (the caller's)."""
+    files = [os.path.join(rel.rstrip("/"), os.path.relpath(os.path.join(top, name), src))
+             for top, _dirs, names in os.walk(src, followlinks=True) for name in names]
+    if not files:
+        return []
+    try:
+        out = subprocess.run(["git", "-C", wt, "check-ignore", "--no-index", "--stdin", "-z"],
+                             input="\0".join(files) + "\0", capture_output=True, text=True,
+                             timeout=20)
+    except (OSError, subprocess.TimeoutExpired):
+        return files
+    if out.returncode not in (0, 1):     # 1: none ignored; anything else: git failed
+        return files
+    ignored = set(p for p in out.stdout.split("\0") if p)
+    return [f for f in files if f not in ignored]
+
+
+def install_file(src, dst):
+    """Create `dst` only if it does not exist (`O_EXCL`), with `src`'s
+    contents — a symlinked `src` is read through. False: it exists."""
+    with open(src, "rb") as fin:
+        try:
+            fout = open(dst, "xb")
+        except FileExistsError:
+            return False
+        try:
+            with fout:
+                shutil.copyfileobj(fin, fout)
+            shutil.copystat(src, dst)
+        except OSError:
+            os.remove(dst)
+            raise
+    return True
+
+
+def install_dir(src, dst):
+    """Stage a copy beside `dst`, then rename it onto `dst` — a rename onto a
+    directory that holds anything fails, so nothing is replaced. False: it
+    exists (another run installed it first)."""
+    tmp = "%s.roz-gate-%d.tmp" % (dst.rstrip("/"), os.getpid())
+    try:
+        shutil.copytree(src, tmp)          # symlinks=False: a link arrives as its target
+        os.rename(tmp, dst)
+    except OSError as exc:                 # shutil.Error is an OSError
+        shutil.rmtree(tmp, ignore_errors=True)
+        if getattr(exc, "errno", None) in (errno.EEXIST, errno.ENOTEMPTY):
+            return False
+        raise
+    return True
+
+
 def copy_into(main, wt, paths):
     copied, errors, unignored = [], [], []
     for rel in paths:
@@ -108,20 +167,17 @@ def copy_into(main, wt, paths):
         if git("-C", wt, "check-ignore", "-q", "--no-index", probe) is None:
             unignored.append(rel)
             continue
-        tmp = "%s.roz-gate-%d.tmp" % (dst.rstrip("/"), os.getpid())
+        if os.path.isdir(src):
+            loose = unignored_files(wt, rel, src)
+            if loose:
+                unignored.append("%s (%s)" % (rel, ", ".join(loose[:3])
+                                              + (", …" if len(loose) > 3 else "")))
+                continue
         try:
             os.makedirs(os.path.dirname(dst) or wt, exist_ok=True)
-            if os.path.isdir(src):
-                shutil.copytree(src, tmp)  # symlinks=False: a link arrives as its target
-            else:
-                shutil.copy2(src, tmp)     # follows a symlinked file: its contents
-            os.rename(tmp, dst)
-            copied.append(rel)
-        except OSError as exc:            # shutil.Error is an OSError
-            if os.path.isdir(tmp) and not os.path.islink(tmp):
-                shutil.rmtree(tmp, ignore_errors=True)
-            elif os.path.lexists(tmp):
-                os.remove(tmp)
+            if (install_dir if os.path.isdir(src) else install_file)(src, dst):
+                copied.append(rel)
+        except OSError as exc:
             errors.append("%s (%s)" % (rel, exc))
     return copied, errors, unignored
 
@@ -166,4 +222,5 @@ def main():
                                                  "additionalContext": "\n".join(notes)}}))
 
 
-main()
+if __name__ == "__main__":
+    main()

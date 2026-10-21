@@ -127,15 +127,20 @@ that mentions `worktree add` (`sync-worktree.sh`, the prefilter),
   source exists and the destination does not.
 - It copies files and directories whole, and never links: a symlinked
   `.env`, or a link inside a copied directory, arrives as the file it
-  points to. Each copy is staged beside its destination and renamed into
-  place, so a failure leaves nothing half-copied (codex review, PR #184).
+  points to. Installing never replaces anything, even against a concurrent
+  run: a file is created exclusively (`O_EXCL`), and a directory is staged
+  beside its destination and renamed onto a name that must not hold
+  anything. A failure removes what the run created, so nothing half-copied
+  is left (codex review, PR #184).
 - It never overwrites, never writes back, and never touches a worktree of
   yours. A bare repository is skipped.
 - It drops an absolute path, a `..` path, or a path outside the checkout,
   silently. It judges the path as written, so a `.env` linked to a shared
   file elsewhere is still copied.
 - It reports a path git does not ignore in the worktree and does not copy
-  it: there, an untracked file is one a commit could pick up.
+  it: there, an untracked file is one a commit could pick up. For a
+  directory, every file in it is checked, since an ignore rule's `!`
+  exception can unignore one.
 - What it copied, or why not, goes back to the agent as PostToolUse
   `additionalContext`, and the exit is 0 either way.
 
