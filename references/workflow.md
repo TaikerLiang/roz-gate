@@ -370,8 +370,8 @@ are not in a fresh worktree, so the plugin's `sync-worktree` hook fills it as
 `git worktree add` returns: your gitignored files (`worktree_copy`, default `.env`) are copied in from
 your checkout, never overwriting, never written back (#122). The copy lands
 when the Bash call returns, so the `git worktree add` **runs alone**, as its own
-call — anything chained after it would run without the files; guard-gate
-rule J denies the chain. The commit itself
+call, from inside the repository (never `git -C <dir>`) — anything chained
+after it would run without the files; guard-gate rule J denies the chain. The commit itself
 is made by the **commit sub-agent** (`references/commit-brief.md`) dispatched
 into that worktree — the target repo's pre-commit output lands in its
 context, never the main agent's, for the same reason patrol's scan is a

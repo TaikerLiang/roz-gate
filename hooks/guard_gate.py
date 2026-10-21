@@ -93,7 +93,10 @@ pattern. Nine rules, each the mechanical form of existing protocol text:
      a subshell — passes only as the call's one and only command, and never
      backgrounded with a trailing ``&`` (the call would return before the
      worktree exists). Shell continuations are joined first, so ``git
-     worktree <backslash-newline>add`` is the add it runs as (codex review, PR #184).
+     worktree <backslash-newline>add`` is the add it runs as, and an escaped
+     space joins its word. ``git -C <dir> worktree add`` is denied outright:
+     the copy finds the worktree from the call's own directory (codex review,
+     PR #184).
 
 Exit 0 allows the tool call; exit 2 blocks it and feeds stderr to the
 model. Forge API failures fail closed, with a message that says it is an
@@ -284,6 +287,15 @@ NO_HOLDER_MSG = (
     "and retry."
 )
 
+
+RULE_J_C_MSG = (
+    "Roz Gate: blocked — the loop's `git worktree add` runs alone, from inside "
+    "the repository, never as `git -C <dir> worktree add`: the plugin's "
+    "sync-worktree hook finds the new worktree from the call's own directory, "
+    "so an add aimed elsewhere gets none of your gitignored files "
+    "(`worktree_copy`, default `.env`). `cd` into the repository in one call, "
+    "then run the add alone in the next (references/workflow.md § The workspace)."
+)
 
 RULE_J_MSG = (
     "Roz Gate: blocked — the loop's `git worktree add` runs alone, as its own "
@@ -1070,8 +1082,9 @@ def unquoted(cmd):
                 held.append(ch)
         elif ch in "'\"":
             quote = ch
-        elif ch == "\\" and i + 1 < len(cmd):
-            out.append(cmd[i:i + 2])
+        elif ch == "\\" and i + 1 < len(cmd):   # an escaped char is a literal one; an
+            nxt = cmd[i + 1]                 # escaped space joins the word it sits in
+            out.append("_" if nxt in " \t" else "" if nxt == "\n" else nxt)
             i += 1
         else:
             out.append(ch)
@@ -1086,8 +1099,12 @@ def check_worktree_add_alone(cmd):
     if "worktree" not in cmd or "roz-gate/wt" not in cmd:
         return
     cmd = cmd.replace("\\\n", " ")          # the shell joins a continuation first
-    if not WT_ADD_ANYWHERE.search(unquoted(cmd)):
+    bare = unquoted(cmd)
+    found = WT_ADD_ANYWHERE.search(bare)
+    if not found:
         return
+    if re.search(r"\s-[Cc]\s", found.group(0)):
+        deny(RULE_J_C_MSG)
     segs = top_level_segments(cmd)
     if not (len(segs) == 1 and LOOP_WT_ADD.match(segs[0])):
         deny(RULE_J_MSG)

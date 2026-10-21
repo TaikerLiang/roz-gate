@@ -1071,6 +1071,9 @@ class RuleJ_LoopWorktreeAddRunsAlone(HookTest):
         ("rule J: a quoted -C directory with spaces, chained",
          'git -C "/tmp/repo with spaces" worktree add .git/roz-gate/wt/spec/5 -B spec/5 main '
          "&& pytest"),
+        ("rule J: a shell-escaped -C directory with spaces, chained",
+         "git -C /tmp/repo\\ with\\ spaces worktree add .git/roz-gate/wt/spec/5 -B spec/5 main "
+         "&& pytest"),
         ("rule J: the path quoted, chained",
          'git worktree add "$(git rev-parse --git-common-dir)/roz-gate/wt/qa/5" qa/5 && pytest'),
     ]
@@ -1097,6 +1100,10 @@ class RuleJ_LoopWorktreeAddRunsAlone(HookTest):
         for name, cmd in self.ALLOWED:
             with self.case(name):
                 self.assertAllowed(self.bash(cmd))
+        with self.case("rule J: `git -C <dir> worktree add` alone is denied — the copy finds the "
+                       "worktree from the call's own directory (codex review, PR #184)"):
+            self.assertDenied(self.bash("git -C /repo worktree add /repo/.git/roz-gate/wt/qa/5 "
+                                        "-B qa/5 origin/spec/5"), "from inside the repository")
         with self.case("rule J: made no API call"):
             self.bash(ADD + " && pytest")
             self.assertEqual(self.api_calls(), [])
