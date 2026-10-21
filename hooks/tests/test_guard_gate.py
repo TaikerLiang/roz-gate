@@ -1076,6 +1076,8 @@ class RuleJ_LoopWorktreeAddRunsAlone(HookTest):
          "&& pytest"),
         ("rule J: the path quoted, chained",
          'git worktree add "$(git rev-parse --git-common-dir)/roz-gate/wt/qa/5" qa/5 && pytest'),
+        ("rule J: the loop's add chained with a mention of the loop's path",
+         ADD + " && echo .git/roz-gate/wt/spec/5"),
     ]
     ALLOWED = [
         ("rule J: the add alone", ADD),
@@ -1089,6 +1091,11 @@ class RuleJ_LoopWorktreeAddRunsAlone(HookTest):
          'echo "next: && git worktree add x/roz-gate/wt/b b" && true'),
         ("rule J: removing a loop worktree, chained",
          "git worktree remove --force .git/roz-gate/wt/spec/5 && git worktree prune"),
+        ("rule J: your own worktree, the loop's path in a heredoc — not the loop's add",
+         "git worktree add /tmp/x origin/main && cat <<'EOF' > notes.md\n"
+         "sync-worktree copies into .git/roz-gate/wt/<branch>\nEOF"),
+        ("rule J: your own worktree, the loop's path in a later segment",
+         "git worktree add ../mine -b mine && ls .git/roz-gate/wt"),
     ]
 
     def test_denied(self):
