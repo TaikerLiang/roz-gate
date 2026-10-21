@@ -109,6 +109,15 @@ class WorktreeCopy(HookTest):
             self.run_hook(repo)
             self.assertFalse(os.path.islink(os.path.join(wt, ".env")))
             self.assertEqual(self.read(os.path.join(wt, ".env")), "SHARED=1\n")
+        with self.case("worktree_copy: a child listed before its parent — the parent is copied "
+                       "whole (codex review, PR #184)"):
+            repo = self.repo({"config/local/a.yml": "a\n", "config/local/b.yml": "b\n",
+                              LOCAL: json.dumps({"worktree_copy": ["config/local/a.yml",
+                                                                   "config/local"]})})
+            wt = self.add(repo)
+            self.run_hook(repo)
+            self.assertEqual(self.read(os.path.join(wt, "config/local/b.yml")), "b\n")
+            self.assertEqual(self.read(os.path.join(wt, "config/local/a.yml")), "a\n")
         with self.case("worktree_copy: the list as the local file stores it — a comma string"):
             repo = self.repo({"config/local/db.yml": "url: x\n",
                               LOCAL: json.dumps({"worktree_copy": ".env, config/local"})})
@@ -219,6 +228,17 @@ class WorktreeCopy(HookTest):
             self.assertFalse(os.path.lexists(os.path.join(wt, "config/local/a.txt")))
             self.assertTrue(os.path.exists(os.path.join(wt, "config/local/.gitignore")))
             self.assertIn("config/local/a.txt (config/local/a.txt)", self.context(r))
+            self.assertEqual(self.git_out(wt, "status", "--porcelain"), "")
+        with self.case("worktree_copy: an entry written `./x` is matched as git names it — the "
+                       "final check still catches it (codex review, PR #184)"):
+            repo = self.repo({"config/a.txt": "a\n", "config/.gitignore": "!a.txt\n",
+                              LOCAL: json.dumps({"worktree_copy": ["./config/a.txt",
+                                                                   "config//.gitignore"]})},
+                             ignore=".env\nconfig/*\n.claude/\n")
+            wt = self.add(repo)
+            r = self.run_hook(repo)
+            self.assertFalse(os.path.lexists(os.path.join(wt, "config/a.txt")))
+            self.assertIn("config/a.txt (config/a.txt)", self.context(r))
             self.assertEqual(self.git_out(wt, "status", "--porcelain"), "")
         with self.case("worktree_copy: outside any git repository — nothing, exit 0"):
             r = self.run_hook(self.new_dir())

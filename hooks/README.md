@@ -134,6 +134,9 @@ that mentions `worktree add` (`sync-worktree.sh`, the prefilter),
   is left (codex review, PR #184).
 - It never overwrites, never writes back, and never touches a worktree of
   yours. A bare repository is skipped.
+- It normalizes each entry as git names it (`./x` → `x`), drops duplicates,
+  and drops an entry under another listed one, because the parent's copy
+  carries it.
 - It drops an absolute path, a `..` path, or a path outside the checkout,
   silently. It judges the path as written, so a `.env` linked to a shared
   file elsewhere is still copied.

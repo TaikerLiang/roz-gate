@@ -199,11 +199,26 @@ def install_dir(src, dst):
     return True
 
 
+def entries(paths):
+    """The list as git will name it: each path normalized (`./x`, `x//y` →
+    `x`, `x/y` — `git status` reports canonical paths, and the final check
+    matches against them), absolute and `..` entries dropped, duplicates
+    dropped, and an entry under another listed one dropped — the parent's
+    copy carries it, and copying the child first would make the parent's
+    destination exist and skip the rest of it (codex review, PR #184)."""
+    rels = []
+    for raw in paths:
+        if os.path.isabs(raw) or ".." in raw.replace("\\", "/").split("/"):
+            continue
+        rel = os.path.normpath(raw).replace(os.sep, "/")
+        if rel not in (".", "") and rel not in rels:
+            rels.append(rel)
+    return [r for r in rels if not any(o != r and under(r, o) for o in rels)]
+
+
 def copy_into(main, wt, paths):
     copied, errors, unignored = [], [], []
-    for rel in paths:
-        if os.path.isabs(rel) or ".." in rel.replace("\\", "/").split("/"):
-            continue
+    for rel in entries(paths):
         src, dst = os.path.join(main, rel), os.path.join(wt, rel)
         if not written_inside(src, main) or not os.path.exists(src) or os.path.lexists(dst):
             continue
