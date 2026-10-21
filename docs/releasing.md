@@ -41,13 +41,15 @@ A judgment, and the release history is the guide:
    ```
 
 2. **Bump, with its changelog entry.** Branch `release/<x.y.z>` from
-   `origin/main`. Write `notes.md` — the release note, assembled from the
-   merged PRs' `## Release note` sections ([below](#the-release-note)) —
-   outside the repo. Change `.claude-plugin/plugin.json`'s `version`, then
-   give `CHANGELOG.md` the entry the release will have:
+   `origin/main`. Write the release note — assembled from the merged PRs'
+   `## Release note` sections ([below](#the-release-note)) — to a file
+   outside the repo, and keep its path in `NOTES` for step 3. Change
+   `.claude-plugin/plugin.json`'s `version`, then give `CHANGELOG.md` the
+   entry the release will have:
 
    ```sh
-   python3 tools/changelog.py --pending v<x.y.z> notes.md "<title>"   # title defaults to the tag
+   NOTES=<a path outside the repo>/notes-<x.y.z>.md   # step 3 publishes this same file
+   python3 tools/changelog.py --pending v<x.y.z> "$NOTES" "<title>"   # title defaults to the tag
    ```
 
    Commit both as `release: <x.y.z>`, with one paragraph saying why minor
@@ -67,7 +69,7 @@ A judgment, and the release history is the guide:
    SHA=$(gh pr view <release-pr> --json mergeCommit --jq .mergeCommit.oid)
    git fetch origin && git show "$SHA:.claude-plugin/plugin.json" | grep '"version"'   # must say <x.y.z>
    gh release create v<x.y.z> --draft --target "$SHA" \
-     --title "<title>" --notes-file notes.md   # step 2's title and file
+     --title "<title>" --notes-file "$NOTES"   # step 2's title and file
    ```
 
    A draft is private and has no tag yet.
