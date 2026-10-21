@@ -16,7 +16,10 @@ checkout into every such worktree that lacks them:
 - only a path git ignores in the worktree is copied — for a directory,
   every file in it (an ignore rule's `!` exception unignores one): an
   unignored file would sit there untracked, for the commit to pick up
-  (reported, not copied; codex review, PR #184);
+  (reported, not copied; codex review, PR #184). A directory is checked
+  again once it is in place, by `git status`, under the rules it brought
+  with it — a `.gitignore` inside it can unignore a file the first check
+  passed — and an installed directory with any untracked file is removed;
 - a missing source is skipped; an existing destination is never
   overwritten (a directory that exists is left whole); a path that is
   absolute, climbs with `..`, or sits outside the main checkout is ignored —
@@ -119,6 +122,21 @@ def unignored_files(wt, rel, src):
     return [f for f in files if f not in ignored]
 
 
+def untracked_after(wt, rel):
+    """Files under `rel` that `git status` shows untracked in `wt` once they
+    are there — under every rule then in force, a `.gitignore` the copy
+    brought included. Unknown (git failed) counts as untracked."""
+    try:
+        out = subprocess.run(["git", "-C", wt, "status", "--porcelain=v1", "-z",
+                              "--untracked-files=all", "--", rel],
+                             capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.TimeoutExpired):
+        return [rel]
+    if out.returncode != 0:
+        return [rel]
+    return [e[3:] for e in out.stdout.split("\0") if e.startswith("?? ")]
+
+
 def install_file(src, dst):
     """Create `dst` only if it does not exist (`O_EXCL`), with `src`'s
     contents — a symlinked `src` is read through. False: it exists."""
@@ -175,7 +193,16 @@ def copy_into(main, wt, paths):
                 continue
         try:
             os.makedirs(os.path.dirname(dst) or wt, exist_ok=True)
-            if (install_dir if os.path.isdir(src) else install_file)(src, dst):
+            if os.path.isdir(src):
+                if install_dir(src, dst):
+                    loose = untracked_after(wt, rel)
+                    if loose:                # ours: install_dir just created it
+                        shutil.rmtree(dst, ignore_errors=True)
+                        unignored.append("%s (%s)" % (rel, ", ".join(loose[:3])
+                                                      + (", …" if len(loose) > 3 else "")))
+                    else:
+                        copied.append(rel)
+            elif install_file(src, dst):
                 copied.append(rel)
         except OSError as exc:
             errors.append("%s (%s)" % (rel, exc))
