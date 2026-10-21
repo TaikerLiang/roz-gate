@@ -3,13 +3,21 @@
 
     python3 tools/changelog.py            # rewrite CHANGELOG.md
     python3 tools/changelog.py --check    # exit 1 if CHANGELOG.md is stale
+    python3 tools/changelog.py --pending v<x.y.z> notes.md ["<title>"]
+                                          # the release PR: rewrite, plus the
+                                          # unpublished release on top
 
 The release note is canonical; CHANGELOG.md is a copy, newest first, one
 entry per release: its title, its link, its body verbatim. Never edit the
 file by hand — edit the release (`gh release edit`) and rerun this.
+`--pending` lets the release PR carry its own entry before the release
+exists: the title (default: the tag), today's date, the notes file as
+body — the same title and file the release is then published with. Any later difference (a date, an
+edited note) is corrected by the next run, which reads the releases only.
 Needs an authenticated `gh`. Dev-only tooling; see docs/releasing.md.
 """
 
+import datetime
 import json
 import os
 import subprocess
@@ -50,8 +58,28 @@ def render():
     return "\n".join(parts) + "\n"  # the historical copy ends in a blank line
 
 
+def pending_entry(tag, notes_path, title=None):
+    """The entry the release `tag` will have once published from `notes_path`."""
+    published = gh("release", "list", "--limit", "1000", "--exclude-drafts",
+                   "--json", "tagName")
+    if any(r["tagName"] == tag for r in published):
+        sys.exit("changelog: %s is already published — run without --pending" % tag)
+    url = "%s/releases/tag/%s" % (gh("repo", "view", "--json", "url")["url"], tag)
+    with open(notes_path, encoding="utf-8") as f:
+        body = f.read().replace("\r\n", "\n").strip()
+    today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+    return "## %s — %s\n\n<%s>\n\n%s\n" % (title or tag, today, url, body)
+
+
 def main(argv):
     text = render()
+    if "--pending" in argv:
+        i = argv.index("--pending")
+        if len(argv) < i + 3:
+            sys.exit("changelog: --pending needs <tag> <notes-file>")
+        head, rest = text[:len(HEADER)], text[len(HEADER):]
+        title = argv[i + 3] if len(argv) > i + 3 and not argv[i + 3].startswith("--") else None
+        text = head + "\n" + pending_entry(argv[i + 1], argv[i + 2], title) + rest
     if "--check" in argv:
         with open(PATH, encoding="utf-8") as f:
             stale = f.read() != text
