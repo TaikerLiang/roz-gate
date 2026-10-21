@@ -1057,6 +1057,10 @@ class RuleJ_LoopWorktreeAddRunsAlone(HookTest):
         ("rule J: add backgrounded, then more", ADD + " & sleep 1"),
         ("rule J: git -C <dir> worktree add, chained",
          "git -C /repo worktree add /repo/.git/roz-gate/wt/qa/5 -B qa/5 origin/spec/5 && cd /x"),
+        ("rule J: the add in a { …; } group, then a test",
+         "{ " + ADD + "; } && pytest"),
+        ("rule J: the add as an if condition", "if " + ADD + "; then pytest; fi"),
+        ("rule J: the add in a subshell", "(" + ADD + ")"),
         ("rule J: the path quoted, chained",
          'git worktree add "$(git rev-parse --git-common-dir)/roz-gate/wt/qa/5" qa/5 && pytest'),
     ]

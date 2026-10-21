@@ -225,7 +225,7 @@ def copy_into(main, wt, paths):
         # The destination does not exist yet, so git cannot tell a directory:
         # a `dir/` pattern matches only the path written with its slash.
         probe = rel.rstrip("/") + "/" if os.path.isdir(src) else rel
-        if git("-C", wt, "check-ignore", "-q", "--no-index", probe) is None:
+        if git("-C", wt, "check-ignore", "-q", "--no-index", "--", probe) is None:
             unignored.append(rel)
             continue
         if os.path.isdir(src):

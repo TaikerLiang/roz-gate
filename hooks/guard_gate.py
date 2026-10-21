@@ -88,7 +88,10 @@ pattern. Nine rules, each the mechanical form of existing protocol text:
      prevent. A Bash call holding such an add and any other top-level
      command (``&&``, ``||``, ``;``, ``|``, ``&``, a second line) is a deny.
      Top level: outside quotes and ``$(…)`` / backticks; ``2>&1`` and
-     ``&>`` are redirects, and a backslash-newline continues the line.
+     ``&>`` are redirects, and a backslash-newline continues the line. An
+     add found anywhere outside quotes — inside ``{ …; }``, ``if …; then``,
+     a subshell — passes only as the call's one and only command (codex
+     review, PR #184).
 
 Exit 0 allows the tool call; exit 2 blocks it and feeds stderr to the
 model. Forge API failures fail closed, with a message that says it is an
@@ -143,9 +146,11 @@ REPLY_OPEN = re.compile(r"^\s*\*\*\[intake\] · reply\*\*")
 INTAKE_OPEN = re.compile(r"^\s*\*\*\[intake\]")
 FORGE_BOT = re.compile(r"\[bot\]$|^(?:project|group)_\d+_bot_")
 API_TIMEOUT = 20
-# Rule J: a top-level segment that is the loop's worktree add — `git` (with
-# `-C <dir>` / `-c k=v` before the verb) `worktree add`, naming roz-gate/wt.
+# Rule J: the loop's worktree add — `git` (with `-C <dir>` / `-c k=v` before
+# the verb) `worktree add`. LOOP_WT_ADD is the whole call; WT_ADD_ANYWHERE
+# finds one inside any shell form (`{ …; }`, `if …; then`, a subshell).
 LOOP_WT_ADD = re.compile(r"^\s*git(?:\s+-[Cc]\s+\S+)*\s+worktree\s+add\b")
+WT_ADD_ANYWHERE = re.compile(r"\bgit\b(?:\s+-[Cc]\s+\S+)*\s+worktree\s+add\b")
 
 RULE_B_MSG = (
     "Roz Gate: blocked — gate labels (ready-for-spec / ready-for-dev) are "
@@ -1037,12 +1042,38 @@ def top_level_segments(cmd):
     return [seg.strip() for seg in segs if seg.strip()]
 
 
+def unquoted(cmd):
+    """`cmd` with every quoted string's contents removed — what the shell
+    runs as words, not what it passes as text."""
+    out, quote, i = [], None, 0
+    while i < len(cmd):
+        ch = cmd[i]
+        if quote:
+            if ch == "\\" and quote == '"':
+                i += 1
+            elif ch == quote:
+                quote = None
+        elif ch in "'\"":
+            quote = ch
+        elif ch == "\\" and i + 1 < len(cmd):
+            out.append(cmd[i:i + 2])
+            i += 1
+        else:
+            out.append(ch)
+        i += 1
+    return "".join(out)
+
+
 def check_worktree_add_alone(cmd):
-    """Rule J (#122): the loop's `git worktree add` is the call's only command."""
+    """Rule J (#122): a call that runs the loop's `git worktree add` runs
+    nothing else — the add, alone, is the whole call; any other shape that
+    holds one (a chain, `{ …; }`, `if …; then`, a subshell) is a deny."""
     if "worktree" not in cmd or "roz-gate/wt" not in cmd:
         return
+    if not WT_ADD_ANYWHERE.search(unquoted(cmd)):
+        return
     segs = top_level_segments(cmd)
-    if len(segs) > 1 and any(LOOP_WT_ADD.match(seg) and "roz-gate/wt" in seg for seg in segs):
+    if not (len(segs) == 1 and LOOP_WT_ADD.match(segs[0])):
         deny(RULE_J_MSG)
 
 

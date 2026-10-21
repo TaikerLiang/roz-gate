@@ -118,6 +118,13 @@ class WorktreeCopy(HookTest):
             self.run_hook(repo)
             self.assertEqual(self.read(os.path.join(wt, "config/local/b.yml")), "b\n")
             self.assertEqual(self.read(os.path.join(wt, "config/local/a.yml")), "a\n")
+        with self.case("worktree_copy: a file named `-secret` is a path, not a git option "
+                       "(codex review, PR #184)"):
+            repo = self.repo({"-secret": "S\n", LOCAL: json.dumps({"worktree_copy": ["-secret"]})},
+                             ignore=".env\n-secret\n.claude/\n")
+            wt = self.add(repo)
+            self.run_hook(repo)
+            self.assertEqual(self.read(os.path.join(wt, "-secret")), "S\n")
         with self.case("worktree_copy: the list as the local file stores it — a comma string"):
             repo = self.repo({"config/local/db.yml": "url: x\n",
                               LOCAL: json.dumps({"worktree_copy": ".env, config/local"})})
