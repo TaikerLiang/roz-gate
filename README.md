@@ -43,6 +43,7 @@ agents are forbidden to guess.
 
 - Claude Code with this plugin installed — 2.1.287 or later for
   `/roz-gate:config` without a model turn (earlier versions run its prompt)
+  and for the seat pane (earlier versions show none)
 - `gh` (GitHub) **or** `glab` (GitLab) authenticated for the repo's host
 - A git repo on that forge, with issues and PRs/MRs enabled
 - A test runner invocable from the CLI
@@ -381,6 +382,17 @@ key and type the value, no model turn; where mods do not load, the prompt
 runs as the menu. Either way the write is done by the plugin's
 `bin/roz-config`, a stdlib Python tool, never by the model or the mod.
 
+On the same Claude Code a second mod, the **seat pane**
+(`hooks/seat-pane.tsx`), opens a `Roz Gate` side pane when the first seat
+starts in a session: each seat running now is an animated 8-bit Roz —
+product swims, em puts its shades on, implementer surfs, qa squats,
+reviewer walks the beach — with its task and how long it has run; with no
+seat running, Roz stands by. Close it and it stays closed for the session.
+It recognises a seat by its default agent type, so a seat linked to your own agent is not shown,
+nor are patrol's scanner and commit sub-agents. The sprites are drawn in
+the terminal; desktop, VS Code and mobile show a text list. It only
+watches: it changes nothing the loop does.
+
 ```
 /roz-gate:config                                  # menu: pick the key, enter the value
 /roz-gate:config default_branch release/20261006  # the loop's base; default = the remote's HEAD
@@ -485,7 +497,7 @@ Retirement is two steps, **in this order**:
 | `references/` | protocol docs, seat briefs, forge adapters | the agent, on every invocation | runtime |
 | `agents/` | the built-in personas (product, em, qa, reviewer) — referenced, never copied | the agent, at dispatch | dispatch |
 | `templates/` | target-repo scaffolding, instantiated by `init` and removed by `uninit` | the target repo | install time |
-| `hooks/` | deterministic enforcement, the `/roz-gate:config` mod, and their tests ([hooks/README.md](hooks/README.md)) | the machine, before a tool runs or a command answers | tool time |
+| `hooks/` | deterministic enforcement, the `/roz-gate:config` mod and the seat pane (one entry, `hooks/mods.tsx`), and their tests ([hooks/README.md](hooks/README.md)) | the machine, before a tool runs or a command answers | tool time |
 | `evals/` | the eval ledger — lint, replay, judgment ([evals/README.md](evals/README.md)) | developers of the plugin | dev time; lint on pre-push and CI |
 | `.githooks/` | this repo's own gates (thin entry points) | git, on commit and push | commit / push |
 | `docs/` | human-facing pages (roadmap, site) | humans | never loaded by the agent |

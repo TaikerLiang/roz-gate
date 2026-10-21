@@ -38,8 +38,10 @@ The files:
 | `tests/run_tests.py` | the runner: one PASS/FAIL line per case, then the tally |
 | `tests/bin/gh`, `tests/bin/glab` | fake forge CLIs on `PATH` — rule A reads comments, tests never touch the network |
 | `tests/fx/*.json` | what the fake CLIs return: "the holder asked for `summary`", "nobody did", … |
-| `config-menu.tsx` | the `/roz-gate:config` mod (`hooks.json` `modules`) — see [The mod](#the-mod) |
-| `tests/config-menu.test.ts` | the mod's cases, run by `claude plugin test` |
+| `mods.tsx` | the one hooks module `hooks.json` `modules` names — it registers both mods (Claude Code refuses a second entry) |
+| `config-menu.tsx` | the `/roz-gate:config` mod — see [The mods](#the-mods) |
+| `seat-pane.tsx` · `seat-sprites.ts` | the seat pane and its 8-bit Roz sprites — see [The mods](#the-mods) |
+| `tests/config-menu.test.ts`, `tests/seat-pane.test.ts` | the mods' cases, run by `claude plugin test` |
 
 Should this be a hook? All three must be yes:
 
@@ -185,8 +187,8 @@ version moves only in the release PR — `docs/releasing.md`).
 ```sh
 python3 hooks/tests/run_tests.py                # one PASS/FAIL line per case — the hooks and bin/roz-config
 python3 -m unittest discover -s hooks/tests     # same tests, unittest's own output
-claude plugin validate --strict .               # the manifest and the mod, as the engine reads them
-claude plugin test .                            # the mod's cases (hooks/tests/config-menu.test.ts)
+claude plugin validate --strict .               # the manifest and the mods, as the engine reads them
+claude plugin test .                            # the mods' cases (hooks/tests/*.test.ts)
 ```
 
 Synthetic `PreToolUse` JSON is piped into each hook's `.sh` shim — the
@@ -305,10 +307,12 @@ actually used. Audit every new predicate for the class, not the instance:
   not read what it audits. A path belongs to the tree it is in, not the
   tree the hook runs from: resolve against every worktree of the repo.
 
-## The mod
+## The mods
 
-`hooks.json` also names one Claude Code mod (2.1.287 or later),
-`config-menu.tsx`: it answers `/roz-gate:config` itself, so a config change
+`hooks.json` also names one hooks module, `mods.tsx` — Claude Code reads
+one per plugin — and it registers two Claude Code mods (2.1.287 or later).
+
+`config-menu.tsx` answers `/roz-gate:config` itself, so a config change
 costs no model turn (#164). With arguments it runs `bin/roz-config <key>
 <rest>` — the rest as one argument, the tool splits list keys on commas;
 without, it opens a pane with a `Select` for the key and an `Input` for the
@@ -320,4 +324,16 @@ hooks a tool call (lint L8). Where mods do not load — an older Claude Code,
 `--safe-mode`, `disableAllHooks` — `commands/config.md` runs as the
 fallback. A Claude Code that predates mods ignores the `modules` key and
 still loads the guards (checked on 2.1.200 and 2.1.286).
+
+`seat-pane.tsx` draws the seats running now in a side pane (#172), each an
+animated 8-bit Roz from `seat-sprites.ts`. An `agent.spawn` hook notes a
+seat as it starts — by its default agent type only (`roz-gate:product`,
+`roz-gate:em`, `implementer`, `roz-gate:qa`, `roz-gate:reviewer`), so a
+seat linked to your own agent is not shown — and opens the `Roz Gate` pane
+on the first one in a session. One 500 ms timer animates it while the pane
+is open and polls `$.agent.list()` only while a seat is live; with none,
+the 16×16 Roz stands by. Closed by hand, the pane stays closed for the
+session. Sprites are drawn in the terminal; desktop, VS Code and mobile get
+a text list. It watches and nothing else: it never writes a file, runs a
+process, reaches the network or a model, or refuses a spawn (lint L11).
 
