@@ -40,10 +40,21 @@ A judgment, and the release history is the guide:
    git diff --stat v<prev> origin/main -- agents commands references templates hooks scripts .claude-plugin
    ```
 
-2. **Bump.** Branch `release/<x.y.z>` from `origin/main`, change only
-   `.claude-plugin/plugin.json`'s `version`, and commit `release: <x.y.z>`
-   with one paragraph saying why minor or patch. This is the only commit
-   that ever moves the version. Open the PR; the maintainer merges it.
+2. **Bump, with its changelog entry.** Branch `release/<x.y.z>` from
+   `origin/main`. Write `notes.md` — the release note, assembled from the
+   merged PRs' `## Release note` sections ([below](#the-release-note)) —
+   outside the repo. Change `.claude-plugin/plugin.json`'s `version`, then
+   give `CHANGELOG.md` the entry the release will have:
+
+   ```sh
+   python3 tools/changelog.py --pending v<x.y.z> notes.md "<title>"   # title defaults to the tag
+   ```
+
+   Commit both as `release: <x.y.z>`, with one paragraph saying why minor
+   or patch. This is the only commit that ever moves the version, and the
+   release's only PR: the changelog rides in it (until 2.5.1 it was a
+   second PR after publishing, one more merge per release). Open the PR;
+   the maintainer merges it.
 
 3. **Draft the release** against the release PR's merge commit. Take the
    SHA from the PR itself, not from `origin/main`: a local `origin/main`
@@ -56,7 +67,7 @@ A judgment, and the release history is the guide:
    SHA=$(gh pr view <release-pr> --json mergeCommit --jq .mergeCommit.oid)
    git fetch origin && git show "$SHA:.claude-plugin/plugin.json" | grep '"version"'   # must say <x.y.z>
    gh release create v<x.y.z> --draft --target "$SHA" \
-     --title "v<x.y.z> — <what it is, in one line>" --notes-file notes.md
+     --title "<title>" --notes-file notes.md   # step 2's title and file
    ```
 
    A draft is private and has no tag yet.
@@ -64,15 +75,17 @@ A judgment, and the release history is the guide:
 4. **Publish.** The maintainer reads the draft on GitHub and publishes
    it; publishing creates the tag.
 
-5. **Regenerate the changelog** and open a PR with it:
+5. **The changelog is already in** — the release PR carried the entry.
+   The file is regenerated from the releases on every run, so a published
+   release that differs from its pending entry (a later date, an edited
+   note) is corrected by the next release PR's run:
 
    ```sh
-   python3 tools/changelog.py           # rewrites CHANGELOG.md from the releases
-   python3 tools/changelog.py --check   # exit 1 while CHANGELOG.md is stale
+   python3 tools/changelog.py --check   # exit 1 while CHANGELOG.md differs from the releases
    ```
 
    Never edit `CHANGELOG.md` by hand. To fix a note, `gh release edit`
-   it, then rerun.
+   it; the next release PR carries the fix.
 
 ## The release note
 
