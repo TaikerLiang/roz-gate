@@ -2,6 +2,41 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.7.0 — the seat pane — 2026-10-21
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.7.0>
+
+**Behavior:** on Claude Code 2.1.289 or later, a side pane shows the seats running now, each one an animated 8-bit Roz. guard-gate rule J no longer denies your own `git worktree add` because the loop's path is mentioned elsewhere in the call.
+
+### Behavior
+- **Seat pane** (#172): `hooks/seat-pane.tsx` opens a `Roz Gate` pane when the first seat starts in a session, and the pane stays open. Once you close it, it stays closed for the session.
+  - Each running seat is a row: the seat's animated 8×8 sprite, its name, the Agent call's description and the elapsed time. With no seat running, the 16×16 Roz stands by.
+  - Seats are product, em, implementer, qa and reviewer, recognised by their default agent types. A seat linked to your own agent is not shown, and neither are patrol's scanner and commit.
+  - Sprites are drawn in the terminal. Desktop, VS Code and mobile show a text list.
+  - The mod only watches: it writes nothing and runs nothing.
+- **Needs Claude Code 2.1.289** (codex review): before that version, `agent.spawn`'s agent id is not the one `$.agent.list()` gives, and the pane would show only standby.
+- **One hooks module** (#172): Claude Code reads one module per plugin, so `hooks.json` names `hooks/mods.tsx`, which registers the `/roz-gate:config` mod and the seat pane.
+
+### Hooks
+- **Rule J judges the add's own segment** (2.6.0 false positive, #186): an add is the loop's only when `roz-gate/wt` appears in that add's own top-level segment, or in a variable the call set to such a path (`$wt`, `${wt}`).
+  - A heredoc or a later segment that only mentions the path no longer denies your own add. This hit a real release command.
+  - The loop's add chained with anything is still denied, as are wrapped, backgrounded and `git -C` adds.
+
+### Evals
+- **L11** (#172): the entry module registers the pane mod, the sprites cover exactly the five seats, the mod never writes, runs a process or refuses a spawn, and README states the linked-seat limit.
+- **L8** (#172): reads the one entry module, `hooks/mods.tsx`, which must call the config mod's `register`.
+- 7 new rule J hook cases (#186): hook tests 548 → 555.
+
+### Tooling
+- **`claude plugin test`** gains `hooks/tests/seat-pane.test.ts`: plugin tests 16 → 27.
+
+### Docs
+- README: the pane paragraph, Requirements with the 2.1.289 floor, and Repository layout.
+- `hooks/README.md`: the files table, "The mods" section, the test commands and the rule J row.
+
+### Checks
+Hook tests 555/555 · lint 1013/1013 · red-proofs 31/31 · plugin tests 27/27 · `plugin validate --strict` clean
+
 ## v2.6.0 — 2026-10-21
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.6.0>
