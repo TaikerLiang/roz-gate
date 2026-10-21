@@ -215,6 +215,17 @@ class WorktreeCopy(HookTest):
             r = self.run_hook(repo)
             self.assertFalse(os.path.exists(os.path.join(wt, ".env")))
             self.assertIn("git does not ignore it", self.context(r))
+        with self.case("worktree_copy: a tracked file that is also ignored, deleted in the "
+                       "worktree, is not refilled (codex review, PR #184)"):
+            repo = self.repo()
+            self.git(repo, "add", "-f", ".env")
+            self.git(repo, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "t")
+            self.write(repo / ".env", "LOCAL_EDIT=1\n")
+            wt = self.add(repo)
+            os.remove(os.path.join(wt, ".env"))
+            r = self.run_hook(repo)
+            self.assertFalse(os.path.lexists(os.path.join(wt, ".env")))
+            self.assertIn(".env (git does not ignore it", self.context(r))
         with self.case("worktree_copy: a command without `worktree` never reaches python"):
             repo = self.repo()
             wt = self.add(repo)

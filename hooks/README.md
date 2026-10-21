@@ -134,8 +134,9 @@ so a shell continuation inside `git worktree add` still escalates),
   directory or an ignore file could unignore something a commit then picks
   up; Codex found that class six times over on PR #184 before the key was
   narrowed (ruling (a), 2026-10-21).
-- It copies a file only if git ignores it in the worktree. An unignored
-  file would sit there untracked for a commit to pick up, so it is
+- It copies a file only if git ignores it in the worktree, judged with the
+  index, so a tracked file never counts as ignored. An unignored or tracked
+  file copied in would be a change a commit could pick up, so it is
   reported instead.
 - It copies contents and never links: a symlinked `.env` arrives as the
   file it points to. A copy is written to a stage in

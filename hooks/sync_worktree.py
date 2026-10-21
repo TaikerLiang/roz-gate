@@ -15,8 +15,9 @@ checkout into every such worktree that lacks them:
   still holds after the copy; a directory or an ignore file could unignore
   something, the class of defect Codex found six times over on PR #184
   until the maintainer narrowed the key (ruling (a), 2026-10-21);
-- only a file git ignores in the worktree is copied: an unignored one would
-  sit there untracked, for the commit to pick up (reported, not copied);
+- only a file git ignores in the worktree is copied — judged with the index,
+  so a tracked file is never one: an unignored or tracked file copied in
+  would be a change a commit could pick up (reported, not copied);
 - the worktrees are read from `git worktree list --porcelain`, never parsed
   from the command — the loop's command text carries the unexpanded
   `$(git rev-parse --git-common-dir)/…`;
@@ -153,7 +154,10 @@ def copy_into(main, wt, paths, stage_dir):
         if os.path.basename(rel).lower() in IGNORE_FILES:
             skipped.append("%s (an ignore-rule file — never copied)" % rel)
             continue
-        if git("-C", wt, "check-ignore", "-q", "--no-index", "--", rel) is None:
+        # The index counts (no `--no-index`): a tracked path is never "ignored",
+        # so a deleted tracked `.env` is not refilled as a tracked change
+        # (codex review, PR #184).
+        if git("-C", wt, "check-ignore", "-q", "--", rel) is None:
             skipped.append("%s (git does not ignore it there, so a commit could pick it up — "
                            "add it to .gitignore, or drop it from worktree_copy)" % rel)
             continue
