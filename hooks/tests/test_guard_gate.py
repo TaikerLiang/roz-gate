@@ -1083,6 +1083,9 @@ class RuleJ_LoopWorktreeAddRunsAlone(HookTest):
          'git worktree add "$wt" -B spec/5 main && pytest'),
         ("rule J: the loop's path exported first, `${…}` in the add",
          "export WT=.git/roz-gate/wt/spec/5 && git worktree add ${WT} -B spec/5 main"),
+        ("rule J: the loop's path the second of two assignments (codex review, PR #186)",
+         'branch=spec/5 wt=.git/roz-gate/wt/spec/5; git worktree add "$wt" -B spec/5 main '
+         "&& pytest"),
     ]
     ALLOWED = [
         ("rule J: the add alone", ADD),
