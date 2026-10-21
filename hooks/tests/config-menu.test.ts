@@ -192,6 +192,18 @@ test("where nothing draws, the load's notice leads the listing, once", async ($,
   expect(r.text).toBe('roz-config: seeded from the CLAUDE.md block once\ninbox_label      discuss')
 })
 
+test('the pane offers worktree_copy, and the paths go to the tool as typed (#122)', async ($, on) => {
+  const calls: string[][] = []
+  tool(on, calls)
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  await $.command.run(run(''))
+  calls.length = 0
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await ui.select({ key: 'key', value: 'worktree_copy' })
+  await ui.input({ key: 'value', text: '.env, config/local' })
+  expect(calls[0]).toEqual(['worktree_copy', '.env, config/local'])
+})
+
 test('the pane offers branch_template, and a template goes to the tool whole', async ($, on) => {
   const calls: string[][] = []
   tool(on, calls)

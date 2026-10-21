@@ -26,10 +26,11 @@ The files:
 
 | file | what it is |
 |---|---|
-| `hooks.json` | the registry: which event (`PreToolUse` only, today), which tools (matcher), which `.sh` runs |
+| `hooks.json` | the registry: which event (`PreToolUse` for the guards, `PostToolUse` for the worktree copy), which tools (matcher), which `.sh` runs |
 | `guard-gate.sh` · `guard_gate.py` | Bash commands — rules A–D, F–I |
 | `guard-blind.sh` · `guard_blind.py` | Bash / Read / Glob / Grep during an implementation-blind dispatch — the fidelity review, or QA's own since 2.0.0 — rule E |
 | `guard-acceptance.sh` · `guard_acceptance.py` | Edit / Write / MultiEdit on a spec branch (`spec/<n>`, or whatever `branch_template` renders) — the acceptance rule |
+| `sync-worktree.sh` · `sync_worktree.py` | PostToolUse · Bash, after a `git worktree add` — [the worktree copy](#the-worktree-copy) (#122) |
 | `config_block.py` | the config block's reader: `CLAUDE.md`, then `CLAUDE.local.md`, in the toplevel, then in the main checkout (`core.worktree` when set, else the common git dir's parent — a separate git dir without `core.worktree` is unreachable from a linked worktree: keep the block in the tracked `CLAUDE.md` there) — the first block wins, whole |
 | `tests/test_guard_*.py` | the cases, one file per guard, one class per rule: synthetic hook input in, exit code and stderr asserted |
 | `tests/test_fixtures.py` | every fixture carries the fields the guard reads |
@@ -108,6 +109,34 @@ The prefilter is one git call plus one stat. **Stale marker = rule still
 ON**: if a dispatch crashed and a later, non-blind read is denied, the deny
 message names the file to remove. `agent_type` from the hook input is
 reported in the message but never relied on.
+
+## The worktree copy
+
+Not a guard: it never blocks. Every loop command works in a linked worktree
+under `$(git rev-parse --git-common-dir)/roz-gate/wt/<branch>`, and a
+gitignored file such as `.env` is not in a fresh one, so a repo whose `test`
+loads it went red there for harness reasons (#122). After any Bash command
+that mentions `worktree add` (`sync-worktree.sh`, the prefilter),
+`sync_worktree.py` does the following:
+
+- It reads `git worktree list --porcelain`, never the command text, whose
+  path is the unexpanded `$(git rev-parse --git-common-dir)/…`.
+- For every worktree under `<common>/roz-gate/wt/`, it copies each path of
+  the local key `worktree_copy` (`bin/roz-config`; absent → `.env`, `""` →
+  none) from the main checkout, `config_block.main_checkout()`, when the
+  source exists and the destination does not.
+- It copies files and directories whole, and never links.
+- It never overwrites, never writes back, and never touches a worktree of
+  yours. A bare repository is skipped.
+- It drops an absolute path, a `..` path, or a path that resolves outside
+  the checkout, silently.
+- It reports a path git does not ignore in the worktree and does not copy
+  it: there, an untracked file is one a commit could pick up.
+- What it copied, or why not, goes back to the agent as PostToolUse
+  `additionalContext`, and the exit is 0 either way.
+
+`tests/test_sync_worktree.py` runs each case on a real repo and a real
+`git worktree add`.
 
 ## This repo's own gates (not plugin hooks)
 

@@ -164,7 +164,7 @@ text follows the experiment; the driver's citation was updated to match.
 |---|---|---|
 | J1 | the judgment fixtures are frozen at T | lint (preventive) |
 | L1 | one stage map | lint (preventive) |
-| L2 | the local keys `roz-config` accepts are the ones the commands read and README documents — six since 2.4.0: `helper_model` governing the scanner and the commit sub-agent only, `branch_user` the `{user}` slot of `branch_template`, `branch_template` itself per developer | lint (defect 1.18.0) |
+| L2 | the local keys `roz-config` accepts are the ones the commands read and README documents — seven since 2.6.0: `helper_model` governing the scanner and the commit sub-agent only, `branch_user` the `{user}` slot of `branch_template`, `branch_template` itself per developer, `worktree_copy` the files copied into the loop's worktrees | lint (defect 1.18.0) |
 | L3 | every commit a command makes goes through the commit sub-agent's brief | lint (preventive) |
 | L4 | branch names are bound once, never spelled — every command resolves `<spec-branch>` / `<feat-branch>` / `<qa-branch>` / `<fast-branch>` through `references/branch-names.md`; no literal `spec/<n>` outside it; `init` creates the `type:` labels; both adapters carry WHOAMI; the hooks read the template | lint (preventive, #75) |
 | L5 | the config block has two homes — `CLAUDE.md`, then `CLAUDE.local.md`, in the toplevel, then in the main checkout; the hooks' one reader (`hooks/config_block.py`), the acceptance prefilter, every command's step 0 and the docs agree | lint (defect 1.31.1-, #94) |
@@ -172,6 +172,7 @@ text follows the experiment; the driver's citation was updated to match.
 | L7 | the wire spec names exactly the labels the state machine has, states the STOP and summary rules in the client's literals, binds no reference-client internal as a MUST, and every entry point links the pages | lint (preventive) |
 | L8 | `/roz-gate:config` is answered by a mod that only reads and runs `bin/roz-config`; `commands/config.md` stays as the fallback where mods do not load | lint (#164, 2.3.0) |
 | L9 | Every page says patrol answers every human comment on an intake thread on its next pass, and none still hands the thread to the humans | lint (defect 2.4.0-, #174) |
+| L10 | Every surface that says where `test` runs says your gitignored files (`worktree_copy`, default `.env`) are copied into the loop's worktrees, and `hooks.json` registers the PostToolUse hook that does it | lint (defect 2.5.1-, #122) |
 
 ## The judgment corpus
 

@@ -1,9 +1,9 @@
 ---
-description: Set one of your six loop keys — default_branch, inbox_label, inbox_assignee, helper_model, branch_user, branch_template — from a menu; the write is done by bin/roz-config, never by this prompt
+description: Set one of your seven loop keys — default_branch, inbox_label, inbox_assignee, helper_model, branch_user, branch_template, worktree_copy — from a menu; the write is done by bin/roz-config, never by this prompt
 argument-hint: "[key [value …]]"
 ---
 
-Your six loop keys are per person, per clone, never committed
+Your seven loop keys are per person, per clone, never committed
 (`.claude/roz-gate.local.json`). This command is only the menu: the
 reading and the writing are done by `${CLAUDE_PLUGIN_ROOT}/bin/roz-config`,
 and nothing here validates, edits a file, or looks anything up on the forge.
@@ -19,9 +19,10 @@ Current values (the tool's own output, resolved with defaults):
 ```
 
 ## Values — comma-separated, because a label may contain spaces
-For the inbox keys the values are **comma-separated** (`discuss, good first
-issue` is two labels); split on commas, trim each, and pass **each value as
-its own quoted argument** to the tool — never split on spaces.
+For the inbox keys and `worktree_copy` the values are **comma-separated**
+(`discuss, good first issue` is two labels); split on commas, trim each,
+and pass **each value as its own quoted argument** to the tool —
+never split on spaces.
 `default_branch`, `helper_model`, `branch_user` and `branch_template` are one
 value each.
 
@@ -45,10 +46,14 @@ default). An unknown key is the tool's error to print.
    - `branch_template` — your branch names, one template over `{kind}`,
      `{type}`, `{user}`, `{n}`, `{seq}` (`references/branch-names.md`);
      default = `{kind}/{n}`; the tool refuses an invalid one
+   - `worktree_copy` — your gitignored files the plugin's `sync-worktree`
+     hook copies from your checkout into each worktree the loop creates;
+     default = `.env`; `""` = none; the tool refuses a path outside the repo
 2. Ask **the value**: one branch name for `default_branch`; one model id for
    `helper_model`; one forge login for `branch_user`; one template for
    `branch_template`; one or more labels / logins, comma-separated, for the
-   inbox keys; empty = remove the override.
+   inbox keys; one or more repo-relative paths, comma-separated, for
+   `worktree_copy` (`""` = none); empty = remove the override.
 3. Split on commas, quote each, run
    `python3 "${CLAUDE_PLUGIN_ROOT}/bin/roz-config" <key> "<v1>" "<v2>" …` and
    print its output line verbatim. That line is the report; the next
