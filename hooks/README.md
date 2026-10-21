@@ -147,7 +147,7 @@ so a shell continuation inside `git worktree add` still escalates),
 - It never overwrites, never writes back, and never touches a worktree of
   yours. A bare repository is skipped, and so is a checkout that cannot
   prove itself: the main checkout's own `--git-common-dir` must be this
-  repository's. A separate git dir with no `core.worktree` leaves only a
+  repository's, and it must be its own `--show-toplevel`. A separate git dir with no `core.worktree` leaves only a
   guess, the git dir's parent, and a guess is never a source of files.
 - It normalizes each entry as git names it (`./x` → `x`) and drops
   duplicates. It silently drops an absolute path, a `..` path or a path

@@ -258,6 +258,23 @@ class WorktreeCopy(HookTest):
             r = self.run_hook(work, cwd=Path(wt))
             self.assertFalse(os.path.lexists(os.path.join(wt, ".env")))
             self.assertEqual((r.rc, r.stdout), (0, ""))
+        with self.case("worktree_copy: a separate git dir nested inside the checkout — the "
+                       "guessed directory is not the top level, so nothing is copied (codex "
+                       "review, PR #184)"):
+            work = self.new_dir() / "work"
+            gitdir = work / "meta" / "store"
+            gitdir.parent.mkdir(parents=True)
+            subprocess.run(["git", "init", "-q", "-b", "main", "--separate-git-dir", str(gitdir),
+                            str(work)], check=True, capture_output=True)
+            self.write(work / ".gitignore", ".env\nmeta/\n")
+            self.write(work / ".env", "MINE=1\n")
+            self.write(work / "meta" / ".env", "WRONG=1\n")
+            self.git(work, "add", ".gitignore")
+            self.git(work, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "i")
+            wt = str(gitdir / "roz-gate" / "wt" / "spec" / "5")
+            self.git(work, "worktree", "add", "-q", "-b", "spec/5", wt)
+            self.run_hook(work, cwd=Path(wt))
+            self.assertFalse(os.path.lexists(os.path.join(wt, ".env")))
         with self.case("worktree_copy: outside any git repository — nothing, exit 0"):
             r = self.run_hook(self.new_dir())
             self.assertEqual((r.rc, r.stdout), (0, ""))
