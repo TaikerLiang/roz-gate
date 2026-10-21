@@ -229,7 +229,7 @@ def copy_problem(paths, root):
     for p in paths:
         if os.path.isabs(p) or p.startswith("~") or ".." in re.split(r"[\\/]", p):
             return "%r is not a path inside the repository" % p
-        if os.path.basename(p.rstrip("/\\")) == ".gitignore":
+        if os.path.basename(p.rstrip("/\\")).lower() == ".gitignore":
             return "%r is an ignore-rule file — worktree_copy never copies one" % p
         if p.endswith(("/", "\\")) or os.path.isdir(os.path.join(root, p)):
             return "%r is a directory — worktree_copy lists files" % p

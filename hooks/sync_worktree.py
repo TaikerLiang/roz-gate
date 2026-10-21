@@ -27,8 +27,14 @@ checkout into every such worktree that lacks them:
 - it copies contents, never links, and never writes back — a symlinked
   `.env` arrives as the file it points to, so writing to the worktree's
   copy touches neither yours nor a tracked file the link named;
-- a file is created exclusively (`O_EXCL`), so a concurrent run never
-  replaces another's copy, and a failed copy removes what it created;
+- a copy is written to a stage in `<git-common-dir>/roz-gate/stage/` and
+  published with a hard link, which creates the destination only if it does
+  not exist: a concurrent run never replaces another's copy, and a run cut
+  off mid-copy (the hook's timeout) leaves no truncated file in the
+  worktree, and no stray one either, the stage being outside every worktree
+  (codex review, PR #184);
+- `.gitignore` is matched in any case (`.GITIGNORE` is the same file on a
+  case-insensitive volume);
 - worktrees anywhere else — your own — are never touched.
 
 It never blocks (exit 0 always: the command has already run). What it
@@ -41,13 +47,14 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from config_block import main_checkout  # noqa: E402
 
 LOCAL_FILE = os.path.join(".claude", "roz-gate.local.json")
 DEFAULT = [".env"]
-IGNORE_FILES = (".gitignore",)
+IGNORE_FILES = (".gitignore",)   # compared case-insensitively
 
 
 def git(*args):
@@ -110,25 +117,27 @@ def loop_worktrees(common):
             and os.path.realpath(line[len("worktree "):]) != os.path.realpath(base)]
 
 
-def install_file(src, dst):
-    """Create `dst` only if it does not exist (`O_EXCL`), with `src`'s
-    contents — a symlinked `src` is read through. False: it exists."""
-    with open(src, "rb") as fin:
+def install_file(src, dst, stage_dir):
+    """Write `src`'s contents (a symlinked `src` is read through) to a stage
+    file in `stage_dir`, then publish it at `dst` with a hard link — which
+    fails if `dst` exists, so nothing is replaced, and `dst` appears whole
+    or not at all. The stage is removed either way. False: `dst` exists."""
+    os.makedirs(stage_dir, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=stage_dir, prefix="copy-")
+    try:
+        with os.fdopen(fd, "wb") as fout, open(src, "rb") as fin:
+            shutil.copyfileobj(fin, fout)
+        shutil.copystat(src, tmp)
         try:
-            fout = open(dst, "xb")
+            os.link(tmp, dst)
         except FileExistsError:
             return False
-        try:
-            with fout:
-                shutil.copyfileobj(fin, fout)
-            shutil.copystat(src, dst)
-        except OSError:
-            os.remove(dst)
-            raise
-    return True
+        return True
+    finally:
+        os.remove(tmp)
 
 
-def copy_into(main, wt, paths):
+def copy_into(main, wt, paths, stage_dir):
     copied, errors, skipped = [], [], []
     for rel in entries(paths):
         src, dst = os.path.join(main, rel), os.path.join(wt, rel)
@@ -137,7 +146,7 @@ def copy_into(main, wt, paths):
         if os.path.isdir(src):
             skipped.append("%s (a directory — worktree_copy lists files)" % rel)
             continue
-        if os.path.basename(rel) in IGNORE_FILES:
+        if os.path.basename(rel).lower() in IGNORE_FILES:
             skipped.append("%s (an ignore-rule file — never copied)" % rel)
             continue
         if git("-C", wt, "check-ignore", "-q", "--no-index", "--", rel) is None:
@@ -146,7 +155,7 @@ def copy_into(main, wt, paths):
             continue
         try:
             os.makedirs(os.path.dirname(dst) or wt, exist_ok=True)
-            if install_file(src, dst):
+            if install_file(src, dst, stage_dir):
                 copied.append(rel)
         except OSError as exc:
             errors.append("%s (%s)" % (rel, exc))
@@ -177,7 +186,8 @@ def main():
         return
     notes = []
     for wt in loop_worktrees(common):
-        copied, errors, skipped = copy_into(main_root, wt, paths)
+        copied, errors, skipped = copy_into(main_root, wt, paths,
+                                            os.path.join(common, "roz-gate", "stage"))
         if copied:
             notes.append("[roz-gate] copied %s into %s (worktree_copy, #122)"
                          % (", ".join(copied), wt))

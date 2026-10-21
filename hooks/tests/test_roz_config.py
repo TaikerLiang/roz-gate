@@ -370,7 +370,8 @@ class RozConfigTest(unittest.TestCase):
         (self.root / "config").mkdir()
         for bad, why in (("config", "is a directory"), ("config/", "is a directory"),
                          (".gitignore", "ignore-rule file"),
-                         ("config/.gitignore", "ignore-rule file")):
+                         ("config/.gitignore", "ignore-rule file"),
+                         ("config/.GITIGNORE", "ignore-rule file")):
             with self.subTest("roz-config: worktree_copy refuses %s (files only), writes "
                               "nothing" % bad):
                 p = self.run_tool("worktree_copy", ".env, " + bad)

@@ -158,6 +158,14 @@ class WorktreeCopy(HookTest):
             self.assertIn("config/local/.gitignore (an ignore-rule file", self.context(r))
             self.assertTrue(os.path.exists(os.path.join(wt, "config/local/a.txt")))
             self.assertEqual(self.git_out(wt, "status", "--porcelain"), "")
+        with self.case("worktree_copy: `.GITIGNORE` is an ignore file too (codex review, PR #184)"):
+            repo = self.repo({"config/.GITIGNORE": "!a.txt\n",
+                              LOCAL: json.dumps({"worktree_copy": ["config/.GITIGNORE"]})},
+                             ignore=".env\nconfig/*\n.claude/\n")
+            wt = self.add(repo)
+            r = self.run_hook(repo)
+            self.assertFalse(os.path.lexists(os.path.join(wt, "config/.GITIGNORE")))
+            self.assertIn("config/.GITIGNORE (an ignore-rule file", self.context(r))
         with self.case("worktree_copy: a .env that links to a directory is reported, not copied"):
             repo = self.repo({"shared/x": "x\n"})
             os.remove(repo / ".env")
@@ -213,13 +221,12 @@ class WorktreeCopy(HookTest):
             r = self.run_hook(repo, command="git status")
             self.assertFalse(os.path.exists(os.path.join(wt, ".env")))
             self.assertEqual((r.rc, r.stdout), (0, ""))
-        with self.case("worktree_copy: a copy error is reported and the exit is still 0"):
+        with self.case("worktree_copy: a copy error is reported and the exit is still 0 — "
+                       "independent of privileges (codex review, PR #184)"):
             repo = self.repo({"config/local/db.yml": "url: x\n",
                               LOCAL: json.dumps({"worktree_copy": ["config/local/db.yml"]})})
             wt = self.add(repo)
-            os.makedirs(os.path.join(wt, "config/local"))
-            os.chmod(os.path.join(wt, "config/local"), 0o500)
-            self.addCleanup(os.chmod, os.path.join(wt, "config/local"), 0o700)
+            self.write(Path(wt) / "config", "a file where the directory would go\n")
             r = self.run_hook(repo)
             self.assertEqual(r.rc, 0)
             self.assertIn("could not copy config/local/db.yml", self.context(r))
@@ -243,11 +250,28 @@ class InstallNeverReplaces(HookTest):
 
     def test_install(self):
         mod, d = self.module(), self.new_dir()
+        stage = str(d / "stage")
         self.write(d / "src.env", "NEW=1\n")
         with self.case("worktree_copy: a file another run installed first is kept, not replaced"):
             self.write(d / "dst.env", "FIRST=1\n")
-            self.assertFalse(mod.install_file(str(d / "src.env"), str(d / "dst.env")))
+            self.assertFalse(mod.install_file(str(d / "src.env"), str(d / "dst.env"), stage))
             self.assertEqual((d / "dst.env").read_text(), "FIRST=1\n")
-        with self.case("worktree_copy: an absent destination is created, with the contents"):
-            self.assertTrue(mod.install_file(str(d / "src.env"), str(d / "fresh.env")))
+        with self.case("worktree_copy: an absent destination is created, with the contents, "
+                       "and the stage is left empty"):
+            self.assertTrue(mod.install_file(str(d / "src.env"), str(d / "fresh.env"), stage))
             self.assertEqual((d / "fresh.env").read_text(), "NEW=1\n")
+            self.assertEqual(os.listdir(stage), [])
+        with self.case("worktree_copy: a copy cut off mid-write never appears at the destination "
+                       "(codex review, PR #184)"):
+            real = mod.shutil.copyfileobj
+
+            def cut_off(fin, fout):
+                fout.write(fin.read(2))
+                raise KeyboardInterrupt  # what a killed process never gets to catch
+            mod.shutil.copyfileobj = cut_off
+            try:
+                with self.assertRaises(KeyboardInterrupt):
+                    mod.install_file(str(d / "src.env"), str(d / "cut.env"), stage)
+            finally:
+                mod.shutil.copyfileobj = real
+            self.assertFalse(os.path.lexists(d / "cut.env"))

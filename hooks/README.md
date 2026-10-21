@@ -127,7 +127,8 @@ so a shell continuation inside `git worktree add` still escalates),
   local key `worktree_copy` lists (`bin/roz-config`; absent → `.env`, `""` →
   none) from the main checkout, `config_block.main_checkout()`, when the
   source exists and the destination does not.
-- **Files only.** A directory or a `.gitignore` is reported, never copied,
+- **Files only.** A directory or a `.gitignore` (in any case: `.GITIGNORE`
+  is the same file on a case-insensitive volume) is reported, never copied,
   and `bin/roz-config` refuses either on write. A plain file changes no
   ignore rule, so the check before the copy still holds after it. A
   directory or an ignore file could unignore something a commit then picks
@@ -137,9 +138,11 @@ so a shell continuation inside `git worktree add` still escalates),
   file would sit there untracked for a commit to pick up, so it is
   reported instead.
 - It copies contents and never links: a symlinked `.env` arrives as the
-  file it points to. A file is created exclusively (`O_EXCL`), so a
-  concurrent run never replaces another's copy, and a failed copy removes
-  what it created.
+  file it points to. A copy is written to a stage in
+  `<git-common-dir>/roz-gate/stage/` and published with a hard link, which
+  creates the destination only if it does not exist. So a concurrent run
+  never replaces another's copy, and a run cut off mid-copy leaves neither a
+  truncated file nor a stray one in the worktree.
 - It never overwrites, never writes back, and never touches a worktree of
   yours. A bare repository is skipped.
 - It normalizes each entry as git names it (`./x` → `x`) and drops
