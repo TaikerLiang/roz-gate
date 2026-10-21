@@ -43,7 +43,8 @@ agents are forbidden to guess.
 
 - Claude Code with this plugin installed — 2.1.287 or later for
   `/roz-gate:config` without a model turn (earlier versions run its prompt)
-  and for the seat pane (earlier versions show none)
+  — and 2.1.289 or later for the seat pane, which needs one agent id across
+  hook events (earlier versions show none, or only standby)
 - `gh` (GitHub) **or** `glab` (GitLab) authenticated for the repo's host
 - A git repo on that forge, with issues and PRs/MRs enabled
 - A test runner invocable from the CLI
@@ -382,7 +383,7 @@ key and type the value, no model turn; where mods do not load, the prompt
 runs as the menu. Either way the write is done by the plugin's
 `bin/roz-config`, a stdlib Python tool, never by the model or the mod.
 
-On the same Claude Code a second mod, the **seat pane**
+On Claude Code 2.1.289 or later a second mod, the **seat pane**
 (`hooks/seat-pane.tsx`), opens a `Roz Gate` side pane when the first seat
 starts in a session: each seat running now is an animated 8-bit Roz —
 product swims, em puts its shades on, implementer surfs, qa squats,

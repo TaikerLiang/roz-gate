@@ -325,7 +325,9 @@ hooks a tool call (lint L8). Where mods do not load — an older Claude Code,
 fallback. A Claude Code that predates mods ignores the `modules` key and
 still loads the guards (checked on 2.1.200 and 2.1.286).
 
-`seat-pane.tsx` draws the seats running now in a side pane (#172), each an
+`seat-pane.tsx` (2.1.289 or later: it matches `agent.spawn`'s id against
+`$.agent.list()`, one id across hook events since that release) draws the
+seats running now in a side pane (#172), each an
 animated 8-bit Roz from `seat-sprites.ts`. An `agent.spawn` hook notes a
 seat as it starts — by its default agent type only (`roz-gate:product`,
 `roz-gate:em`, `implementer`, `roz-gate:qa`, `roz-gate:reviewer`), so a

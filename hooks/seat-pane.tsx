@@ -1,8 +1,10 @@
 // The seat pane (#172): the seats running now, each an animated 8-bit Roz.
 // It only watches — an `agent.spawn` hook notes a seat as it starts, a timer
 // reads `$.agent.list()` for its status; it never writes a file, runs a
-// process, reaches the network or a model, or refuses a spawn. Where mods do
-// not load (Claude Code < 2.1.287) there is simply no pane.
+// process, reaches the network or a model, or refuses a spawn. It needs
+// Claude Code 2.1.289 or later: `agent.spawn`'s agentId is the id
+// `$.agent.list()` gives only since then (codex review, PR #187); where mods
+// do not load there is simply no pane.
 import type { AgentStatus, EngineInterface, Register } from 'claude-code'
 
 import { BIG, SEATS, lines } from './seat-sprites'
