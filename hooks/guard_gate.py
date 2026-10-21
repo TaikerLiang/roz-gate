@@ -88,8 +88,9 @@ pattern. Nine rules, each the mechanical form of existing protocol text:
      prevent. A Bash call holding such an add and any other top-level
      command (``&&``, ``||``, ``;``, ``|``, ``&``, a second line) is a deny.
      The add is the loop's when ``roz-gate/wt`` sits in the add's own
-     segment; your own add beside a mention elsewhere in the call (a
-     heredoc, a later command) is not judged.
+     segment, or a variable set to it (``wt=…/roz-gate/wt/…``) does; your
+     own add beside a mention elsewhere in the call (a heredoc, a later
+     command) is not judged.
      Top level: outside quotes and ``$(…)`` / backticks; ``2>&1`` and
      ``&>`` are redirects, and a backslash-newline continues the line. An
      add found anywhere outside quotes — inside ``{ …; }``, ``if …; then``,
@@ -1103,10 +1104,15 @@ def check_worktree_add_alone(cmd):
         return
     cmd = cmd.replace("\\\n", " ")          # the shell joins a continuation first
     segs = top_level_segments(cmd)
-    # the loop's add names `roz-gate/wt` in its own segment; an unrelated add
-    # beside a mention elsewhere (a heredoc, a later echo) is not judged
+    # the loop's add names `roz-gate/wt` in its own segment, or a variable an
+    # earlier segment set to it (`wt=…/roz-gate/wt/…; git worktree add "$wt"`,
+    # codex review PR #186); an unrelated add beside a mention elsewhere (a
+    # heredoc, a later echo) is not judged
+    names = {m.group(1) for m in (re.match(r"(?:export\s+)?(\w+)=", seg)
+                                  for seg in segs if "roz-gate/wt" in seg) if m}
+    loop = re.compile("|".join([r"roz-gate/wt"] + [r"\$\{?%s\b" % n for n in names]))
     found = next((m for m in (WT_ADD_ANYWHERE.search(unquoted(seg))
-                              for seg in segs if "roz-gate/wt" in seg) if m), None)
+                              for seg in segs if loop.search(seg)) if m), None)
     if not found:
         return
     if re.search(r"\s-[Cc]\s", found.group(0)):
