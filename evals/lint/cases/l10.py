@@ -49,3 +49,12 @@ c.expect("pattern", "L10: hooks.json registers sync-worktree.sh as PostToolUse o
              for e in _hooks.get("PostToolUse", [])))
 c.expect("pattern", "L10: hooks/README.md explains the worktree copy",
          "## The worktree copy" in read("hooks/README.md"))
+# Codex review, PR #184: the copy lands when the call returns — the add runs
+# alone, and guard-gate rule J denies a chain.
+c.expect("pattern", "L10: workflow.md says the loop's worktree add runs alone (rule J)",
+         "the `git worktree add` **runs alone**" in flat("references/workflow.md")
+         and "guard-gate rule J denies the chain" in flat("references/workflow.md"))
+c.expect("pattern", "L10: hooks/README.md lists rule J",
+         "| **J** the loop's worktree add runs alone |" in read("hooks/README.md"))
+c.expect("pattern", "L10: guard-gate wires rule J",
+         "    check_worktree_add_alone(cmd)\n" in read("hooks/guard_gate.py"))
