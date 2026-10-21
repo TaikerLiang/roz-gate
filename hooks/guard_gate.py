@@ -87,6 +87,10 @@ pattern. Nine rules, each the mechanical form of existing protocol text:
      <test>`` — runs without them, the harness red the copy exists to
      prevent. A Bash call holding such an add and any other top-level
      command (``&&``, ``||``, ``;``, ``|``, ``&``, a second line) is a deny.
+     The add is the loop's when ``roz-gate/wt`` sits in the add's own
+     segment, or a variable set to it (``wt=…/roz-gate/wt/…``) does; your
+     own add beside a mention elsewhere in the call (a heredoc, a later
+     command) is not judged.
      Top level: outside quotes and ``$(…)`` / backticks; ``2>&1`` and
      ``&>`` are redirects, and a backslash-newline continues the line. An
      add found anywhere outside quotes — inside ``{ …; }``, ``if …; then``,
@@ -1099,13 +1103,21 @@ def check_worktree_add_alone(cmd):
     if "worktree" not in cmd or "roz-gate/wt" not in cmd:
         return
     cmd = cmd.replace("\\\n", " ")          # the shell joins a continuation first
-    bare = unquoted(cmd)
-    found = WT_ADD_ANYWHERE.search(bare)
+    segs = top_level_segments(cmd)
+    # the loop's add names `roz-gate/wt` in its own segment, or a variable an
+    # earlier segment set to it (`wt=…/roz-gate/wt/…; git worktree add "$wt"`,
+    # codex review PR #186); an unrelated add beside a mention elsewhere (a
+    # heredoc, a later echo) is not judged
+    names = {n for seg in segs if "roz-gate/wt" in seg
+             for n, v in re.findall(r"""(?:^|\s)(\w+)=((?:"[^"]*"|'[^']*'|\$\([^)]*\)|[^\s"'])*)""",
+                                    seg) if "roz-gate/wt" in v}
+    loop = re.compile("|".join([r"roz-gate/wt"] + [r"\$\{?%s\b" % n for n in names]))
+    found = next((m for m in (WT_ADD_ANYWHERE.search(unquoted(seg))
+                              for seg in segs if loop.search(seg)) if m), None)
     if not found:
         return
     if re.search(r"\s-[Cc]\s", found.group(0)):
         deny(RULE_J_C_MSG)
-    segs = top_level_segments(cmd)
     if not (len(segs) == 1 and LOOP_WT_ADD.match(segs[0])):
         deny(RULE_J_MSG)
 
