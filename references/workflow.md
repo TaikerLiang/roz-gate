@@ -365,7 +365,13 @@ itself — while a scheduled patrol fires and auto-invokes `next-stage`,
 working surface is a linked worktree**, never your checkout: it creates
 `$(git rev-parse --git-common-dir)/roz-gate/wt/<branch>` with `git worktree
 add` at its branch step, and every checkout, merge, commit, test run and
-seat dispatch happens inside it (`cd` there or `git -C`). The commit itself
+seat dispatch happens inside it (`cd` there or `git -C`). Gitignored files
+are not in a fresh worktree, so the plugin's `sync-worktree` hook fills it as
+`git worktree add` returns: your gitignored files (`worktree_copy`, default `.env`) are copied in from
+your checkout, never overwriting, never written back (#122). The copy lands
+when the Bash call returns, so the `git worktree add` **runs alone**, as its own
+call, from inside the repository (never `git -C <dir>`) — anything chained
+after it would run without the files; guard-gate rule J denies the chain. The commit itself
 is made by the **commit sub-agent** (`references/commit-brief.md`) dispatched
 into that worktree — the target repo's pre-commit output lands in its
 context, never the main agent's, for the same reason patrol's scan is a

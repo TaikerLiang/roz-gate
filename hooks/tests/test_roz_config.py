@@ -61,7 +61,8 @@ class RozConfigTest(unittest.TestCase):
             self.assertEqual(json.loads(self.run_tool("--json").stdout),
                              {"default_branch": "release/20261006",
                               "inbox_label": [], "inbox_assignee": [], "helper_model": "",
-                              "branch_user": "", "branch_template": ""})
+                              "branch_user": "", "branch_template": "",
+                              "worktree_copy": [".env"]})
 
     # ---- writes ---------------------------------------------------------
     def test_set_replace_remove_default_branch(self):
@@ -285,7 +286,8 @@ class RozConfigTest(unittest.TestCase):
             self.assertEqual(json.loads(p.stdout),
                              {"default_branch": "release/20261006",
                               "inbox_label": ["discuss", "idea"], "inbox_assignee": ["paul"],
-                              "helper_model": "", "branch_user": "", "branch_template": ""})
+                              "helper_model": "", "branch_user": "", "branch_template": "",
+                              "worktree_copy": [".env"]})
             self.assertTrue((self.root / REL).exists())
             self.run_tool("default_branch")        # remove the override …
             p = self.run_tool("--json")
@@ -342,6 +344,49 @@ class RozConfigTest(unittest.TestCase):
             self.assertEqual(p.returncode, 2)
             self.assertIn("takes one value", p.stderr)
             self.assertFalse((self.root / REL).exists())
+
+    # ---- worktree_copy (#122) -------------------------------------------
+    def test_worktree_copy_default_set_none_remove(self):
+        with self.subTest('roz-config: worktree_copy defaults to .env, sets a list, "" = none, '
+                          'removed back to .env'):
+            self.assertIn("worktree_copy    .env  (default: .env)", self.run_tool().stdout)
+            p = self.run_tool("worktree_copy", ".env, config/db.yml")
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(self.stored(), {"worktree_copy": [".env", "config/db.yml"]})
+            self.assertEqual(json.loads(self.run_tool("--json").stdout)["worktree_copy"],
+                             [".env", "config/db.yml"])
+            for none in ("", '""'):      # the shell's empty argument; the pane's two quotes
+                p = self.run_tool("worktree_copy", none)
+                self.assertEqual(p.returncode, 0, p.stderr)
+                self.assertEqual(self.stored(), {"worktree_copy": ""})
+                self.assertEqual(json.loads(self.run_tool("--json").stdout)["worktree_copy"], [])
+                self.assertIn("worktree_copy    none", self.run_tool().stdout)
+            p = self.run_tool("worktree_copy")
+            self.assertIn("removed the override", p.stdout)
+            self.assertEqual(json.loads(self.run_tool("--json").stdout)["worktree_copy"],
+                             [".env"])
+
+    def test_worktree_copy_lists_files_only(self):
+        (self.root / "config").mkdir()
+        for bad, why in (("config", "is a directory"), ("config/", "is a directory"),
+                         (".gitignore", "ignore-rule file"),
+                         ("config/.gitignore", "ignore-rule file"),
+                         ("config/.GITIGNORE", "ignore-rule file")):
+            with self.subTest("roz-config: worktree_copy refuses %s (files only), writes "
+                              "nothing" % bad):
+                p = self.run_tool("worktree_copy", ".env, " + bad)
+                self.assertEqual(p.returncode, 2)
+                self.assertIn(why, p.stderr)
+                self.assertFalse((self.root / REL).exists())
+
+    def test_worktree_copy_refuses_paths_outside_the_repo(self):
+        for bad in ("../secret", "/etc/hosts", "config/../../x", "~/.env"):
+            with self.subTest("roz-config: worktree_copy refuses %s, writes nothing" % bad):
+                p = self.run_tool("worktree_copy", ".env, " + bad)
+                self.assertEqual(p.returncode, 2)
+                self.assertIn("not a path inside the repository", p.stderr)
+                self.assertFalse((self.root / REL).exists())
+
 
 if __name__ == "__main__":
     unittest.main()

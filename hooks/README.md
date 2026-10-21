@@ -26,10 +26,11 @@ The files:
 
 | file | what it is |
 |---|---|
-| `hooks.json` | the registry: which event (`PreToolUse` only, today), which tools (matcher), which `.sh` runs |
-| `guard-gate.sh` · `guard_gate.py` | Bash commands — rules A–D, F–I |
+| `hooks.json` | the registry: which event (`PreToolUse` for the guards, `PostToolUse` for the worktree copy), which tools (matcher), which `.sh` runs |
+| `guard-gate.sh` · `guard_gate.py` | Bash commands — rules A–D, F–J |
 | `guard-blind.sh` · `guard_blind.py` | Bash / Read / Glob / Grep during an implementation-blind dispatch — the fidelity review, or QA's own since 2.0.0 — rule E |
 | `guard-acceptance.sh` · `guard_acceptance.py` | Edit / Write / MultiEdit on a spec branch (`spec/<n>`, or whatever `branch_template` renders) — the acceptance rule |
+| `sync-worktree.sh` · `sync_worktree.py` | PostToolUse · Bash, after a `git worktree add` — [the worktree copy](#the-worktree-copy) (#122) |
 | `config_block.py` | the config block's reader: `CLAUDE.md`, then `CLAUDE.local.md`, in the toplevel, then in the main checkout (`core.worktree` when set, else the common git dir's parent — a separate git dir without `core.worktree` is unreachable from a linked worktree: keep the block in the tracked `CLAUDE.md` there) — the first block wins, whole |
 | `tests/test_guard_*.py` | the cases, one file per guard, one class per rule: synthetic hook input in, exit code and stderr asserted |
 | `tests/test_fixtures.py` | every fixture carries the fields the guard reads |
@@ -64,6 +65,7 @@ Any "no" → a replay case, not a hook, and never prose alone.
 | **G** a STOP comment names its resume move | `guard-gate` · Bash | a comment-shaped forge write (rule C's detection, `--body-file` read back, heredoc parsed) whose body carries the STOP title `**[<command>] · blocked**` alone on a line and whose must-read (the text before the first `<details`) does not end on a line opening `**To resume:**` | end the must-read with `**To resume:** clear status: blocked, apply status: <phase> — yourself, or tell the main agent; <where the answer goes>` — the command's STOP section names its phase and channel | static, no API; the title carries `**[`, so the prefilter already escalates it; a STOP comment posted without the title is not seen — the title is the protocol's fixed first line and lint C18 anchors it in every STOP section; a resume line hard-wrapped onto two source lines, or followed by more must-read prose, is denied — the visible direction, and the remedy is one line (#98; codex review, PR #114) |
 | **H** a CR declares its contract deviations | `guard-gate` · Bash | a CR-OPEN (`gh pr create`, `glab mr create`; per shell segment) whose head's diff against its base (`--base`/`--head`, `--target-branch`/`--source-branch`; head absent → `HEAD`; base absent → gh's own default, the head branch's `branch.<head>.gh-merge-base` config, else `origin/HEAD`; a ref resolved as given, else as `origin/<ref>`) touches `<specs_dir>/*/technical-spec.md` and whose body (`--body`, `--body-file` read back, heredoc parsed, `--description`) has no line opening `## Contract deviations` | add the section — one bullet per changed clause, or `none` — and retry (next-stage B4) | one `git diff --name-only <base>...<head>`, no API; a diff that cannot be computed fails **closed** with a message that says the diff failed and names the refs to fetch, not the protocol; a body the guard cannot read fails closed; a repo without a config block is not a roz-gate project and is left alone (#140, 2.0.0) |
 | **I** an intake reply answers a human | `guard-gate` · Bash | a comment-shaped forge write (rule C's detection, `--body-file` read back, heredoc parsed) whose body **opens** with `**[intake] · reply**` — a mention of the marker is not one — on an issue where no human comment follows the latest agent `**[intake]` comment, or with no human gate holder, or wearing a gate label (finalize owns it). Not human: a body opening with an agent marker (`**[` / `✅ [`; the only test in user mode, where the agent posts as the holder's own login), a `bot_login`, or the forge's bot shape — GitHub REST `user.type` `Bot` or a `[bot]` login, GitLab a `project_<id>_bot_` / `group_<id>_bot_` username, system notes dropped (the gate-label audit's, `references/patrol-scan.md`); in bot mode the latest `**[intake]` comment must be the bot's; the holder excludes the forge's bot shape too (GitHub's `author.is_bot`), configured or not, and one command carrying two replies to one issue is denied — each segment is judged against the same pre-command state (codex review, PR #175) | wait for a human comment — the thread is the humans' until then; finalize when a gate label is present | GitHub reads REST `issues/<n>/comments --paginate` — `gh issue view --json comments` carries neither the type nor the `[bot]` suffix — and GitLab its notes with `--paginate` (a page is 100 notes; codex review, PR #175); a second reply in one pass is denied by construction (the first is the latest `**[intake]` comment); forge API failure fails **closed**, as rule A (#174, 2.5.0) |
+| **J** the loop's worktree add runs alone | `guard-gate` · Bash | a Bash call holding the loop's `git worktree add …/roz-gate/wt/…` anywhere outside quotes (a quoted single word counts as that word; a quoted string with spaces is one opaque word) that is not exactly that add and nothing else. That covers a chain (`&&`, `||`, `;`, `|`, a second line), a wrapped add (`{ …; }`, `if …; then`, a subshell) and a backgrounded one (a trailing `&`). Segments split outside quotes, `$(…)` and backticks; `2>&1` / `&>` are redirects; a shell continuation is joined and an escaped space stays part of its word. Also denied, even alone: `git -C <dir> worktree add …/roz-gate/wt/…` | run the `git worktree add` line by itself, from inside the repository, then continue in the next call | static, no API; the `sync-worktree` PostToolUse hook copies your gitignored files only once the call returns, and finds the new worktree from the call's own directory, so a chained `&& cd … && <test>` would run without `.env` (the harness red #122 exists to remove); your own worktrees, outside `roz-gate/wt`, are not judged; variable indirection (`$GIT worktree add`) is out of reach. The rule guards against a model's chained call, not an adversary (codex review, PR #184) |
 | **acceptance** | `guard-acceptance` · Edit, Write, MultiEdit | on a spec branch — `spec/*`, or HEAD matching your `branch_template` (the local file, `.claude/roz-gate.local.json`, here or in the main checkout — #165) rendered for the spec kind — a write under `<acceptance_dir>` | make the change on `qa/<n>`, merge it in | branch-and-path only; no exemption list |
 
 ## The dispatch marker (rule E)
@@ -108,6 +110,60 @@ The prefilter is one git call plus one stat. **Stale marker = rule still
 ON**: if a dispatch crashed and a later, non-blind read is denied, the deny
 message names the file to remove. `agent_type` from the hook input is
 reported in the message but never relied on.
+
+## The worktree copy
+
+Not a guard: it never blocks. Every loop command works in a linked worktree
+under `$(git rev-parse --git-common-dir)/roz-gate/wt/<branch>`, and a
+gitignored file such as `.env` is not in a fresh one, so a repo whose `test`
+loads it went red there for harness reasons (#122). After any Bash command
+that mentions `worktree` (`sync-worktree.sh`, the prefilter; the word alone,
+so a shell continuation inside `git worktree add` still escalates),
+`sync_worktree.py` does the following:
+
+- It reads `git worktree list --porcelain`, never the command text, whose
+  path is the unexpanded `$(git rev-parse --git-common-dir)/…`.
+- For every worktree under `<common>/roz-gate/wt/`, it copies each file the
+  local key `worktree_copy` lists (`bin/roz-config`; absent → `.env`, `""` →
+  none) from the main checkout, `config_block.main_checkout()`, when the
+  source exists and the destination does not.
+- **Files only.** A directory or a `.gitignore` (in any case: `.GITIGNORE`
+  is the same file on a case-insensitive volume) is reported, never copied,
+  and `bin/roz-config` refuses either on write. A plain file changes no
+  ignore rule, so the check before the copy still holds after it. A
+  directory or an ignore file could unignore something a commit then picks
+  up; Codex found that class six times over on PR #184 before the key was
+  narrowed (ruling (a), 2026-10-21).
+- It copies a file only if git ignores it in the worktree, judged with the
+  index, so a tracked file never counts as ignored. An unignored or tracked
+  file copied in would be a change a commit could pick up, so it is
+  reported instead.
+- It copies contents and never links: a symlinked `.env` arrives as the
+  file it points to. A copy is written to a stage in
+  `<git-common-dir>/roz-gate/stage/` and published with a hard link, which
+  creates the destination only if it does not exist. So a concurrent run
+  never replaces another's copy, and a run cut off mid-copy leaves neither a
+  truncated file nor a stray one in the worktree. The next run sweeps a
+  stage file older than ten minutes. A destination's directories are made
+  one level at a time below the worktree's root, so a worktree another
+  command just removed is never recreated.
+- It never overwrites, never writes back, and never touches a worktree of
+  yours. A bare repository is skipped, and so is a checkout that cannot
+  prove itself: the main checkout's own `--git-common-dir` must be this
+  repository's, and it must be its own `--show-toplevel`. A separate git dir with no `core.worktree` leaves only a
+  guess, the git dir's parent, and a guess is never a source of files.
+- It normalizes each entry as git names it (`./x` → `x`) and drops
+  duplicates. It silently drops an absolute path, a `..` path or a path
+  outside the checkout, judged as written, so a `.env` linked to a shared
+  file elsewhere is still copied.
+- What it copied, or why not, goes back to the agent as PostToolUse
+  `additionalContext`, and the exit is 0 either way.
+- The copy lands when the whole Bash call returns, so the loop's `git
+  worktree add` must be the call's only command: rule J denies a chain, a
+  wrapped add, and a backgrounded one.
+
+`tests/test_sync_worktree.py` runs each case on a real repo and a real
+`git worktree add`.
 
 ## This repo's own gates (not plugin hooks)
 

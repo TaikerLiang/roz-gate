@@ -10,6 +10,7 @@ const COMMAND = 'roz-gate:config'
 const PANE = 'roz-gate-config'
 const KEYS = [
   'default_branch', 'inbox_label', 'inbox_assignee', 'helper_model', 'branch_user', 'branch_template',
+  'worktree_copy',
 ]
 const HINT: Record<string, string> = {
   default_branch: "one branch; empty = the remote's HEAD",
@@ -18,6 +19,7 @@ const HINT: Record<string, string> = {
   helper_model: "one model id; empty = the runtime's",
   branch_user: 'one forge login; empty = yours',
   branch_template: 'e.g. {type}/{user}/{n}/{seq}; empty = {kind}/{n}',
+  worktree_copy: 'repo files, comma-separated; empty = .env; "" = none',
 }
 
 type Values = Record<string, string | string[]>

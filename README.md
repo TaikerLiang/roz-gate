@@ -187,7 +187,7 @@ cannot authorize it.
 | `/roz-gate:integrate [n]` | run the stage-(6) verdict: merge what is open (never what is merged), run the acceptance suite, classify red (up to `fix_rounds` rounds), finalize green |
 | `/roz-gate:review-answers [n]` | host one turn of your stage-(7) review: answer your CR comments from the artifacts, dispatch a seat when judgment is needed, change only what you confirm |
 | `/roz-gate:tip <n>` | what does #n need next? reads its labels, CRs, threads and branches and answers in the terminal — your move (with links and the `workflow.md` passage), the loop's move if you do nothing, and what is off when a label pair or a branch is wrong; read-only — no label, no comment, no commit, no lock |
-| `/roz-gate:config` | set one of your six loop keys — the base branch, the inbox label list, the inbox assignee list, the helper model, the branch user, the branch template — from a menu; on Claude Code 2.1.287 or later the plugin's mod answers it with no model turn, the prompt is the fallback; the write is `bin/roz-config`'s, per clone, never committed |
+| `/roz-gate:config` | set one of your seven loop keys — the base branch, the inbox label list, the inbox assignee list, the helper model, the branch user, the branch template, the worktree copy list — from a menu; on Claude Code 2.1.287 or later the plugin's mod answers it with no model turn, the prompt is the fallback; the write is `bin/roz-config`'s, per clone, never committed |
 | `/roz-gate:patrol` | one supervisory pass: a read-only scanner sub-agent classifies every open issue into one table (the main agent's context never holds the forge reads); the main agent invokes whichever command the table authorizes, triages the inbox, reports what waits on you |
 | `/roz-gate:uninit` | retire the loop from this repo: verify nothing is in flight, remove the scaffolding `init` installed, keep every work product — run before `/plugin uninstall` |
 
@@ -368,9 +368,12 @@ checkout and in the main worktree:
 under `.git/roz-gate/wt/<branch>`), never in your checkout — a tool that
 resolves `.git` as a directory (Maven's git-commit-id plugin, some version
 plugins) needs its worktree-safe flag (`-Dmaven.gitcommitid.skip=true`), or
-the first integration red is a harness issue, not a verdict.
+the first integration red is a harness issue, not a verdict. Gitignored
+files are not in a fresh worktree, so the plugin's `sync-worktree` hook
+fills it as `git worktree add` returns: your gitignored files (`worktree_copy`, default `.env`) are copied in
+from your checkout, never overwriting, never written back (#122).
 
-Six keys are **yours, per clone** — never in the block, never committed.
+Seven keys are **yours, per clone** — never in the block, never committed.
 `/roz-gate:config` shows them and sets one from a menu; with arguments it
 skips the menu. On Claude Code 2.1.287 or later the plugin's mod
 (`hooks/config-menu.tsx`) answers the command itself — a pane to pick the
@@ -386,6 +389,7 @@ runs as the menu. Either way the write is done by the plugin's
 /roz-gate:config helper_model <model id>          # patrol's scanner and every command's commit sub-agent (default: the runtime's; seats are never configured)
 /roz-gate:config branch_user <login>              # the {user} slot of branch_template (default: your forge login)
 /roz-gate:config branch_template {type}/{user}/{n}/{seq}  # your branch names (default: {kind}/{n}); see "Branch names"
+/roz-gate:config worktree_copy .env, config/db.yml  # gitignored files (files only) copied into the loop's worktrees (default: .env; "" = none)
 /roz-gate:config inbox_label                      # no value = back to the default
 ```
 

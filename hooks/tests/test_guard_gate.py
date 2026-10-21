@@ -1,4 +1,4 @@
-"""guard-gate (Bash): rules A-D, F-I. See hooks/README.md for each rule's predicate.
+"""guard-gate (Bash): rules A-D, F-J. See hooks/README.md for each rule's predicate.
 
 A case table is (name, command) for allowed cases and (name, command,
 stderr substring) for denied ones.
@@ -1035,3 +1035,76 @@ class RuleH_CrOpenDeclaresDeviations(HookTest):
             self.assertAllowed(self.bash(self.CR % "Closes #5", repo))
         with self.case("rule H: outside any git repo — allowed (nothing to diff, not a project)"):
             self.assertAllowed(self.bash(self.CR % "Closes #5", self.new_dir()))
+
+
+ADD = "git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/spec/5 -B spec/5 main"
+
+
+class RuleJ_LoopWorktreeAddRunsAlone(HookTest):
+    """2.6.0 (#122, codex review PR #184): sync-worktree copies your
+    gitignored files only once the Bash call returns, so the loop's
+    `git worktree add` is the call's only command. Static, no API."""
+
+    guard = "guard-gate"
+
+    DENIED = [
+        ("rule J: add && cd && test", ADD + " && cd .git/roz-gate/wt/spec/5 && pytest"),
+        ("rule J: add ; next", ADD + "; ls"),
+        ("rule J: add, then a second line", ADD + "\ncd .git/roz-gate/wt/spec/5"),
+        ("rule J: something before the add", "git fetch && " + ADD),
+        ("rule J: add piped", ADD + " | tee add.log"),
+        ("rule J: add || fallback", ADD + " || true"),
+        ("rule J: add backgrounded, then more", ADD + " & sleep 1"),
+        ("rule J: git -C <dir> worktree add, chained",
+         "git -C /repo worktree add /repo/.git/roz-gate/wt/qa/5 -B qa/5 origin/spec/5 && cd /x"),
+        ("rule J: the add in a { …; } group, then a test",
+         "{ " + ADD + "; } && pytest"),
+        ("rule J: the add as an if condition", "if " + ADD + "; then pytest; fi"),
+        ("rule J: the add in a subshell", "(" + ADD + ")"),
+        ("rule J: `git worktree \\<newline>add`, chained — the shell joins it",
+         ADD.replace("worktree add", "worktree \\\nadd") + " && pytest"),
+        ("rule J: the add backgrounded with a trailing &", ADD + " >/dev/null 2>&1 &"),
+        ("rule J: a quoted command word — `'git' worktree add`, chained",
+         "'git' worktree add .git/roz-gate/wt/spec/5 -B spec/5 main && pytest"),
+        ("rule J: `\"worktree\"` / `g''it` spellings, chained",
+         'g\'\'it "worktree" add .git/roz-gate/wt/spec/5 -B spec/5 main && pytest'),
+        ("rule J: a quoted -C directory with spaces, chained",
+         'git -C "/tmp/repo with spaces" worktree add .git/roz-gate/wt/spec/5 -B spec/5 main '
+         "&& pytest"),
+        ("rule J: a shell-escaped -C directory with spaces, chained",
+         "git -C /tmp/repo\\ with\\ spaces worktree add .git/roz-gate/wt/spec/5 -B spec/5 main "
+         "&& pytest"),
+        ("rule J: the path quoted, chained",
+         'git worktree add "$(git rev-parse --git-common-dir)/roz-gate/wt/qa/5" qa/5 && pytest'),
+    ]
+    ALLOWED = [
+        ("rule J: the add alone", ADD),
+        ("rule J: the add alone, a redirect is not a separator", ADD + " 2>&1"),
+        ("rule J: the add alone, continued over two lines", ADD.replace(" -B", " \\\n  -B")),
+        ("rule J: your own worktree, chained — not the loop's",
+         "git worktree add ../mine -b mine && cd ../mine"),
+        ("rule J: the loop's path mentioned in a quoted body, chained",
+         'gh issue comment 5 --body "ran git worktree add x/roz-gate/wt/a && cd" && echo ok'),
+        ("rule J: a quoted string holding `&& git worktree add …/roz-gate/wt/…`",
+         'echo "next: && git worktree add x/roz-gate/wt/b b" && true'),
+        ("rule J: removing a loop worktree, chained",
+         "git worktree remove --force .git/roz-gate/wt/spec/5 && git worktree prune"),
+    ]
+
+    def test_denied(self):
+        for name, cmd in self.DENIED:
+            with self.case(name):
+                self.assertDenied(self.bash(cmd), "runs alone")
+
+    def test_allowed(self):
+        for name, cmd in self.ALLOWED:
+            with self.case(name):
+                self.assertAllowed(self.bash(cmd))
+        with self.case("rule J: `git -C <dir> worktree add` alone is denied — the copy finds the "
+                       "worktree from the call's own directory (codex review, PR #184)"):
+            self.assertDenied(self.bash("git -C /repo worktree add /repo/.git/roz-gate/wt/qa/5 "
+                                        "-B qa/5 origin/spec/5"), "from inside the repository")
+        with self.case("rule J: made no API call"):
+            self.bash(ADD + " && pytest")
+            self.assertEqual(self.api_calls(), [])
+

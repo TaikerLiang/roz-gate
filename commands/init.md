@@ -38,7 +38,9 @@ user, one compact block, not twenty questions:
   checkout — a tool that resolves `.git` as a directory (Maven's
   git-commit-id plugin, some version plugins) needs its worktree-safe flag
   (`-Dmaven.gitcommitid.skip=true`), or the first integration red is a
-  harness issue, not a verdict.
+  harness issue, not a verdict. Say too that your gitignored files (`worktree_copy`, default `.env`) are copied in by the plugin's
+  `sync-worktree` hook — a `test` that loads `.env` finds it there; other
+  files go in with `/roz-gate:config worktree_copy` (#122).
 - `env_sync` — dependency install/sync command (e.g. `uv sync`, `npm ci`)
 - `lockfile` + `lockfile_regen` (e.g. `uv.lock` / `uv lock`;
   `package-lock.json` / `npm install --package-lock-only`)

@@ -2,7 +2,7 @@
 """Roz Gate enforcement — layer 2: trigger validation.
 
 Invoked by guard-gate.sh only when a Bash command mentions a guarded
-pattern. Eight rules, each the mechanical form of existing protocol text:
+pattern. Nine rules, each the mechanical form of existing protocol text:
 
   A. An ``**[intake] · summary**`` comment may be posted only when the
      async-intake trigger holds (commands/patrol.md step 2): a gate label
@@ -78,6 +78,25 @@ pattern. Eight rules, each the mechanical form of existing protocol text:
      --json comments`` carries neither the type nor the suffix. A second
      reply in one pass is denied by construction — the first is the latest
      ``**[intake]`` comment.
+  J. The loop's ``git worktree add`` runs alone (references/workflow.md
+     § The workspace; issue #122, codex review PR #184). The plugin's
+     PostToolUse hook ``sync-worktree`` copies your gitignored files
+     (``worktree_copy``, default ``.env``) into a worktree under
+     ``<git-common-dir>/roz-gate/wt/`` only once the Bash call returns, so
+     a command chained after the add in the same call — ``&& cd … &&
+     <test>`` — runs without them, the harness red the copy exists to
+     prevent. A Bash call holding such an add and any other top-level
+     command (``&&``, ``||``, ``;``, ``|``, ``&``, a second line) is a deny.
+     Top level: outside quotes and ``$(…)`` / backticks; ``2>&1`` and
+     ``&>`` are redirects, and a backslash-newline continues the line. An
+     add found anywhere outside quotes — inside ``{ …; }``, ``if …; then``,
+     a subshell — passes only as the call's one and only command, and never
+     backgrounded with a trailing ``&`` (the call would return before the
+     worktree exists). Shell continuations are joined first, so ``git
+     worktree <backslash-newline>add`` is the add it runs as, and an escaped
+     space joins its word. ``git -C <dir> worktree add`` is denied outright:
+     the copy finds the worktree from the call's own directory (codex review,
+     PR #184).
 
 Exit 0 allows the tool call; exit 2 blocks it and feeds stderr to the
 model. Forge API failures fail closed, with a message that says it is an
@@ -132,6 +151,11 @@ REPLY_OPEN = re.compile(r"^\s*\*\*\[intake\] · reply\*\*")
 INTAKE_OPEN = re.compile(r"^\s*\*\*\[intake\]")
 FORGE_BOT = re.compile(r"\[bot\]$|^(?:project|group)_\d+_bot_")
 API_TIMEOUT = 20
+# Rule J: the loop's worktree add — `git` (with `-C <dir>` / `-c k=v` before
+# the verb) `worktree add`. LOOP_WT_ADD is the whole call; WT_ADD_ANYWHERE
+# finds one inside any shell form (`{ …; }`, `if …; then`, a subshell).
+LOOP_WT_ADD = re.compile(r"^\s*git(?:\s+-[Cc]\s+\S+)*\s+worktree\s+add\b")
+WT_ADD_ANYWHERE = re.compile(r"\bgit\b(?:\s+-[Cc]\s+\S+)*\s+worktree\s+add\b")
 
 RULE_B_MSG = (
     "Roz Gate: blocked — gate labels (ready-for-spec / ready-for-dev) are "
@@ -263,6 +287,25 @@ NO_HOLDER_MSG = (
     "and retry."
 )
 
+
+RULE_J_C_MSG = (
+    "Roz Gate: blocked — the loop's `git worktree add` runs alone, from inside "
+    "the repository, never as `git -C <dir> worktree add`: the plugin's "
+    "sync-worktree hook finds the new worktree from the call's own directory, "
+    "so an add aimed elsewhere gets none of your gitignored files "
+    "(`worktree_copy`, default `.env`). `cd` into the repository in one call, "
+    "then run the add alone in the next (references/workflow.md § The workspace)."
+)
+
+RULE_J_MSG = (
+    "Roz Gate: blocked — the loop's `git worktree add` runs alone, as its own "
+    "Bash call (references/workflow.md § The workspace). The plugin's "
+    "sync-worktree hook copies your gitignored files (`worktree_copy`, default "
+    "`.env`) into the new worktree only once the call returns, so anything "
+    "chained after it in the same call (`&& cd … && <test>`) runs without "
+    "them. Run the `git worktree add …` line by itself, then continue in the "
+    "next call."
+)
 
 REPLY_MSG = (
     "Roz Gate: blocked — no human comment to answer. An `**[intake] · reply**` "
@@ -965,6 +1008,108 @@ def check_intake_reply(cmd, toks):
         check_reply_trigger(comments, bots)
 
 
+def top_level_segments(cmd):
+    """The command's top-level segments, split on `&&`, `||`, `;`, `|`, `&`
+    and an unescaped newline — never inside quotes, `$(…)` or backticks.
+    `>&` / `&>` are redirects (`2>&1`), not separators. shlex cannot do
+    this: its punctuation split breaks `$(git rev-parse …)` apart."""
+    segs, cur, i, n = [], [], 0, len(cmd)
+    quote, depth, tick = None, 0, False
+    while i < n:
+        ch = cmd[i]
+        if quote:
+            cur.append(ch)
+            if ch == "\\" and quote == '"' and i + 1 < n:
+                cur.append(cmd[i + 1])
+                i += 1
+            elif ch == quote:
+                quote = None
+        elif ch == "\\" and i + 1 < n:      # an escaped char, a newline included
+            cur.append(ch + cmd[i + 1])        # (backslash-newline continues the line)
+            i += 1
+        elif ch in "'\"":
+            quote = ch
+            cur.append(ch)
+        elif ch == "`":
+            tick = not tick
+            cur.append(ch)
+        elif cmd.startswith("$(", i):
+            depth += 1
+            cur.append("$(")
+            i += 1
+        elif ch == ")" and depth:
+            depth -= 1
+            cur.append(ch)
+        elif depth or tick:
+            cur.append(ch)
+        elif ch == "&" and ((i > 0 and cmd[i - 1] == ">") or cmd.startswith(">", i + 1)):
+            cur.append(ch)                    # 2>&1, &>file: a redirect
+        elif ch in "&|;\n":
+            segs.append("".join(cur))
+            cur = []
+            if cmd.startswith(ch * 2, i) and ch in "&|":
+                i += 1
+            elif ch == "&":                   # backgrounded: kept as a segment of
+                segs.append("&")              # its own, so `add &` is not alone
+        else:
+            cur.append(ch)
+        i += 1
+    segs.append("".join(cur))
+    return [seg.strip() for seg in segs if seg.strip()]
+
+
+def unquoted(cmd):
+    """`cmd` as words the shell runs: a quoted string holding one word (no
+    whitespace — `'git'`, `"add"`, the `''` in `g''it`) keeps its contents,
+    since the shell runs it the same; one holding text with spaces (a
+    comment body, a `-C "/repo with spaces"`) becomes the one word `Q` — it
+    is still one argument, never words of its own (codex review, PR #184). Rule J guards against
+    a model's chained call, not an adversary: `$GIT worktree add` is out of
+    its reach."""
+    out, quote, i, held = [], None, 0, []
+    while i < len(cmd):
+        ch = cmd[i]
+        if quote:
+            if ch == "\\" and quote == '"' and i + 1 < len(cmd):
+                held.append(cmd[i + 1])
+                i += 1
+            elif ch == quote:
+                quote = None
+                word = "".join(held)
+                out.append("Q" if any(c.isspace() for c in word) else word)
+                held = []
+            else:
+                held.append(ch)
+        elif ch in "'\"":
+            quote = ch
+        elif ch == "\\" and i + 1 < len(cmd):   # an escaped char is a literal one; an
+            nxt = cmd[i + 1]                 # escaped space joins the word it sits in
+            out.append("_" if nxt in " \t" else "" if nxt == "\n" else nxt)
+            i += 1
+        else:
+            out.append(ch)
+        i += 1
+    return "".join(out)
+
+
+def check_worktree_add_alone(cmd):
+    """Rule J (#122): a call that runs the loop's `git worktree add` runs
+    nothing else — the add, alone, is the whole call; any other shape that
+    holds one (a chain, `{ …; }`, `if …; then`, a subshell) is a deny."""
+    if "worktree" not in cmd or "roz-gate/wt" not in cmd:
+        return
+    cmd = cmd.replace("\\\n", " ")          # the shell joins a continuation first
+    bare = unquoted(cmd)
+    found = WT_ADD_ANYWHERE.search(bare)
+    if not found:
+        return
+    if re.search(r"\s-[Cc]\s", found.group(0)):
+        deny(RULE_J_C_MSG)
+    segs = top_level_segments(cmd)
+    if not (len(segs) == 1 and LOOP_WT_ADD.match(segs[0])):
+        deny(RULE_J_MSG)
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -991,6 +1136,7 @@ def main():
     check_open_questions_commit(toks)
     check_cr_open(cmd, toks)
     check_intake_reply(cmd, toks)
+    check_worktree_add_alone(cmd)
     if SUMMARY_MARKER.search(cmd):
         bots = load_bot_logins()
         check_github_summary(cmd, bots)
