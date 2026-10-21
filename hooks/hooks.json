@@ -1,6 +1,6 @@
 {
   "modules": [
-    "./config-menu.tsx"
+    "./mods.tsx"
   ],
   "hooks": {
     "PreToolUse": [
