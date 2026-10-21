@@ -34,6 +34,11 @@ checkout into every such worktree that lacks them:
   off mid-copy (the hook's timeout) leaves no truncated file in the
   worktree, and no stray one either, the stage being outside every worktree
   (codex review, PR #184);
+- a destination's directories are made one level at a time below the
+  worktree's root, never the root itself, so a worktree another command
+  just removed is never recreated; a stage file a killed run left behind
+  (older than `STAGE_TTL`) is removed by the next run (codex review, PR
+  #184);
 - `.gitignore` is matched in any case (`.GITIGNORE` is the same file on a
   case-insensitive volume);
 - worktrees anywhere else — your own — are never touched;
@@ -54,6 +59,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from config_block import main_checkout  # noqa: E402
@@ -61,6 +67,7 @@ from config_block import main_checkout  # noqa: E402
 LOCAL_FILE = os.path.join(".claude", "roz-gate.local.json")
 DEFAULT = [".env"]
 IGNORE_FILES = (".gitignore",)   # compared case-insensitively
+STAGE_TTL = 600                  # seconds; far past the hook's 60 s timeout
 
 
 def git(*args):
@@ -123,6 +130,38 @@ def loop_worktrees(common):
             and os.path.realpath(line[len("worktree "):]) != os.path.realpath(base)]
 
 
+def make_parents(wt, rel):
+    """Make `rel`'s directories under `wt`, one level at a time — never `wt`
+    itself: if another command removed the worktree, the first `mkdir`
+    fails rather than recreating it."""
+    path = wt
+    for part in os.path.dirname(rel).split("/") if os.path.dirname(rel) else []:
+        path = os.path.join(path, part)
+        try:
+            os.mkdir(path)
+        except FileExistsError:
+            pass
+    if not os.path.isdir(wt):
+        raise FileNotFoundError(wt)
+
+
+def sweep_stage(stage_dir, now=None):
+    """Remove stage files older than STAGE_TTL — a killed run never reached
+    its `finally`, and a stage file can hold a secret."""
+    now = time.time() if now is None else now
+    try:
+        names = os.listdir(stage_dir)
+    except OSError:
+        return
+    for name in names:
+        path = os.path.join(stage_dir, name)
+        try:
+            if name.startswith("copy-") and now - os.lstat(path).st_mtime > STAGE_TTL:
+                os.remove(path)
+        except OSError:
+            pass
+
+
 def install_file(src, dst, stage_dir):
     """Write `src`'s contents (a symlinked `src` is read through) to a stage
     file in `stage_dir`, then publish it at `dst` with a hard link — which
@@ -163,7 +202,7 @@ def copy_into(main, wt, paths, stage_dir):
                            "add it to .gitignore, or drop it from worktree_copy)" % rel)
             continue
         try:
-            os.makedirs(os.path.dirname(dst) or wt, exist_ok=True)
+            make_parents(wt, rel)
             if install_file(src, dst, stage_dir):
                 copied.append(rel)
         except OSError as exc:
@@ -200,6 +239,7 @@ def main():
     if not paths:
         return
     notes = []
+    sweep_stage(os.path.join(common, "roz-gate", "stage"))
     for wt in loop_worktrees(common):
         copied, errors, skipped = copy_into(main_root, wt, paths,
                                             os.path.join(common, "roz-gate", "stage"))

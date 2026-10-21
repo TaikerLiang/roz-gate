@@ -143,7 +143,10 @@ so a shell continuation inside `git worktree add` still escalates),
   `<git-common-dir>/roz-gate/stage/` and published with a hard link, which
   creates the destination only if it does not exist. So a concurrent run
   never replaces another's copy, and a run cut off mid-copy leaves neither a
-  truncated file nor a stray one in the worktree.
+  truncated file nor a stray one in the worktree. The next run sweeps a
+  stage file older than ten minutes. A destination's directories are made
+  one level at a time below the worktree's root, so a worktree another
+  command just removed is never recreated.
 - It never overwrites, never writes back, and never touches a worktree of
   yours. A bare repository is skipped, and so is a checkout that cannot
   prove itself: the main checkout's own `--git-common-dir` must be this

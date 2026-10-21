@@ -301,6 +301,21 @@ class InstallNeverReplaces(HookTest):
             self.write(d / "dst.env", "FIRST=1\n")
             self.assertFalse(mod.install_file(str(d / "src.env"), str(d / "dst.env"), stage))
             self.assertEqual((d / "dst.env").read_text(), "FIRST=1\n")
+        with self.case("worktree_copy: a worktree removed meanwhile is never recreated (codex "
+                       "review, PR #184)"):
+            gone = d / "gone-wt"
+            with self.assertRaises(FileNotFoundError):
+                mod.make_parents(str(gone), "config/local/db.yml")
+            self.assertFalse(os.path.lexists(gone))
+        with self.case("worktree_copy: a stale stage file is swept, a fresh one kept (codex "
+                       "review, PR #184)"):
+            sweep = d / "sweep"
+            self.write(sweep / "copy-old", "secret\n")
+            self.write(sweep / "copy-new", "x\n")
+            old = os.path.getmtime(sweep / "copy-old") - mod.STAGE_TTL - 5
+            os.utime(sweep / "copy-old", (old, old))
+            mod.sweep_stage(str(sweep))
+            self.assertEqual(sorted(os.listdir(sweep)), ["copy-new"])
         with self.case("worktree_copy: an absent destination is created, with the contents, "
                        "and the stage is left empty"):
             self.assertTrue(mod.install_file(str(d / "src.env"), str(d / "fresh.env"), stage))
