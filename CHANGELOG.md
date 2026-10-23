@@ -2,6 +2,23 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## the question where (7) listens — 2026-10-23
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.7.2>
+
+**Behavior:** a post-integration re-entry no longer opens a new spec-review round, and the loop never reads its own gate-kit comment as a human's.
+
+### Behavior
+- **Re-entry raises no new thread** (#193): on the post-integration path of `commands/spec-answers.md`, a fold opens no new thread. A question it surfaces is a `**[review] · question**` on the spec CR, where the resumed (7) conversation listens, linked from the return comment; the issue returns to (7) for the user to decide (codex review).
+- **The gate kit is never an unheard item** (#193): the top-level predicate in `commands/spec-answers.md` § 3, `commands/review-answers.md` § 1, `commands/tip.md` and `references/patrol-scan.md` excludes the gate-kit comment, which opens without a `**[` marker.
+
+### Evals
+- **C5 allows the ledger append** (#193): `check.py` passes a § 6b kit edit (ledger entry, staleness banner) that keeps `cards-sha` and the seed's cards, compared as (scenario ID, bucket, evidence), and fails a new inline thread. `redproof.py` grows from 11 to 18 shapes. Runs scored before this read **stale**.
+- **Lint** C5 and E8 anchor the new sentences.
+
+### Checks
+Hook tests 555/555 · lint 1020/1020 · red-proofs 31/31 · `tools/ledger.py --check` current · naming, ruff, `judgment --check` clean
+
 ## v2.7.1 — the case as scored — 2026-10-23
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.7.1>
