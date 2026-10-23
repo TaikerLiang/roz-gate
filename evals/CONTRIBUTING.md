@@ -195,6 +195,12 @@ if a case has none. `cases/D4/redproof.py` is the template:
 Then measure: `python3 evals/replay/run_replay.py --sut <sut> --k <k> <ID>`
 — minutes and real tokens per iteration; the operator decides when.
 
+Each run records the fingerprint of the case that scored it (`case_fp` in
+`result.json`). Editing the checker, `case.json`, the seed or the state
+after the baseline makes those runs **stale** in `report.json` — out of the
+rate, never silently current — until the case is re-measured
+(`evals/replay/README.md` § The case as scored).
+
 ## 6. Reading a red
 
 An invalid run is not a red at all (no result event, a quota banner, an

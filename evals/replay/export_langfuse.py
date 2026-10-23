@@ -25,8 +25,11 @@ re-shapes it (issue #80):
   `tool_use_id` out, ended at the user message that carried it;
   `is_error` → level ERROR; events tagged `parent_tool_use_id` nest under
   that tool's span (the sub-agent tree);
-- the forge journal's **writes** as events, in journal order (the journal
-  has no ids or timestamps — nothing links a write to a transcript step);
+- the forge journal's **writes** as events: one stamped `ts` (the stub's
+  clock, #190) nests under the tool span whose start and end contain it,
+  at that time; one no span contains, or without `ts` (runs made before
+  the stamp), sits under the root after the transcript's end, in journal
+  order;
 - **scores** on the trace: `pass`, `valid` (comment = invalid_reason),
   `cost_usd` when known, and one per check.log claim (comment = its source).
 
@@ -36,11 +39,19 @@ Basic auth from `$LANGFUSE_PUBLIC_KEY:$LANGFUSE_SECRET_KEY`; the optional
 `$LANGFUSE_PROJECT_ID` only completes the printed UI link. Ids are
 deterministic (session id, message ids, tool_use ids) — but Langfuse v4
 stores observations as immutable events, so a re-export **appends copies**
-rather than replacing. An export therefore leaves `langfuse.json` (trace
-id, link, time) in the run dir and a run dir carrying one is skipped
-unless `--force`. Stdlib only, Python 3.9-compatible, like the rest of the
-harness. `--dry-run` prints the payload, touches no network and writes no
-marker — the harness red-proof asserts its shape.
+rather than replacing. An export therefore leaves `langfuse.json` in the
+run dir — written `"status": "pending"` before the first post and
+overwritten with the summary (trace id, link, time, `"done"`) after the
+last — and a run dir carrying one is skipped unless `--force`; a pending
+one is a partial export (the trace may be in Langfuse without its scores:
+C5/run-1, #190) and the refusal says so. Stdlib only, Python
+3.9-compatible, like the rest of the harness. `--dry-run` prints the
+payload, touches no network and writes no marker — the harness red-proof
+asserts its shape.
+
+The trace's metadata carries the run's `case_fp` and `plugin_sha` from
+`result.json` (#190); when the fingerprint differs from the case's current
+one the trace is also tagged `stale`.
 
 `run_replay.py` calls `maybe_export()` after every result.json when the
 three variables are set; nothing set → nothing happens; a failure is one
@@ -55,7 +66,6 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 import sys
 import urllib.error
 import urllib.request
@@ -63,6 +73,9 @@ from datetime import datetime, timezone
 
 S = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(S))
+sys.path.insert(0, S)
+import replaylib as rl  # noqa: E402
+
 ENV = ("LANGFUSE_HOST", "LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY")
 FIELD_CAP = 64 * 1024          # bytes of one input/output before it is cut
 BATCH_CAP = 2 * 1024 * 1024    # bytes of JSON per OTLP request
@@ -204,12 +217,10 @@ def parse_claims(path):
     return claims
 
 
-def plugin_sha():
-    try:
-        return subprocess.check_output(["git", "-C", ROOT, "rev-parse", "--short", "HEAD"],
-                                       text=True, stderr=subprocess.DEVNULL).strip()
-    except (OSError, subprocess.CalledProcessError):
-        return ""
+def case_dir(case):
+    """The case's dir: evals/replay/cases/<ID>, or smoke/<n> for smoke-S<n>."""
+    return (os.path.join(S, "smoke", case[len("smoke-"):]) if case.startswith("smoke-")
+            else os.path.join(S, "cases", case))
 
 
 # ---- the mapping ----------------------------------------------------------
@@ -329,12 +340,26 @@ def build(rdir, case, sut, run, prompt, backfilled=False):
             t["attributes"].append(attr("langfuse.observation.status_message",
                                         "no tool_result in the transcript"))
 
+    # A journal write goes under the tool call that made it: the innermost
+    # tool span whose window holds its `ts` (a Bash inside an Agent is in
+    # both; the Bash wins). Without `ts` — or outside every window — it sits
+    # under the root after the transcript's end, in journal order (#190).
+    windows = sorted(((int(t["startTimeUnixNano"]), int(t["endTimeUnixNano"]), t["spanId"])
+                      for t in tool_spans.values()), key=lambda w: w[1] - w[0])
     writes = 0
+    end = t1 + len(journal)
     for i, e in enumerate(journal):
         if not e.get("write"):
             continue
         writes += 1
-        at = t1 + i   # journal order, one nanosecond apart — the journal has no clock
+        at, parent = t1 + i, root_id
+        if isinstance(e.get("ts"), (int, float)) and not isinstance(e["ts"], bool):
+            stamp = int(e["ts"] * 10**9)
+            for start, stop, sid in windows:
+                if start <= stamp <= stop:
+                    at, parent = stamp, sid
+                    break
+        end = max(end, at)
         spans.append(span(trace_id, hid(16, "journal", trace_id, i), "journal:%s" % e.get("route"),
                           at, at, [
                               ("langfuse.observation.type", "event"),
@@ -342,25 +367,32 @@ def build(rdir, case, sut, run, prompt, backfilled=False):
                               ("langfuse.observation.output", js(e.get("body"))),
                               ("langfuse.observation.metadata.route", e.get("route")),
                               ("langfuse.observation.metadata.seq", i),
-                          ], parent=root_id))
+                          ], parent=parent))
 
     cost = result.get("cost") or {}
     usd = cost.get("usd") if isinstance(cost, dict) else None
-    # plugin_sha is the checkout the run executed under: known only when the
-    # runner exports in the same breath; a backfill from a later checkout
+    # plugin_sha is the checkout the run executed under: the runner stamps
+    # it into result.json (#190); before that it is known only when the
+    # runner exports in the same breath — a backfill from a later checkout
     # would mislabel the run (codex review, PR #93), so it carries none.
+    sha = result.get("plugin_sha") or (None if backfilled else rl.plugin_sha())
+    fp = result.get("case_fp")
+    cdir = case_dir(case)
+    current = rl.case_fingerprint(cdir) if os.path.isdir(cdir) else None
+    stale = bool(fp and current and fp != current)
     meta = [("sut", sut), ("case", case), ("run", str(run)), ("model", model),
-            ("plugin_sha", None if backfilled else plugin_sha()), ("backfilled", backfilled),
+            ("plugin_sha", sha), ("backfilled", backfilled),
+            ("case_fp", fp), ("stale", stale),
             ("session_id", session_id), ("verdict", verdict),
             ("invalid_reason", result.get("invalid_reason")),
             ("duration_ms", (res_ev or {}).get("duration_ms")),
             ("num_turns", (res_ev or {}).get("num_turns")),
             ("cost_usd", usd)]
-    root = span(trace_id, root_id, name, t0, t1 + len(journal), [
+    root = span(trace_id, root_id, name, t0, end, [
         ("langfuse.observation.type", "span"),
         ("langfuse.trace.name", name),
         ("langfuse.session.id", "%s/%s" % (sut, case)),
-        ("langfuse.trace.tags", [case, sut, verdict]),
+        ("langfuse.trace.tags", [case, sut, verdict] + (["stale"] if stale else [])),
         ("langfuse.trace.input", js(prompt or "")),
         ("langfuse.trace.output", js((res_ev or {}).get("result") or "")),
     ] + [("langfuse.trace.metadata.%s" % k, v) for k, v in meta])
@@ -439,17 +471,37 @@ def export_run(rdir, case, sut, run, prompt, cfg, dry_run=False, backfilled=Fals
         return summary
     prior = exported(rdir)
     if prior and not force:
+        if prior.get("status") == "pending":
+            raise AlreadyExported("%s: a partial export is pending since %s — the trace may be "
+                                  "in Langfuse without its scores; --force to send it again "
+                                  "(Langfuse v4 appends, it does not replace)"
+                                  % (summary["name"], prior.get("started_at", "?")))
         raise AlreadyExported("%s already exported (%s) — Langfuse v4 appends, it does not "
                               "replace; --force to send again" % (summary["name"],
                                                                    prior.get("url", "")))
+    # The marker goes down before the first post: a send that fails midway
+    # (traces in, a score refused) must leave a record, or the next export
+    # appends a copy (C5/run-1, #190).
+    write_marker(rdir, {"status": "pending", "name": summary["name"],
+                        "trace_id": summary["trace_id"], "session": summary["session"],
+                        "started_at": now_iso()})
     send(cfg, spans, scores)
+    summary["status"] = "done"
     summary["url"] = "%s/project/%s/traces/%s" % (
         cfg["LANGFUSE_HOST"], os.environ.get("LANGFUSE_PROJECT_ID", "").strip() or "_",
         summary["trace_id"])
-    summary["exported_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    with open(os.path.join(rdir, MARKER), "w", encoding="utf-8") as f:
-        json.dump(summary, f, indent=1)
+    summary["exported_at"] = now_iso()
+    write_marker(rdir, summary)
     return summary
+
+
+def now_iso():
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def write_marker(rdir, obj):
+    with open(os.path.join(rdir, MARKER), "w", encoding="utf-8") as f:
+        json.dump(obj, f, indent=1)
 
 
 def maybe_export(rdir, case, sut, run, prompt):
@@ -477,9 +529,7 @@ def run_meta(rdir):
         case, sut, run = parts[-2], parts[-3], m.group(1)
     else:
         case, sut, run = parts[-1], parts[-2], "1"
-    cdir = (os.path.join(S, "smoke", case[len("smoke-"):]) if case.startswith("smoke-")
-            else os.path.join(S, "cases", case))
-    prompt = (load_json(os.path.join(cdir, "case.json"), {}) or {}).get("prompt", "")
+    prompt = (load_json(os.path.join(case_dir(case), "case.json"), {}) or {}).get("prompt", "")
     return case, sut, run, prompt
 
 

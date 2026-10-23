@@ -4,9 +4,10 @@
 Shadows the real `gh` via PATH inside a replay sandbox. State lives in
 $FORGE_STATE/state.json (seeded from the case fixture); every invocation
 appends one line to $FORGE_STATE/journal.jsonl — the journal is the
-tier's primary observation channel. Writes mutate state so a command
-that reads back its own write mid-run sees it (canned responses would
-desynchronize by step two).
+tier's primary observation channel, each entry stamped `ts` (epoch
+seconds) so a write can be placed under the tool call that made it
+(#190). Writes mutate state so a command that reads back its own write
+mid-run sees it (canned responses would desynchronize by step two).
 
 Routes cover exactly the operations references/forge-github.md names,
 plus a small class of benign read-only probes (PROBES below). An
@@ -21,6 +22,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from urllib.parse import unquote
 
 STATE_DIR = os.environ.get("FORGE_STATE")
@@ -51,7 +53,7 @@ BODY_ORIGIN = {"origin": None}
 
 
 def journal(route, write=False, **kw):
-    entry = {"route": route, "write": write, "argv": sys.argv[1:]}
+    entry = {"route": route, "write": write, "argv": sys.argv[1:], "ts": time.time()}
     if BODY_ORIGIN["origin"]:
         entry["body_from"] = BODY_ORIGIN["origin"]
     entry.update(kw)
