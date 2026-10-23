@@ -26,10 +26,11 @@ re-shapes it (issue #80):
   `is_error` → level ERROR; events tagged `parent_tool_use_id` nest under
   that tool's span (the sub-agent tree);
 - the forge journal's **writes** as events: one stamped `ts` (the stub's
-  clock, #190) nests under the tool span whose start and end contain it,
-  at that time; one no span contains, or without `ts` (runs made before
-  the stamp), sits under the root after the transcript's end, in journal
-  order;
+  clock, #190) nests under the innermost tool span whose start and end
+  contain it, at that time — or under those spans' parent when tools
+  launched in parallel share the window; one no span contains, or without
+  `ts` (runs made before the stamp), sits under the root after the
+  transcript's end, in journal order;
 - **scores** on the trace: `pass`, `valid` (comment = invalid_reason),
   `cost_usd` when known, and one per check.log claim (comment = its source).
 
@@ -342,10 +343,13 @@ def build(rdir, case, sut, run, prompt, backfilled=False):
 
     # A journal write goes under the tool call that made it: the innermost
     # tool span whose window holds its `ts` (a Bash inside an Agent is in
-    # both; the Bash wins). Without `ts` — or outside every window — it sits
+    # both; the Bash wins). Tools launched in parallel from one message
+    # share a window, so a write inside it cannot be told apart: it goes
+    # under their common parent, at its time — placed, never guessed (codex
+    # review, PR #191). Without `ts` — or outside every window — it sits
     # under the root after the transcript's end, in journal order (#190).
-    windows = sorted(((int(t["startTimeUnixNano"]), int(t["endTimeUnixNano"]), t["spanId"])
-                      for t in tool_spans.values()), key=lambda w: w[1] - w[0])
+    windows = [(int(t["startTimeUnixNano"]), int(t["endTimeUnixNano"]), t["spanId"],
+                t.get("parentSpanId") or root_id) for t in tool_spans.values()]
     writes = 0
     end = t1 + len(journal)
     for i, e in enumerate(journal):
@@ -355,10 +359,11 @@ def build(rdir, case, sut, run, prompt, backfilled=False):
         at, parent = t1 + i, root_id
         if isinstance(e.get("ts"), (int, float)) and not isinstance(e["ts"], bool):
             stamp = int(e["ts"] * 10**9)
-            for start, stop, sid in windows:
-                if start <= stamp <= stop:
-                    at, parent = stamp, sid
-                    break
+            hits = [w for w in windows if w[0] <= stamp <= w[1]]
+            if hits:
+                size = min(w[1] - w[0] for w in hits)
+                inner = [w for w in hits if w[1] - w[0] == size]
+                at, parent = stamp, (inner[0][2] if len(inner) == 1 else inner[0][3])
         end = max(end, at)
         spans.append(span(trace_id, hid(16, "journal", trace_id, i), "journal:%s" % e.get("route"),
                           at, at, [
@@ -500,8 +505,12 @@ def now_iso():
 
 
 def write_marker(rdir, obj):
-    with open(os.path.join(rdir, MARKER), "w", encoding="utf-8") as f:
+    """Atomic: a crash mid-write must leave the previous marker, not an
+    empty file that reads as "never exported" (codex review, PR #191)."""
+    path = os.path.join(rdir, MARKER)
+    with open(path + ".tmp", "w", encoding="utf-8") as f:
         json.dump(obj, f, indent=1)
+    os.replace(path + ".tmp", path)
 
 
 def maybe_export(rdir, case, sut, run, prompt):

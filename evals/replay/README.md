@@ -67,7 +67,7 @@ python3 evals/replay/export_langfuse.py --dry-run report/opus/A1/run-1   # the p
 | **generation** — model, usage incl. cache tokens, thinking + text + tool_use | each API call (the stream emits one assistant event per content block, all sharing the message id, tool results interleaved — merged by id); input = what it answered — the user message with the tool results, or for the first call the case prompt (in a sub-agent, its `Agent` tool's input); start = the previous message's timestamp |
 | **tool** span — arguments in, result out, latency | each tool_use, ended by the user message carrying its tool_result; `is_error` → ERROR |
 | nested under the `Agent` span | events tagged `parent_tool_use_id` |
-| **event** `journal:<route>` | each journal write (reads are not exported), under the tool call that made it, at the stub's clock (`ts`, #190); a write no tool span contains, or one from a run made before the clock, sits under the root after the transcript's end, in journal order |
+| **event** `journal:<route>` | each journal write (reads are not exported), under the tool call that made it, at the stub's clock (`ts`, #190) — under their parent when tools launched in parallel from one message share the window; a write no tool span contains, or one from a run made before the clock, sits under the root after the transcript's end, in journal order |
 | scores `pass`, `valid`, `cost_usd`, one per claim | `result.json`, `check.log` (comment = the claim's source) |
 | trace metadata `case_fp`, `plugin_sha`; tag `stale` | `result.json` (below); `stale` when the run's fingerprint differs from the case's current one |
 

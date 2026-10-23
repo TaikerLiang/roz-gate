@@ -179,7 +179,7 @@ REF_ROUTES = [
 
 
 # ---- EXPORT: a staged run dir ----------------------------------------------
-T = ["2026-10-11T01:00:%02d.000Z" % i for i in range(11)]
+T = ["2026-10-11T01:00:%02d.000Z" % i for i in range(13)]
 TOOL_OUT = "## Development Workflow (Roz Gate)\nplain text tool output"
 TRANSCRIPT = [
     {"type": "system", "subtype": "init", "session_id": "sess-x"},
@@ -229,8 +229,21 @@ TRANSCRIPT = [
         "usage": {"input_tokens": 1, "output_tokens": 1, "cache_read_input_tokens": 160,
                   "cache_creation_input_tokens": 0},
         "content": [{"type": "text", "text": "done"}]}},
+    # two Bash tools launched in parallel from one message: same start, and
+    # both results land in one user message — their windows are identical
+    {"type": "assistant", "timestamp": T[11], "message": {
+        "id": "m5", "model": "claude-test", "stop_reason": "tool_use",
+        "usage": {"input_tokens": 1, "output_tokens": 1, "cache_read_input_tokens": 160,
+                  "cache_creation_input_tokens": 0},
+        "content": [{"type": "tool_use", "id": "tu-p1", "name": "Bash",
+                     "input": {"command": "gh issue close 5"}},
+                    {"type": "tool_use", "id": "tu-p2", "name": "Bash",
+                     "input": {"command": "gh issue view 6"}}]}},
+    {"type": "user", "timestamp": T[12], "message": {"role": "user", "content": [
+        {"type": "tool_result", "tool_use_id": "tu-p1", "content": "closed"},
+        {"type": "tool_result", "tool_use_id": "tu-p2", "content": "{}"}]}},
     {"type": "result", "subtype": "success", "session_id": "sess-x", "duration_ms": 6000,
-     "num_turns": 4, "total_cost_usd": 0.5, "result": "done"},
+     "num_turns": 5, "total_cost_usd": 0.5, "result": "done"},
 ]
 
 
@@ -240,7 +253,8 @@ def epoch(stamp, plus=0.0):
 
 # One write without a clock (a run from before #190), one stamped inside the
 # main Bash, one inside the sub-agent's Bash (also inside the Agent span:
-# the innermost wins), one stamped after the transcript's end.
+# the innermost wins), one inside the two parallel Bash tools' shared
+# window, one stamped after the transcript's end.
 JOURNAL = [{"route": "issue-view", "write": False, "argv": ["issue", "view", "5"]},
            {"route": "issue-comment", "write": True, "argv": ["issue", "comment", "5"],
             "body": "**[gate] hello"},
@@ -248,8 +262,10 @@ JOURNAL = [{"route": "issue-view", "write": False, "argv": ["issue", "view", "5"
             "ts": epoch(T[1], 0.5)},
            {"route": "pr-comment", "write": True, "argv": ["pr", "comment", "101"],
             "body": "hi", "ts": epoch(T[5])},
+           {"route": "issue-close", "write": True, "argv": ["issue", "close", "5"],
+            "ts": epoch(T[11], 0.5)},
            {"route": "thread-resolve", "write": True, "argv": ["api", "graphql"],
-            "ts": epoch(T[10], 30)}]
+            "ts": epoch(T[12], 30)}]
 CHECK_LOG = "ok   a claim that held\nFAIL a claim that did not  [source: ledger X]\n"
 RESULT = {"valid": True, "pass": False, "tokens": {"in": 7, "out": 16}, "cost": {"usd": 0.5}}
 
@@ -478,7 +494,7 @@ def export_checks():
          and ra.get("langfuse.trace.output") == "done"),
         ("a generation per API call (the sub-agent's too), each carrying usage with the "
          "cache keys",
-         len(gens) == 4 and usage_ok and summary["generations"] == 4),
+         len(gens) == 5 and usage_ok and summary["generations"] == 5),
         ("two events sharing a message id are one generation: both blocks, the later end",
          len(m4) == 1 and attrs(m4[0]).get("langfuse.observation.output")
          == json.dumps([{"type": "thinking", "thinking": "wrap up"},
@@ -511,8 +527,17 @@ def export_checks():
         ("every span starts no later than it ends",
          all(int(s["startTimeUnixNano"]) <= int(s["endTimeUnixNano"]) for s in spans)),
         ("journal writes are events, reads are not",
-         len(events) == 4 and set(events) == {"journal:issue-comment", "journal:issue-edit",
-                                              "journal:pr-comment", "journal:thread-resolve"}),
+         len(events) == 5 and set(events) == {"journal:issue-comment", "journal:issue-edit",
+                                              "journal:pr-comment", "journal:issue-close",
+                                              "journal:thread-resolve"}),
+        ("a write inside the window two parallel tools share goes under their parent, at "
+         "its time — never under whichever came first",
+         {"tu-p1", "tu-p2"} <= set(tools)
+         and tools["tu-p1"]["startTimeUnixNano"] == tools["tu-p2"]["startTimeUnixNano"]
+         and tools["tu-p1"]["endTimeUnixNano"] == tools["tu-p2"]["endTimeUnixNano"]
+         and events["journal:issue-close"].get("parentSpanId") == root["spanId"]
+         and events["journal:issue-close"]["startTimeUnixNano"]
+         == str(ex.ts_ns(T[11]) + 500 * 10**6)),
         ("a write stamped inside a tool call nests under that call, at its time",
          bash is not None and events["journal:issue-edit"].get("parentSpanId") == bash["spanId"]
          and events["journal:issue-edit"]["startTimeUnixNano"]
@@ -523,7 +548,7 @@ def export_checks():
         ("a write without a clock, or stamped outside every tool call, sits under the root "
          "after the transcript's end",
          all(events[n].get("parentSpanId") == root["spanId"]
-             and int(events[n]["startTimeUnixNano"]) > ex.ts_ns(T[10])
+             and int(events[n]["startTimeUnixNano"]) > ex.ts_ns(T[12])
              for n in ("journal:issue-comment", "journal:thread-resolve"))
          and int(root["endTimeUnixNano"])
          >= int(events["journal:thread-resolve"]["startTimeUnixNano"])),
