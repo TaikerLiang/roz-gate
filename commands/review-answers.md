@@ -40,6 +40,8 @@ contract. Block missing → plugin defaults.
 - **Read all three channels** — THREADS-LIST (inline threads), REVIEWS-LIST
   (review summary bodies), CR-COMMENTS-LIST (top-level comments). An item is
   **unheard** when its latest entry does **not** start with `**[` or `✅ [`.
+  The gate-kit comment is the loop's own, never an item (it opens with the
+  kit's blind-spot header, not a `**[` marker).
   Nothing unheard → report "nothing new" and stop; no lock was taken.
 
 ## 2. Lock

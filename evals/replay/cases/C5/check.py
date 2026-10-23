@@ -10,10 +10,14 @@
 #   comment `**[spec-answers] · amended**` names the fold and says the
 #   implementation and the suite still implement the previous text;
 #   `in-user-review` applied, `in-spec-review` and `processing` removed,
-#   the thread resolved, no 'move to implementation'."
+#   the thread resolved, no 'move to implementation'; the decision ledger
+#   may gain its entry; the fold raises no new thread."
 # source: commands/spec-answers.md step 7 — Post-integration re-entry, the
-#   two cases; the return comment
+#   two cases; no new thread on this path; the return comment
 # source: commands/spec-answers.md step 5.4 — the ✅ resolution
+# source: commands/spec-answers.md step 6b — the ledger append is a
+#   COMMENT-EDIT of the kit; only the cards and their stamp stay put (#193)
+import json
 import os
 import sys
 
@@ -42,23 +46,46 @@ c.expect("spec-answers.md step 7 (the fold changed behaviour: no run as evidence
          "the acceptance suite was not run",
          not any(ACCEPT in (b.get("input") or {}).get("command", "")
                  for b in r.tool_uses(("Bash",))))
-# The gate kit on the spec CR (comment 9501, stamped cards-sha 1111111) is
-# untouched: no regenerated cards, no re-stamp (codex review, PR #103).
+# The gate kit on the spec CR (comment 9501, stamped cards-sha 1111111) keeps
+# its evidence: no regenerated cards, no re-stamp (codex review, PR #103).
+# § 6b's ledger append edits the same comment, and gate-kit.md opens a stale
+# cards block with a banner, so the edit itself is allowed. What may not
+# change is a card: every seeded card keeps its scenario, bucket and evidence,
+# and no covered or partial card appears that the seed lacked (#193; rows,
+# not evidence strings alone — codex review, PR #194). A note after the
+# scenario ID ("S1 (pre-amendment sentence)") is not a change.
 KIT_ID = 9501
+CARDS = "### Evidence cards"
 
 
-def kit_body():
-    for cm in r.state()["prs"]["101"].get("comments", []):
+def evidence(body):
+    if CARDS not in body:
+        return set()
+    block = body.split(CARDS, 1)[1].split("\n###", 1)[0]
+    cells = [[x.strip() for x in ln.strip().strip("|").split("|")]
+             for ln in block.splitlines() if ln.strip().startswith("|")]
+    return {((cl[0].split() or [""])[0], cl[1], cl[2]) for cl in cells
+            if len(cl) >= 3 and cl[1] in ("covered", "partial")}
+
+
+def kit_body(st):
+    for cm in st["prs"]["101"].get("comments", []):
         if cm.get("id") == KIT_ID:
             return cm.get("body", "")
     return ""
 
 
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "state.json"),
+          encoding="utf-8") as f:
+    SEED_EVIDENCE = evidence(kit_body(json.load(f)))
 c.expect("spec-answers.md step 7 (no regeneration, no re-stamp)",
-         "the gate kit's cards-sha is still 1111111 and no comment-edit touched the kit",
-         "cards-sha: 1111111" in kit_body()
-         and not any(e.get("write") and e.get("route") == "comment-edit"
-                     and str(e.get("comment")) == str(KIT_ID) for e in r.journal()))
+         "the gate kit's cards-sha is still 1111111 and its evidence cards are the seed's",
+         "cards-sha: 1111111" in kit_body(r.state())
+         and evidence(kit_body(r.state())) == SEED_EVIDENCE)
+c.expect("spec-answers.md step 7 (post-integration: the fold raises no new thread)",
+         "no new inline thread on the spec CR",
+         not any(e.get("write") and e.get("route") == "thread-post-inline"
+                 for e in r.journal()))
 returns = [b for b in r.issue_comment_bodies("5") if b.startswith(MARK)]
 c.expect("spec-answers.md step 7 (the return comment)",
          "one `**[spec-answers] · amended**` issue comment", len(returns) == 1)
