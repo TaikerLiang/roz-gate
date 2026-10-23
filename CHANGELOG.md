@@ -2,6 +2,24 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.7.1 — the case as scored — 2026-10-23
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.7.1>
+
+**Behavior:** none for a target repo. A replay run now reads right in Langfuse, and a recorded run says which version of its case scored it.
+
+### Evals
+- **Journal clock** (#190): `evals/replay/forge-stub/gh` stamps every journal entry with `ts`; the exporter nests each forge write under the tool call that made it, at that time. Tools launched in parallel from one message share a window, so a write inside it goes under their common parent (codex review). Entries from earlier runs, without `ts`, stay at the end of the trace.
+- **Case fingerprint** (#190): every `result.json` carries `case_fp` (sha256 of `check.py` or the driver, `case.json`, `seed.sh`, `state.json`) and `plugin_sha`. `report.json` counts a run whose fingerprint differs from the current case as **stale** and leaves it out of the rate; a run without one is **unknown** and stays in, so the published baselines keep their numbers. A case whose valid runs are all stale reports `rate: null` with a note. The resume rule is unchanged: re-running a stale case is a quota decision, per case.
+- **Partial exports are refused** (#190): `langfuse.json` is written `pending` before the first post and `done` after the last, atomically; a run dir left pending is a partial export (the trace may be in Langfuse without its scores: `C5/run-1`) and is refused until `--force`.
+- **Harness red-proof** (`evals/replay/redproof.py`): § EXPORT asserts the nesting, the parallel-tools fallback and the metadata; § MARKER and § FINGERPRINT are new. 63 → 64 checks.
+
+### Docs
+- `evals/replay/README.md`: the Langfuse table, the marker rule, and the new section "The case as scored". `evals/README.md` and `evals/CONTRIBUTING.md`: one sentence each on stale runs.
+
+### Checks
+Hook tests 555/555 · lint 1013/1013 · red-proofs 31/31 · `tools/ledger.py --check` current · naming, ruff, `judgment --check` clean
+
 ## v2.7.0 — the seat pane — 2026-10-21
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.7.0>
