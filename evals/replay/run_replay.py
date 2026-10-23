@@ -13,7 +13,12 @@ whole-stack. Before any sweep spend, a 3-case smoke gate runs once per
 SUT — a failing row is marked HARNESS-INCOMPATIBLE, never scored 0.
 
 RESUMABLE: each iteration persists to report/<sut>/<case>/run-<i>/ and a
-completed iteration is never re-run.
+completed iteration is never re-run. Each result.json carries `case_fp`
+(replaylib.case_fingerprint: the checker, case.json, seed, state) and
+`plugin_sha`; the report counts a run whose fingerprint differs from the
+current case as STALE and leaves it out of the rate, a run without one as
+UNKNOWN and keeps it in (#190). A stale iteration is still done — re-running
+it is a quota decision, per case.
 
 Blindness guard: a case whose check.py (or driver) carries no `# source:`
 citation is refused. Smoke cases are exempt (plumbing proofs).
@@ -145,9 +150,24 @@ def usage_and_cost(transcript, mode):
                    "note": "subscription quota, no dollar figure"}
 
 
-def write_result(rdir, obj):
+def write_result(rdir, obj, stamp=None):
+    """stamp: {case_fp, plugin_sha} — the case as scored, on every result
+    the runner writes, invalid ones included (#190)."""
+    if stamp:
+        obj = {**obj, **stamp}
     with open(os.path.join(rdir, "result.json"), "w", encoding="utf-8") as f:
         json.dump(obj, f, indent=1)
+
+
+def case_stamp(cdir):
+    return {"case_fp": rl.case_fingerprint(cdir), "plugin_sha": rl.plugin_sha()}
+
+
+def stamp_result(rdir, stamp):
+    """A driver writes its own result.json; the runner stamps it after."""
+    r = load_json(os.path.join(rdir, "result.json"))
+    if isinstance(r, dict):
+        write_result(rdir, r, stamp)
 
 
 def hit_unknown_route(journal):
@@ -177,10 +197,11 @@ def run_one(sut, cdir, rdir, prompt, timeout):
 
 def _run_one(sut, cdir, rdir, prompt, timeout):
     os.makedirs(os.path.join(rdir, "forge"), exist_ok=True)
+    stamp = case_stamp(cdir)
     sbx, work, bare = build_sandbox(cdir)
     if not sbx:
         write_result(rdir, {"valid": False, "pass": False,
-                            "invalid_reason": "seed failed"})
+                            "invalid_reason": "seed failed"}, stamp)
         return 1
     shutil.copy(os.path.join(cdir, "state.json"),
                 os.path.join(rdir, "forge", "state.json"))
@@ -198,23 +219,24 @@ def _run_one(sut, cdir, rdir, prompt, timeout):
 
     if not has_result_event(transcript):
         write_result(rdir, {"valid": False, "pass": False,
-                            "invalid_reason": "no result event — the session never completed"})
+                            "invalid_reason": "no result event — the session never completed"},
+                     stamp)
         shutil.rmtree(sbx, ignore_errors=True)
         return 1
     err = session_error(transcript)
     if err:
         write_result(rdir, {"valid": False, "pass": False,
-                            "invalid_reason": err})
+                            "invalid_reason": err}, stamp)
         shutil.rmtree(sbx, ignore_errors=True)
         return 3 if err == "quota-exhausted" else 1
     short = rl.cut_short(os.path.join(rdir, "stderr.log"))
     if short:
-        write_result(rdir, {"valid": False, "pass": False, "invalid_reason": short})
+        write_result(rdir, {"valid": False, "pass": False, "invalid_reason": short}, stamp)
         shutil.rmtree(sbx, ignore_errors=True)
         return 1
     if hit_unknown_route(journal):
         write_result(rdir, {"valid": False, "pass": False,
-                            "invalid_reason": "forge stub hit an UNKNOWN route"})
+                            "invalid_reason": "forge stub hit an UNKNOWN route"}, stamp)
         shutil.rmtree(sbx, ignore_errors=True)
         return 1
 
@@ -232,7 +254,7 @@ def _run_one(sut, cdir, rdir, prompt, timeout):
     result.update(signals)
     if signals:
         result["signals"] = sorted(signals)
-    write_result(rdir, result)
+    write_result(rdir, result, stamp)
     shutil.rmtree(sbx, ignore_errors=True)
     return 0 if ok else 2
 
@@ -287,12 +309,24 @@ def aggregate(sut, report):
         d = os.path.join(report, case)
         if not os.path.isdir(d) or case.startswith("smoke-"):
             continue
-        n = p = inv = tin = tout = 0
+        n = p = inv = stale = unknown = tin = tout = 0
         usd = 0.0
         signals = {}
+        cdir = os.path.join(S, "cases", case)
+        current = rl.case_fingerprint(cdir) if os.path.isdir(cdir) else None
         for run in sorted(os.listdir(d)):
             r = load_json(os.path.join(d, run, "result.json"))
             if r is None:
+                continue
+            # The case as scored (#190): a fingerprint that differs from the
+            # case's current one is a measurement of another case — counted,
+            # never scored; a result without one predates the stamp and
+            # stays in, its case version unrecorded rather than known to
+            # differ.
+            if r.get("case_fp") is None:
+                unknown += 1
+            elif current is not None and r["case_fp"] != current:
+                stale += 1
                 continue
             if not r.get("valid"):
                 inv += 1  # instrument runs included: an aborted session's
@@ -311,18 +345,23 @@ def aggregate(sut, report):
             tin += t.get("in", 0)
             tout += t.get("out", 0)
             usd += (r.get("cost") or {}).get("usd") or 0
-        if n == 0 and inv == 0:
+        if n == 0 and inv == 0 and stale == 0:
             continue
+        counts = {"invalid": inv, **({"stale": stale} if stale else {}),
+                  **({"unknown": unknown} if unknown else {})}
         if n == 0:
-            # All iterations invalid: a harness failure, never a scored 0%
-            # — publishing it as a rate would break invalid-never-red.
-            rows.append({"case": case, "runs": 0, "passes": 0, "invalid": inv,
-                         "rate": None, "wilson90": None,
-                         "note": "unavailable — every iteration invalid",
+            # All iterations invalid or stale: a harness failure or another
+            # case's measurement, never a scored 0% — publishing it as a
+            # rate would break invalid-never-red.
+            note = ("unavailable — every iteration invalid" if not stale else
+                    "unavailable — every iteration is stale under the current case"
+                    if not inv else "unavailable — every iteration invalid or stale")
+            rows.append({"case": case, "runs": 0, "passes": 0, **counts,
+                         "rate": None, "wilson90": None, "note": note,
                          "tokens": {"in": tin, "out": tout}})
             continue
         lo, hi = wilson90(p, n)
-        rows.append({"case": case, "runs": n, "passes": p, "invalid": inv,
+        rows.append({"case": case, "runs": n, "passes": p, **counts,
                      "rate": round(p / n, 3),
                      "wilson90": [round(lo, 3), round(hi, 3)],
                      "tokens": {"in": tin, "out": tout},
@@ -350,10 +389,13 @@ def aggregate(sut, report):
             print("%-8s instrument-only  curve: %s" % (r["case"], r["curve"]))
             continue
         if r["rate"] is None:
-            print("%-8s n/a — every iteration invalid (%d invalid)"
-                  % (r["case"], r["invalid"]))
+            print("%-8s n/a — %s (%d invalid, %d stale)"
+                  % (r["case"], r["note"], r["invalid"], r.get("stale", 0)))
             continue
         extra = "  (%d invalid)" % r["invalid"] if r["invalid"] else ""
+        for key in ("stale", "unknown"):
+            if r.get(key):
+                extra += "  %s=%d" % (key, r[key])
         for key in r.get("signals", []):
             extra += "  %s=%d" % (key.replace("_", "-"), r[key])
         print("%-8s %5.0f%% %3d  [%.0f%%,%.0f%%]      %d/%d%s"
@@ -413,6 +455,7 @@ def main(argv):
                             "SUT_KEY_ENV": sut["key_env"]})
                 rc = sh(["python3", os.path.join(cdir, driver), cdir, rdir,
                          str(i)], env=env).returncode
+                stamp_result(rdir, case_stamp(cdir))
                 if rc == 3:  # the driver's quota signal — same stop as below
                     die("quota exhausted at %s/run-%d; resume after reset "
                         "with the same command" % (case, i), 4)

@@ -198,7 +198,9 @@ regenerated every 60 s by a detached watcher, zero model tokens) is the
 prototype for `evals/status.py`. Per run, the view is Langfuse:
 `evals/replay/export_langfuse.py` turns a run dir into one trace
 (`evals/replay/README.md` § Exporting runs to Langfuse); the local instance
-ships in `evals/langfuse/`.
+ships in `evals/langfuse/`. A run carries the fingerprint of the case that
+scored it, and `report.json` marks a run whose case changed since as stale
+(§ The case as scored, same README).
 
 ## The gate
 

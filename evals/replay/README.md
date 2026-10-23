@@ -67,22 +67,48 @@ python3 evals/replay/export_langfuse.py --dry-run report/opus/A1/run-1   # the p
 | **generation** — model, usage incl. cache tokens, thinking + text + tool_use | each API call (the stream emits one assistant event per content block, all sharing the message id, tool results interleaved — merged by id); input = what it answered — the user message with the tool results, or for the first call the case prompt (in a sub-agent, its `Agent` tool's input); start = the previous message's timestamp |
 | **tool** span — arguments in, result out, latency | each tool_use, ended by the user message carrying its tool_result; `is_error` → ERROR |
 | nested under the `Agent` span | events tagged `parent_tool_use_id` |
-| **event** `journal:<route>` | each journal write (reads are not exported); journal order — the journal has no clock |
+| **event** `journal:<route>` | each journal write (reads are not exported), under the tool call that made it, at the stub's clock (`ts`, #190) — under their parent when tools launched in parallel from one message share the window; a write no tool span contains, or one from a run made before the clock, sits under the root after the transcript's end, in journal order |
 | scores `pass`, `valid`, `cost_usd`, one per claim | `result.json`, `check.log` (comment = the claim's source) |
+| trace metadata `case_fp`, `plugin_sha`; tag `stale` | `result.json` (below); `stale` when the run's fingerprint differs from the case's current one |
 
 Not captured: the system prompt and tool definitions (not in the transcript;
 only an API proxy sees them); F6 driver runs (no `transcript.jsonl` —
 skipped, said so). Wire: OTLP/HTTP JSON at `/api/public/otel/v1/traces`
 plus `POST /api/public/scores`, stdlib `urllib`. Langfuse v4 stores
 observations as immutable events — a re-export **appends copies**, it does
-not replace — so an export leaves `langfuse.json` (trace id, link, time) in
-the run dir and that run dir is skipped from then on unless `--force`. The
-harness red-proof
-(`redproof.py` § EXPORT) asserts the mapping on every push. The compose is
+not replace — so an export leaves `langfuse.json` in the run dir, written
+`"status": "pending"` before the first post and overwritten with the summary
+(trace id, link, time, `"done"`) after the last, and that run dir is
+skipped from then on unless `--force`. A run dir left pending is a partial
+export — the trace may be in Langfuse without its scores — and the refusal
+says so (#190). The harness red-proof
+(`redproof.py` § EXPORT, § MARKER) asserts the mapping on every push. The compose is
 vendored (`evals/langfuse/docker-compose.yml`, header names the upstream
 commit — re-vendor to update); `docker-compose.override.yml` is ours: the
 UI on loopback only, every other port unpublished — the example's login
 and keys are public knowledge.
+
+## The case as scored
+
+Every `result.json` the runner writes carries `case_fp` — sha256 (16 hex)
+over the case's `check.py` (or its `driver`), `case.json`, `seed.sh` and
+`state.json`, `replaylib.case_fingerprint` — and `plugin_sha`, the
+checkout's HEAD (#190). `report.json` compares each run's `case_fp` with the
+case's current one:
+
+| the run's `case_fp` | counted as | in the rate |
+|---|---|---|
+| equal to the current case | a measurement | yes |
+| different — the case changed after the run | `stale` | **no**: it measured another case (C5's 4/5 of 2026-09-15 was scored by the pre-#97 checker) |
+| absent — recorded before the stamp | `unknown` | yes: its case version is unrecorded, not known to differ |
+
+A case whose valid runs are all stale reports `rate: null` and the note
+`unavailable — every iteration is stale under the current case`. The resume
+rule is unchanged — a stale iteration is still done; re-running it (move the
+run dirs away, or use another SUT) is a quota decision, per case. An old run
+cannot be re-scored: the checker needs the iteration's sandbox, which is
+deleted when the iteration ends. The harness red-proof (`redproof.py`
+§ FINGERPRINT) asserts the columns.
 
 ## Language boundary
 

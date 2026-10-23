@@ -11,13 +11,16 @@ derive from the ledger case and the owning prose, cited via `# source:`
 comments — the runner refuses an uncited checker.
 """
 
+import hashlib
 import json
 import os
 import re
 import subprocess
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+S = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(S))
+sys.path.insert(0, os.path.dirname(S))
 # Shared kit; case checkers keep importing it from here
 # (`from replaylib import Run, Checker`).
 from lib.checkkit import Checker  # noqa: E402,F401
@@ -92,6 +95,40 @@ def iteration_done(rdir):
     if not isinstance(r, dict):   # valid JSON that is not a result (codex review, PR #35)
         return False
     return r.get("invalid_reason") != "quota-exhausted"
+
+
+# ---- the case as scored — stamped into every result.json (#190) -----------
+# A verdict depends on the checker (or the driver), the case's metadata, the
+# seed and the forge state. A run carries the fingerprint of the case that
+# scored it, so a case edited after its baseline leaves those runs STALE
+# in report.json instead of silently current: C5's 4/5 of 2026-09-15 was
+# scored by the pre-#97 checker and read as the current case for a month.
+def case_fingerprint(cdir):
+    """sha256 (16 hex) over check.py — or the driver case.json names —
+    case.json, seed.sh and state.json; an absent file hashes as absent."""
+    try:
+        with open(os.path.join(cdir, "case.json"), encoding="utf-8") as f:
+            driver = (json.load(f) or {}).get("driver") or ""
+    except (OSError, ValueError):
+        driver = ""
+    h = hashlib.sha256()
+    for name in (driver or "check.py", "case.json", "seed.sh", "state.json"):
+        try:
+            with open(os.path.join(cdir, name), "rb") as f:
+                data = f.read()
+        except OSError:
+            data = b"<absent>"
+        h.update(name.encode("utf-8") + b"\0" + data + b"\0")
+    return h.hexdigest()[:16]
+
+
+def plugin_sha():
+    """The checkout's short HEAD, or "" outside a checkout."""
+    try:
+        return subprocess.check_output(["git", "-C", ROOT, "rev-parse", "--short", "HEAD"],
+                                       text=True, stderr=subprocess.DEVNULL).strip()
+    except (OSError, subprocess.CalledProcessError):
+        return ""
 
 
 def session_error(transcript):
