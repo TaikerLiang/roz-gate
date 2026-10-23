@@ -23,3 +23,11 @@ src("E8: the GitHub adapter names CR-COMMENT", "references/forge-github.md",
     '| CR-COMMENT | `gh pr comment <pr> --body "..."`')
 src("E8: the GitLab adapter names CR-COMMENT", "references/forge-gitlab.md",
     '| CR-COMMENT | `glab mr note <iid> --message "..."`')
+src("E8: spec-answers never folds the gate kit (#193)", "commands/spec-answers.md",
+    "**The gate-kit comment is the loop's own, never an\n  item**")
+src("E8: review-answers never hears the gate kit (#193)", "commands/review-answers.md",
+    "The gate-kit comment is the loop's own, never an item")
+src("E8: tip never counts the gate kit unheard (#193)", "commands/tip.md",
+    "the gate-kit comment is the loop's own, never an item")
+src("E8: patrol never dispatches on the gate kit (#193)", "references/patrol-scan.md",
+    "the gate-kit comment is the loop's own, never an item")

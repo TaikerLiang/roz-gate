@@ -52,7 +52,8 @@ it waits on or clears.
   REVIEWS-LIST (review summary bodies — GitHub only), CR-COMMENTS-LIST
   (top-level comments). An item is **unheard** when its latest entry does
   NOT start with `**[` or `✅ [` (the rule `references/patrol-scan.md`
-  classifies by); a thread is **answered** when it is unresolved and its
+  classifies by — the gate-kit comment is the loop's own, never an item);
+  a thread is **answered** when it is unresolved and its
   last comment is a human's; a thread with one human comment and no agent
   reply is an **amendment request** (`spec-answers` folds it).
 - `git worktree list`: a worktree under `.git/roz-gate/wt/` on one of the

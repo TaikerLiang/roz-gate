@@ -36,3 +36,10 @@ src("C5: the hand-back rule names the exception", "references/workflow.md",
     "One re-application\ncarries no run")
 src("C5: the gate kit calls the staleness by design", "references/gate-kit.md",
     "leaves them stale **by design**")
+src("C5: on re-entry the fold raises no new thread (#193, ruling (b))",
+    "commands/spec-answers.md",
+    "**On a post-integration re-entry the fold raises no new thread**")
+src("C5: step 7 lists a surfaced question in the return comment (#193)",
+    "commands/spec-answers.md",
+    "The fold raised no new thread (step 5); a question it\n"
+    "  surfaced is listed in the return comment")

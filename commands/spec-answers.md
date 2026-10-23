@@ -68,7 +68,10 @@ A thread needs handling when it is **unresolved** and EITHER:
   citation every later run would fold it again (codex review, PR #114). It
   has no path, so it is `product`'s; the human's text is the ruling — the
   seat decides whether it closes an open `Q<k>` or is an amendment `A<k>`,
-  and folds it like one.
+  and folds it like one. **The gate-kit comment is the loop's own, never an
+  item** (`${CLAUDE_PLUGIN_ROOT}/references/gate-kit.md`): it opens with the
+  kit's blind-spot header, not a `**[` marker, and must not be folded as a
+  ruling.
 
 If a thread has only the original `**[...]**` question and no reply → leave it,
 the user has not answered yet. If no thread or top-level item qualifies on any CR → report "no
@@ -115,6 +118,11 @@ half-done:
      measurement still covers the edited claim, or the tag downgrades to
      `(unverified)`. A stale `(measured, <date>, <scope>)` certifying a claim
      nobody measured is worse than no tag.
+   **On a post-integration re-entry the fold raises no new thread** (the
+   issue's `<feat-branch>` / `<qa-branch>` CRs are merged — step 7): a
+   question the fold surfaces goes into the return comment for the user to
+   decide at (7), never into a new `**[<role>]` thread, which would hold the
+   issue in `in-spec-review` and skip the (7) readback it came back for.
    **An amendment** has no `## Open Questions` item yet: add one, resolved
    on arrival — `**[<role>] · A<k> · <2–4-word title>**` with a
    `**Resolved:**` block (the human's ruling, attribution + date, "folded
@@ -218,7 +226,9 @@ depends on where the issue is — decided by CR-FIND for `<feat-branch>` /
 - **Post-integration re-entry** — `<feat-branch>` / `<qa-branch>` exist but are
   **merged** (the issue came back from (7): the user's review raised something
   that changed what a rule means). The work is built, so this never returns to
-  implementation. Fold, then one of two cases:
+  implementation. The fold raised no new thread (step 5); a question it
+  surfaced is listed in the return comment, after the three moves. Fold,
+  then one of two cases:
   - **The fold changed no behaviour** (wording, a resolved question that moved
     no rule): honour the **hand-back rule** — re-run config `acceptance_test`
     and config `test` on `<spec-branch>`, capture the output, regenerate the
