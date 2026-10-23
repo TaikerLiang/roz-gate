@@ -49,8 +49,11 @@ c.expect("spec-answers.md step 7 (the fold changed behaviour: no run as evidence
 # The gate kit on the spec CR (comment 9501, stamped cards-sha 1111111) keeps
 # its evidence: no regenerated cards, no re-stamp (codex review, PR #103).
 # § 6b's ledger append edits the same comment, and gate-kit.md opens a stale
-# cards block with a banner, so the edit itself is allowed; what may not
-# appear is a covered or partial card citing evidence the seed did not (#193).
+# cards block with a banner, so the edit itself is allowed. What may not
+# change is a card: every seeded card keeps its scenario, bucket and evidence,
+# and no covered or partial card appears that the seed lacked (#193; rows,
+# not evidence strings alone — codex review, PR #194). A note after the
+# scenario ID ("S1 (pre-amendment sentence)") is not a change.
 KIT_ID = 9501
 CARDS = "### Evidence cards"
 
@@ -61,7 +64,8 @@ def evidence(body):
     block = body.split(CARDS, 1)[1].split("\n###", 1)[0]
     cells = [[x.strip() for x in ln.strip().strip("|").split("|")]
              for ln in block.splitlines() if ln.strip().startswith("|")]
-    return {cl[2] for cl in cells if len(cl) >= 3 and cl[1] in ("covered", "partial")}
+    return {((cl[0].split() or [""])[0], cl[1], cl[2]) for cl in cells
+            if len(cl) >= 3 and cl[1] in ("covered", "partial")}
 
 
 def kit_body(st):
@@ -75,9 +79,9 @@ with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "state.json")
           encoding="utf-8") as f:
     SEED_EVIDENCE = evidence(kit_body(json.load(f)))
 c.expect("spec-answers.md step 7 (no regeneration, no re-stamp)",
-         "the gate kit's cards-sha is still 1111111 and no card cites evidence the seed lacked",
+         "the gate kit's cards-sha is still 1111111 and its evidence cards are the seed's",
          "cards-sha: 1111111" in kit_body(r.state())
-         and evidence(kit_body(r.state())) <= SEED_EVIDENCE)
+         and evidence(kit_body(r.state())) == SEED_EVIDENCE)
 c.expect("spec-answers.md step 7 (post-integration: the fold raises no new thread)",
          "no new inline thread on the spec CR",
          not any(e.get("write") and e.get("route") == "thread-post-inline"

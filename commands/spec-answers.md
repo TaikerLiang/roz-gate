@@ -120,9 +120,11 @@ half-done:
      nobody measured is worse than no tag.
    **On a post-integration re-entry the fold raises no new thread** (the
    issue's `<feat-branch>` / `<qa-branch>` CRs are merged — step 7): a
-   question the fold surfaces goes into the return comment for the user to
-   decide at (7), never into a new `**[<role>]` thread, which would hold the
-   issue in `in-spec-review` and skip the (7) readback it came back for.
+   question the fold surfaces is posted as one top-level
+   `**[review] · question**` CR-COMMENT on the spec CR — the channel the
+   resumed (7) conversation (`review-answers`) listens on — never as a new
+   `**[<role>]` thread, which would hold the issue in `in-spec-review` and
+   skip the (7) readback it came back for.
    **An amendment** has no `## Open Questions` item yet: add one, resolved
    on arrival — `**[<role>] · A<k> · <2–4-word title>**` with a
    `**Resolved:**` block (the human's ruling, attribution + date, "folded
@@ -227,8 +229,8 @@ depends on where the issue is — decided by CR-FIND for `<feat-branch>` /
   **merged** (the issue came back from (7): the user's review raised something
   that changed what a rule means). The work is built, so this never returns to
   implementation. The fold raised no new thread (step 5); a question it
-  surfaced is listed in the return comment, after the three moves. Fold,
-  then one of two cases:
+  surfaced is the `**[review] · question**` on the spec CR, and the return
+  comment links it after the three moves. Fold, then one of two cases:
   - **The fold changed no behaviour** (wording, a resolved question that moved
     no rule): honour the **hand-back rule** — re-run config `acceptance_test`
     and config `test` on `<spec-branch>`, capture the output, regenerate the

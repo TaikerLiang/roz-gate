@@ -39,6 +39,11 @@ STALE = "> Stale — the cards below describe `1111111`; the branch is now `7d21
 BANNER = {"route": "comment-edit", "write": True, "comment": 9501,
           "body": KIT.replace("### Evidence cards\n", "### Evidence cards\n" + STALE).replace(
               "OK |", "OK |\n| S2 | not covered | no test |") + "(none yet)"}
+MOVED = {"route": "comment-edit", "write": True, "comment": 9501,
+         "body": KIT.replace("| S1 | covered |", "| S999 | partial |") + "(none yet)"}
+DROPPED = {"route": "comment-edit", "write": True, "comment": 9501,
+           "body": KIT.replace("| S1 | covered | test_expiry.py::test_expired_offer — OK |\n", "")
+           + "(none yet)"}
 NEW_THREAD = {"route": "thread-post-inline", "write": True, "pr": "101",
               "body": "**[em] · Q4 · grace-window clock basis**", "path": "spec.md"}
 ACCEPT_RUN = "python3 -m unittest discover -s tests/acceptance -q 2>&1 | tee /tmp/acc.log"
@@ -59,6 +64,9 @@ SHAPES = [
     ("gate-kit.md: the staleness banner and a not-covered card added, evidence untouched", True,
      DONE, [RETURN], [RESOLVE, BANNER], False),
     ("a card with new evidence, cards-sha kept", False, DONE, [RETURN], [RESOLVE, RECARD], False),
+    ("the seed's evidence moved to another scenario and bucket (codex, PR #194)", False,
+     DONE, [RETURN], [RESOLVE, MOVED], False),
+    ("the seed's card deleted", False, DONE, [RETURN], [RESOLVE, DROPPED], False),
     ("the fold raised a new [em] thread and stayed in-spec-review (#193, ruling (b))", False,
      ["track: spec", "status: in-spec-review"], ["**[spec-answers] · amended — Q4 open**"],
      [RESOLVE, NEW_THREAD, LEDGER], False),

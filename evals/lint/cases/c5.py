@@ -39,7 +39,9 @@ src("C5: the gate kit calls the staleness by design", "references/gate-kit.md",
 src("C5: on re-entry the fold raises no new thread (#193, ruling (b))",
     "commands/spec-answers.md",
     "**On a post-integration re-entry the fold raises no new thread**")
-src("C5: step 7 lists a surfaced question in the return comment (#193)",
+src("C5: a surfaced question goes where (7) listens (#193, codex review, PR #194)",
     "commands/spec-answers.md",
-    "The fold raised no new thread (step 5); a question it\n"
-    "  surfaced is listed in the return comment")
+    "posted as one top-level\n   `**[review] · question**` CR-COMMENT on the spec CR")
+src("C5: step 7's return comment links the surfaced question (#193)",
+    "commands/spec-answers.md",
+    "a question it\n  surfaced is the `**[review] · question**` on the spec CR")
