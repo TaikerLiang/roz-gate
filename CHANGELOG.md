@@ -2,7 +2,7 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
-## the question where (7) listens — 2026-10-23
+## v2.7.2 — the question where (7) listens — 2026-10-23
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.7.2>
 
