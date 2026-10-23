@@ -1,7 +1,7 @@
 {
   "ledger": "C5 · Post-integration re-entry has a branch of its own — and is honest about what it verified",
   "tier": "lint + replay (amended for #97)",
-  "ledger_text": "\"Folds; the fold changed behaviour, so no acceptance run is taken as evidence and the gate kit's cards are not regenerated — its `cards-sha` stamp is untouched; the return comment `**[spec-answers] · amended**` names the fold and says the implementation and the suite still implement the previous text; `in-user-review` applied, `in-spec-review` and `processing` removed, the thread resolved, no 'move to implementation'.\" (without the branch the first-pass branch fires and tells a shipped feature it is ready to move to implementation; before #97 the branch re-ran the suite green against the previous text and regenerated the cards from it — ADMC #63)",
+  "ledger_text": "\"Folds; the fold changed behaviour, so no acceptance run is taken as evidence and the gate kit's cards are not regenerated — its `cards-sha` stamp is untouched; the return comment `**[spec-answers] · amended**` names the fold and says the implementation and the suite still implement the previous text; `in-user-review` applied, `in-spec-review` and `processing` removed, the thread resolved, no 'move to implementation'; the decision ledger may gain its entry; the fold raises no new thread.\" (without the branch the first-pass branch fires and tells a shipped feature it is ready to move to implementation; before #97 the branch re-ran the suite green against the previous text and regenerated the cards from it — ADMC #63)",
   "prompt": "/roz-gate:spec-answers 5",
   "k": 5,
   "timeout": 1200

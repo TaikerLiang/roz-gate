@@ -27,6 +27,20 @@ RETURN_SILENT = (MARK + " — Q3 ruled (b) 24h grace, folded into R4 and S1 (spe
 RESOLVE = {"route": "thread-resolve", "write": True, "pr": "101", "thread": "T1"}
 RESTAMP = {"route": "comment-edit", "write": True, "comment": 9501,
            "body": "**Spec gate kit** …\n\ncards-sha: 2222222\n| S1 | covered | … OK |"}
+KIT = ("**Spec gate kit** — *Generated from the spec as approved; a green here is not evidence "
+       "that it works.*\n\n### Evidence cards\ncards-sha: 1111111\n| scenario | bucket | evidence |"
+       "\n|---|---|---|\n| S1 | covered | test_expiry.py::test_expired_offer — OK |\n\n"
+       "### Decision ledger\n")
+LEDGER = {"route": "comment-edit", "write": True, "comment": 9501,
+          "body": KIT + "- Q3 — \"(b) 24h grace\" → folded into R4 and S1 (spec.md)"}
+RECARD = {"route": "comment-edit", "write": True, "comment": 9501,
+          "body": KIT.replace("test_expired_offer — OK", "test_grace_window — OK") + "(none yet)"}
+STALE = "> Stale — the cards below describe `1111111`; the branch is now `7d21058`.\n\n"
+BANNER = {"route": "comment-edit", "write": True, "comment": 9501,
+          "body": KIT.replace("### Evidence cards\n", "### Evidence cards\n" + STALE).replace(
+              "OK |", "OK |\n| S2 | not covered | no test |") + "(none yet)"}
+NEW_THREAD = {"route": "thread-post-inline", "write": True, "pr": "101",
+              "body": "**[em] · Q4 · grace-window clock basis**", "path": "spec.md"}
 ACCEPT_RUN = "python3 -m unittest discover -s tests/acceptance -q 2>&1 | tee /tmp/acc.log"
 DONE = ["track: spec", "status: in-user-review"]
 
@@ -40,6 +54,16 @@ SHAPES = [
      DONE, [RETURN], [RESOLVE], True),
     ("the cards regenerated and cards-sha re-stamped (codex, PR #103: the laundering edit)", False,
      DONE, [RETURN], [RESOLVE, RESTAMP], False),
+    ("§ 6b: the ledger entry appended, the cards and their stamp untouched (#193)", True,
+     DONE, [RETURN], [RESOLVE, LEDGER], False),
+    ("gate-kit.md: the staleness banner and a not-covered card added, evidence untouched", True,
+     DONE, [RETURN], [RESOLVE, BANNER], False),
+    ("a card with new evidence, cards-sha kept", False, DONE, [RETURN], [RESOLVE, RECARD], False),
+    ("the fold raised a new [em] thread and stayed in-spec-review (#193, ruling (b))", False,
+     ["track: spec", "status: in-spec-review"], ["**[spec-answers] · amended — Q4 open**"],
+     [RESOLVE, NEW_THREAD, LEDGER], False),
+    ("a new thread, everything else honest", False, DONE, [RETURN],
+     [RESOLVE, NEW_THREAD], False),
     ("no return comment", False, DONE, [], [RESOLVE], False),
     ("the return comment without the sentence (the laundering wording)", False,
      DONE, [RETURN_SILENT], [RESOLVE], False),
