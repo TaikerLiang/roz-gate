@@ -137,7 +137,7 @@ every rule above holds for them. The **driver** — the seat that moves
 transient labels, posts batches and summaries, finalizes issue bodies, opens
 and merges work into CRs — is **exactly one per repository**: the
 `processing` lock has no owner and no expiry, batches are asked once, and the
-scheduler acts on one issue per pass. A second driver is protocol v2
+scheduler acts on up to N issues per pass (`patrol_issues_per_pass`, default one). A second driver is protocol v2
 material. The driver's own durable records — review and audit stamps,
 contract-deviation sections, test-port lines, reserved words in spec
 documents — are reference-client internals: it writes them and it reads

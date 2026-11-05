@@ -292,8 +292,8 @@ semantics become breaking changes.
    every classification mechanism holds. The *driver* seat (moves
    transient labels, posts batches/summaries, finalizes, opens CRs) is
    **exactly one per repo**: the `processing` lock has no owner and no
-   TTL, batches are asked-once, patrol acts one-issue-per-pass — all
-   single-writer assumptions. Goes in spec §5 as an explicit limitation.
+   TTL, batches are asked-once, patrol acts on its N issues one after
+   another (#204) — all single-writer assumptions. Goes in spec §5 as an explicit limitation.
 3. **The spec's IN/OUT boundary.**
    - IN (wire; changing = breaking): label taxonomy + state machine +
      gate/transient ownership; the `**[` agent prefix; `**[intake]**` /

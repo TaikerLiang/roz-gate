@@ -204,6 +204,18 @@ test('the pane offers worktree_copy, and the paths go to the tool as typed (#122
   expect(calls[0]).toEqual(['worktree_copy', '.env, config/local'])
 })
 
+test('the pane offers patrol_issues_per_pass, and the count goes to the tool (#204)', async ($, on) => {
+  const calls: string[][] = []
+  tool(on, calls)
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  await $.command.run(run(''))
+  calls.length = 0
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await ui.select({ key: 'key', value: 'patrol_issues_per_pass' })
+  await ui.input({ key: 'value', text: '2' })
+  expect(calls[0]).toEqual(['patrol_issues_per_pass', '2'])
+})
+
 test('the pane offers branch_template, and a template goes to the tool whole', async ($, on) => {
   const calls: string[][] = []
   tool(on, calls)

@@ -14,7 +14,7 @@ every CAPITALIZED-OP. Missing config → stop; tell the user to run
 `/roz-gate:init`. A legacy `### Gated Loop config` block (the plugin's
 pre-1.0 name) counts as present — use its values and flag the re-init in the
 report. **Local keys** — `default_branch`, `inbox_label`, `inbox_assignee`,
-`helper_model`, `branch_user`, `branch_template` are per person,
+`helper_model`, `branch_user`, `branch_template`, `patrol_issues_per_pass` are per person,
 per clone, never in the block: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`
 and use its values (`.claude/roz-gate.local.json`, defaults resolved — the
 remote's HEAD branch, empty lists, empty strings). **Branch names**: bind `<spec-branch>`,
@@ -80,36 +80,41 @@ you cannot act on as written — a verdict outside the brief's list, a missing
 re-derived. The report's rows and the user's queue cite the `evidence`
 column.
 
-## 3. Act — one loop issue per pass, plus the whole inbox
-In-loop work: from the rows whose `verdict` starts with `actionable:`, pick the
-issue **closest to done** — priority:
+## 3. Act — up to N loop issues per pass, plus the whole inbox
+In-loop work: from the rows whose `verdict` starts with `actionable:`, order
+the issues **closest to done** first — priority:
 `/roz-gate:review-answers` > `/roz-gate:integrate` > address-review >
 fidelity-audit > code-review > `/roz-gate:next-stage` (`qa` — Path B2) >
 `/roz-gate:spec-answers` > `/roz-gate:next-stage` (`ready-for-dev`) >
-`/roz-gate:next-stage` (`ready-for-spec`) — and perform that action. The (7)
-conversation ranks first: it is definitionally the closest to done, and the
-person waiting there never queues behind machine work. If nothing is
-actionable, act on nothing.
+`/roz-gate:next-stage` (`ready-for-spec`) — and act on the first **N** of
+them, one after another, in priority order, where N is the local key
+`patrol_issues_per_pass` (default 1: one issue, the pre-2.9.0 pass). The N
+come from the one table of this pass — never re-scan between actions; each
+issue at most once per pass, so an action's own follow-ups wait for the next
+pass. The (7) conversation ranks first: it is definitionally the closest to
+done, and the person waiting there never queues behind machine work. If
+nothing is actionable, act on nothing. (#204: under an hourly cadence a
+one-issue pass starved every approved gate behind the last pass's
+follow-ups; a higher N is the one lever, the order is unchanged.)
 
 A `/roz-gate:review-answers` turn that only **answers** — no seat dispatch, no
-commit — is exempt from the one-issue rule, like intake: it costs a comment,
+commit — is outside the N, like intake: it costs a comment,
 and a multi-day conversation must not starve the rest of the loop. A turn that
-dispatches or commits consumes the pass.
+dispatches or commits counts toward the N.
 
 Then, for every row with verdict `hand-off: in-user-review` (a review-clean
 fast CR — its `**[reviewer] · code-review**` record current and zero threads,
 never zero threads alone), LABEL-ADD `status: in-user-review` — a status
-report, not a stage advance, so exempt from the one-issue rule; the issue
+report, not a stage advance, so outside the N; the issue
 now waits on the user.
 
 Then **close out every** issue whose CR is merged (the rows with verdict
 `close-out`; the action below) — a
-finalize, not a stage advance, so like intake it is exempt from the
-one-issue rule.
+finalize, not a stage advance, so like intake it is outside the N.
 
 Then triage **every** actionable inbox issue (the rows with an `intake:`
 verdict; async intake, below), one dispatch per issue. Intake is comment-only — no code, no gate labels — so it
-is exempt from the one-issue rule: after a single pass, everything that waits
+is outside the N: after a single pass, everything that waits
 on the user is already posted.
 
 ### The close-out action — labels retire at close
@@ -311,11 +316,16 @@ in the scanner's order, nothing else in it:
   `fast · ready-for-dev`, `spec · in flight` (no `status:`), `spec · blocked`,
   `inbox`.
 - `this pass` — **one clause, at most 12 words**, from this vocabulary:
-  `acted: <action> — <outcome>` · `queued: <action>` · `waits on you: <what>`
+  `acted: <action> — <outcome>` · `queued: <action> · <gate label> <age>` ·
+  `waits on you: <what>`
   · `blocked: <the STOP comment's title>` · `locked: <phase> · <age>` ·
   `illegal: <why>` · `shipped` · `in progress`. Never a list, never a commit
   log — that is Details material. The scanner's gate-label audit reads
-  `illegal: gate label applied by <login>`.
+  `illegal: gate label applied by <login>`. A gated row the pass did not
+  reach (#204) carries its wait: the gate label and how long it has been
+  worn — `queued: next-stage · ready-for-dev 4h` — the age from the gate
+  label's `labeled` event the scanner put in `evidence` (no new forge read),
+  as `<n>h` under a day, else `<n>d`. A queued row is `needs you: —`.
 - `needs you` — `yes` or `—`; `yes` whenever the next move is a human's: a
   wait, a `blocked`, an illegal row, a stale lock, an intake batch, an
   intake reply or a `· question` posted this pass, a review to merge.
