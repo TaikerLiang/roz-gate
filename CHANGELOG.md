@@ -2,6 +2,24 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.7.4 — every spawn is drawn — 2026-11-05
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.7.4>
+
+**Behavior:** the seat pane shows every sub-agent, not only the five seats — patrol's scanner now has a face.
+
+### Behavior
+- **Every spawn is drawn** (#202, #203): a sub-agent `SEAT_OF` does not name — patrol's `general-purpose` scanner and commit sub-agent, a seat linked to your own agent — is shown as the 8×8 `DEFAULT` Roz under its agent type. The pane opens on the first spawn of any type; a close by hand still holds for the session. Amends #172 rulings 5 and 6; the five seats keep their sprites.
+
+### Evals
+- **L11** anchors the new README sentence; `hooks/tests/seat-pane.test.ts` gains the unmapped-spawn case and inverts "a seat by its default agent type only" and "the first seat opens the pane" (27 → 28).
+
+### Docs
+- **`README.md`, `hooks/README.md`**: the seat-pane paragraph says what is shown, not what is hidden.
+
+### Checks
+Hook tests 555/555 · plugin test 28/28 · lint 1019/1019 · red-proofs 31/31 · naming · ruff · judgment `--check` · ledger `--check` current · plugin validate
+
 ## v2.7.3 — the ledger indexes every hook rule — 2026-11-05
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.7.3>
