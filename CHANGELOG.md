@@ -2,6 +2,28 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.8.0 — up to N per pass — 2026-11-05
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.8.0>
+
+**Behavior:** a patrol pass can act on more than one issue — `patrol_issues_per_pass`, default one — and the report says how long a gated issue has waited.
+
+### Behavior
+- **Up to N in-loop issues per pass** (#204, #208): `patrol_issues_per_pass` (local key, default `1`) is how many `actionable:` rows a pass acts on, in priority order, each issue at most once, from the one scan table; the exemptions stay outside the N. Under an hourly cadence a `ready-for-dev` issue no longer waits behind the follow-ups of the issue the last pass touched.
+- **A queued gate shows its wait**: `queued: next-stage · ready-for-dev 4h`, from the `labeled` event the scanner already reads; `<n>h` under a day, else `<n>d`.
+
+### Evals
+- **C26** (`lint + replay`): N=2 acts on two of three `ready-for-dev` issues and leaves the third as seeded with its wait in the report; F9 unchanged proves the default. **L2** counts eight keys; **B7**'s vocabulary literal follows §4.
+
+### Hooks
+- **`roz-config`** accepts `patrol_issues_per_pass` (integer ≥ 1, late key); the config menu lists it.
+
+### Docs
+- **`README.md`, `references/workflow.md`, `docs/protocol.md`, `docs/ROADMAP.md`, `commands/config.md`, `docs/onboarding.html`**: "one issue per pass" → "up to N (default one)"; eight keys.
+
+### Checks
+Hook tests 561/561 · plugin test 29/29 · lint 1039/1039 · red-proofs 32/32 · naming · ruff · judgment `--check` · ledger `--check` current · plugin validate · **C26 baseline: not yet run** (maintainer, `run_replay.py --sut opus --k 5 C26`)
+
 ## v2.7.4 — every spawn is drawn — 2026-11-05
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.7.4>
