@@ -389,8 +389,8 @@ starts in a session: each seat running now is an animated 8-bit Roz —
 product swims, em puts its shades on, implementer surfs, qa squats,
 reviewer walks the beach — with its task and how long it has run; with no
 seat running, Roz stands by. Close it and it stays closed for the session.
-It recognises a seat by its default agent type, so a seat linked to your own agent is not shown,
-nor are patrol's scanner and commit sub-agents. The sprites are drawn in
+It recognises a seat by its default agent type; every other agent — patrol's
+scanner and commit sub-agents, a seat linked to your own agent — is shown as a plain Roz under its agent type. The sprites are drawn in
 the terminal; desktop, VS Code and mobile show a text list. It only
 watches: it changes nothing the loop does.
 

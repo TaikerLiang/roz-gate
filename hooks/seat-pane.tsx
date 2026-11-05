@@ -1,4 +1,5 @@
-// The seat pane (#172): the seats running now, each an animated 8-bit Roz.
+// The seat pane (#172): the agents running now, each an animated 8-bit Roz —
+// a seat in its own sprite, any other spawn as the default (#202).
 // It only watches — an `agent.spawn` hook notes a seat as it starts, a timer
 // reads `$.agent.list()` for its status; it never writes a file, runs a
 // process, reaches the network or a model, or refuses a spawn. It needs
@@ -7,13 +8,14 @@
 // do not load there is simply no pane.
 import type { AgentStatus, EngineInterface, Register } from 'claude-code'
 
-import { BIG, SEATS, lines } from './seat-sprites'
+import { BIG, DEFAULT, SEATS, lines } from './seat-sprites'
 import type { Cell } from './seat-sprites'
 
 const PANE = 'roz-gate-seats'
 const TICK = 500
-// A seat by its default agent type only (ruling 6): a seat linked to your
-// own agent (`implementer: backend`) and every other agent are not shown.
+// A seat by its default agent type has its own sprite; every other spawn —
+// patrol's `general-purpose` scanner, a seat linked to your own agent
+// (`implementer: backend`) — is drawn as DEFAULT under its agent type (#202).
 const SEAT_OF: Record<string, string> = {
   'roz-gate:product': 'product',
   'roz-gate:em': 'em',
@@ -82,9 +84,9 @@ export const register: Register = on => {
 
   on('agent.spawn', async ($, e, next) => {
     const r = await next(e)
-    const seat = SEAT_OF[e.subagentType]
+    const seat = SEAT_OF[e.subagentType] ?? e.subagentType
     // A spawn another hook refused carries no agent id: nothing started.
-    if (!seat || !('agentId' in r) || !r.agentId) return r
+    if (!('agentId' in r) || !r.agentId) return r
     // The spawn has started: the pane's bookkeeping never fails it
     // (codex review, PR #187).
     try {
@@ -159,7 +161,7 @@ export const register: Register = on => {
           const [name, description, status] = text(s)
           return (
             <Box flexDirection="row" gap={2}>
-              {art(SEATS[s.seat][tick % 2])}
+              {art((SEATS[s.seat] ?? DEFAULT)[tick % 2])}
               <Box flexDirection="column">
                 <Text bold>{name}</Text>
                 <Text>{cut(description, room)}</Text>

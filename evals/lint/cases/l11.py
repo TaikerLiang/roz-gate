@@ -1,12 +1,14 @@
 """L11 · the seat pane is a mod that only watches                  (#172, 2.7.0)
 A Claude Code mod (2.1.287+) draws the seats running now in a side pane,
 each an animated 8-bit Roz. It recognises a seat by its default agent type
-alone, so the README says a seat linked to your own agent is not shown. It
-watches and nothing else: it never writes a file, runs a process, reaches
-the network or a model, or refuses a spawn. Claude Code names one hooks
+for its sprite; every other spawn is drawn as the default Roz under its
+agent type (#202), and the README says so. It watches and nothing else: it
+never writes a file, runs a process, reaches the network or a model, or
+refuses a spawn. Claude Code names one hooks
 module per plugin, so the entry `hooks/mods.tsx` registers it. Red-proofed
 by dropping its call from the entry, adding a sixth seat to the sprites,
-adding a `$.process.run` to the mod, and deleting the README sentence.
+adding a `$.process.run` to the mod, and deleting the README sentence
+(#202: the old "is not shown" wording in its place goes red too).
 """
 
 import os
@@ -19,8 +21,8 @@ META = {
     "title": "the seat pane is a mod that only watches: the entry module registers "
              "`seat-pane.tsx`; `seat-sprites.ts` draws exactly the five seats the personas "
              "template names, no more; the mod never writes, runs a process or denies a spawn; "
-             "README says a seat linked to your own agent is not shown",
-    "tier": "lint (#172, 2.7.0)",
+             "README says every other agent is shown as a plain Roz under its agent type",
+    "tier": "lint (#172, 2.7.0; #202)",
     "ledger": None,
 }
 
@@ -51,5 +53,6 @@ c.expect("pattern", "L11: the mod never writes, runs a process, reaches the netw
          "model, or refuses a spawn (%s)" % (", ".join(_banned) or "none"),
          _mod != "" and not _banned)
 
-c.expect("pattern", "L11: README says a seat linked to your own agent is not shown",
-         "a seat linked to your own agent is not shown" in " ".join(read("README.md").split()))
+c.expect("pattern",
+         "L11: README says every other agent is shown as a plain Roz under its agent type",
+         "is shown as a plain Roz under its agent type" in " ".join(read("README.md").split()))

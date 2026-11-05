@@ -327,12 +327,13 @@ still loads the guards (checked on 2.1.200 and 2.1.286).
 
 `seat-pane.tsx` (2.1.289 or later: it matches `agent.spawn`'s id against
 `$.agent.list()`, one id across hook events since that release) draws the
-seats running now in a side pane (#172), each an
+agents running now in a side pane (#172), each an
 animated 8-bit Roz from `seat-sprites.ts`. An `agent.spawn` hook notes a
-seat as it starts — by its default agent type only (`roz-gate:product`,
-`roz-gate:em`, `implementer`, `roz-gate:qa`, `roz-gate:reviewer`), so a
-seat linked to your own agent is not shown — and opens the `Roz Gate` pane
-on the first one in a session. One 500 ms timer animates it while the pane
+spawn as it starts — a seat by its default agent type (`roz-gate:product`,
+`roz-gate:em`, `implementer`, `roz-gate:qa`, `roz-gate:reviewer`) in its
+own sprite; every other agent — patrol's scanner and commit sub-agents, a
+seat linked to your own agent — is shown as a plain Roz under its agent
+type (#202) — and opens the `Roz Gate` pane on the first one in a session. One 500 ms timer animates it while the pane
 is open and polls `$.agent.list()` only while a seat is live; with none,
 the 16×16 Roz stands by. Closed by hand, the pane stays closed for the
 session. Sprites are drawn in the terminal; desktop, VS Code and mobile get

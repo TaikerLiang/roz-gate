@@ -31,6 +31,13 @@ export const BIG: Frames = [
 // 8×8, the base Roz every seat is drawn from.
 export const BASE = ['D......D', 'DBBBBBBD', 'BGGBBGGB', 'GEPGGPEG', 'BGGKKGGB', 'DWLLLLWD', 'DWZLLZWD', '.DKDDKD.']
 
+// 8×8, the fallback for a spawn no seat names (#202): the base Roz, eyes
+// open, then a blink — the standby owl at seat size.
+export const DEFAULT: Frames = [
+  BASE,
+  ['D......D', 'DBBBBBBD', 'BGGBBGGB', 'GDDGGDDG', 'BGGKKGGB', 'DWLLLLWD', 'DWZLLZWD', '.DKDDKD.'],
+]
+
 // The five seats, two frames each — the rulings' table (#172).
 export const SEATS: Record<string, Frames> = {
   // swimming: a wing and its splash, left then right
