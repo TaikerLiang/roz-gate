@@ -9,6 +9,8 @@ branch_user is the fifth — the {user} slot of branch_template (L4).
 2.4.0 (#165): branch_template itself is the sixth — per developer.
 2.6.0 (#122): worktree_copy is the seventh — the gitignored files the
 sync-worktree hook copies into the loop's worktrees (L10).
+2.9.0 (#204): patrol_issues_per_pass is the eighth — how many in-loop
+issues one patrol pass acts on (default 1); patrol reads it in §3.
 """
 
 import re
@@ -19,10 +21,10 @@ META = {
     "id": 'L2',
     "title":
         'the local keys `roz-config` accepts are the ones the commands read and README '
-        'documents — seven since 2.6.0: `helper_model` governing the scanner and the commit '
+        'documents — eight since 2.9.0: `helper_model` governing the scanner and the commit '
         'sub-agent only, `branch_user` the `{user}` slot of `branch_template`, '
         '`branch_template` itself per developer, `worktree_copy` the files copied into the '
-        "loop's worktrees",
+        "loop's worktrees, `patrol_issues_per_pass` how many in-loop issues a pass acts on",
     "tier": 'lint (defect 1.18.0)',
     "ledger": None,
 }
@@ -30,9 +32,10 @@ META = {
 _tool = read("bin/roz-config")
 _m = re.search(r'^KEYS = \((.*?)\)$', _tool, re.M | re.S)
 _tool_keys = tuple(re.findall(r'"([a-z_]+)"', _m.group(1))) if _m else ()
-c.expect("pattern", "L2: bin/roz-config accepts exactly the seven local keys",
+c.expect("pattern", "L2: bin/roz-config accepts exactly the eight local keys",
          _tool_keys == ("default_branch", "inbox_label", "inbox_assignee", "helper_model",
-                        "branch_user", "branch_template", "worktree_copy"))
+                        "branch_user", "branch_template", "worktree_copy",
+                        "patrol_issues_per_pass"))
 _readers = ("commands/patrol.md", "commands/next-stage.md", "commands/integrate.md",
             "commands/spec-answers.md", "commands/review-answers.md")
 for _f in _readers:
@@ -81,9 +84,9 @@ c.expect("pattern", "L2: patrol's Model paragraph: helper_model is the scanner's
          and re.search(r"seats?\b.*runtime", _model, re.S | re.I) is not None)
 c.expect("pattern", "L2: patrol dispatches the scanner on helper_model",
          "helper_model" in section(_pm, r"^## 1\. Dispatch the scanner", r"^## 2\. "))
-c.expect("pattern", "L2: README's block has no patrol_model line; the per-clone section has seven",
+c.expect("pattern", "L2: README's block has no patrol_model line; the per-clone section has eight",
          "- patrol_model" not in read("README.md")
-         and "Seven keys are **yours" in read("README.md"))
+         and "Eight keys are **yours" in read("README.md"))
 c.expect("pattern", "L2: patrol_model survives nowhere in the prose or the docs",
          "patrol_model" not in dirs_text("commands", "references", "templates", "docs")
          and "patrol_model" not in read("README.md"))
@@ -91,3 +94,7 @@ c.expect("pattern", "L2: the onboarding builder offers helper_model as a per-clo
          "helper_model" in read("docs/onboarding.html"))
 src("L2: roz-config seeds helper_model from an old patrol_model line", "bin/roz-config",
     '"patrol_model"')
+c.expect("pattern", "L2: patrol §3 reads patrol_issues_per_pass (#204)",
+         "`patrol_issues_per_pass`" in section(_pm, r"^## 3\. Act", r"^## 4\. "))
+c.expect("pattern", "L2: the onboarding builder offers patrol_issues_per_pass as a per-clone key",
+         "patrol_issues_per_pass" in read("docs/onboarding.html"))
