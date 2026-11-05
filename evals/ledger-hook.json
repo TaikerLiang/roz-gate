@@ -1,0 +1,29 @@
+{
+  "_comment": "Ledger rows for rules enforced by a hook alone — no lint, no replay; proven in hooks/tests/. tools/ledger.py merges them into LEDGER.md by ID and counts them as the hook tier. `rule` is the letter in hooks/README.md's rule table; `proof` is the test file (#189).",
+  "cases": [
+    {
+      "id": "A10",
+      "title": "An intake summary is written only on request",
+      "tier": "hook (guard-gate rule A)",
+      "ledger": "an `**[intake] · summary**` write is allowed only after the gate holder's latest comment asks for it — `test_guard_gate.py` RuleA",
+      "rule": "A",
+      "proof": "hooks/tests/test_guard_gate.py"
+    },
+    {
+      "id": "C4",
+      "title": "An agent never applies a gate label",
+      "tier": "hook (guard-gate rule B)",
+      "ledger": "`--add-label` / `issue update --label` naming `ready-for-spec` or `ready-for-dev` is blocked across gh, glab, the `=` form, continuations and tabs — `test_guard_gate.py` RuleB, 18 cases",
+      "rule": "B",
+      "proof": "hooks/tests/test_guard_gate.py"
+    },
+    {
+      "id": "C25",
+      "title": "The loop's worktree add runs alone",
+      "tier": "hook (guard-gate rule J)",
+      "ledger": "a Bash call holding the loop's `git worktree add …/roz-gate/wt/…` with anything else in the segment is blocked (2.6.0, #186) — `test_guard_gate.py` RuleJ",
+      "rule": "J",
+      "proof": "hooks/tests/test_guard_gate.py"
+    }
+  ]
+}

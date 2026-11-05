@@ -5,8 +5,9 @@ Three tiers of evidence that the workflow's rules hold.
 <!-- counts -->
 | Tier | Cases | Status | Cost class |
 |---|---|---|---|
-| **lint** | 52 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
+| **lint** | 51 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
 | **replay** | 46 | built — `replay/run_replay.py` | needs a running loop and pass^k over repeated runs |
+| **hook** | 3 | built — `ledger-hook.json`, proven in `../hooks/tests/` by the same gate | rules a hook alone enforces; the other hook rules ride on a lint or replay row |
 | **judgment** | 7 items / 4 fixtures | built — `judgment/run_judgment.py`, k=2 baseline complete (2026-09-21) | a real repo per iteration plus an opus judge; the only tier that measures whether the spec stage earns its cost |
 <!-- /counts -->
 
@@ -89,10 +90,12 @@ source it guards (flip the flag, plant the near-miss, append the unknown
 label), watch it fail *legibly* — the message names what tripped — then
 restore. Record the mutation in the case's commit message.
 
-**The alternative with teeth.** C4 (`track: fast` + `ready-for-spec`
-refused) is in the case list but has no lint: it is enforced by
+**The alternative with teeth.** C4 (an agent never applies a gate label,
+rule B) is in the case list but has no lint: it is enforced by
 `hooks/guard-gate` and proven in `hooks/tests/`, which the
-same release gate runs. It is the worked example of the stronger option —
+same release gate runs. Its row lives in `ledger-hook.json` with the other
+hook-only rules (A10 rule A, C25 rule J), not as a placeholder in
+`lint/cases/` (#189). It is the worked example of the stronger option —
 when a rule can be a hook, make it a hook. B4 was promoted in 1.14.0 (rule
 C). E2 was promoted in 1.15.0 (rule D) on the replay tier's evidence: the
 prose said "relocate", 5/5 copied; the prose was made as explicit as prose

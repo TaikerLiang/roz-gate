@@ -5,7 +5,8 @@ under `lint/cases/` (`b1.py`, `c19.py`, …), replay cases as
 `replay/cases/<ID>/`, and the judgment corpus in `judgment/criteria.json`.
 This page indexes all of them — **rendered by `tools/ledger.py`** from the
 cases' own metadata (a lint file's `META`, a replay `case.json`'s `tier` and
-`ledger_text`, `ledger-deferred.json` for a case with no checker yet) into
+`ledger_text`, `ledger-deferred.json` for a case with no checker yet,
+`ledger-hook.json` for a rule a hook alone enforces) into
 `ledger-template.md`, which holds this prose. Never edit it by hand: edit
 the case, rerun the tool; `--check` goes red in CI and pre-push while it is
 stale (issue #131).
@@ -30,8 +31,11 @@ never the other way round.
 ## IDs
 
 A letter names the family, the number the order a case was added — a
-number is never reused. Rule letters in `hooks/README.md` (rules A–E) are
-a separate namespace: hook rule D is unrelated to ledger case D2.
+number is never reused. Rule letters in `hooks/README.md` (rules A–J) are
+a separate namespace: hook rule D is unrelated to ledger case D2. A rule a
+hook alone enforces has its row in `ledger-hook.json`, and every letter in
+that table must be named by some row's tier — `tools/ledger.py --check`
+refuses a rule that lands unindexed (#189).
 
 | family | what it guards |
 |---|---|
@@ -62,6 +66,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | A7 | A merged CR closes the issue out | replay | "Issue closed; every `track:`/`status:` label gone; exactly one shipped comment naming the CR; exactly one close; nothing written to the CR — and an issue the forge already closed on merge loses its labels and gets its comment, with no second close." (an OPEN CR at in-user-review is F1/A4/A5's fixture — zero label writes there) (GitLab and any CR against a release branch leave the issue open wearing `in-user-review` after the merge — the loop's last step never happened — issue #41) |
 | A8 | The scan is one read-only sub-agent and the rules exist once | lint (defect 1.24.0-) | — |
 | A9 | Patrol answers every human comment on an intake thread | replay + hook (guard-gate rule I) + lint (#174) | "On #7 (author kai, assignee paul): one `**[intake] · reply**` comment, after kai's comment, naming kai, no @-mention, no batch question re-asked, the holder's label named as the decision; no label writes beyond the lock, no body edit, no summary. On #8 (only a `[bot]` comment after the batch): no comment." (until 2.4.0 the Otherwise route left every comment after the batch unanswered until `summary` or a label — #174) |
+| A10 | An intake summary is written only on request | hook (guard-gate rule A) | an `**[intake] · summary**` write is allowed only after the gate holder's latest comment asks for it — `test_guard_gate.py` RuleA |
 
 ### B · agent-written text conventions
 
@@ -84,7 +89,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | C1 | A STOP strips the gate label | replay | "Labels become blocked alone — never ready-for-dev + blocked." (patrol treats a gate label as unconditionally actionable; leaving it re-invokes the command every pass) |
 | C2 | Stage (7) has no blocked exit | replay | "in-user-review is retained; no blocked. The failure is a prefixed comment." (blocked exists to stop the machine, not to inform the human; at (7) there is no machine to stop) |
 | C3 | `processing` coexists with a phase label | lint (preventive) | — |
-| C4 | track: fast + ready-for-spec refused | hook (guard-gate) | — |
+| C4 | An agent never applies a gate label | hook (guard-gate rule B) | `--add-label` / `issue update --label` naming `ready-for-spec` or `ready-for-dev` is blocked across gh, glab, the `=` form, continuations and tabs — `test_guard_gate.py` RuleB, 18 cases |
 | C5 | Post-integration re-entry has a branch of its own — and is honest about what it verified | lint + replay (amended for #97) | "Folds; the fold changed behaviour, so no acceptance run is taken as evidence and the gate kit's cards are not regenerated — its `cards-sha` stamp is untouched; the return comment `**[spec-answers] · amended**` names the fold and says the implementation and the suite still implement the previous text; `in-user-review` applied, `in-spec-review` and `processing` removed, the thread resolved, no 'move to implementation'; the decision ledger may gain its entry; the fold raises no new thread." (without the branch the first-pass branch fires and tells a shipped feature it is ready to move to implementation; before #97 the branch re-ran the suite green against the previous text and regenerated the cards from it — ADMC #63) |
 | C6 | CR lookup sees merged CRs where it must | lint (defect 1.11.0-) | — (amended for #77, 1.30.0: the scanner's in-flight row also reads the all-states form — a merged `feat`/`qa` CR satisfies "exists, thread-clean, not a draft", so both-merged routes to the re-verdict; the guard that held the row to the open-only default is gone) |
 | C7 | A branch is cut only from a base the remote has | lint + replay | "Labels are blocked alone; the STOP comment names the missing base; no branch pushed, no CR opened." (a mistyped or retired `default_branch` used to cut an empty branch from nothing and open a CR against it — issue #38; until #90 its two anchors pinned the bare `git merge --no-edit <default_branch>` / `git diff <default_branch>...` — the local ref — as the required form) |
@@ -104,6 +109,7 @@ a separate namespace: hook rule D is unrelated to ledger case D2.
 | C22 | The implementation review has a record, and review-clean is record-current + zero threads | lint + replay (#140 ruling 9, 2.0.0) | "An implementation CR with zero open threads and no `**[reviewer] · code-review**` record (or a record whose `reviewed-sha` is not the head) never merges into `<spec-branch>`: next-stage B2.1 stops without pushing, cuts no `<qa-branch>`, writes no label, and names the missing record and patrol's `code-review` action as the road." (zero threads because nobody reviewed is not zero findings — the lesson #95 taught on the QA side, applied to the implementation→QA transition before it could repeat) |
 | C23 | Patrol runs the review that never ran | replay (#140 ruling 9, 2.0.0) | "The scanner's row reads `actionable: code-review`, never `next-stage (qa)`; patrol dispatches `reviewer` once with the spec docs; the implementation CR gains one `**[reviewer] · code-review**` comment carrying `reviewed-sha:` equal to its head, posted after every finding thread; nothing is merged, no `<qa-branch>` is cut, the lock is released." (the mirror of C17: a thread-clean implementation CR would otherwise read as a reviewed one and land on the spec branch unreviewed) |
 | C24 | A bot-applied gate label is an illegal state the scan reports and never acts on | lint (#144, 2.1.0) | "ISSUE-LABEL-EVENTS exists under one name in both adapters (the timeline on GitHub, `resource_label_events` on GitLab); the scanner audits every gate label worn by its latest `labeled` event, normalizes the actor, and names the bot test — the handed `bot_login` list or the forge's bot shape — the verdict literal `illegal state: gate label applied by <login>`, never repair, never route; patrol carries the clause and the queue verb; workflow, protocol §4, README and both pages say it." (the layer the hook cannot be: rule B binds this agent, and a foreign agent's label looked exactly like the human's until the actor was read) |
+| C25 | The loop's worktree add runs alone | hook (guard-gate rule J) | a Bash call holding the loop's `git worktree add …/roz-gate/wt/…` with anything else in the segment is blocked (2.6.0, #186) — `test_guard_gate.py` RuleJ |
 
 ### D · what a seat receives, and what it must not see
 
