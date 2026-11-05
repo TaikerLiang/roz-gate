@@ -321,7 +321,8 @@ in the scanner's order, nothing else in it:
   · `blocked: <the STOP comment's title>` · `locked: <phase> · <age>` ·
   `illegal: <why>` · `shipped` · `in progress`. Never a list, never a commit
   log — that is Details material. The scanner's gate-label audit reads
-  `illegal: gate label applied by <login>`. A gated row the pass did not
+  `illegal: gate label applied by <login>`. A gate label on a stage that
+  passed reads `illegal: ready-for-dev on a passed stage (<feat-branch> merged)`. A gated row the pass did not
   reach (#204) carries its wait: the gate label and how long it has been
   worn — `queued: next-stage · ready-for-dev 4h` — the age from the gate
   label's `labeled` event the scanner put in `evidence` (no new forge read),
@@ -338,7 +339,8 @@ inbox is never a mystery.
 order, one line each, `- #n — <verb phrase> — <link>` (answer the threads,
 answer the intake questions, read the intake reply, say `summary`, apply
 the gate label, decide the STOP, review & merge, needs an assignee, clear
-a stale lock, remove
+a stale lock, remove `status: ready-for-dev` from a stage that passed —
+nothing else: patrol resumes from the CRs, remove
 the gate label `<login>` applied — then reapply it yourself to authorize:
 re-adding a label already worn records no new event, so the bot's stays
 the latest). A row
@@ -351,7 +353,8 @@ Details.
 
 **A row the pass cannot act on as written** — a verdict outside the brief's
 list, a missing `cr` for an actionable row (§2), a gate label the scanner's
-audit found applied by a bot identity (`references/patrol-scan.md`), a scan that contradicts
+audit found applied by a bot identity (`references/patrol-scan.md`) or worn
+on a stage that passed, a scan that contradicts
 what this session read earlier (`blocked` now, `illegal state` a pass ago)
 — is `illegal: <why>` with `needs you: yes` and a queue item (`decide:
 <why>`); never a note under Details, never re-derived.

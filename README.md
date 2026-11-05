@@ -198,7 +198,9 @@ Run `/roz-gate:patrol` manually as a "what's next" button, or schedule it
 per pass (default one, in priority order, each issue at most once) and triages the whole inbox every pass, treats the `processing` label
 as a lock, never applies a gate label, and reports one a bot identity applied
 (the scanner audits the forge's label events) as an illegal state it never
-acts on.
+acts on. A `ready-for-dev` applied again on a stage that passed — its
+implementation CR merged — is reported the same way: remove it, and
+patrol resumes from the CRs.
 
 ## The inbox: filing ideas from your phone
 

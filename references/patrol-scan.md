@@ -59,6 +59,18 @@ suffix stripped); both non-empty, both must hold; an empty list is no
   collaborator — is the authorization. No `labeled` event for the worn
   label (the forge returned none) → classify normally and say so in
   `evidence`.
+- **A gate label on a stage that passed.** For a `track: spec` issue
+  wearing `status: ready-for-dev` — whoever applied it — CR-FIND its
+  `<feat-branch>` (bound by Lookup — `references/branch-names.md`) in the
+  all-states form. CR **merged** → Path B consumed this label at B6 and
+  the implementation has landed, so a second application gates a stage
+  that passed: an **illegal state**, verdict `illegal state: ready-for-dev
+  on a passed stage (<feat-branch> merged)`, skip classification, report
+  it — never repair the label, never route the row to `next-stage`, nor on
+  to the action its CRs would get (integrate, qa) while the label is worn.
+  Open → classify normally: the STOP exit's resume line re-applies the
+  label over an open CR, and Path B reuses the branch. Closed unmerged, or
+  no CR → classify normally (a re-implementation, #209).
 - **Close-out scan.** For every issue wearing a `track:` label — the open
   ones above, plus ISSUE-LIST-CLOSED per track label (the forge closes an
   issue on merge where its own rule fires, and leaves the loop labels on) —
