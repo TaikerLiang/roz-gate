@@ -5,7 +5,8 @@ under `lint/cases/` (`b1.py`, `c19.py`, …), replay cases as
 `replay/cases/<ID>/`, and the judgment corpus in `judgment/criteria.json`.
 This page indexes all of them — **rendered by `tools/ledger.py`** from the
 cases' own metadata (a lint file's `META`, a replay `case.json`'s `tier` and
-`ledger_text`, `ledger-deferred.json` for a case with no checker yet) into
+`ledger_text`, `ledger-deferred.json` for a case with no checker yet,
+`ledger-hook.json` for a rule a hook alone enforces) into
 `ledger-template.md`, which holds this prose. Never edit it by hand: edit
 the case, rerun the tool; `--check` goes red in CI and pre-push while it is
 stale (issue #131).
@@ -30,8 +31,11 @@ never the other way round.
 ## IDs
 
 A letter names the family, the number the order a case was added — a
-number is never reused. Rule letters in `hooks/README.md` (rules A–E) are
-a separate namespace: hook rule D is unrelated to ledger case D2.
+number is never reused. Rule letters in `hooks/README.md` (rules A–J) are
+a separate namespace: hook rule D is unrelated to ledger case D2. A rule a
+hook alone enforces has its row in `ledger-hook.json`, and every letter in
+that table must be named by some row's tier — `tools/ledger.py --check`
+refuses a rule that lands unindexed (#189).
 
 | family | what it guards |
 |---|---|
