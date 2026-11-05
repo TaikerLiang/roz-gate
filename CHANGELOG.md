@@ -2,6 +2,22 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.7.3 — the ledger indexes every hook rule — 2026-11-05
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.7.3>
+
+**No runtime change.** The eval ledger now indexes every hook rule; the lint count is the number of cases that lint.
+
+### Evals
+- **Hook-only rows have a source of their own**: `evals/ledger-hook.json`, the fourth source `tools/ledger.py` reads. C4 (rule B, retitled `An agent never applies a gate label`), A10 (rule A) and C25 (rule J) live there; the `c4.py` placeholder is gone and `evals/README.md` counts lint 51 and hook 3 (#189, #200).
+- **A hook rule cannot land unindexed**: `tools/ledger.py --check` fails when a letter in `hooks/README.md`'s rule table appears in no row's tier. Red-proofed by dropping `rule B` from C4 and by planting a rule K.
+
+### Docs
+- **`evals/ledger-template.md`** says rules A–J, not A–E; `evals/README.md` and `evals/CONTRIBUTING.md` name C4 by its new title.
+
+### Checks
+Hook tests 555/555 · lint 1019/1019 (51 cases) · red-proofs 31/31
+
 ## v2.7.2 — the question where (7) listens — 2026-10-23
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.7.2>
