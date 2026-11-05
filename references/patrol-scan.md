@@ -62,9 +62,11 @@ suffix stripped); both non-empty, both must hold; an empty list is no
 - **A gate label on a stage that passed.** For a `track: spec` issue
   wearing `status: ready-for-dev` — whoever applied it — CR-FIND its
   `<feat-branch>` (bound by Lookup — `references/branch-names.md`) in the
-  all-states form. CR **merged** → Path B consumed this label at B6 and
-  the implementation has landed, so a second application gates a stage
-  that passed: an **illegal state**, verdict `illegal state: ready-for-dev
+  all-states form. CR **merged into the bound `<spec-branch>`** (its base:
+  `baseRefName` / `target_branch` — under a `{seq}` template an earlier
+  attempt's merged CR targets the earlier spec branch and is history, not
+  this stage) → Path B consumed this label at B6 and the implementation
+  has landed, so a second application gates a stage that passed: an **illegal state**, verdict `illegal state: ready-for-dev
   on a passed stage (<feat-branch> merged)`, skip classification, report
   it — never repair the label, never route the row to `next-stage`, nor on
   to the action its CRs would get (integrate, qa) while the label is worn.

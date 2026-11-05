@@ -116,7 +116,8 @@ already give. Never perform the repair here.
   (`workflow.md` → Label state machine). Fix the labels by hand — a fast
   issue is gated by `ready-for-dev`; a design need → `track: spec` +
   `ready-for-spec` (the escalation valve's pair).
-- **`track: spec` + `ready-for-dev` with the implementation CR merged**:
+- **`track: spec` + `ready-for-dev` with the implementation CR merged**
+  (into the bound spec branch — an earlier `{seq}` attempt's is history):
   illegal — B6 consumed the label and the implementation has landed, so
   this one gates a stage that passed. Remove `status: ready-for-dev`,
   nothing else; patrol resumes from the CRs (B2, integrate).

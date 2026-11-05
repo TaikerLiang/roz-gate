@@ -310,7 +310,9 @@ once the implementation has landed on `<spec-branch>` (#140).
 
 **Passed-stage check (first, read-only):** Lookup `<feat-branch>`
 (`references/branch-names.md`); a match → CR-FIND it in the all-states
-form. **Merged** → the stage this label gates has passed: B6 consumed it
+form. **Merged into the bound `<spec-branch>`** (its base; an earlier
+`{seq}` attempt's merged CR targets an earlier spec branch — history, not
+this stage) → the stage this label gates has passed: B6 consumed it
 and the implementation has landed, so the label was applied again
 (ConsoleAPI #27, #209). Take no lock and write nothing — **not** the STOP
 exit, whose resume line would have the holder re-apply the label this

@@ -34,8 +34,13 @@ src("C27: the scanner reads the implementation CR in the all-states form",
     "references/patrol-scan.md",
     "CR-FIND its\n  `<feat-branch>` (bound by Lookup — `references/branch-names.md`) in the\n"
     "  all-states form.")
-src("C27: merged is the passed stage", "references/patrol-scan.md",
-    "CR **merged** → Path B consumed this label at B6")
+src("C27: merged into the bound spec branch is the passed stage", "references/patrol-scan.md",
+    "CR **merged into the bound `<spec-branch>`** (its base:")
+src("C27: an earlier {seq} attempt's merged CR is history (codex review, PR #212)",
+    "references/patrol-scan.md",
+    "under a `{seq}` template an earlier\n  attempt's merged CR targets the earlier spec branch")
+src("C27: next-stage scopes the check to the bound spec branch", "commands/next-stage.md",
+    "**Merged into the bound `<spec-branch>`** (its base; an earlier\n`{seq}` attempt's")
 src("C27: open is a STOP's resume, classified normally", "references/patrol-scan.md",
     "Open → classify normally: the STOP exit's resume line re-applies the\n  label over an open CR")
 src("C27: the verdict literal", "references/patrol-scan.md",
@@ -65,7 +70,8 @@ src("C27: next-stage continues over an open CR (a STOP's resume)", "commands/nex
 src("C27: next-stage's remedy", "commands/next-stage.md",
     "**remove\n`status: ready-for-dev`, nothing else**")
 src("C27: tip classifies it", "commands/tip.md",
-    "- **`track: spec` + `ready-for-dev` with the implementation CR merged**:\n  illegal")
+    "- **`track: spec` + `ready-for-dev` with the implementation CR merged**\n"
+    "  (into the bound spec branch")
 src("C27: workflow's state machine", "references/workflow.md",
     "- `spec`+`ready-for-dev` with the implementation CR merged is **illegal**")
 src("C27: README's patrol paragraph", "README.md",
