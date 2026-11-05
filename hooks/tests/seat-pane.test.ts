@@ -6,7 +6,7 @@ import type { AgentInfo, AgentSpawnInput, AgentStatus } from 'claude-code'
 import type { TestBody } from 'claude-code/testing'
 
 import { register } from '../seat-pane'
-import { BASE, BIG, PALETTE, SEATS } from '../seat-sprites'
+import { BASE, BIG, DEFAULT, PALETTE, SEATS } from '../seat-sprites'
 
 type On = Parameters<TestBody>[1]
 type Engine = Parameters<TestBody>[0]
@@ -90,38 +90,52 @@ function mount($: Engine, surface: 'terminal' | 'desktop' | 'vscode' | 'mobile')
   })
 }
 
-test('a seat by its default agent type only', async ($, on) => {
+test('a seat by its default agent type; every other spawn under its own type (#202)', async ($, on) => {
   mock.clock(on)
   const agents: AgentInfo[] = []
   engine(on, agents)
   await start($)
-  const types: [string, string | undefined][] = [
+  // [spawned type, the row's name]: the five seats by seat, the rest as spawned.
+  const types: [string, string][] = [
     ['roz-gate:product', 'product'], ['roz-gate:em', 'em'], ['implementer', 'implementer'],
     ['roz-gate:qa', 'qa'], ['roz-gate:reviewer', 'reviewer'],
-    ['general-purpose', undefined], ['backend', undefined],
+    ['general-purpose', 'general-purpose'], ['backend', 'backend'],
   ]
   for (const [i, [type]] of types.entries()) {
     agents.push(agent('a' + i, type))
     await $.agent.spawn(spawn(type, 'a' + i))
   }
   const ui = await mount($, 'desktop')
-  for (const [, seat] of types.filter(([, s]) => s)) {
-    expect(await ui.find({ type: 'Text', text: new RegExp('^' + seat + ' · ') })).toBeDefined()
+  for (const [, name] of types) {
+    expect(await ui.find({ type: 'Text', text: new RegExp('^' + name + ' · ') })).toBeDefined()
   }
-  expect(await ui.find({ type: 'Text', text: /^(general-purpose|backend) · / })).toBeUndefined()
   await ui.unmount()
 })
 
-test('the first seat opens the pane, once', async ($, on) => {
+test('the first spawn of any type opens the pane, once (#202)', async ($, on) => {
   mock.clock(on)
-  const agents = [agent('a1', 'roz-gate:qa'), agent('a2', 'roz-gate:reviewer')]
+  const agents = [agent('g1', 'general-purpose'), agent('a1', 'roz-gate:qa'), agent('a2', 'roz-gate:reviewer')]
   const seen = engine(on, agents)
   await start($)
   await $.agent.spawn(spawn('general-purpose', 'g1'))
-  expect(seen.opens).toBe(0)
+  expect(seen.opens).toBe(1)
   await $.agent.spawn(spawn('roz-gate:qa', 'a1'))
   await $.agent.spawn(spawn('roz-gate:reviewer', 'a2'))
   expect(seen.opens).toBe(1)
+})
+
+test('an unmapped spawn draws the 8×8 default Roz under its type (#202)', async ($, on) => {
+  mock.clock(on)
+  const agents = [agent('g1', 'general-purpose')]
+  engine(on, agents)
+  await start($)
+  await $.agent.spawn(spawn('general-purpose', 'g1', 'patrol scan'))
+  const ui = await mount($, 'terminal')
+  expect(await ui.find({ type: 'Text', text: /^[▀▄ ]{8}$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^[▀▄ ]{16}$/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: 'general-purpose' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'patrol scan' })).toBeDefined()
+  await ui.unmount()
 })
 
 test('a failed open is tried again by the next seat (codex review, PR #187)', async ($, on) => {
@@ -253,6 +267,7 @@ for (const [where, reason, lists] of [
 test('every grid is rectangular and drawn in the palette', async () => {
   const grids: [string, string[], number][] = [
     ['big', BIG[0], 16], ['big blink', BIG[1], 16], ['base', BASE, 8],
+    ['default', DEFAULT[0], 8], ['default blink', DEFAULT[1], 8],
     ...Object.entries(SEATS).flatMap(([seat, [a, b]]) =>
       [[seat + ' 1', a, 8], [seat + ' 2', b, 8]] as [string, string[], number][]),
   ]
