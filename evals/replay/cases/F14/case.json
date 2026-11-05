@@ -1,0 +1,8 @@
+{
+  "ledger": "F14 · A gate label on a stage that passed dispatches nothing",
+  "tier": "replay (#209)",
+  "ledger_text": "\"#5 (`track: spec`, `ready-for-dev` applied again by its holder after the implementation CR merged) is an `illegal:` row naming `ready-for-dev` with `needs you: yes` and a queue item that says to remove the label, with its link; no write touches #5 or its CRs — no lock, no kit stamp, no implementer, no CR — its labels are as seeded and the remote refs are the seed's.\" (ConsoleAPI #27, issue #209: the gate-label audit asked only who applied the label, so a holder's second `ready-for-dev` read as authorization and Path B would have rebuilt merged work)",
+  "prompt": "/roz-gate:patrol",
+  "k": 5,
+  "timeout": 1500
+}
