@@ -236,9 +236,9 @@
 
 <!-- ───────────────────────── 3 configure ───────────────────────── -->
 <section id="config"><div class="wrap">
-  <h2><span class="no">3</span><span class="en">Configure — the team's block, and your own seven keys</span><span class="zh">設定——團隊的 block,和你自己的七個 key</span></h2>
-  <p class="sub en">What the loop knows about the <b>project</b> is one block in CLAUDE.md, written by <code>init</code> and committed — or kept in CLAUDE.local.md, untracked; every reader checks both. Seven keys are <b>yours</b> instead — per person, per clone, never committed: the base branch, the inbox filter, the helper model, your branch user, your branch template and the files copied into the loop's worktrees. You set them from a menu: <code>/roz-gate:config</code> — the write is a small Python tool's, never the model's. Play with the knobs: the block on the right is what lands in your file; the commands under it are your local keys.</p>
-  <p class="sub zh">loop 對<b>專案</b>知道的一切,是 CLAUDE.md 裡由 <code>init</code> 寫入、進版控的一個 block——也可以放在不進版控的 CLAUDE.local.md,每個讀取者兩邊都查。另外七個 key 是<b>你自己的</b>——每人每個 clone 一份、永不 commit:基底分支、inbox 篩選、helper model、branch user、branch template,以及複製進 loop worktree 的檔案。用選單設定:<code>/roz-gate:config</code>——寫入由一支小 Python 工具完成,不是模型。試試這些開關:右邊的 block 是會寫進檔案的內容,下面的指令則是你的本地 key。</p>
+  <h2><span class="no">3</span><span class="en">Configure — the team's block, and your own eight keys</span><span class="zh">設定——團隊的 block,和你自己的八個 key</span></h2>
+  <p class="sub en">What the loop knows about the <b>project</b> is one block in CLAUDE.md, written by <code>init</code> and committed — or kept in CLAUDE.local.md, untracked; every reader checks both. Eight keys are <b>yours</b> instead — per person, per clone, never committed: the base branch, the inbox filter, the helper model, your branch user, your branch template and the files copied into the loop's worktrees. You set them from a menu: <code>/roz-gate:config</code> — the write is a small Python tool's, never the model's. Play with the knobs: the block on the right is what lands in your file; the commands under it are your local keys.</p>
+  <p class="sub zh">loop 對<b>專案</b>知道的一切,是 CLAUDE.md 裡由 <code>init</code> 寫入、進版控的一個 block——也可以放在不進版控的 CLAUDE.local.md,每個讀取者兩邊都查。另外八個 key 是<b>你自己的</b>——每人每個 clone 一份、永不 commit:基底分支、inbox 篩選、helper model、branch user、branch template,以及複製進 loop worktree 的檔案。用選單設定:<code>/roz-gate:config</code>——寫入由一支小 Python 工具完成,不是模型。試試這些開關:右邊的 block 是會寫進檔案的內容,下面的指令則是你的本地 key。</p>
   <div class="two">
     <div class="panel">
       <div class="form" id="cfgform">
@@ -283,6 +283,8 @@
         <div class="hint"><span class="en">Your branch-naming convention, one template over <code>{kind}</code>, <code>{type}</code>, <code>{user}</code>, <code>{n}</code>, <code>{seq}</code> — e.g. <code>{type}/{user}/{n}/{seq}</code> renders <code>spec/pwliangc/5/1</code>, <code>fix/pwliangc/5/1</code>, <code>test/pwliangc/5/1</code> (<code>{type}</code> is <code>spec</code> / <code>test</code> / the issue's <code>type:</code> label). Absent: <code>{kind}/{n}</code>, i.e. <code>spec/&lt;n&gt;</code>, <code>feat/&lt;n&gt;</code>, <code>qa/&lt;n&gt;</code>, <code>fast/&lt;n&gt;</code>. Yours — your commands and the hooks read it; <code>/roz-gate:config</code> refuses an invalid one.</span><span class="zh">你的分支命名慣例,一個模板,可用 <code>{kind}</code>、<code>{type}</code>、<code>{user}</code>、<code>{n}</code>、<code>{seq}</code>——例如 <code>{type}/{user}/{n}/{seq}</code> 會長成 <code>spec/pwliangc/5/1</code>、<code>fix/pwliangc/5/1</code>、<code>test/pwliangc/5/1</code>(<code>{type}</code> 是 <code>spec</code> / <code>test</code> / issue 的 <code>type:</code> label)。沒設:<code>{kind}/{n}</code>,也就是 <code>spec/&lt;n&gt;</code>、<code>feat/&lt;n&gt;</code>、<code>qa/&lt;n&gt;</code>、<code>fast/&lt;n&gt;</code>。是你自己的——你的命令和 hooks 都讀它;<code>/roz-gate:config</code> 會拒絕不合法的模板。</span></div>
         <label>worktree_copy</label><input id="f_wcopy" placeholder=".env">
         <div class="hint"><span class="en">Gitignored files the plugin's <code>sync-worktree</code> hook copies from your checkout into each worktree the loop creates — files only (never a directory or a <code>.gitignore</code>), comma-separated, relative to the repo root. Absent: <code>.env</code>; <code>""</code>: none. Never overwrites, never writes back; a file git does not ignore is not copied.</span><span class="zh">plugin 的 <code>sync-worktree</code> hook 從你的 checkout 複製進 loop 每個 worktree 的 gitignored 檔案——只限檔案(不收目錄或 <code>.gitignore</code>)、逗號分隔、相對 repo 根目錄。沒設:<code>.env</code>;<code>""</code>:不複製。不覆蓋、不寫回;git 沒有 ignore 的檔案不會被複製。</span></div>
+        <label>patrol_issues_per_pass</label><input id="f_npass" placeholder="1">
+        <div class="hint"><span class="en">How many in-loop issues one <code>patrol</code> pass acts on, in priority order, each issue at most once. Absent: <code>1</code>. Under an hourly schedule a higher number stops approved issues waiting behind the last pass's follow-ups; the report shows a queued issue's wait either way.</span><span class="zh">一次 <code>patrol</code> 最多處理幾個 in-loop issue，依優先序、每個 issue 一次。沒設：<code>1</code>。排程跑的時候調高可以避免已核准的 issue 一直排在上一輪衍生工作後面；報表都會顯示排隊中的 issue 等了多久。</span></div>
       </div>
     </div>
     <div>
@@ -551,6 +553,7 @@ const LOCAL = [
   ['branch_user',     () => $('f_buser').value.trim()],
   ['branch_template', () => $('f_tpl').value.trim()],
   ['worktree_copy',   () => $('f_wcopy').value.trim()],
+  ['patrol_issues_per_pass', () => $('f_npass').value.trim()],
 ];
 function renderCfg(){
   if(!cfgReady) return;
@@ -568,7 +571,7 @@ function renderCfg(){
     : `<p style="font-size:.9rem;color:var(--muted)">${B('Nothing local set — the defaults are the remote\'s HEAD branch and no inbox filter. Come back the day your tracker fills with issues that aren\'t ideas (<code>/roz-gate:config inbox_label discuss</code>), or when a sprint hands over (<code>/roz-gate:config default_branch release/20261020</code>).',
         '沒設本地 key——預設是 remote 的 HEAD 分支、inbox 不篩。哪天 tracker 塞滿不是 idea 的 issue(<code>/roz-gate:config inbox_label discuss</code>),或 sprint 交接(<code>/roz-gate:config default_branch release/20261020</code>),再回來。')}</p>`;
   $('cfgsteps').innerHTML = steps;
-  store.set('cfg', {seg, f: Object.fromEntries(['f_branch','f_test','f_adir','f_atest','f_sync','f_lock','f_regen','f_specs','f_layout','f_trace','f_bot','f_op','f_tpl','f_rounds','f_ilabel','f_iassg','f_model','f_buser','f_wcopy'].map(id => [id, $(id).value]))});
+  store.set('cfg', {seg, f: Object.fromEntries(['f_branch','f_test','f_adir','f_atest','f_sync','f_lock','f_regen','f_specs','f_layout','f_trace','f_bot','f_op','f_tpl','f_rounds','f_ilabel','f_iassg','f_model','f_buser','f_wcopy','f_npass'].map(id => [id, $(id).value]))});
 }
 function wireCfg(){
   document.querySelectorAll('#cfgform .seg').forEach(g => g.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {

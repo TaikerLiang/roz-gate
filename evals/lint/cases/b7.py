@@ -41,7 +41,8 @@ src("B7: a queue item carries its link", "commands/patrol.md",
 src("B7: a loop-level flag is a queue item too (codex, PR #128)", "commands/patrol.md",
     "`- loop — re-run /roz-gate:init — <why>`")
 src("B7: §4 lists the `this pass` vocabulary", "commands/patrol.md",
-    "`acted: <action> — <outcome>` · `queued: <action>` · `waits on you: <what>`\n"
+    "`acted: <action> — <outcome>` · `queued: <action> · <gate label> <age>` ·\n"
+    "  `waits on you: <what>`\n"
     "  · `blocked: <the STOP comment's title>` · `locked: <phase> · <age>` ·\n"
     "  `illegal: <why>` · `shipped` · `in progress`")
 src("B7: a row the pass cannot act on is illegal, needs you, queued", "commands/patrol.md",

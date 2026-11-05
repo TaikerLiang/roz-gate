@@ -1,9 +1,9 @@
 ---
-description: Set one of your seven loop keys — default_branch, inbox_label, inbox_assignee, helper_model, branch_user, branch_template, worktree_copy — from a menu; the write is done by bin/roz-config, never by this prompt
+description: Set one of your eight loop keys — default_branch, inbox_label, inbox_assignee, helper_model, branch_user, branch_template, worktree_copy, patrol_issues_per_pass — from a menu; the write is done by bin/roz-config, never by this prompt
 argument-hint: "[key [value …]]"
 ---
 
-Your seven loop keys are per person, per clone, never committed
+Your eight loop keys are per person, per clone, never committed
 (`.claude/roz-gate.local.json`). This command is only the menu: the
 reading and the writing are done by `${CLAUDE_PLUGIN_ROOT}/bin/roz-config`,
 and nothing here validates, edits a file, or looks anything up on the forge.
@@ -50,9 +50,13 @@ default). An unknown key is the tool's error to print.
      hook copies from your checkout into each worktree the loop creates;
      files only (never a directory or a `.gitignore`); default = `.env`;
      `""` = none; the tool refuses a path outside the repo
+   - `patrol_issues_per_pass` — how many in-loop issues one patrol pass acts
+     on, in priority order, each issue at most once; default = `1`; the tool
+     refuses anything but an integer of 1 or more
 2. Ask **the value**: one branch name for `default_branch`; one model id for
    `helper_model`; one forge login for `branch_user`; one template for
-   `branch_template`; one or more labels / logins, comma-separated, for the
+   `branch_template`; one integer for `patrol_issues_per_pass`; one or more
+   labels / logins, comma-separated, for the
    inbox keys; one or more repo-relative files, comma-separated, for
    `worktree_copy` (`""` = none); empty = remove the override.
 3. Split on commas, quote each, run

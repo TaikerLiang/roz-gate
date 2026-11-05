@@ -28,7 +28,7 @@ c.expect("pattern", "C26: patrol §3's heading says up to N loop issues per pass
 c.expect("pattern", "C26: patrol §3 names the key and its default",
          "`patrol_issues_per_pass`" in _act and "default 1" in _act)
 c.expect("pattern", "C26: patrol §3 — each issue at most once per pass",
-         "each issue at most once" in _act)
+         "each issue at most once" in " ".join(_act.split()))
 c.expect("pattern", "C26: patrol §3 — the N come from the one table, no re-scan",
          re.search(r"one table|the table of this pass|never re-scan", _act) is not None)
 c.expect("pattern", "C26: patrol §3 — priority order is unchanged and still decides the N",

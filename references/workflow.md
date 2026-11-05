@@ -436,8 +436,8 @@ for you to type them. A patrol pass (`/roz-gate:patrol`, run manually, on a loop
 a schedule) sends one **read-only scanner sub-agent** to classify every open
 issue into a table (`references/patrol-scan.md` — the single home of the
 classification rules; the forge reads stay in the scanner's context, not the
-main agent's) and invokes the right command per that table; it acts on one in-loop issue per pass (closest
-to done) and then triages the **whole inbox** (intake is comment-only, so
+main agent's) and invokes the right command per that table; it acts on up to `patrol_issues_per_pass` in-loop issues per pass (closest
+to done first; default one) and then triages the **whole inbox** (intake is comment-only, so
 every batch of questions lands in a single pass), treats `processing` as a
 lock, never applies a gate label — and never acts on one a bot identity
 applied — and stops to report anything unexpected.
