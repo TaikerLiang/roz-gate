@@ -1,4 +1,4 @@
-"""bin/roz-config — the five per-person loop keys, in a throwaway repo.
+"""bin/roz-config — the eight per-person loop keys, in a throwaway repo.
 
 Runtime like the hooks (stdlib, plain python3), so it lives in the runtime
 suite. Every case runs the real executable; nothing is imported.
@@ -62,7 +62,7 @@ class RozConfigTest(unittest.TestCase):
                              {"default_branch": "release/20261006",
                               "inbox_label": [], "inbox_assignee": [], "helper_model": "",
                               "branch_user": "", "branch_template": "",
-                              "worktree_copy": [".env"]})
+                              "worktree_copy": [".env"], "patrol_issues_per_pass": "1"})
 
     # ---- writes ---------------------------------------------------------
     def test_set_replace_remove_default_branch(self):
@@ -287,7 +287,7 @@ class RozConfigTest(unittest.TestCase):
                              {"default_branch": "release/20261006",
                               "inbox_label": ["discuss", "idea"], "inbox_assignee": ["paul"],
                               "helper_model": "", "branch_user": "", "branch_template": "",
-                              "worktree_copy": [".env"]})
+                              "worktree_copy": [".env"], "patrol_issues_per_pass": "1"})
             self.assertTrue((self.root / REL).exists())
             self.run_tool("default_branch")        # remove the override …
             p = self.run_tool("--json")
@@ -386,6 +386,33 @@ class RozConfigTest(unittest.TestCase):
                 self.assertEqual(p.returncode, 2)
                 self.assertIn("not a path inside the repository", p.stderr)
                 self.assertFalse((self.root / REL).exists())
+
+    # ---- patrol_issues_per_pass (#204) ----------------------------------
+    def test_patrol_issues_per_pass_default_set_json_remove(self):
+        with self.subTest("roz-config: patrol_issues_per_pass defaults to 1, is set, carried by "
+                          "--json as a string, removed back to 1"):
+            self.assertIn("patrol_issues_per_pass 1  (default: one issue)", self.run_tool().stdout)
+            self.assertEqual(json.loads(self.run_tool("--json").stdout)["patrol_issues_per_pass"],
+                             "1")
+            p = self.run_tool("patrol_issues_per_pass", "2")
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(self.stored(), {"patrol_issues_per_pass": "2"})
+            self.assertIn("patrol_issues_per_pass 2", self.run_tool().stdout)
+            self.assertEqual(json.loads(self.run_tool("--json").stdout)["patrol_issues_per_pass"],
+                             "2")
+            p = self.run_tool("patrol_issues_per_pass")
+            self.assertIn("removed the override", p.stdout)
+            self.assertEqual(json.loads(self.run_tool("--json").stdout)["patrol_issues_per_pass"],
+                             "1")
+
+    def test_patrol_issues_per_pass_is_a_positive_integer(self):
+        for bad in ("0", "-1", "x", "1.5", "2 3"):
+            with self.subTest("roz-config: patrol_issues_per_pass refuses %r, writes nothing"
+                              % bad):
+                p = self.run_tool("patrol_issues_per_pass", *bad.split())
+                self.assertEqual(p.returncode, 2)
+                self.assertFalse((self.root / REL).exists())
+        self.assertIn("integer", self.run_tool("patrol_issues_per_pass", "x").stderr)
 
 
 if __name__ == "__main__":
