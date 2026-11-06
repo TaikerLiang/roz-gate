@@ -353,6 +353,9 @@ Skips (2), (2a), (4) and (6). Picked up from `status: ready-for-dev`:
   implementation merged into `spec/{n}` and the QA CR open) or done.
 - `fast`+`ready-for-spec` is **illegal**. Commands validate these invariants
   before acting and stop to report a violation; they never repair labels.
+- `spec`+`ready-for-dev` with the implementation CR merged is **illegal**: B6 consumed the label, so it gates a stage that passed —
+  patrol reports it, `/roz-gate:next-stage` refuses it, neither repairs it
+  (#209).
 - On GitLab, `track::`/`status::` are scoped labels (the platform enforces the
   one-per-scope invariants); the `processing` lock is a plain label so it can
   coexist with a phase label.

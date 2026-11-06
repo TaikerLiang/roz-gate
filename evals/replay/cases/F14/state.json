@@ -1,0 +1,102 @@
+{
+  "repo": {
+    "owner": "acme",
+    "name": "demo"
+  },
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, expired offers never apply.",
+      "author": "paul",
+      "assignees": [
+        "paul"
+      ],
+      "labels": [
+        "track: spec",
+        "status: ready-for-dev"
+      ],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": [],
+      "timeline": [
+        {
+          "event": "labeled",
+          "label": "track: spec",
+          "actor": "paul",
+          "type": "User",
+          "created_at": "2026-08-15T09:30:00Z"
+        },
+        {
+          "event": "labeled",
+          "label": "status: ready-for-dev",
+          "actor": "paul",
+          "type": "User",
+          "created_at": "2026-08-18T10:00:00Z"
+        },
+        {
+          "event": "unlabeled",
+          "label": "status: ready-for-dev",
+          "actor": "paul",
+          "type": "User",
+          "created_at": "2026-08-18T14:00:00Z"
+        },
+        {
+          "event": "labeled",
+          "label": "status: ready-for-dev",
+          "actor": "paul",
+          "type": "User",
+          "created_at": "2026-08-25T09:00:00Z"
+        }
+      ]
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer expiry enforcement",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [],
+      "reviews": [],
+      "comments": []
+    },
+    "102": {
+      "number": 102,
+      "title": "feat: implement #5",
+      "state": "MERGED",
+      "isDraft": false,
+      "headRefName": "feat/5",
+      "baseRefName": "spec/5",
+      "threads": [],
+      "reviews": [],
+      "comments": [
+        {
+          "id": 9601,
+          "author": "paul",
+          "body": "**[reviewer] · code-review** — clean.\n\nreviewed-sha: 0000000",
+          "created_at": "2026-08-18T13:00:00Z"
+        }
+      ]
+    },
+    "103": {
+      "number": 103,
+      "title": "test: #5 black-box (QA)",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "qa/5",
+      "baseRefName": "spec/5",
+      "threads": [],
+      "reviews": [],
+      "comments": [
+        {
+          "id": 9701,
+          "author": "paul",
+          "body": "**[reviewer] · fidelity** — every scenario traced; no findings.",
+          "created_at": "2026-08-24T12:00:00Z"
+        }
+      ]
+    }
+  }
+}

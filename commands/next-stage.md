@@ -80,7 +80,7 @@ will do, THEN act:
 | Labels | Path |
 |---|---|
 | `track: spec` + `status: ready-for-spec` | **A — spec refinement (2)** |
-| `track: spec` + `status: ready-for-dev` | **B — implementation + review (3)+(5)** |
+| `track: spec` + `status: ready-for-dev` | **B — implementation + review (3)+(5)** — its passed-stage check first |
 | `track: spec`, no `status:`, the implementation CR **review-clean or merged**, no QA CR (CR-FIND, all-states form) | **B2 — validation (4)+(5q)** — the one route read from CR state; the scanner computes it (`actionable: next-stage (qa)`), a human may run it |
 | `track: fast` + `status: ready-for-dev` | **C — fast track** |
 
@@ -308,7 +308,21 @@ resolved). If `<spec-branch>` does not exist, stop and say so. Since 2.0.0 this
 path builds and reviews the implementation **only**; QA starts in Path B2
 once the implementation has landed on `<spec-branch>` (#140).
 
-**Reserved-word check (before anything else):**
+**Passed-stage check (first, read-only):** Lookup `<feat-branch>`
+(`references/branch-names.md`); a match → CR-FIND it in the all-states
+form. **Merged into the bound `<spec-branch>`** (its base; an earlier
+`{seq}` attempt's merged CR targets an earlier spec branch — history, not
+this stage) → the stage this label gates has passed: B6 consumed it
+and the implementation has landed, so the label was applied again
+(ConsoleAPI #27, #209). Take no lock and write nothing — **not** the STOP
+exit, whose resume line would have the holder re-apply the label this
+check refuses — and report the CR, its state, and the remedy: **remove
+`status: ready-for-dev`, nothing else**; patrol's next pass resumes from
+the CRs (Path B2, integrate). Open → continue: a STOP's resume line
+re-applies the label over an open CR, and step B2 reuses the branch. Closed
+unmerged, or no CR → a re-implementation; continue.
+
+**Reserved-word check (before anything else but the passed-stage check):**
 `grep -nwi unverified <specs_dir>/<n>/*.md` — the whole word, anywhere:
 `unverified` is reserved for the evidence tag (A3), so its own parenthesis,
 a tag merged into another (`(from Q4, unverified)`), a wrap-split compound
