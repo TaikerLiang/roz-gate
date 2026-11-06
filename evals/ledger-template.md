@@ -31,7 +31,7 @@ never the other way round.
 ## IDs
 
 A letter names the family, the number the order a case was added — a
-number is never reused. Rule letters in `hooks/README.md` (rules A–J) are
+number is never reused. Rule letters in `hooks/README.md` (rules A–K) are
 a separate namespace: hook rule D is unrelated to ledger case D2. A rule a
 hook alone enforces has its row in `ledger-hook.json`, and every letter in
 that table must be named by some row's tier — `tools/ledger.py --check`

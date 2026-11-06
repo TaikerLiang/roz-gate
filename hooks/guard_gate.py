@@ -2,7 +2,7 @@
 """Roz Gate enforcement — layer 2: trigger validation.
 
 Invoked by guard-gate.sh only when a Bash command mentions a guarded
-pattern. Nine rules, each the mechanical form of existing protocol text:
+pattern. Ten rules, each the mechanical form of existing protocol text:
 
   A. An ``**[intake] · summary**`` comment may be posted only when the
      async-intake trigger holds (commands/patrol.md step 2): a gate label
@@ -91,6 +91,22 @@ pattern. Nine rules, each the mechanical form of existing protocol text:
      segment, or a variable set to it (``wt=…/roz-gate/wt/…``) does; your
      own add beside a mention elsewhere in the call (a heredoc, a later
      command) is not judged.
+  K. The loop merges only the base or its own branches (#213; ConsoleAPI
+     #1: ``origin/master`` merged into a spec branch to pick up a missing
+     dependency — 79 foreign commits, 104 files in the CR). In a loop
+     worktree — the command runs under ``<git-common-dir>/roz-gate/wt/``,
+     by the hook's cwd, a ``cd`` earlier in the call or ``git -C`` — a
+     ``git merge <ref…>`` or ``git pull <remote> <branch>`` is denied unless
+     every branch named is ``origin/<default_branch>`` (the local key, else
+     the remote's HEAD — bin/roz-config's own resolution) or a
+     ``branch_template`` branch of the **same issue** — the template's
+     regex (``{kind}/{n}`` when unset) matched against the worktree's own
+     branch gives ``{n}``; a ref whose branch renders the same ``{n}`` is a
+     sibling. A SHA, a tag, ``master``, another issue's branch: denied with
+     the remedy — the base lacks what the issue needs, STOP and have the
+     human sync the base. Outside ``roz-gate/wt/`` the rule is silent: the
+     person's own merges are theirs. ``rebase`` and ``cherry-pick`` are not
+     judged (not in #213's scope).
      Top level: outside quotes and ``$(…)`` / backticks; ``2>&1`` and
      ``&>`` are redirects, and a backslash-newline continues the line. An
      add found anywhere outside quotes — inside ``{ …; }``, ``if …; then``,
@@ -129,7 +145,7 @@ import sys
 # this dir already); the lint tier and the D5 checker load it by
 # spec_from_file_location, from elsewhere — the reader must still import.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from config_block import find_block  # noqa: E402
+from config_block import find_block, main_checkout  # noqa: E402
 
 GATE = re.compile(r"ready-for-(spec|dev)")
 # Rule B's fallback for a command shlex cannot tokenize: the value right
@@ -1122,6 +1138,205 @@ def check_worktree_add_alone(cmd):
         deny(RULE_J_MSG)
 
 
+RULE_K_MSG = (
+    "Roz Gate: blocked — rule K: the loop merges only the base or its own "
+    "branches (#213). The base branch lacks code this issue needs. STOP and "
+    "ask the human to sync the default/base branch; never merge another "
+    "branch directly into the issue branch. Post the STOP comment "
+    "(`**[<command>] · blocked**`, resume line: sync `%(base)s`, then clear "
+    "`status: blocked`) and stop. (ref: %(ref)s · issue: %(n)s · base: %(base)s"
+    " · allowed: origin/%(base)s and this issue's `%(template)s` branches)"
+)
+LOCAL_FILE = os.path.join(".claude", "roz-gate.local.json")
+DEFAULT_TEMPLATE = "{kind}/{n}"
+# references/branch-names.md § The hooks: one segment per `{user}` / `{type}`,
+# digits for `{n}` / `{seq}`, the four kinds for `{kind}`. An unknown
+# placeholder renders to a pattern that matches nothing — an invalid template
+# then allows only the base, never everything.
+TEMPLATE_SLOTS = {"{kind}": r"(?:spec|feat|qa|fast)", "{type}": r"[^/]+", "{user}": r"[^/]+",
+                  "{n}": r"(?P<n>[0-9]+)", "{seq}": r"[0-9]+"}
+MERGE_VALUE_FLAGS = {"-m", "-F", "-s", "-X", "--strategy", "--strategy-option", "--log",
+                     "--into-name", "--cleanup", "--gpg-sign", "-S"}
+GIT_VALUE_OPTS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path",
+                  "--super-prefix", "--config-env"}
+SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
+
+
+def local_key(tops, key):
+    """A local key from bin/roz-config's file — the worktree's own, else the
+    main checkout's (guard_acceptance.py's lookup order)."""
+    for top in tops:
+        if not top:
+            continue
+        try:
+            with open(os.path.join(top, LOCAL_FILE), encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, ValueError):
+            continue
+        if isinstance(data, dict) and key in data:
+            v = data[key]
+            return v.strip() if isinstance(v, str) and v.strip() else None
+    return None
+
+
+def template_re(template):
+    out = ""
+    for piece in re.split(r"(\{[a-z]+\})", template):
+        if piece.startswith("{"):
+            if piece not in TEMPLATE_SLOTS:
+                return re.compile(r"(?!)")
+            out += TEMPLATE_SLOTS[piece]
+        else:
+            out += re.escape(piece)
+    return re.compile(out + r"\Z")
+
+
+def loop_worktree_of(path):
+    """The loop branch when `path` resolves into `<common>/roz-gate/wt/<branch>`
+    (a worktree's toplevel or a path inside one), else None."""
+    if not path:
+        return None
+    path = os.path.abspath(path)
+    marker = os.sep + os.path.join("roz-gate", "wt") + os.sep
+    i = path.find(marker)
+    if i < 0:
+        return None
+    rest = path[i + len(marker):]
+    top = git_out("-C", path, "rev-parse", "--show-toplevel") if os.path.isdir(path) else None
+    if top:
+        j = top.strip().find(marker)
+        if j >= 0:
+            rest = top.strip()[j + len(marker):]
+    return rest.strip(os.sep).replace(os.sep, "/") or None
+
+
+def base_branch(tops, cwd):
+    b = local_key(tops, "default_branch")
+    if b:
+        return b
+    head = git_out("-C", cwd, "symbolic-ref", "-q", "refs/remotes/origin/HEAD")
+    if head and head.strip().startswith("refs/remotes/origin/"):
+        return head.strip()[len("refs/remotes/origin/"):]
+    return None
+
+
+def merge_refs(toks):
+    """(kind, refs) for a `git [opts] merge <ref…>` / `git [opts] pull [remote
+    [refspec…]]` token list, else None. `merge --abort|--continue|--quit`
+    and a bare `pull` name no ref."""
+    i = 0
+    while i < len(toks) and toks[i] != "git":
+        i += 1
+    if i >= len(toks):
+        return None
+    i += 1
+    while i < len(toks) and toks[i].startswith("-"):
+        if toks[i] in GIT_VALUE_OPTS:
+            i += 2
+        else:
+            i += 1
+    if i >= len(toks) or toks[i] not in ("merge", "pull"):
+        return None
+    kind, args, i = toks[i], [], i + 1
+    while i < len(toks):
+        t = toks[i]
+        if t == "--":
+            args.extend(toks[i + 1:])
+            break
+        if t.startswith("-"):
+            if kind == "merge" and t in MERGE_VALUE_FLAGS:
+                i += 1
+            i += 1
+            continue
+        args.append(t)
+        i += 1
+    if kind == "merge":
+        return kind, args
+    if len(args) < 2:
+        return kind, []            # `git pull` / `git pull origin`: the branch's own upstream
+    return kind, [a.split(":", 1)[0] for a in args[1:]]
+
+
+def cd_target(seg, cwd):
+    toks = tokens(seg)
+    if toks and toks[0] == "cd" and len(toks) > 1 and not toks[1].startswith("-"):
+        return os.path.normpath(os.path.join(cwd, os.path.expanduser(toks[1])))
+    return None
+
+
+def git_c_target(toks, cwd):
+    for i, t in enumerate(toks[:-1]):
+        if t == "git":
+            j = i + 1
+            while j + 1 < len(toks) and toks[j].startswith("-"):
+                if toks[j] == "-C":
+                    return os.path.normpath(os.path.join(cwd, toks[j + 1]))
+                j += 2 if toks[j] in GIT_VALUE_OPTS else 1
+            return None
+    return None
+
+
+def tokens(seg):
+    try:
+        return shlex.split(seg.replace("\\\n", " "))
+    except ValueError:
+        return []
+
+
+def check_loop_merge(cmd, cwd):
+    """Rule K (#213): see the module docstring."""
+    if "merge" not in cmd and "pull" not in cmd:
+        return
+    here = cwd
+    for seg in top_level_segments(cmd):
+        toks = tokens(seg)
+        target = cd_target(seg, here)
+        if target:
+            here = target
+            continue
+        found = merge_refs(toks)
+        if not found:
+            continue
+        where = git_c_target(toks, here) or here
+        branch = loop_worktree_of(where)
+        if not branch:
+            continue
+        kind, refs = found
+        if not refs:
+            continue
+        tops = [(git_out("-C", where, "rev-parse", "--show-toplevel") or "").strip() or None,
+                main_checkout_from(where)]
+        base = base_branch(tops, where)
+        template = local_key(tops, "branch_template") or DEFAULT_TEMPLATE
+        pat = template_re(template)
+        m = pat.match(branch)
+        n = m.group("n") if m and "n" in m.groupdict() else None
+        for ref in refs:
+            name = ref
+            for prefix in ("refs/remotes/origin/", "origin/", "refs/heads/"):
+                if name.startswith(prefix):
+                    name = name[len(prefix):]
+                    break
+            if base and name == base and not SHA_RE.match(ref):
+                continue
+            mm = pat.match(name)
+            if mm and n and mm.group("n") == n and not SHA_RE.match(ref):
+                continue
+            deny(RULE_K_MSG % {"ref": ref, "n": n or "?", "base": base or "<unresolved>",
+                               "template": template})
+
+
+def main_checkout_from(path):
+    cwd = os.getcwd()
+    try:
+        os.chdir(path)
+        return main_checkout()
+    except OSError:
+        return None
+    finally:
+        os.chdir(cwd)
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -1149,6 +1364,7 @@ def main():
     check_cr_open(cmd, toks)
     check_intake_reply(cmd, toks)
     check_worktree_add_alone(cmd)
+    check_loop_merge(cmd, payload.get("cwd") or os.getcwd())
     if SUMMARY_MARKER.search(cmd):
         bots = load_bot_logins()
         check_github_summary(cmd, bots)

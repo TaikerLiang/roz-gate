@@ -31,7 +31,7 @@ never the other way round.
 ## IDs
 
 A letter names the family, the number the order a case was added — a
-number is never reused. Rule letters in `hooks/README.md` (rules A–J) are
+number is never reused. Rule letters in `hooks/README.md` (rules A–K) are
 a separate namespace: hook rule D is unrelated to ledger case D2. A rule a
 hook alone enforces has its row in `ledger-hook.json`, and every letter in
 that table must be named by some row's tier — `tools/ledger.py --check`
@@ -112,6 +112,7 @@ refuses a rule that lands unindexed (#189).
 | C25 | The loop's worktree add runs alone | hook (guard-gate rule J) | a Bash call holding the loop's `git worktree add …/roz-gate/wt/…` with anything else in the segment is blocked (2.6.0, #186) — `test_guard_gate.py` RuleJ |
 | C26 | A pass acts on up to N issues and queues the rest with their wait | lint + replay (#204, 2.9.0) | "N=2 seeded: two of three `ready-for-dev` issues acted on, the third as seeded with `queued: next-stage · ready-for-dev <age>` in the report; F9 (no key) still proves one." (under an hourly cadence the one-issue rule starved every approved issue behind the last pass's follow-ups — ConsoleAPI, 2026-11-05) |
 | C27 | A gate label on a passed stage is an illegal state the scan reports, never acts on | lint (#209) | "The scanner CR-FINDs a `track: spec` + `ready-for-dev` issue's `<feat-branch>` in the all-states form and, merged, gives the verdict literal `illegal state: ready-for-dev on a passed stage`, never repair, never route — open (a STOP's resume), closed unmerged or none is classified normally; patrol carries the clause and the queue verb; next-stage runs a read-only passed-stage check before Path B's lock, not the STOP exit; tip, workflow and README say it." (ConsoleAPI #27: the gate-label audit asked only who applied the label, so the holder's second `ready-for-dev` read as authorization over merged work) |
+| C28 | The loop merges only the base or its own branches | hook (guard-gate rule K) | in a `roz-gate/wt/` worktree, `git merge` / `git pull` of anything but `origin/<default_branch>` or a `branch_template` branch of the same issue is denied with the sync-the-base remedy; the person's checkout is silent — `test_guard_gate.py` RuleK, 32 cases (#213) |
 
 ### D · what a seat receives, and what it must not see
 

@@ -15,8 +15,10 @@ input=$(cat)
 # the command text. `git … commit` escalates for rule D (the open-questions
 # section check), `pr create` / `mr create` for rule H (the contract
 # deviations section), `roz-gate/wt` for rule J (the loop's worktree add
-# runs alone) — the python side confirms the segment shape.
-if ! printf '%s' "$input" | grep -qE '\[intake\]|ready-for-(spec|dev)|\*\*\[|✅ \[|\\u2705 \[|Q[0-9]+ (·|\\u00b7)|body-file|-F |git .*commit|roz-gate/wt|pr create|mr create'; then
+# runs alone), `git … merge` / `git … pull` for rule K (the loop merges only
+# the base or its own branches; #213) — the python side confirms the
+# segment shape and, for K, that the call runs in a loop worktree.
+if ! printf '%s' "$input" | grep -qE '\[intake\]|ready-for-(spec|dev)|\*\*\[|✅ \[|\\u2705 \[|Q[0-9]+ (·|\\u00b7)|body-file|-F |git .*commit|roz-gate/wt|pr create|mr create|git .*(merge|pull)'; then
   exit 0
 fi
 
