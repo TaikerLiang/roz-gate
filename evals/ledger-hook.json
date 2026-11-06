@@ -24,6 +24,14 @@
       "ledger": "a Bash call holding the loop's `git worktree add …/roz-gate/wt/…` with anything else in the segment is blocked (2.6.0, #186) — `test_guard_gate.py` RuleJ",
       "rule": "J",
       "proof": "hooks/tests/test_guard_gate.py"
+    },
+    {
+      "id": "C28",
+      "title": "The loop merges only the base or its own branches",
+      "tier": "hook (guard-gate rule K)",
+      "ledger": "in a `roz-gate/wt/` worktree, `git merge` / `git pull` of anything but `origin/<default_branch>` or a `branch_template` branch of the same issue is denied with the sync-the-base remedy; the person's checkout is silent — `test_guard_gate.py` RuleK, 41 cases (#213)",
+      "rule": "K",
+      "proof": "hooks/tests/test_guard_gate.py"
     }
   ]
 }

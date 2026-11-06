@@ -52,7 +52,7 @@ src("E10: the hook reads the body in rule C's shapes", "hooks/guard_gate.py",
 src("E10: the hook fails closed on an uncomputable diff", "hooks/guard_gate.py",
     "DIFF_FAILED_MSG = (")
 src("E10: the prefilter escalates on pr create / mr create", "hooks/guard-gate.sh",
-    "|pr create|mr create'")
+    "|pr create|mr create|")   # the pattern grew a tail for rule K (#213)
 src("E10: the hook suite carries the rule H class", "hooks/tests/test_guard_gate.py",
     "class RuleH_CrOpenDeclaresDeviations(HookTest):")
 # Pattern proof: the heading regex, extracted from the hook, against fixtures.

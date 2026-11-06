@@ -1,10 +1,11 @@
-"""guard-gate (Bash): rules A-D, F-J. See hooks/README.md for each rule's predicate.
+"""guard-gate (Bash): rules A-D, F-K. See hooks/README.md for each rule's predicate.
 
 A case table is (name, command) for allowed cases and (name, command,
 stderr substring) for denied ones.
 """
 
 import subprocess
+from pathlib import Path
 
 from hooktest import HookTest, config_block
 
@@ -1125,3 +1126,139 @@ class RuleJ_LoopWorktreeAddRunsAlone(HookTest):
             self.bash(ADD + " && pytest")
             self.assertEqual(self.api_calls(), [])
 
+
+class RuleK_LoopMergesOnlyBaseOrOwn(HookTest):
+    """#213: in a loop worktree (`<git-common-dir>/roz-gate/wt/<branch>`) a
+    `git merge <ref>` / `git pull <remote> <branch>` is denied unless the
+    branch is `origin/<default_branch>` or a `branch_template` branch of the
+    same issue (ConsoleAPI #1: `origin/master` merged into a spec branch,
+    79 foreign commits). The person's own checkout is never judged. Real
+    repos: a bare remote, a clone with its worktrees, the local key file."""
+
+    guard = "guard-gate"
+
+    def setUp(self):
+        super().setUp()
+        self.bare = self.new_dir() / "origin.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(self.bare)], check=True)
+        self.repo = self.new_repo({"CLAUDE.md": config_block(forge="github"),
+                                   "README.md": "x\n"}, commit=True)
+        self.git(self.repo, "remote", "add", "origin", str(self.bare))
+        for b in ("master", "release/20261117", "spec/5", "feat/5", "qa/5", "feat/6",
+                  "fix/pwl/5/1", "fix/pwl/5/2", "fix/pwl/6/1"):
+            self.git(self.repo, "branch", b)
+        self.git(self.repo, "push", "-q", "origin", "--all")
+        self.git(self.repo, "remote", "set-head", "origin", "main")
+        self.common = Path(subprocess.run(
+            ["git", "-C", str(self.repo), "rev-parse", "--path-format=absolute",
+             "--git-common-dir"], check=True, capture_output=True, text=True).stdout.strip())
+        self.local = self.repo / ".claude/roz-gate.local.json"
+
+    def wt(self, branch):
+        path = self.common / "roz-gate" / "wt" / branch
+        if not path.exists():
+            self.git(self.repo, "worktree", "add", "-q", str(path), branch)
+        return path
+
+    def test_allowed(self):
+        spec5, feat5 = self.wt("spec/5"), self.wt("feat/5")
+        for name, cmd, cwd in [
+            ("rule K: the base, by the remote's HEAD", "git merge --no-edit origin/main", spec5),
+            ("rule K: the base, ff-only", "git merge --ff-only origin/main", feat5),
+            ("rule K: the issue's own spec branch from its feat worktree",
+             "git merge --ff-only origin/spec/5", feat5),
+            ("rule K: the issue's feat branch from its spec worktree",
+             "git merge --no-edit origin/feat/5", spec5),
+            ("rule K: the issue's qa branch", "git merge --no-edit origin/qa/5", spec5),
+            ("rule K: a plain `git pull` (the branch's own upstream)", "git pull", spec5),
+            ("rule K: `git pull origin main`", "git pull origin main", spec5),
+            ("rule K: `git pull --ff-only origin spec/5`",
+             "git pull --ff-only origin spec/5", feat5),
+            ("rule K: the merge chained after a fetch",
+             "git fetch origin && git merge --no-edit origin/main", spec5),
+            ("rule K: `git merge --abort` names no ref", "git merge --abort", spec5),
+            ("rule K: `git merge-base` is not a merge", "git merge-base HEAD origin/master", spec5),
+            ("rule K: `merge` as a word elsewhere",
+             'gh pr comment 7 --body "merge origin/master later"', spec5),
+            ("rule K: `-m <msg>` consumes its value, the ref is the base",
+             'git merge -m "sync" origin/main', spec5),
+            ("rule K: `--log=3` is one token", "git merge --log=3 origin/main", spec5),
+        ]:
+            with self.case(name):
+                self.assertAllowed(self.bash(cmd, cwd))
+        with self.case("rule K: no origin/HEAD and no key — the base is `main`, as roz-config "
+                       "resolves it (codex review)"):
+            self.git(self.repo, "remote", "set-head", "origin", "--delete")
+            self.assertAllowed(self.bash("git merge --no-edit origin/main", spec5))
+            self.assertDenied(self.bash("git merge --no-edit origin/master", spec5), "rule K")
+            self.git(self.repo, "remote", "set-head", "origin", "main")
+        with self.case("rule K: the configured base, release/20261117"):
+            self.write(self.local, '{"default_branch": "release/20261117"}\n')
+            self.assertAllowed(self.bash("git merge --no-edit origin/release/20261117", spec5))
+        with self.case("rule K: a templated sibling of the same issue"):
+            self.write(self.local, '{"branch_template": "{type}/{user}/{n}/{seq}"}\n')
+            self.assertAllowed(self.bash("git merge --no-edit origin/fix/pwl/5/2",
+                                         self.wt("fix/pwl/5/1")))
+        self.local.unlink()
+
+    def test_denied(self):
+        spec5 = self.wt("spec/5")
+        for name, cmd, cwd, says in [
+            ("rule K: origin/master is not the base", "git merge --no-edit origin/master", spec5,
+             "never merge another branch"),
+            ("rule K: another issue's branch", "git merge --no-edit origin/feat/6", spec5,
+             "rule K"),
+            ("rule K: a SHA", "git merge 0123456789abcdef0123456789abcdef01234567", spec5,
+             "rule K"),
+            ("rule K: a tag", "git merge v1.2.0", spec5, "rule K"),
+            ("rule K: `git pull origin master`", "git pull origin master", spec5, "rule K"),
+            ("rule K: `git pull origin feat/6`", "git pull origin feat/6", spec5, "rule K"),
+            ("rule K: one denied ref among two", "git merge origin/main origin/master", spec5,
+             "rule K"),
+            ("rule K: the merge after a cd into the worktree",
+             "cd %s && git merge --no-edit origin/master" % spec5, self.repo, "rule K"),
+            ("rule K: `git -C <worktree> merge`",
+             "git -C %s merge --no-edit origin/master" % spec5, self.repo, "rule K"),
+            ("rule K: a chain — fetch, then the foreign merge",
+             "git fetch origin master && git merge --no-edit origin/master", spec5, "rule K"),
+            ("rule K: `master` bare (a local branch that is not the base)",
+             "git merge master", spec5, "rule K"),
+            ("rule K: `--log` takes no following value (codex review)",
+             "git merge --log origin/master", spec5, "rule K"),
+            ("rule K: `-S` takes no following value (codex review)",
+             "git merge -S origin/master", spec5, "rule K"),
+            ("rule K: `--no-log` before the ref", "git merge --no-log origin/master", spec5,
+             "rule K"),
+            ("rule K: `git pull other main` — the base lives on origin only (codex review)",
+             "git pull other main", spec5, "rule K"),
+            ("rule K: `git pull <url> main`",
+             "git pull https://example.com/x/y.git main", spec5, "rule K"),
+            ("rule K: `git pull other spec/5` — a sibling's name on a foreign remote",
+             "git pull other spec/5", spec5, "rule K"),
+        ]:
+            with self.case(name):
+                self.assertDenied(self.bash(cmd, cwd), says)
+        with self.case("rule K: the deny names the remedy — sync the base"):
+            self.assertDenied(self.bash("git merge origin/master", spec5),
+                              "ask the human to sync the default/base branch")
+        with self.case("rule K: configured base release/20261117 — origin/main is now foreign"):
+            self.write(self.local, '{"default_branch": "release/20261117"}\n')
+            self.assertDenied(self.bash("git merge --no-edit origin/main", spec5), "rule K")
+        with self.case("rule K: templated — another issue's templated branch"):
+            self.write(self.local, '{"branch_template": "{type}/{user}/{n}/{seq}"}\n')
+            self.assertDenied(self.bash("git merge --no-edit origin/fix/pwl/6/1",
+                                        self.wt("fix/pwl/5/1")), "rule K")
+        self.local.unlink()
+
+    def test_silent_outside_the_loop(self):
+        mine = self.new_dir() / "mine"
+        self.git(self.repo, "worktree", "add", "-q", str(mine), "master")
+        for name, cmd, cwd in [
+            ("rule K: the person's checkout merges master", "git merge origin/master", self.repo),
+            ("rule K: the person's checkout pulls master", "git pull origin master", self.repo),
+            ("rule K: a worktree of the person's own, not under roz-gate/wt",
+             "git merge origin/master", mine),
+            ("rule K: no git at all", "git merge origin/master", self.cwd),
+        ]:
+            with self.case(name):
+                self.assertAllowed(self.bash(cmd, cwd))

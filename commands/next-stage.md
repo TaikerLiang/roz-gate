@@ -118,7 +118,12 @@ Base everything strictly on the issue body. Per the workflow's stage (2):
 - Dispatch `em` and `product` → write `<specs_dir>/<n>/spec.md`.
 - Dispatch `implementer` → write `<specs_dir>/<n>/technical-spec.md` (the
   contract: command/API spec, schema, behavioral guarantees; a documented test
-  **port** for non-API features). **The test-port line** (#125):
+  **port** for non-API features). A seat — `product`, `em`, `implementer`, at
+  any dispatch of this command — that finds the base lacks code the issue
+  needs **reports it** (what, and which branch holds it) and stops; this
+  command then takes the STOP exit below with the shape *the base lacks a
+  dependency*. It never proposes a merge, a rebase or a cherry-pick from
+  another branch as a question option (#213, `references/workflow.md`). **The test-port line** (#125):
   `technical-spec.md` carries exactly one line `**Test port** — <path>[,
   <path>…]` — the repo-relative files or directories the port lives in;
   the acceptance suite drives it, and it is the one thing under `src/`
@@ -745,5 +750,12 @@ main agent; nothing to answer — run the remedy first, if there is one. Path
 B2 consumed no gate label (it entered from in flight): its line reads
 **To resume:** clear `status: blocked` — nothing else; patrol's next pass
 re-runs it, or run `/roz-gate:next-stage <n>`. A B2.2 STOP names the
-conflicting files and says nothing was pushed. The escalation valve (C3) is **not** a failure — it is a designed
+conflicting files and says nothing was pushed. **The base lacks a dependency**
+(#213): a seat reported that `<default_branch>` lacks code this issue needs
+— the must-read names the missing code and the branch that holds it, and
+the resume line reads **To resume:** sync `<default_branch>` yourself, then
+clear `status: blocked`, apply the gate label this run consumed — yourself,
+or tell the main agent; nothing to answer — run the remedy first. Never
+merge that branch into the issue branch instead (guard-gate rule K denies
+it). The escalation valve (C3) is **not** a failure — it is a designed
 transition and never uses the STOP exit.
