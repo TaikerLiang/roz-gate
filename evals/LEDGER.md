@@ -185,6 +185,7 @@ text follows the experiment; the driver's citation was updated to match.
 | L9 | Every page says patrol answers every human comment on an intake thread on its next pass, and none still hands the thread to the humans | lint (defect 2.4.0-, #174) |
 | L10 | Every surface that says where `test` runs says your gitignored files (`worktree_copy`, default `.env`) are copied into the loop's worktrees, and `hooks.json` registers the PostToolUse hook that does it | lint (defect 2.5.1-, #122) |
 | L11 | the seat pane is a mod that only watches: the entry module registers `seat-pane.tsx`; `seat-sprites.ts` draws exactly the five seats the personas template names, no more; the mod never writes, runs a process or denies a spawn; README says every other agent is shown as a plain Roz under its agent type | lint (#172, 2.7.0; #202) |
+| L12 | every page's script parses | lint (#215) |
 
 ## The judgment corpus
 
