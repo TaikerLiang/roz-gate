@@ -29,7 +29,7 @@
       "id": "C28",
       "title": "The loop merges only the base or its own branches",
       "tier": "hook (guard-gate rule K)",
-      "ledger": "in a `roz-gate/wt/` worktree, `git merge` / `git pull` of anything but `origin/<default_branch>` or a `branch_template` branch of the same issue is denied with the sync-the-base remedy; the person's checkout is silent — `test_guard_gate.py` RuleK, 32 cases (#213)",
+      "ledger": "in a `roz-gate/wt/` worktree, `git merge` / `git pull` of anything but `origin/<default_branch>` or a `branch_template` branch of the same issue is denied with the sync-the-base remedy; the person's checkout is silent — `test_guard_gate.py` RuleK, 41 cases (#213)",
       "rule": "K",
       "proof": "hooks/tests/test_guard_gate.py"
     }

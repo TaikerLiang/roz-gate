@@ -1180,9 +1180,18 @@ class RuleK_LoopMergesOnlyBaseOrOwn(HookTest):
             ("rule K: `git merge-base` is not a merge", "git merge-base HEAD origin/master", spec5),
             ("rule K: `merge` as a word elsewhere",
              'gh pr comment 7 --body "merge origin/master later"', spec5),
+            ("rule K: `-m <msg>` consumes its value, the ref is the base",
+             'git merge -m "sync" origin/main', spec5),
+            ("rule K: `--log=3` is one token", "git merge --log=3 origin/main", spec5),
         ]:
             with self.case(name):
                 self.assertAllowed(self.bash(cmd, cwd))
+        with self.case("rule K: no origin/HEAD and no key — the base is `main`, as roz-config "
+                       "resolves it (codex review)"):
+            self.git(self.repo, "remote", "set-head", "origin", "--delete")
+            self.assertAllowed(self.bash("git merge --no-edit origin/main", spec5))
+            self.assertDenied(self.bash("git merge --no-edit origin/master", spec5), "rule K")
+            self.git(self.repo, "remote", "set-head", "origin", "main")
         with self.case("rule K: the configured base, release/20261117"):
             self.write(self.local, '{"default_branch": "release/20261117"}\n')
             self.assertAllowed(self.bash("git merge --no-edit origin/release/20261117", spec5))
@@ -1214,6 +1223,18 @@ class RuleK_LoopMergesOnlyBaseOrOwn(HookTest):
              "git fetch origin master && git merge --no-edit origin/master", spec5, "rule K"),
             ("rule K: `master` bare (a local branch that is not the base)",
              "git merge master", spec5, "rule K"),
+            ("rule K: `--log` takes no following value (codex review)",
+             "git merge --log origin/master", spec5, "rule K"),
+            ("rule K: `-S` takes no following value (codex review)",
+             "git merge -S origin/master", spec5, "rule K"),
+            ("rule K: `--no-log` before the ref", "git merge --no-log origin/master", spec5,
+             "rule K"),
+            ("rule K: `git pull other main` — the base lives on origin only (codex review)",
+             "git pull other main", spec5, "rule K"),
+            ("rule K: `git pull <url> main`",
+             "git pull https://example.com/x/y.git main", spec5, "rule K"),
+            ("rule K: `git pull other spec/5` — a sibling's name on a foreign remote",
+             "git pull other spec/5", spec5, "rule K"),
         ]:
             with self.case(name):
                 self.assertDenied(self.bash(cmd, cwd), says)

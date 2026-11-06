@@ -98,7 +98,9 @@ pattern. Ten rules, each the mechanical form of existing protocol text:
      by the hook's cwd, a ``cd`` earlier in the call or ``git -C`` — a
      ``git merge <ref…>`` or ``git pull <remote> <branch>`` is denied unless
      every branch named is ``origin/<default_branch>`` (the local key, else
-     the remote's HEAD — bin/roz-config's own resolution) or a
+     the remote's HEAD, else ``main`` — bin/roz-config's own resolution; a
+     ``pull`` names ``origin`` as its repository, another remote or a URL
+     is foreign whatever the branch is called) or a
      ``branch_template`` branch of the **same issue** — the template's
      regex (``{kind}/{n}`` when unset) matched against the worktree's own
      branch gives ``{n}``; a ref whose branch renders the same ``{n}`` is a
@@ -1155,8 +1157,11 @@ DEFAULT_TEMPLATE = "{kind}/{n}"
 # then allows only the base, never everything.
 TEMPLATE_SLOTS = {"{kind}": r"(?:spec|feat|qa|fast)", "{type}": r"[^/]+", "{user}": r"[^/]+",
                   "{n}": r"(?P<n>[0-9]+)", "{seq}": r"[0-9]+"}
-MERGE_VALUE_FLAGS = {"-m", "-F", "-s", "-X", "--strategy", "--strategy-option", "--log",
-                     "--into-name", "--cleanup", "--gpg-sign", "-S"}
+# `git merge` options that take a value as the NEXT token. `--log[=<n>]`,
+# `--gpg-sign[=<key>]` / `-S[<key>]` take an optional value attached only, so
+# the token after them is a ref (codex review, PR #214).
+MERGE_VALUE_FLAGS = {"-m", "-F", "-s", "-X", "--strategy", "--strategy-option",
+                     "--into-name", "--cleanup"}
 GIT_VALUE_OPTS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path",
                   "--super-prefix", "--config-env"}
 SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
@@ -1211,13 +1216,15 @@ def loop_worktree_of(path):
 
 
 def base_branch(tops, cwd):
+    """bin/roz-config's resolution, so the commands and the hook agree: the
+    local key, else the remote's HEAD, else `main` (codex review, PR #214)."""
     b = local_key(tops, "default_branch")
     if b:
         return b
     head = git_out("-C", cwd, "symbolic-ref", "-q", "refs/remotes/origin/HEAD")
     if head and head.strip().startswith("refs/remotes/origin/"):
         return head.strip()[len("refs/remotes/origin/"):]
-    return None
+    return "main"
 
 
 def merge_refs(toks):
@@ -1254,6 +1261,13 @@ def merge_refs(toks):
         return kind, args
     if len(args) < 2:
         return kind, []            # `git pull` / `git pull origin`: the branch's own upstream
+    # `git pull <repository> <refspec…>`: the allowlist is origin's — the
+    # base and the issue's siblings live there, and nowhere else. Another
+    # remote or a URL carrying a branch of the same name is foreign; the
+    # repository is kept on the ref so the deny names it (codex review, PR
+    # #214).
+    if args[0] != "origin":
+        return kind, ["%s %s" % (args[0], a.split(":", 1)[0]) for a in args[1:]]
     return kind, [a.split(":", 1)[0] for a in args[1:]]
 
 
@@ -1312,18 +1326,20 @@ def check_loop_merge(cmd, cwd):
         m = pat.match(branch)
         n = m.group("n") if m and "n" in m.groupdict() else None
         for ref in refs:
+            if " " in ref:          # `git pull <other-remote> <branch>`: never origin's
+                deny(RULE_K_MSG % {"ref": ref, "n": n or "?", "base": base,
+                                   "template": template})
             name = ref
             for prefix in ("refs/remotes/origin/", "origin/", "refs/heads/"):
                 if name.startswith(prefix):
                     name = name[len(prefix):]
                     break
-            if base and name == base and not SHA_RE.match(ref):
+            if name == base and not SHA_RE.match(ref):
                 continue
             mm = pat.match(name)
             if mm and n and mm.group("n") == n and not SHA_RE.match(ref):
                 continue
-            deny(RULE_K_MSG % {"ref": ref, "n": n or "?", "base": base or "<unresolved>",
-                               "template": template})
+            deny(RULE_K_MSG % {"ref": ref, "n": n or "?", "base": base, "template": template})
 
 
 def main_checkout_from(path):
