@@ -26,11 +26,15 @@ META = {
               "brief or command (rule K denies the act — C28).",
 }
 
-_wf = read("references/workflow.md")
-_ns = read("commands/next-stage.md")
-_sa = read("commands/spec-answers.md")
-_pr = read("agents/product.md")
-_em = read("agents/em.md")
+
+
+def flat(path):
+    """One line, one space, lower case: a phrase may wrap or open a bullet."""
+    return " ".join(read(path).split()).lower()
+
+
+_wf, _ns, _sa = read("references/workflow.md"), read("commands/next-stage.md"), \
+    read("commands/spec-answers.md")
 
 c.expect("pattern",
          "C29: workflow.md — a missing dependency in the base is a STOP, never an option",
@@ -42,15 +46,15 @@ c.expect("pattern", "C29: workflow.md — after the sync the loop merges the bas
 for _f, _t, _title in (("commands/next-stage.md", _ns, "next-stage"),
                        ("commands/spec-answers.md", _sa, "spec-answers")):
     c.expect("pattern", "C29: %s carries the named STOP — the base lacks a dependency" % _f,
-             "the base lacks a dependency" in _t and "sync `<default_branch>`" in _t)
+             "the base lacks a dependency" in flat(_f) and "sync `<default_branch>`" in _t)
     c.expect("pattern", "C29: %s — the STOP's title is the command's" % _f,
              "**[%s] · blocked**" % _title in _t)
 c.expect("pattern", "C29: next-stage.md — a seat reports the gap; the command STOPs, never merges",
          "reports it" in _ns and "never proposes a merge" in " ".join(_ns.split()))
-for _f, _t in (("agents/product.md", _pr), ("agents/em.md", _em)):
+for _f in ("agents/product.md", "agents/em.md"):
     c.expect("pattern", "C29: %s — never offers another branch's commits as an option" % _f,
              "never offer merging, rebasing onto or cherry-picking from another branch"
-             in " ".join(_t.split()))
+             in flat(_f))
 _banned = re.compile(r"merge (origin/)?master\b|merge `origin/master`|merge master into", re.I)
 for _f in ("agents/product.md", "agents/em.md", "agents/qa.md", "agents/reviewer.md",
            "commands/next-stage.md", "commands/spec-answers.md", "commands/integrate.md",
