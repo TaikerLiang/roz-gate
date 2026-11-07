@@ -75,6 +75,14 @@ BASH_DENIED = [
     ("rule E: a backslash inside a double-quoted delimiter is unsupported — the read denied",
      "cat <<\"E\\$OF\"\nnote\nE$OF\ncat src/app.txt\ncat <<'E\\$OF'\nnote\nE\\$OF",
      "read of src/"),
+    # Codex review round 9: ANSI-C quoting, a substitution-shaped delimiter, `)#`.
+    ("rule E: $'…' quoting is unsupported — the read after it denied",
+     "x=$'it\\'s <<EOF # '\ncat src/app.txt\ncat <<EOF\nnote\nEOF", "read of src/"),
+    ("rule E: a <<$(printf EOF) delimiter is unsupported — the read after it denied",
+     "cat <<$(printf EOF)\nnote\n$(printf EOF)\ncat src/app.txt\ncat <<'$'\nnote\n$",
+     "read of src/"),
+    ("rule E: a `)# <<EOF` comment is text — the read after it denied",
+     "(true)# <<EOF\ncat src/app.txt\ncat <<EOF\nnote\nEOF", "read of src/"),
     # Codex review round 5: a form the scanner does not read blanks nothing.
     ("rule E: a mixed-quoted delimiter (E\"OF\") is unsupported — nothing blanked, the read denied",
      "cat <<E\"OF\"\nnote\nEOF\ncat src/app.txt\ncat <<E\nnote\nE", "read of src/"),

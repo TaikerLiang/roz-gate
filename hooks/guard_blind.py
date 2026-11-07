@@ -160,8 +160,11 @@ def heredoc_words(line, quote=None):
     only after it ends. A form the scanner does not read — a delimiter in
     mixed quoting (`E"OF"`) or with a backslash (`\\EOF`, `END\\ TEXT`,
     `"E\\$OF"`), an arithmetic `(( … ))` on the line (`1 << 2` is a shift),
-    a `$(` or backtick inside double quotes (its own quotes nest) — raises
-    Unsupported, and the caller blanks nothing: the visible direction."""
+    a `$(` or backtick inside double quotes (its own quotes nest), ANSI-C
+    quoting (`$'…'`), a delimiter running into a parenthesis (`$(printf
+    EOF)`) — raises Unsupported, and the caller blanks nothing: the
+    visible direction. The scanner is not a shell parser; it reads the
+    forms seats write and refuses the rest."""
     words, i, continued = [], 0, False
     while i < len(line):
         ch = line[i]
@@ -173,9 +176,11 @@ def heredoc_words(line, quote=None):
             raise Unsupported("a substitution inside double quotes")
         if quote:
             quote = None if ch == quote else quote
+        elif line.startswith("$'", i):
+            raise Unsupported("ANSI-C quoting")
         elif ch in "'\"":
             quote = ch
-        elif ch == "#" and (i == 0 or line[i - 1] in " \t;&|("):
+        elif ch == "#" and (i == 0 or line[i - 1] in " \t;&|()"):
             break
         elif line.startswith("((", i) or line.startswith("$((", i):
             raise Unsupported("arithmetic — `1 << 2` is a shift")
@@ -185,8 +190,8 @@ def heredoc_words(line, quote=None):
         elif line.startswith("<<", i):
             m = HEREDOC_OPEN.match(line, i)
             if m:
-                if m.end() < len(line) and line[m.end()] not in " \t;&|<>()":
-                    raise Unsupported("a delimiter in mixed quoting")
+                if m.end() < len(line) and line[m.end()] not in " \t;&|<>":
+                    raise Unsupported("a delimiter in mixed quoting or with a parenthesis")
                 word = m.group(2) or m.group(3) or m.group(4)
                 if "\\" in word:
                     raise Unsupported("a backslash in the delimiter")
