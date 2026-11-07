@@ -111,7 +111,10 @@ class Frame:
                     elif "rm -f" in cmd and MARKER in cmd:
                         ordered.append("off")
                 elif b.get("name") in ("Task", "Agent") \
-                        and "qa-brief.md" in json.dumps(inp, ensure_ascii=False):
+                        and ("qa-brief.md" in json.dumps(inp, ensure_ascii=False)
+                             or inp.get("subagent_type") == "roz-gate:qa"):
+                    # The QA dispatch names the brief's file — or is the qa
+                    # seat itself with the brief inlined (D13@C, #232).
                     ordered.append("qa")
                     dispatches.append(b)
                     ids.add(b.get("id"))
@@ -470,8 +473,11 @@ class Proof:
 
     def transcript(self, steps, children, denied, marker, result):
         """steps: "on" | "off" | "dispatch" (the Task call and its children)
-        | "dispatch-only" and "children" (the same, split — a background
-        dispatch whose children land later) | ("on", <marker command>);
+        | "dispatch-inline" (the qa seat with the brief's text inlined, no
+        file name — #232) | "commit" (a general-purpose commit dispatch,
+        never the QA dispatch) | "dispatch-only" and "children" (the same,
+        split — a background dispatch whose children land later) |
+        ("on", <marker command>);
         children run under the dispatch as (tool, input, result); `denied`
         = indexes whose result is the hook's deny; the main agent's final
         text is `result`."""
@@ -482,14 +488,21 @@ class Proof:
                 ev.append({"type": "assistant", "message": {"content": [
                     {"type": "tool_use", "id": "b%d" % n, "name": "Bash",
                      "input": {"command": step[1]}}]}})
-            elif step in ("dispatch", "dispatch-only", "children"):
+            elif step == "commit":
+                ev.append({"type": "assistant", "message": {"content": [
+                    {"type": "tool_use", "id": "k%d" % n, "name": "Agent",
+                     "input": {"subagent_type": "general-purpose",
+                               "prompt": "# The commit — the commit sub-agent's brief …"}}]}})
+            elif step in ("dispatch", "dispatch-inline", "dispatch-only", "children"):
                 if step != "children":
+                    prompt = ("You are the **qa** seat at Roz Gate stage (4). Your contract "
+                              "is the QA brief, reproduced in full below … Test port: %s"
+                              if step == "dispatch-inline" else
+                              "Contract: ${CLAUDE_PLUGIN_ROOT}/references/qa-brief.md … "
+                              "Test port: %s") % (", ".join(self.ports) or "none")
                     ev.append({"type": "assistant", "message": {"content": [
-                        {"type": "tool_use", "id": "d1", "name": "Task",
-                         "input": {"subagent_type": "roz-gate:qa",
-                                   "prompt": "Contract: ${CLAUDE_PLUGIN_ROOT}/references/"
-                                             "qa-brief.md … Test port: %s"
-                                             % (", ".join(self.ports) or "none")}}]}})
+                        {"type": "tool_use", "id": "d1", "name": "Agent",
+                         "input": {"subagent_type": "roz-gate:qa", "prompt": prompt}}]}})
                 for i, (tool, inp, out) in (enumerate(children) if step != "dispatch-only"
                                             else ()):
                     ev.append({"type": "assistant", "parent_tool_use_id": "d1", "message": {
