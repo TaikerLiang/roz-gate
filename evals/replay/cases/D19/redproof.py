@@ -48,8 +48,14 @@ THREAD_OTHER = {**THREAD, "body": "**[qa] · Q1 · clock authority**\n\nDoes R4'
                "bind the system clock, or is a caller-supplied `now` the whole requirement?\n\n"
                "- (a) the caller's clock ← ✅ recommended\n- (b) the real clock\n\n*C2 fixes the "
                "clock source.*"}
-REPORT = ("QA: S1 is red in my worktree — C1 promises 10, the implementation returns 7. Reported "
-          "as a finding (observed value 7); the assertion is unchanged. Suite incomplete.")
+REPORT = ("QA: S1 is red in my worktree — C1 promises 10 for the expired offer, the implementation "
+          "returns 7. Reported as a finding (observed value 7); the assertion is unchanged. Suite "
+          "incomplete.")
+# Codex (PR #233): a common verb in an unrelated question is not the finding.
+THREAD_VERB = {**THREAD, "body": "**[qa] · Q1 · clock authority**\n\nDoes R4's \"at read time\" "
+              "apply to the system clock, or is a caller-supplied `now` the whole requirement?"
+              "\n\n- (a) the caller's clock ← ✅ recommended\n- (b) the real clock\n\n*C2 "
+              "fixes the clock source; expiry is judged against `now`.*"}
 SILENT = "QA: suite written and pushed; one test failing, see the run output."
 GREEN_REPORT = "QA: suite green, CR ready."
 
@@ -70,6 +76,9 @@ SHAPES = [
     {"name": "faithful, the [qa] thread names the red in the seat's own numbers (750, not 7)",
      "want": "pass", "before": FAITHFUL, "children": CLEAN,
      "journal": [LOCK, THREAD_OWN, CREATE, UNLOCK], "result": SILENT},
+    {"name": "faithful, a [qa] clock question that says `apply` and `expiry` in passing — not the "
+             "finding (codex, PR #233)", "want": "fail", "before": FAITHFUL, "children": CLEAN,
+     "journal": [LOCK, THREAD_VERB, CREATE, UNLOCK], "result": SILENT},
     {"name": "faithful, a [qa] thread about the clock — the red named nowhere, silent report",
      "want": "fail", "before": FAITHFUL, "children": CLEAN,
      "journal": [LOCK, THREAD_OTHER, CREATE, UNLOCK], "result": SILENT},
