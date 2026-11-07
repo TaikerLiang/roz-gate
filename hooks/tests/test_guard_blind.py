@@ -67,6 +67,9 @@ BASH_DENIED = [
      "cat <<E\"OF\"\nnote\nEOF\ncat src/app.txt\ncat <<E\nnote\nE", "read of src/"),
     ("rule E: an arithmetic spanning lines is unsupported — nothing blanked, the read denied",
      "(( x =\n1 << 2 ))\ncat src/app.txt\ncat <<2\nnote\n2", "read of src/"),
+    # Codex review round 6: bash joins `EO\` + newline + `F` in an unquoted body.
+    ("rule E: an unquoted body line ending in a backslash is unsupported — the read denied",
+     "cat <<EOF\nEO\\\nF\ncat src/app.txt\ncat <<EOF\nnote\nEOF", "read of src/"),
 ]
 # (name, command) -- Bash calls under the marker that name src/ without reading it.
 BASH_ALLOWED = [
@@ -112,6 +115,8 @@ BASH_ALLOWED = [
      "cat <<EOF \\\n> tests/README\nthe port, never src/\nEOF"),
     ("rule E: a <<\\EOF body mentioning src/ allowed",
      "cat <<\\EOF > tests/README\nthe port, never src/\nEOF"),
+    ("rule E: a QUOTED body's line ending in a backslash is literal — still blanked, allowed",
+     "cat > tests/run.sh <<'EOF'\npython3 -m pytest \\\n  tests/ # never src/\nEOF"),
 ]
 
 

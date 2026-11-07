@@ -135,7 +135,7 @@ class Unsupported(Exception):
 
 
 def heredoc_words(line, quote=None):
-    """The (delimiter, strips-tabs) of every heredoc operator on one physical
+    """The (delimiter, strips-tabs, quoted) of every heredoc operator on one physical
     line, in order — `<<` outside quotes and comments only; a `<<<`
     here-string is skipped whole; the delimiter is the whole shell word
     (`END-TEXT`, `'EOF'`, `\\EOF` with its backslash removed), not a
@@ -173,7 +173,7 @@ def heredoc_words(line, quote=None):
                 if m.end() < len(line) and line[m.end()] not in " \t;&|<>()":
                     raise Unsupported("a delimiter in mixed quoting")
                 word = m.group(2) or m.group(3) or m.group(4).replace("\\", "")
-                words.append((word, m.group(1) == "-"))
+                words.append((word, m.group(1) == "-", word != m.group(4)))
                 i = m.end()
                 continue
         i += 1
@@ -186,11 +186,15 @@ def blank_heredoc_bodies(cmd):
     order their operators appear on the LOGICAL command line (a quoted
     argument or a backslash continuation carries it on), an empty body
     ending on the next line. A body that never terminates blanks nothing —
-    the visible direction."""
+    the visible direction — and so does an unquoted body with a line
+    ending in a backslash (bash joins it to the next before it looks for
+    the terminator; codex review, PR #222)."""
     out, pending, opened, quote = [], [], [], None
     for line in cmd.split("\n"):
         if pending:
-            word, dash = pending[0]
+            word, dash, quoted = pending[0]
+            if not quoted and line.endswith("\\"):
+                return cmd
             if (line.lstrip("\t") if dash else line) == word:
                 pending.pop(0)
                 out.append(line)
