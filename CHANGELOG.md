@@ -2,6 +2,21 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.10.1 — what the scanner read stays read — 2026-11-07
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.10.1>
+
+**Behavior:** a heredoc body that mentions `src/` stays a mention when a later line carries a form the blind-dispatch scanner does not read, such as `--body "$(cat file)"`. The replay forge stub reads a `reviewThreads` query's PR number from whatever variable the seat named.
+
+### Hooks
+- **Rule E — `Unsupported` is scoped to what follows it** (#227, PR #228): 2.10.0 answered an unsupported heredoc form by un-blanking the whole command, so a reviewer's heredoc summary followed by `gh pr comment --body "$(cat f)"` was denied again (the #199 pilot, D13's fidelity reviewer, twice). Closed bodies stay blanked; only the unsupported line and what follows it are left as written. Hook tests +2 (638).
+
+### Evals
+- **Forge stub: graphql variable names** (#225, PR #226): a `reviewThreads` query's `pullRequest(number: $X)` resolves `X` from the `-F`/`-f` fields (`$p`, `$pr`, `$number`, …); a literal as before; a variable no field supplies is UNKNOWN, as gh would error. The pilot's D12 had been INVALID on `$p`. Harness red-proofs +3 (96).
+
+### Checks
+Hook tests 638/638 · lint 1099/1099 · red-proofs 43/43 (harness 96) · naming · ruff · judgment `--check` · ledger `--check` current
+
 ## v2.10.0 — a mention is not a read — 2026-11-07
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.10.0>
