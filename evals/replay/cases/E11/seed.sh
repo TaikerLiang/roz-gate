@@ -43,9 +43,6 @@ cat > docs/specs/5/technical-spec.md <<'EOF2'
 - C1 · `CartLine { sku: string, qty: int }` — the cart remembers what and
   how many; it carries no timestamp.
 - C2 · `price(cart, now)` excludes offers with `expires_at < now`.
-
-## Open Questions
-(see spec.md)
 EOF2
 git add -A
 git -c user.email=paul@example.com -c user.name=paul commit -qm "spec docs #5"
