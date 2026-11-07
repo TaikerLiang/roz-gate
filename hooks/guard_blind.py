@@ -146,14 +146,21 @@ SRC_MENTIONED = re.compile(
 HEREDOC_OPEN = re.compile(r"""<<(-?)\s*(?:'([^']+)'|"([^"]+)"|([^\s'"|&;<>()]+))""")
 
 
-def heredoc_words(line):
-    """The (delimiter, strips-tabs) of every heredoc operator on one command
-    line, in order: `<<` outside quotes and comments only; a `<<<`
+def heredoc_words(line, quote=None):
+    """The (delimiter, strips-tabs) of every heredoc operator on one physical
+    line, in order — `<<` outside quotes and comments only; a `<<<`
     here-string is skipped whole; the delimiter is the whole shell word
-    (`END-TEXT`, `'EOF'`), not a `\\w+` prefix (codex review, PR #222)."""
-    words, quote, i = [], None, 0
+    (`END-TEXT`, `'EOF'`), not a `\\w+` prefix (codex review, PR #222).
+    Returns (words, quote still open at the end, backslash-continued): a
+    logical command line runs on while either holds, and the bodies start
+    only after it ends."""
+    words, i, continued = [], 0, False
     while i < len(line):
         ch = line[i]
+        if ch == "\\" and quote != "'":
+            i += 2
+            continued = i > len(line)
+            continue
         if quote:
             quote = None if ch == quote else quote
         elif ch in "'\"":
@@ -170,15 +177,17 @@ def heredoc_words(line):
                 i = m.end()
                 continue
         i += 1
-    return words
+    return words, quote, continued
 
 
 def blank_heredoc_bodies(cmd):
     """Every heredoc body blanked, line by line: each operator's body runs
     to its own terminator (exact; `<<-` after leading tabs), bodies in the
-    order their operators appear; an empty body ends on the next line. A
-    body that never terminates blanks nothing — the visible direction."""
-    out, pending = [], []
+    order their operators appear on the LOGICAL command line (a quoted
+    argument or a backslash continuation carries it on), an empty body
+    ending on the next line. A body that never terminates blanks nothing —
+    the visible direction."""
+    out, pending, opened, quote = [], [], [], None
     for line in cmd.split("\n"):
         if pending:
             word, dash = pending[0]
@@ -187,10 +196,13 @@ def blank_heredoc_bodies(cmd):
                 out.append(line)
             else:
                 out.append("")
-        else:
-            out.append(line)
-            pending.extend(heredoc_words(line))
-    return cmd if pending else "\n".join(out)
+            continue
+        out.append(line)
+        words, quote, continued = heredoc_words(line, quote)
+        opened.extend(words)
+        if not quote and not continued:
+            pending, opened = opened, []
+    return cmd if pending or opened else "\n".join(out)
 
 
 def bash_reads_src(cmd, suite=None, top=None, tops=None):

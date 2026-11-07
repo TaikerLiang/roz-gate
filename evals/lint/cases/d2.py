@@ -110,6 +110,15 @@ c.expect("hook rule E (the operator is <<, the delimiter a word, the body termin
                                                "cat src/app.txt"}) is not None
          and _gb.violation("Bash", {"command": "cat <<EOF > tests/x\nmention src/"})
          is not None)
+c.expect("hook rule E (bodies start after the LOGICAL command line)",
+         "D2 pattern: an operand on a backslash-continued line and a read after a quoted "
+         "argument spanning lines are reads",
+         _gb.violation("Bash", {"command": "cat <<EOF \\\nsrc/app.txt\nignored\nEOF"})
+         is not None
+         and _gb.violation("Bash", {"command": "printf '%s\\n' 'hello\n<<EOF'\ncat src/app.txt\n"
+                                               "cat <<EOF\nnote\nEOF"}) is not None
+         and _gb.violation("Bash", {"command": "cat <<EOF \\\n> tests/x\nmention src/\nEOF"})
+         is None)
 # Issue #81 (1.29.1): the suite is not the implementation. A Maven layout's
 # acceptance dir sits under src/test/…; the hook exempts it (outside the
 # four regexes, which stay byte-identical above) and the prose says so.

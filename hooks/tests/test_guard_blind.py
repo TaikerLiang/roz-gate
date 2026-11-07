@@ -52,6 +52,11 @@ BASH_DENIED = [
      "cat <<END-TEXT > tests/x\nnote\nEND-TEXT\ncat src/app.txt", "read of src/"),
     ("rule E: a heredoc that never terminates blanks nothing (the visible direction)",
      "cat <<EOF > tests/x\nmention src/ here", "read of src/"),
+    # Codex review round 3: the logical command line, not the physical one.
+    ("rule E: an operand on a backslash-continued line after <<EOF is still an operand",
+     "cat <<EOF \\\nsrc/app.txt\nignored\nEOF", "read of src/"),
+    ("rule E: a quoted argument spanning lines cannot open a heredoc — the read denied",
+     "printf '%s\\n' 'hello\n<<EOF'\ncat src/app.txt\ncat <<EOF\nnote\nEOF", "read of src/"),
 ]
 # (name, command) -- Bash calls under the marker that name src/ without reading it.
 BASH_ALLOWED = [
@@ -93,6 +98,8 @@ BASH_ALLOWED = [
      "cat <<FIRST <<SECOND\nfirst\nFIRST\nmention src/\nSECOND"),
     ("rule E: a punctuated delimiter's body mentioning src/ allowed",
      "cat <<END-TEXT > tests/README\nthe port, never src/\nEND-TEXT"),
+    ("rule E: a backslash-continued opener line, then a body mentioning src/, allowed",
+     "cat <<EOF \\\n> tests/README\nthe port, never src/\nEOF"),
 ]
 
 
