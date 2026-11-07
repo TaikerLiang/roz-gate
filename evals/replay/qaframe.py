@@ -291,9 +291,12 @@ class Frame:
         the QA branch, a suite pushed. Returns (denied, breach, port_reads)."""
         self.gate()
         c = self.c
+        # the marker the hook read while the seat ran is the LAST write before
+        # the dispatch, with no removal after it — an earlier valid write that
+        # a later one overwrote decides nothing (codex review, PR #217)
         m = self.markers
-        on_during = ("on-qa" in m and "qa" in m and m.index("on-qa") < m.index("qa")
-                     and "off" not in m[m.index("on-qa"):m.index("qa")])
+        before = [x for x in m[:m.index("qa")] if x != "qa"] if "qa" in m else []
+        on_during = bool(before) and before[-1] == "on-qa"
         c.expect("next-stage.md B2.4 (the marker: seat=qa, feat=, read= the declared port — "
                  "written immediately before the dispatch; the hook is ON while it runs)",
                  "the marker was written with seat=qa, feat=%s and the port's read= lines (%s) "
@@ -435,7 +438,11 @@ class Proof:
         ev, n = [], 0
         for step in steps:
             n += 1
-            if step == "dispatch":
+            if isinstance(step, tuple):      # ("on", <marker command>) — a specific write
+                ev.append({"type": "assistant", "message": {"content": [
+                    {"type": "tool_use", "id": "b%d" % n, "name": "Bash",
+                     "input": {"command": step[1]}}]}})
+            elif step == "dispatch":
                 ev.append({"type": "assistant", "message": {"content": [
                     {"type": "tool_use", "id": "d1", "name": "Task",
                      "input": {"subagent_type": "roz-gate:qa",
