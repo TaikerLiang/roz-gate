@@ -790,6 +790,7 @@ def main():
                         "git init -q -b main . && printf 'a\\nb\\nc\\n' > old.txt && git add -A "
                         "&& git commit -qm one && git checkout -q -b rn/1 "
                         "&& git mv old.txt new.txt && echo d >> new.txt "
+                        "&& printf 'x\\n' > 日本語.md && git add -A "
                         "&& git commit -qam two && git checkout -q main"],
                        cwd=tmp2, env=genv, check=True, capture_output=True)
         d = tempfile.mkdtemp()
@@ -800,12 +801,28 @@ def main():
         rc, out, routes = run_route(["api", "repos/acme/demo/pulls/102/files"], cwd=tmp2,
                                     state_dir=d)
         rows = json.loads(out) if rc == 0 else None
-        ok = (rc == 0 and routes == ["pr-files"] and rows == [
-            {"filename": "new.txt", "status": "renamed", "additions": 1, "deletions": 0,
-             "changes": 1, "previous_filename": "old.txt"}])
-        print("%s route: pulls/<n>/files joins a rename's numstat to its destination path"
+        want = [{"filename": "new.txt", "status": "renamed", "additions": 1, "deletions": 0,
+                 "changes": 1, "previous_filename": "old.txt"},
+                {"filename": "日本語.md", "status": "added", "additions": 1, "deletions": 0,
+                 "changes": 1}]
+        ok = (rc == 0 and routes == ["pr-files"] and rows is not None
+              and sorted(rows, key=lambda r: r["filename"]) == want)
+        print("%s route: pulls/<n>/files joins a rename's numstat to its destination path, "
+              "and a non-ASCII path is the real path (-z)" % ("PASS" if ok else "FAIL"),
+              "" if ok else "(got rc=%d routes=%s out=%r)" % (rc, routes, out[:300]))
+        passed, failed = passed + ok, failed + (not ok)
+        shutil.rmtree(d, ignore_errors=True)
+        # codex, PR #223: a head ref git cannot resolve is UNKNOWN, never an empty list
+        d = tempfile.mkdtemp()
+        st["prs"]["102"]["headRefName"] = "nope/9"
+        with open(os.path.join(d, "state.json"), "w") as f:
+            json.dump(st, f)
+        rc, out, routes = run_route(["api", "repos/acme/demo/pulls/102/files"], cwd=tmp2,
+                                    state_dir=d)
+        ok = rc == 64 and routes == ["UNKNOWN"]
+        print("%s route: pulls/<n>/files on an unresolvable head -> UNKNOWN, not []"
               % ("PASS" if ok else "FAIL"), "" if ok else "(got rc=%d routes=%s out=%r)"
-              % (rc, routes, out[:200]))
+              % (rc, routes, out[:120]))
         passed, failed = passed + ok, failed + (not ok)
         shutil.rmtree(d, ignore_errors=True)
     finally:

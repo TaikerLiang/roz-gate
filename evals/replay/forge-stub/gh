@@ -294,41 +294,49 @@ def resolve_ref(ref):
 
 def pr_files(base, head):
     """`pulls/<n>/files` rows from `git diff base...head`: filename, status
-    (GitHub's words), additions, deletions — the fields a seat reads."""
+    (GitHub's words), additions, deletions — the fields a seat reads. NUL
+    records (`-z`), so a non-ASCII, tab or newline pathname is the real
+    path, not git's quoted display form; a diff git cannot make (an
+    unresolvable ref) raises — the route answers UNKNOWN, never an empty
+    list (codex review, PR #223)."""
     status_word = {"A": "added", "M": "modified", "D": "removed", "R": "renamed",
                    "C": "copied", "T": "changed"}
     rng = "%s...%s" % (resolve_ref(base), resolve_ref(head))
-    try:
-        names = subprocess.run(["git", "diff", "--name-status", "-M", rng],
-                               capture_output=True, text=True, timeout=30)
-        nums = subprocess.run(["git", "diff", "--numstat", "-M", rng],
-                              capture_output=True, text=True, timeout=30)
-    except (OSError, subprocess.TimeoutExpired):
-        return []
-    def dest(path):
-        # numstat spells a rename `old => new` or `dir/{old => new}/x`;
-        # --name-status gives the destination alone (codex review, PR #223).
-        if " => " not in path:
-            return path
-        m = re.match(r"^(.*)\{(.*) => (.*)\}(.*)$", path)
-        return m.group(1) + m.group(3) + m.group(4) if m else path.split(" => ", 1)[1]
+
+    def records(kind):
+        r = subprocess.run(["git", "diff", "-z", "-M", kind, rng], capture_output=True,
+                           timeout=30)
+        if r.returncode != 0:
+            err = r.stderr.decode("utf-8", "replace").strip().splitlines() or ["git diff failed"]
+            raise RuntimeError(err[0])
+        toks = r.stdout.decode("utf-8", "surrogateescape").split("\0")
+        return toks[:-1] if toks and toks[-1] == "" else toks
+
     counts = {}
-    for line in nums.stdout.splitlines():
-        parts = line.split("\t")
-        if len(parts) >= 3:
-            a, d = parts[0], parts[1]
-            counts[dest(parts[-1])] = (int(a) if a.isdigit() else 0, int(d) if d.isdigit() else 0)
+    toks = records("--numstat")
+    i = 0
+    while i < len(toks):
+        a, d, path = (toks[i].split("\t", 2) + ["", ""])[:3]
+        i += 1
+        if path == "" and i + 1 < len(toks):   # a rename: old, new follow as records
+            path = toks[i + 1]
+            i += 2
+        counts[path] = (int(a) if a.isdigit() else 0, int(d) if d.isdigit() else 0)
     rows = []
-    for line in names.stdout.splitlines():
-        parts = line.split("\t")
-        if len(parts) < 2:
-            continue
-        name = parts[-1]
+    toks = records("--name-status")
+    i = 0
+    while i + 1 < len(toks):
+        st, i = toks[i], i + 1
+        prev = None
+        if st[:1] in ("R", "C"):
+            prev, name, i = toks[i], toks[i + 1], i + 2
+        else:
+            name, i = toks[i], i + 1
         a, d = counts.get(name, (0, 0))
-        row = {"filename": name, "status": status_word.get(parts[0][:1], "modified"),
+        row = {"filename": name, "status": status_word.get(st[:1], "modified"),
                "additions": a, "deletions": d, "changes": a + d}
-        if parts[0][:1] == "R" and len(parts) == 3:
-            row["previous_filename"] = parts[1]
+        if prev is not None:
+            row["previous_filename"] = prev
         rows.append(row)
     return rows
 
@@ -1271,9 +1279,12 @@ def main():
             pr = st.get("prs", {}).get(n)
             if pr is None:
                 unknown("pr-files: pr %s not in fixture" % n)
+            try:
+                rows = pr_files(pr.get("baseRefName", ""), pr.get("headRefName", ""))
+            except (RuntimeError, OSError, subprocess.TimeoutExpired) as e:
+                unknown("pr-files: git diff failed: %s" % e)
             journal("pr-files", pr=n)
-            jq_project(pr_files(pr.get("baseRefName", ""), pr.get("headRefName", "")),
-                       flag_val(argv, "--jq", "-q"))
+            jq_project(rows, flag_val(argv, "--jq", "-q"))
             return
 
         unknown("api target not routed: %s" % target)
