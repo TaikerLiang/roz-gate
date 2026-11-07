@@ -1,0 +1,39 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, expired offers never apply to my cart.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec", "status: in-spec-review"],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer expiry enforcement",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [
+        {
+          "id": "T1",
+          "isResolved": false,
+          "path": "docs/specs/5/spec.md",
+          "line": 20,
+          "comments": [
+            {"databaseId": 9101, "author": "paul", "body": "**[product] · Q6 · expiry while the cart is open**\n\nWhen an offer expires after it was added to an open cart, is it\n- (a) excluded at checkout — strict, R4 as written ← ✅ recommended\n- (b) honoured if it was valid when it was added\n\n*why: R4 says when an offer counts, not when \"added\" is measured; (a)/(b) decides whether the cart needs to remember when a line was added.*\n*raised by the fold of Q3*", "createdAt": "2026-08-23T08:00:00Z"},
+            {"databaseId": 9102, "author": "paul", "body": "(b) — 加入購物車時還有效就算數,結帳時不要把它拿掉。", "createdAt": "2026-08-23T10:00:00Z"}
+          ]
+        }
+      ],
+      "reviews": [],
+      "comments": []
+    }
+  }
+}

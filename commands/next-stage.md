@@ -361,8 +361,14 @@ LABEL-ADD `status: processing`.
 The gate label just applied is the human's approval of `<spec-branch>` **as it
 stands**: COMMENT-EDIT the spec-gate kit to append one line —
 `approved at <<spec-branch> HEAD SHA>` — the anchor for the final-gate kit's
-since-you-approved diff. Also note in the report whether the spec changed
-after the kit's last update (the gate-produced-change signal,
+since-you-approved diff. **Deferred questions resolve by default here**
+(#206): every `## Open Questions` item whose title ends `· deferred` and
+carries no `**Resolved:**` block is resolved to its recommended option by
+this label — append to the same kit line `resolved by default: Q<k> →
+(<option>), …` — and the implementer's dispatch (B3) says so: a rule or
+contract line born from a deferred item carries `(assumed)` as its
+provenance, never `(from Q<k>)`. Also note in the report whether the spec
+changed after the kit's last update (the gate-produced-change signal,
 gate-kit.md § Instrumentation).
 `git fetch` first, then create `<feat-branch>` off `<spec-branch>` **in its own
 worktree** (`<feat-branch>`: Lookup — a previous B run's
@@ -385,7 +391,11 @@ branch is reused — else Expand):
   code, and return the list of every change (clause, what changed, why) for
   the CR's `## Contract deviations` section; `none` when nothing changed. A
   correction that would move what a **rule** (`R<k>`) means is not a
-  deviation to declare: it is the ambiguity below.
+  deviation to declare: it is the ambiguity below. **Deferred questions**
+  (#206): a `· deferred` item in `## Open Questions` with no
+  `**Resolved:**` block is resolved to its recommended option by the gate
+  label (B2); build to that option, and a contract line born from it
+  carries `(assumed)` as its provenance.
   **A contract gap you cannot resolve from the spec docs → stop and report
   to the main agent; never decide unilaterally in code** — the same
   mid-flight route QA has, and the ambiguity takes the same backward

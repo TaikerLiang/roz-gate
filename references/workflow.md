@@ -113,7 +113,13 @@ copied (since 1.15.0 guard-gate rule D refuses the commit while
 owning role agent and folds the decision into **the document the raising seat
 owns** (`spec.md`; `technical-spec.md` for `[implementer]` questions — the
 contract QA tests against must learn the answer, or the pipe is one-way), and
-resolves the thread. A resolution that changes the user story → a comment on
+resolves the thread. A fold may ask once (#206): the new questions a fold
+surfaces are posted as threads when the folded question came from (2a),
+intake or QA; when the folded question was itself fold-raised they are
+`· deferred` items in `## Open Questions` — no thread, one
+`**[spec-answers] · deferred**` comment on the CR — and resolve to their
+recommendation at `ready-for-dev` unless you answer them (a rule born that way
+carries `(assumed)`). A resolution that changes the user story → a comment on
 the issue (it never auto-edits the issue body/AC). Gate: all threads resolved.
 
 **When the spec stage shows the issue missed something — three routes, by how

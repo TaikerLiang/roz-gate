@@ -1,0 +1,8 @@
+{
+  "ledger": "E11 · A fold may ask once — the second-order question is deferred",
+  "tier": "replay + lint (#206)",
+  "ledger_text": "\"The depth-1 thread (Q6, itself raised by the fold of Q3) is folded and resolved; the question its answer forces — the cart line has no timestamp — lands in `spec.md`'s `## Open Questions` as `Q7 … · deferred` naming the fold of Q6, with no thread posted; one `**[spec-answers] · deferred**` CR comment names it; labels end `in-spec-review` alone.\" (ConsoleAPI #1: folding Q6/Q7 raised Q8/Q9 — every fold could send the issue back behind the human gate for another pass; ruling (c): a fold may ask once, the chain is bounded at depth 1)",
+  "prompt": "/roz-gate:spec-answers 5",
+  "k": 5,
+  "timeout": 1200
+}

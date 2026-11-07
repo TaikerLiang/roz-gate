@@ -140,6 +140,28 @@ half-done:
    rule/scenario/contract text — it points at IDs** (a second prose copy is
    a copy that can drift). The verbatim answer and the interpretation gap
    already live in the gate kit's decision ledger.
+   **A fold may ask once** (#206). The re-spawned agent returns any
+   **new-question batch** in its report, in A3's shape — it never writes
+   `## Open Questions` itself (em owns the section). Read the **depth of
+   the question being folded** from its `## Open Questions` item: it either
+   carries the italic line *raised by the fold of Q<i>* or it does not.
+   - **Depth 0** (a (2a), intake or `[qa]` question): append each new item
+     as `Q<k>` (append-only, A3) with one more italic line at its end —
+     *raised by the fold of Q<j>* — and THREAD-POST-INLINE it as A6 does.
+     The issue stays `in-spec-review`.
+   - **Depth 1** (the item being folded was itself fold-raised): append
+     each new item as `Q<k>` with the title line ending `· deferred` and
+     the italic line *deferred — raised at depth 2 by the fold of Q<j>;
+     resolves to its recommendation at `ready-for-dev` unless you answer it
+     on the CR* — and post **no thread**. After the pass, one top-level
+     CR-COMMENT `**[spec-answers] · deferred**` lists the deferred items
+     with their recommended options (a top-level reply from the holder is
+     an amendment and folds as one — § 3).
+   A `**[<role>] · follow-up**` reply (step 3 below: more information
+   needed on the *same* question) is not a new question and is never
+   deferred. The chain is bounded at depth 1: the first round of new
+   questions means the answers revealed something open; an unbounded chain
+   is a seat spending the holder's gate on round trips, each a patrol pass.
 3. If the agent needs more information rather than a final decision, it must
    NOT resolve — instead THREAD-REPLY a follow-up (starting
    `**[<role>] · follow-up**`) and leave the thread unresolved.
@@ -202,8 +224,10 @@ depends on where the issue is — decided by CR-FIND for `<feat-branch>` /
     implementer for exactly those rows before reporting ready (same shape as
     the fidelity brief's step zero).
   Then report that #<n> is fully answered and ready for the user's approval
-  to move to implementation. Do NOT touch the gate — applying `ready-for-dev`
-  is the user's.
+  to move to implementation — listing the `· deferred` items, if any, as
+  `deferred: Q<k>, … — recommendations stand unless answered` (they are not
+  threads; they do not hold the issue). Do NOT touch the gate — applying
+  `ready-for-dev` is the user's.
 - **Mid-flight re-entry** — an open `<feat-branch>` or `<qa-branch>` CR exists
   (the thread was a contract ambiguity raised during (3) or (4), or one of
   QA's `[qa]` contract-review findings — since 2.0.0 the implementation CR
@@ -289,6 +313,7 @@ one — a folded-but-unresolved thread will be re-folded on re-run, and the huma
 should know. Already-resolved threads are idempotent; a re-run skips them.
 
 ## 9. Report
-Per issue: which questions you folded, which got follow-ups, any issue comments
+Per issue: which questions you folded, which got follow-ups, which questions
+the folds raised and which of those were deferred, any issue comments
 posted for story-level changes, what resumed (mid-flight) or what is still
 outstanding — and, if you stopped, which exit and why.

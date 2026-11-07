@@ -101,7 +101,7 @@ template for mobile capture.
 |---|---|---|
 | (1) Intake | main agent + you | one issue = one user story, with observable acceptance criteria and a `track:` label |
 | (2) Spec | em + product + implementer | `spec.md` (scenarios) + `technical-spec.md` (the contract), opened as the **spec CR** |
-| (2a) Q&A | you + role agents | every open question a thread on the spec CR; your answers folded back into the spec — and a thread **you** open is an amendment, folded the same way |
+| (2a) Q&A | you + role agents | every open question a thread on the spec CR; your answers folded back into the spec — and a thread **you** open is an amendment, folded the same way; a fold may ask once — a question raised by answering a fold-raised question is `· deferred`, resolved to its recommendation at `ready-for-dev` unless you answer it |
 | (3) Implementation | implementer | `feat/{n}`: code + unit tests + the test port's Given-state control points; `technical-spec.md` corrected as built, each change declared under the CR's `## Contract deviations` |
 | (5) Review | reviewer | severity-graded inline threads (`blocking`/`should-fix`/`nit`/`question`) plus the `**[reviewer] · code-review**` record (`reviewed-sha`); review-clean = record current + zero threads; then the implementation lands on `spec/{n}` |
 | (4) Black-box QA | qa | `qa/{n}`, cut after the implementation landed: a contract review first (`[qa]` threads on the spec CR), then test plan + acceptance suite from spec + the as-built contract only, through the port, blind by hook rule E; QA runs its suite and clears its harness — a red is a fix or a finding, never an edited assertion |

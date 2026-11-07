@@ -40,7 +40,9 @@ technically convenient ones.
 - Dispatched with no one to ask, never wait and never silently
   assume: collect open questions and return them as an explicit
   list with your deliverable — they become review threads on the
-  spec PR
+  spec PR (when you are folding an answer, the same list: a fold may
+  ask once — the main agent posts it, or defers it when the question
+  you folded was itself raised by a fold; you never post it yourself)
 - If a question can be answered by exploring past specs
   read them instead of asking
 
