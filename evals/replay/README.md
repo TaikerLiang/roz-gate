@@ -205,7 +205,12 @@ Benign read-only probes (`--version`, `--help`, bare `gh`) are routed
 with canned output — a cautious SUT pokes the CLI before trusting it
 (the opus smoke gate died on a pre-flight `gh --version` around an
 otherwise perfect run); the UNKNOWN policy is untouched for writes and
-semantic reads.
+semantic reads. A `--jq` the stub's own evaluator cannot read (seats
+phrase a thread listing freely — string interpolation, slices, `//`) is
+handed to the system `jq -rc` and the journal entry says `jq: system`;
+without a `jq` on PATH the expression stays UNKNOWN, so the dependency is
+named, never silent (#219: 8 of the #199 pilot's 13 iterations had been
+lost to it).
 A session cut short is invalid too, even though it ended on result
 events (one per turn the main agent finished): headless Claude Code waits
 only 600 s for background tasks and then terminates, so a next-stage that
