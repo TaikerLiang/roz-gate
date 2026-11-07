@@ -80,6 +80,27 @@ STATE = {"agent_login": "roz-gatekeeper",
 
 # (name, argv after `gh`, expected journal route, a string stdout must carry)
 ROUTES = [
+    # #225: the PR number of a reviewThreads query comes from whatever variable
+    # the seat named — `$p` in D12's run, not only `pr` / `number`.
+    ("graphql threads, PR number in a seat-named variable ($p)",
+     ["api", "graphql", "-f",
+      "query=query($o:String!,$r:String!,$p:Int!){repository(owner:$o,name:$r)"
+      "{pullRequest(number:$p){reviewThreads(first:100){nodes{id isResolved path line}}}}}",
+      "-F", "o=acme", "-F", "r=demo", "-F", "p=101",
+      "--jq", ".data.repository.pullRequest.reviewThreads"],
+     "threads-list", '"nodes"'),
+    ("graphql threads, PR number in `pr` (the doc's form)",
+     ["api", "graphql", "-f",
+      "query=query($pr:Int!){repository(owner:\"acme\",name:\"demo\")"
+      "{pullRequest(number:$pr){reviewThreads(first:100){nodes{id}}}}}",
+      "-F", "pr=101", "--jq", ".data.repository.pullRequest.reviewThreads"],
+     "threads-list", '"nodes"'),
+    ("graphql threads, the variable no field supplies -> UNKNOWN",
+     ["api", "graphql", "-f",
+      "query=query($p:Int!){repository(owner:\"acme\",name:\"demo\")"
+      "{pullRequest(number:$p){reviewThreads(first:100){nodes{id}}}}}",
+      "-F", "pr=101"],
+     "UNKNOWN", None),
     ("app by slug, --jq object", ["api", "/apps/roz-gatekeeper", "--jq", "{id,slug,name}"],
      "app-view", '"slug": "roz-gatekeeper"'),
     ("bot login, REST spelling",

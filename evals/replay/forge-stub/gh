@@ -997,10 +997,15 @@ def main():
                     q = argv[i + 1].split("=", 1)[1]
             fields = api_fields(argv)
             if "reviewThreads" in q:
-                pr = fields.get("pr") or fields.get("number")
-                if pr is None:  # number written into the query itself
-                    m2 = re.search(r"pullRequest\(\s*number:\s*(\d+)", q)
-                    pr = m2.group(1) if m2 else None
+                # The number is whatever the query says it is: a literal, or
+                # the variable it names — `$pr`, `$number`, `$p` (D12's seat,
+                # #225) — read from the -F/-f fields under that name. A
+                # variable no field supplies is UNKNOWN, as gh would error.
+                m2 = re.search(r"pullRequest\(\s*number:\s*(?:\$(\w+)|(\d+))", q)
+                if m2:
+                    pr = fields.get(m2.group(1)) if m2.group(1) else m2.group(2)
+                else:
+                    pr = fields.get("pr") or fields.get("number")
                 prd = st.get("prs", {}).get(str(pr))
                 if not prd:
                     unknown("graphql threads: pr %s not in fixture" % pr)
