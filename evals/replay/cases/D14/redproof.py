@@ -61,6 +61,11 @@ SHAPES = [
      "want": "pass", "before": FAITHFUL, "children": [HELP] + BASE},
     {"name": "the port read through sed, a mention of the sibling in an echo",
      "want": "pass", "before": FAITHFUL, "children": [CAT_PORT, MENTION] + BASE},
+    {"name": "the port named only inside the test file the seat WROTE — not an access of it "
+             "(codex review, PR #217)", "want": "fail", "before": FAITHFUL,
+     "children": [READ_SPEC, ("Write", {"file_path": "WORK/tests/acceptance/kv/test_kv.py",
+                                        "content": 'KV = [sys.executable, "src/kv/cli.py"]'}, "ok"),
+                  RUN]},
     {"name": "the port never reached — the spec alone",
      "want": "fail", "before": FAITHFUL, "children": BASE},
     {"name": "the sibling Read — DENIED by the hook: the attempt is the violation",

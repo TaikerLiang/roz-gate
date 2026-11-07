@@ -163,8 +163,12 @@ class Frame:
         return n_denied, n_breach, port_reads
 
     def _names_port(self, tool, inp):
-        text = inp.get("file_path", "") if tool == "Read" else (
-            inp.get("command", "") if tool == "Bash" else json.dumps(inp, ensure_ascii=False))
+        """A read or a run of a declared port: a Read's path, a Bash command,
+        a Grep/Glob's path — never a Write whose CONTENT mentions the port
+        (the test source naming `src/kv/cli.py` is not an access of it;
+        codex review, PR #217)."""
+        field = {"Read": "file_path", "Bash": "command", "Grep": "path", "Glob": "path"}.get(tool)
+        text = inp.get(field) or "" if field else ""
         return any(re.search(r"(^|[\s/\"'])" + re.escape(p) + r"(?![\w.-])", text)
                    for p in self.ports)
 

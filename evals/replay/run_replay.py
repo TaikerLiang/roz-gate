@@ -449,8 +449,8 @@ def aggregate(sut, report):
             n += 1
             p += 1 if r.get("pass") else 0
             # results written before `signals` existed carry attempts_denied only
-            for key in r.get("signals") or (["attempts_denied"] if "attempts_denied" in r else []):
-                signals[key] = signals.get(key, 0) + r.get(key, 0)
+            for sig in r.get("signals") or (["attempts_denied"] if "attempts_denied" in r else []):
+                signals[sig] = signals.get(sig, 0) + r.get(sig, 0)
             t = r.get("tokens", {})
             tin += t.get("in", 0)
             tout += t.get("out", 0)

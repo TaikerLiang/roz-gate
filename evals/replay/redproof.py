@@ -536,6 +536,9 @@ def variant_checks():
                       {**ok, "pass": False, "brief_sha256": "0" * 64, "variant": "B"},
                       {**ok, "variant": "B"}], key="C5@B")
     row_a = _aggregate([{**ok, "brief_sha256": a_hash}, {**ok, "brief_sha256": "0" * 64}])
+    row_sig = _aggregate([{**ok, "brief_sha256": b_hash, "variant": "B", "suite_pushed": 1,
+                           "attempts_denied": 2, "signals": ["attempts_denied", "suite_pushed"]}],
+                         key="C5@B")
     inv = _score("import sys\nprint('INVALID the brief was never exercised')\nsys.exit(3)\n")
     return [
         ("the variant plugin copy differs from the checkout in exactly references/qa-brief.md",
@@ -554,6 +557,9 @@ def variant_checks():
         ("A's runs are measured against the checkout's brief: an old hash is stale",
          row_a is not None and row_a.get("variant") == "A" and row_a["runs"] == 1
          and row_a.get("stale") == 1),
+        ("a row with signal columns keeps its case key (codex review, PR #217)",
+         row_sig is not None and row_sig["case"] == "C5@B" and row_sig.get("variant") == "B"
+         and row_sig.get("attempts_denied") == 2 and row_sig.get("suite_pushed") == 1),
         ("a checker's exit 3 is an invalid iteration carrying its INVALID line, never a FAIL",
          inv == ("invalid", "checker: the brief was never exercised")
          and _score("import sys\nsys.exit(0)\n") == ("pass", None)
