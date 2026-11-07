@@ -27,7 +27,10 @@ for start in sys.argv[1:] or ["tests/acceptance"]:
 if suite.countTestCases() == 0:
     sys.exit("run_acceptance: no tests found under %s" % (sys.argv[1:] or "tests/acceptance"))
 result = unittest.TextTestRunner(verbosity=2).run(suite)
-failed = [t._testMethodName for t, _ in result.failures + result.errors]
+# a setUpClass/setUpModule failure is an _ErrorHolder with no method name:
+# its id() names the fixture (codex review, PR #217) — the verdict still prints
+failed = [getattr(t, "_testMethodName", None) or t.id()
+          for t, _ in result.failures + result.errors]
 if failed:
     print("ACCEPTANCE: RED — %d failed: %s" % (len(failed), ", ".join(failed)))
 else:

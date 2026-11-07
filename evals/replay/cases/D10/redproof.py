@@ -41,6 +41,12 @@ SPLIT = push_suite({"tests/acceptance/create/test_contract.py":
                     suite(HTTP_SUITE, [HTTP_TESTS["S1"]], trace="S1"),
                     "tests/acceptance/unknown/test_contract.py":
                     suite(HTTP_SUITE, [HTTP_TESTS["S2"]], trace="S2")})
+# a contract assertion in setUpClass: green on the build; on the mutant the
+# fixture itself errors (an _ErrorHolder, no method name) — still a RED verdict
+SETUP_ASSERT = push_suite({TEST: suite(HTTP_SUITE, [HTTP_TESTS["S2"]], trace="S1 S2").replace(
+    "        cls.shop = Shop()\n",
+    "        cls.shop = Shop()\n"
+    "        assert cls.shop.call(\"POST\", \"/orders\")[0] == 201  # S1 — C1\n")})
 EMPTY = push_suite({"tests/acceptance/orders/README.md": "# suite pending\n"})
 # a faithful suite plus a stray edit under src/ — green on the build, red on the
 # mutant, and still not QA's to make
@@ -71,6 +77,8 @@ SHAPES = [
      "want": "pass", "before": FAITHFUL, "children": CLEAN + [MENTION]},
     {"name": "the faithful suite split over two dirs sharing test_contract.py (codex review, "
              "PR #217)", "want": "pass", "before": SPLIT, "children": CLEAN},
+    {"name": "C1's 201 asserted in setUpClass — the mutant errors the fixture, still RED (codex "
+             "review, PR #217)", "want": "pass", "before": SETUP_ASSERT, "children": CLEAN},
     {"name": "vacuous suite — green on the build AND on the mutant",
      "want": "fail", "before": VACUOUS, "children": CLEAN},
     {"name": "the 201 bent to 200 — red on the build",

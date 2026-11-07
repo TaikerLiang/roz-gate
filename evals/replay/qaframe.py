@@ -243,16 +243,30 @@ class Frame:
                     f.write(text.replace(old, new))
             env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
             env.pop("KV_STORE", None)
-            proc = subprocess.Popen([sys.executable, "run_acceptance.py", self.acceptance],
-                                    cwd=tmp, env=env, stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE, text=True, start_new_session=True)
-            try:
-                out, _ = proc.communicate(timeout=240)
-            except subprocess.TimeoutExpired:
-                os.killpg(proc.pid, signal.SIGKILL)
-                proc.communicate()
-                return "TIMEOUT"
-            lines = [ln for ln in out.splitlines() if ln.strip()]
+            # stdout to a file, not a pipe: a server the suite leaked (a
+            # setUpClass that failed before tearDownClass) inherits the pipe
+            # and would hold communicate() open to the timeout. The runner's
+            # own exit is the end of the run; the group is killed after it
+            # either way (codex review, PR #217).
+            with open(os.path.join(tmp, ".acceptance.out"), "w+", encoding="utf-8") as out:
+                proc = subprocess.Popen([sys.executable, "run_acceptance.py", self.acceptance],
+                                        cwd=tmp, env=env, stdout=out, stderr=subprocess.DEVNULL,
+                                        start_new_session=True)
+                try:
+                    proc.wait(timeout=240)
+                    timed_out = False
+                except subprocess.TimeoutExpired:
+                    timed_out = True
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except (ProcessLookupError, PermissionError):
+                    pass
+                proc.wait()
+                if timed_out:
+                    return "TIMEOUT"
+                out.seek(0)
+                text = out.read()
+            lines = [ln for ln in text.splitlines() if ln.strip()]
             return lines[-1] if lines else ("NO-TESTS" if proc.returncode else "")
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
