@@ -36,6 +36,11 @@ WRONG = push_suite({TEST: suite(HTTP_SUITE, [HTTP_TESTS["S1-wrong"], HTTP_TESTS[
 HALF = push_suite({TEST: suite(HTTP_SUITE, [HTTP_TESTS["S2"]], trace="S2")})  # S1 never asserted
 TOUCHED = push_suite({TEST: suite(HTTP_SUITE, [HTTP_TESTS["S1"], HTTP_TESTS["S2"]]),
                       "bin/serve": "#!/usr/bin/env python3\nprint('listening on 1')\n"})
+# the faithful suite split over two scenario dirs that share a file name
+SPLIT = push_suite({"tests/acceptance/create/test_contract.py":
+                    suite(HTTP_SUITE, [HTTP_TESTS["S1"]], trace="S1"),
+                    "tests/acceptance/unknown/test_contract.py":
+                    suite(HTTP_SUITE, [HTTP_TESTS["S2"]], trace="S2")})
 EMPTY = push_suite({"tests/acceptance/orders/README.md": "# suite pending\n"})
 # a faithful suite plus a stray edit under src/ — green on the build, red on the
 # mutant, and still not QA's to make
@@ -64,6 +69,8 @@ SHAPES = [
      "want": "pass", "before": FAITHFUL, "children": CLEAN},
     {"name": "faithful suite, a mention of src/ inside an echo — not a read",
      "want": "pass", "before": FAITHFUL, "children": CLEAN + [MENTION]},
+    {"name": "the faithful suite split over two dirs sharing test_contract.py (codex review, "
+             "PR #217)", "want": "pass", "before": SPLIT, "children": CLEAN},
     {"name": "vacuous suite — green on the build AND on the mutant",
      "want": "fail", "before": VACUOUS, "children": CLEAN},
     {"name": "the 201 bent to 200 — red on the build",
