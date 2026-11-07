@@ -22,7 +22,7 @@ import importlib.util  # noqa: E402
 
 D2_CHECK = read("evals/replay/cases/D2/check.py")
 D2_HOOK = read("hooks/guard_blind.py")
-for name in ("GIT_TOUCH", "SRC_PATH", "SRC_EXCLUDED", "SRC_MENTIONED", "HEREDOC_BODY"):
+for name in ("GIT_TOUCH", "SRC_PATH", "SRC_EXCLUDED", "SRC_MENTIONED", "HEREDOC_OPEN"):
     m = re.search(r"^%s = re\.compile\((?:.|\n)*?\)\n" % name, D2_CHECK, re.M)
     if not m:
         c.fails += 1
@@ -30,6 +30,16 @@ for name in ("GIT_TOUCH", "SRC_PATH", "SRC_EXCLUDED", "SRC_MENTIONED", "HEREDOC_
                "evals/replay/cases/D2/check.py lacks `%s = re.compile(...)`" % name)
         continue
     src("D2 conformance: guard-blind carries the checker's %s byte-for-byte" % name,
+        "hooks/guard_blind.py", m.group(0))
+# #220: the heredoc blanking is two functions, not a regex — held the same way.
+for name in ("heredoc_words", "blank_heredoc_bodies"):
+    m = re.search(r"^def %s\(.*?(?=\n\n\n)" % name, D2_CHECK, re.M | re.S)
+    if not m:
+        c.fails += 1
+        c.fail("D2 conformance: %s() found in the replay checker" % name,
+               "evals/replay/cases/D2/check.py lacks `def %s(`" % name)
+        continue
+    src("D2 conformance: guard-blind carries the checker's %s() byte-for-byte" % name,
         "hooks/guard_blind.py", m.group(0))
 _spec = importlib.util.spec_from_file_location("guard_blind",
                                                os.path.join(R, "hooks/guard_blind.py"))
@@ -81,6 +91,17 @@ c.expect("hook rule E (the heredoc's command line is still judged)",
          _gb.violation("Bash", {"command": "cat > src/x.py <<'EOF'\nx = 1\nEOF"}) is not None
          and _gb.violation("Bash", {"command": "cat <<EOF > tests/note\nsrc/ is off\nEOF\n"
                                                "cat src/app.txt"}) is not None)
+# Codex review, PR #222: an empty body, a quoted or commented pseudo-opener,
+# two operators on one line.
+c.expect("hook rule E (heredocs are read the way the shell reads them)",
+         "D2 pattern: a read after an empty heredoc or a quoted '<<EOF' is a read; "
+         "the second of two bodies on one line is text",
+         _gb.violation("Bash", {"command": "cat > tests/e <<EOF\nEOF\ncat src/app.txt\n"
+                                           "cat <<EOF\nnote\nEOF"}) is not None
+         and _gb.violation("Bash", {"command": "printf '%s\\n' '<<EOF'\ncat src/app.txt\n"
+                                               "cat <<EOF\nnote\nEOF"}) is not None
+         and _gb.violation("Bash", {"command": "cat <<FIRST <<SECOND\nfirst\nFIRST\n"
+                                               "mention src/\nSECOND"}) is None)
 # Issue #81 (1.29.1): the suite is not the implementation. A Maven layout's
 # acceptance dir sits under src/test/…; the hook exempts it (outside the
 # four regexes, which stay byte-identical above) and the prose says so.

@@ -121,15 +121,54 @@ SRC_MENTIONED = re.compile(
 # Mention is not use, fourth form (#220, the #199 pilot): a heredoc BODY is
 # text — a docstring written through `cat > _harness.py <<'EOF'` or a
 # comment posted through `--body-file - <<EOF` that names src/ is not a
-# read. The body is blanked first; the `<<WORD` line and the terminator
-# stay, so `cat > src/x.py <<EOF` is still a read. Known cost: a read
-# inside a script fed by heredoc is blanked with the body.
-HEREDOC_BODY = re.compile(
-    r"""(<<-?\s*(['"]?)(\w+)\2[^\n]*\n)(.*?)(\n[ \t]*\3[ \t]*(?=\n|$))""", re.S)
+# read. Bodies are blanked line by line, the way the shell reads them:
+# a command line's `<<WORD` operators (outside quotes and comments) open
+# bodies in order, each up to its own terminator line, an empty body
+# ending on the next line (codex review, PR #222). The command line and
+# the terminator stay, so `cat > src/x.py <<EOF` is still a read. Known
+# cost: a read inside a script fed by heredoc is blanked with the body.
+HEREDOC_OPEN = re.compile(r"""<<(-?)\s*(['"]?)(\w+)\2""")
+
+
+def heredoc_words(line):
+    """The (delimiter, strips-tabs) of every heredoc operator on one command
+    line, in order: `<<` outside quotes and comments only."""
+    words, quote, i = [], None, 0
+    while i < len(line):
+        ch = line[i]
+        if quote:
+            quote = None if ch == quote else quote
+        elif ch in "'\"":
+            quote = ch
+        elif ch == "#" and (i == 0 or line[i - 1] in " \t;&|("):
+            break
+        elif line.startswith("<<", i) and not line.startswith("<<<", i):
+            m = HEREDOC_OPEN.match(line, i)
+            if m:
+                words.append((m.group(3), m.group(1) == "-"))
+                i = m.end()
+                continue
+        i += 1
+    return words
 
 
 def blank_heredoc_bodies(cmd):
-    return HEREDOC_BODY.sub(lambda m: m.group(1) + " " + m.group(5), cmd)
+    """Every heredoc body blanked, line by line: each operator's body runs
+    to its own terminator (exact; `<<-` after leading tabs), bodies in the
+    order their operators appear; an empty body ends on the next line."""
+    out, pending = [], []
+    for line in cmd.split("\n"):
+        if pending:
+            word, dash = pending[0]
+            if (line.lstrip("\t") if dash else line) == word:
+                pending.pop(0)
+                out.append(line)
+            else:
+                out.append("")
+        else:
+            out.append(line)
+            pending.extend(heredoc_words(line))
+    return "\n".join(out)
 
 
 def bash_reads_src(cmd):

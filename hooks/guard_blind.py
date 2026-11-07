@@ -131,19 +131,60 @@ SRC_MENTIONED = re.compile(
 # <<'EOF'` with a docstring saying "Nothing under `src/` is imported or
 # read" and was denied for saying so; D10's reviewer posted its fidelity
 # comment through `--body-file - <<EOF` naming the implementation
-# directory and was blocked the same way. The body between the `<<WORD`
-# line and the terminating WORD line is blanked FIRST (so nothing inside
-# it can swallow a later command line); the `<<WORD` line itself and the
-# terminator stay, so `cat > src/x.py <<EOF` is still the read it is.
-# Known cost, recorded in the cannot-see list: a read INSIDE a script fed
-# by heredoc (`python3 - <<EOF … open("src/app.py") … EOF`) is blanked with
-# the body — the same class as the echo substitution above.
-HEREDOC_BODY = re.compile(
-    r"""(<<-?\s*(['"]?)(\w+)\2[^\n]*\n)(.*?)(\n[ \t]*\3[ \t]*(?=\n|$))""", re.S)
+# directory and was blocked the same way. The bodies are blanked line by
+# line, the way the shell reads them — a command line's `<<WORD` operators
+# (outside quotes and comments: a `'<<EOF'` argument or a `# <<EOF` is
+# text, and `<<<` is a here-string) open bodies in order, each consumed up
+# to its own terminator line, an empty body ending on the very next line
+# (codex review, PR #222: a regex that needed a newline before the
+# terminator skipped an empty heredoc and blanked the real read behind
+# it). The command line itself and the terminator stay, so `cat >
+# src/x.py <<EOF` is still the read it is. Known cost, recorded in the
+# cannot-see list: a read INSIDE a script fed by heredoc (`python3 - <<EOF
+# … open("src/app.py") … EOF`) is blanked with the body — the same class
+# as the echo substitution above.
+HEREDOC_OPEN = re.compile(r"""<<(-?)\s*(['"]?)(\w+)\2""")
+
+
+def heredoc_words(line):
+    """The (delimiter, strips-tabs) of every heredoc operator on one command
+    line, in order: `<<` outside quotes and comments only."""
+    words, quote, i = [], None, 0
+    while i < len(line):
+        ch = line[i]
+        if quote:
+            quote = None if ch == quote else quote
+        elif ch in "'\"":
+            quote = ch
+        elif ch == "#" and (i == 0 or line[i - 1] in " \t;&|("):
+            break
+        elif line.startswith("<<", i) and not line.startswith("<<<", i):
+            m = HEREDOC_OPEN.match(line, i)
+            if m:
+                words.append((m.group(3), m.group(1) == "-"))
+                i = m.end()
+                continue
+        i += 1
+    return words
 
 
 def blank_heredoc_bodies(cmd):
-    return HEREDOC_BODY.sub(lambda m: m.group(1) + " " + m.group(5), cmd)
+    """Every heredoc body blanked, line by line: each operator's body runs
+    to its own terminator (exact; `<<-` after leading tabs), bodies in the
+    order their operators appear; an empty body ends on the next line."""
+    out, pending = [], []
+    for line in cmd.split("\n"):
+        if pending:
+            word, dash = pending[0]
+            if (line.lstrip("\t") if dash else line) == word:
+                pending.pop(0)
+                out.append(line)
+            else:
+                out.append("")
+        else:
+            out.append(line)
+            pending.extend(heredoc_words(line))
+    return "\n".join(out)
 
 
 def bash_reads_src(cmd, suite=None, top=None, tops=None):

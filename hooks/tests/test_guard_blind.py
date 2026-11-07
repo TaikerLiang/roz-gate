@@ -36,8 +36,15 @@ BASH_DENIED = [
     ("rule E: cat src/app.txt <<EOF denied", "cat src/app.txt <<EOF\nx\nEOF", "read of src/"),
     ("rule E: a real read after a blanked heredoc body denied",
      "cat <<EOF > tests/note\nsrc/ is off-limits\nEOF\ncat src/app.txt", "read of src/"),
-    ("rule E: an echo inside the body cannot hide a read on the next command line",
-     "cat <<EOF > tests/note\necho hi\nEOF && cat src/app.txt", "read of src/"),
+    ("rule E: a read on the operator's own line, after the heredoc, denied",
+     "cat <<EOF > tests/note && cat src/app.txt\necho hi\nEOF", "read of src/"),
+    # Codex review, PR #222: the body ends where the shell ends it.
+    ("rule E: an empty heredoc, then a read, then another heredoc — the read denied",
+     "cat > tests/empty <<EOF\nEOF\ncat src/app.txt\ncat <<EOF\nnote\nEOF", "read of src/"),
+    ("rule E: a quoted '<<EOF' argument is text — the read after it denied",
+     "printf '%s\\n' '<<EOF'\ncat src/app.txt\ncat <<EOF\nnote\nEOF", "read of src/"),
+    ("rule E: a `# <<EOF` comment is text — the read after it denied",
+     "ls tests # <<EOF\ncat src/app.txt\nEOF", "read of src/"),
 ]
 # (name, command) -- Bash calls under the marker that name src/ without reading it.
 BASH_ALLOWED = [
@@ -75,6 +82,8 @@ BASH_ALLOWED = [
      "cat <<EOF > tests/README\nthe suite drives the port, not src/\nEOF"),
     ("rule E: a <<- heredoc (tab-indented body and terminator) mentioning src/ allowed",
      "cat <<-NOTE > tests/README\n\tsee src/ for nothing\n\tNOTE"),
+    ("rule E: two heredocs on one line, the second mentioning src/, allowed (codex, PR #222)",
+     "cat <<FIRST <<SECOND\nfirst\nFIRST\nmention src/\nSECOND"),
 ]
 
 
