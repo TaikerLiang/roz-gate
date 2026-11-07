@@ -45,6 +45,13 @@ BASH_DENIED = [
      "printf '%s\\n' '<<EOF'\ncat src/app.txt\ncat <<EOF\nnote\nEOF", "read of src/"),
     ("rule E: a `# <<EOF` comment is text — the read after it denied",
      "ls tests # <<EOF\ncat src/app.txt\nEOF", "read of src/"),
+    # Codex review round 2: the operator is three characters; the delimiter is a word.
+    ("rule E: a <<<EOF here-string is no heredoc — the read after it denied",
+     "cat <<<EOF\ncat src/app.txt", "read of src/"),
+    ("rule E: a punctuated delimiter (END-TEXT) terminates — the read after it denied",
+     "cat <<END-TEXT > tests/x\nnote\nEND-TEXT\ncat src/app.txt", "read of src/"),
+    ("rule E: a heredoc that never terminates blanks nothing (the visible direction)",
+     "cat <<EOF > tests/x\nmention src/ here", "read of src/"),
 ]
 # (name, command) -- Bash calls under the marker that name src/ without reading it.
 BASH_ALLOWED = [
@@ -84,6 +91,8 @@ BASH_ALLOWED = [
      "cat <<-NOTE > tests/README\n\tsee src/ for nothing\n\tNOTE"),
     ("rule E: two heredocs on one line, the second mentioning src/, allowed (codex, PR #222)",
      "cat <<FIRST <<SECOND\nfirst\nFIRST\nmention src/\nSECOND"),
+    ("rule E: a punctuated delimiter's body mentioning src/ allowed",
+     "cat <<END-TEXT > tests/README\nthe port, never src/\nEND-TEXT"),
 ]
 
 

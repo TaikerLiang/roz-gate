@@ -102,6 +102,14 @@ c.expect("hook rule E (heredocs are read the way the shell reads them)",
                                                "cat <<EOF\nnote\nEOF"}) is not None
          and _gb.violation("Bash", {"command": "cat <<FIRST <<SECOND\nfirst\nFIRST\n"
                                                "mention src/\nSECOND"}) is None)
+c.expect("hook rule E (the operator is <<, the delimiter a word, the body terminated)",
+         "D2 pattern: a read after a <<<here-string, after an END-TEXT heredoc, or inside "
+         "a body that never terminates is a read",
+         _gb.violation("Bash", {"command": "cat <<<EOF\ncat src/app.txt"}) is not None
+         and _gb.violation("Bash", {"command": "cat <<END-TEXT > tests/x\nnote\nEND-TEXT\n"
+                                               "cat src/app.txt"}) is not None
+         and _gb.violation("Bash", {"command": "cat <<EOF > tests/x\nmention src/"})
+         is not None)
 # Issue #81 (1.29.1): the suite is not the implementation. A Maven layout's
 # acceptance dir sits under src/test/…; the hook exempts it (outside the
 # four regexes, which stay byte-identical above) and the prose says so.

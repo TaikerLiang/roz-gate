@@ -143,12 +143,14 @@ SRC_MENTIONED = re.compile(
 # cannot-see list: a read INSIDE a script fed by heredoc (`python3 - <<EOF
 # … open("src/app.py") … EOF`) is blanked with the body — the same class
 # as the echo substitution above.
-HEREDOC_OPEN = re.compile(r"""<<(-?)\s*(['"]?)(\w+)\2""")
+HEREDOC_OPEN = re.compile(r"""<<(-?)\s*(?:'([^']+)'|"([^"]+)"|([^\s'"|&;<>()]+))""")
 
 
 def heredoc_words(line):
     """The (delimiter, strips-tabs) of every heredoc operator on one command
-    line, in order: `<<` outside quotes and comments only."""
+    line, in order: `<<` outside quotes and comments only; a `<<<`
+    here-string is skipped whole; the delimiter is the whole shell word
+    (`END-TEXT`, `'EOF'`), not a `\\w+` prefix (codex review, PR #222)."""
     words, quote, i = [], None, 0
     while i < len(line):
         ch = line[i]
@@ -158,10 +160,13 @@ def heredoc_words(line):
             quote = ch
         elif ch == "#" and (i == 0 or line[i - 1] in " \t;&|("):
             break
-        elif line.startswith("<<", i) and not line.startswith("<<<", i):
+        elif line.startswith("<<<", i):
+            i += 3
+            continue
+        elif line.startswith("<<", i):
             m = HEREDOC_OPEN.match(line, i)
             if m:
-                words.append((m.group(3), m.group(1) == "-"))
+                words.append((m.group(2) or m.group(3) or m.group(4), m.group(1) == "-"))
                 i = m.end()
                 continue
         i += 1
@@ -171,7 +176,8 @@ def heredoc_words(line):
 def blank_heredoc_bodies(cmd):
     """Every heredoc body blanked, line by line: each operator's body runs
     to its own terminator (exact; `<<-` after leading tabs), bodies in the
-    order their operators appear; an empty body ends on the next line."""
+    order their operators appear; an empty body ends on the next line. A
+    body that never terminates blanks nothing — the visible direction."""
     out, pending = [], []
     for line in cmd.split("\n"):
         if pending:
@@ -184,7 +190,7 @@ def blank_heredoc_bodies(cmd):
         else:
             out.append(line)
             pending.extend(heredoc_words(line))
-    return "\n".join(out)
+    return cmd if pending else "\n".join(out)
 
 
 def bash_reads_src(cmd, suite=None, top=None, tops=None):
