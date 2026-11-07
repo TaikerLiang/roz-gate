@@ -526,7 +526,8 @@ File names: Python is `snake_case` (importable), shell is `kebab-case`,
 markdown is lowercase-kebab except the ecosystem caps (`README`,
 `CHANGELOG`, `ROADMAP`, `CLAUDE.md`, `CONTRIBUTING`), the eval ledger's
 index (`evals/LEDGER.md`) and the eval fixtures, which are data
-keyed by ledger case id. Enforced by `.githooks/pre-commit` and re-checked
+keyed by ledger case id (or, under `evals/replay/variants/`, by variant
+letter). Enforced by `.githooks/pre-commit` and re-checked
 by a CI step over the whole tree (one predicate: `tools/naming.py` — repo
 hygiene, deliberately not a case in the eval ledger).
 

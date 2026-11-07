@@ -105,12 +105,18 @@ def iteration_done(rdir):
 # scored by the pre-#97 checker and read as the current case for a month.
 def case_fingerprint(cdir):
     """sha256 (16 hex) over check.py — or the driver case.json names —
-    case.json, seed.sh and state.json; an absent file hashes as absent."""
+    case.json, seed.sh and state.json; an absent file hashes as absent. A
+    case that depends on shared files (`"fixture"` in case.json: a path or a
+    list of paths relative to evals/replay — fixture trees the seed copies,
+    the frame the checker imports, #199) hashes each of them too, every file
+    under a directory: the seed is the recipe, the tree is the ingredients,
+    the frame is most of the verdict."""
     try:
         with open(os.path.join(cdir, "case.json"), encoding="utf-8") as f:
-            driver = (json.load(f) or {}).get("driver") or ""
+            meta = json.load(f) or {}
     except (OSError, ValueError):
-        driver = ""
+        meta = {}
+    driver, fixture = meta.get("driver") or "", meta.get("fixture") or ""
     h = hashlib.sha256()
     for name in (driver or "check.py", "case.json", "seed.sh", "state.json"):
         try:
@@ -119,7 +125,53 @@ def case_fingerprint(cdir):
         except OSError:
             data = b"<absent>"
         h.update(name.encode("utf-8") + b"\0" + data + b"\0")
+    deps = [fixture] if isinstance(fixture, str) else list(fixture or [])
+    for dep in [d for d in deps if d]:
+        top = os.path.join(S, dep)
+        paths = [top] if os.path.isfile(top) else []
+        if not paths:
+            for dirpath, dirs, files in os.walk(top):
+                dirs[:] = sorted(d for d in dirs if d != "__pycache__")
+                paths += [os.path.join(dirpath, name) for name in sorted(files)]
+        for path in paths:
+            rel = os.path.relpath(path, S).replace(os.sep, "/")
+            with open(path, "rb") as f:
+                h.update(rel.encode("utf-8") + b"\0" + f.read() + b"\0")
     return h.hexdigest()[:16]
+
+
+def brief_sha256(path):
+    """sha256 (full hex) of a file as it is on disk — the QA brief the SUT
+    loaded (#199): stamped into every result.json beside `case_fp` and
+    `plugin_sha`, read back from the plugin dir the session ran, never from
+    the variant's source file."""
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+# ---- the checker's INVALID exit (#199) -------------------------------------
+# A checker may find that the iteration never exercised what it scores — the
+# QA dispatch never ran, the main agent dropped the seat's work before it
+# was observable. That is a verdict about the harness, not the rule: exit 3
+# with one `INVALID <reason>` line, and the runner records the iteration as
+# invalid (never red, never green) with that reason.
+CHECK_INVALID = 3
+
+
+def invalid(reason):
+    print("INVALID %s" % reason)
+    sys.exit(CHECK_INVALID)
+
+
+def invalid_reason(check_log):
+    """The reason a checker's INVALID line gave, or a generic one."""
+    try:
+        for line in open(check_log, encoding="utf-8"):
+            if line.startswith("INVALID "):
+                return "checker: " + line[len("INVALID "):].strip()
+    except OSError:
+        pass
+    return "checker: invalid without a reason"
 
 
 def plugin_sha():

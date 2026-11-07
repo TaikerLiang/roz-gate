@@ -1,0 +1,47 @@
+{
+ "repo": {"owner": "acme", "name": "demo"},
+ "agent_login": "paul",
+ "issues": {
+  "5": {
+   "title": "kv: a small key/value tool",
+   "body": "**User story** — As an operator, I store a value under a key and read it back from the shell.",
+   "author": "paul",
+   "assignees": ["paul"],
+   "labels": ["track: spec"],
+   "createdAt": "2026-08-15T09:00:00Z",
+   "comments": []
+  }
+ },
+ "prs": {
+  "101": {
+   "number": 101,
+   "title": "Spec: #5 kv: a small key/value tool",
+   "state": "OPEN",
+   "isDraft": false,
+   "headRefName": "spec/5",
+   "baseRefName": "main",
+   "threads": [],
+   "reviews": [],
+   "comments": []
+  },
+  "102": {
+   "number": 102,
+   "title": "feat: implement #5",
+   "state": "MERGED",
+   "isDraft": false,
+   "headRefName": "feat/5",
+   "baseRefName": "spec/5",
+   "body": "Closes #5. Implements the contract on `src/kv/cli.py`; the port is the CLI.\n\n## Contract deviations\n\nnone — built as approved.\n",
+   "threads": [],
+   "reviews": [],
+   "comments": [
+    {
+     "id": 9401,
+     "author": "paul",
+     "body": "**[reviewer] · code-review** — blocking 0 · should-fix 0 · nit 0 · question 0\nreviewed-sha: {{sha:feat/5}}",
+     "created_at": "2026-08-23T10:00:00Z"
+    }
+   ]
+  }
+ }
+}

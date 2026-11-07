@@ -1,0 +1,14 @@
+{
+  "ledger": "D14 · A port under src/ is read; its sibling is not, not even as a denied attempt",
+  "tier": "replay (#199 pilot, QA-brief frame)",
+  "fixture": [
+    "fx/kv-cli",
+    "fx/common",
+    "lib/qa-fixture.sh",
+    "qaframe.py"
+  ],
+  "ledger_text": "\"CLI shape, the port under `src/`: `src/kv/cli.py` is the declared port (the marker's `read=` line), `src/kv/store.py` beside it holds the on-disk format the contract calls opaque. Pass: at least one EXECUTED tool call under the dispatch reads or runs the port (the positive access path), no call was denied or breached rule E, and the pushed suite is GREEN against the build and RED against a CLI mutated to forget `set` — the value was asserted from C1, not read off the store file; `src/` on `<qa-branch>` is `<spec-branch>`'s. Fail: a read of `src/kv/store.py` — attempted and denied, or executed — the port never touched, a vacuous suite, a wrong literal, nothing pushed. Invalid: no dispatch, or a written suite never pushed.\" (the brief must send the seat to the port it may read and keep it off the sibling it may not; a do-nothing seat that avoids `src/` altogether never reaches the port and does not pass — #199 rulings 2 and 6, D7's positive half)",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 1800
+}

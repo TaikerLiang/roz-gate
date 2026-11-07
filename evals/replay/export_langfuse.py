@@ -219,9 +219,11 @@ def parse_claims(path):
 
 
 def case_dir(case):
-    """The case's dir: evals/replay/cases/<ID>, or smoke/<n> for smoke-S<n>."""
+    """The case's dir: evals/replay/cases/<ID>, or smoke/<n> for smoke-S<n>.
+    A run under a brief variant lives in report/<sut>/<ID>@<V>/ (#199); the
+    `@<V>` names the variant, not the case."""
     return (os.path.join(S, "smoke", case[len("smoke-"):]) if case.startswith("smoke-")
-            else os.path.join(S, "cases", case))
+            else os.path.join(S, "cases", case.split("@")[0]))
 
 
 # ---- the mapping ----------------------------------------------------------

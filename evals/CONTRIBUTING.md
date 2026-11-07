@@ -102,10 +102,10 @@ A directory `replay/cases/<ID>/` with five files:
 
 | file | what it is |
 |---|---|
-| `case.json` | `ledger` (ID · title), `tier` and `ledger_text` (the ledger row's last two columns — the quoted outcome and its parenthetical), `prompt` (the command `claude -p` runs), `k` (default 5), `timeout` (seconds, default 900) |
+| `case.json` | `ledger` (ID · title), `tier` and `ledger_text` (the ledger row's last two columns — the quoted outcome and its parenthetical), `prompt` (the command `claude -p` runs), `k` (default 5), `timeout` (seconds, default 900); optionally `fixture` — a path or list of paths under `replay/` (fixture trees the seed copies in, the frame the checker imports), hashed into `case_fp` with the case's own files |
 | `seed.sh` | builds the sandbox repo — branches, files, config — as it stands when the command starts |
 | `state.json` | the forge (issues, labels, PRs) the stub `gh` serves |
-| `check.py` | scores one run: exit 0 pass, non-zero fail |
+| `check.py` | scores one run: exit 0 PASS, exit 3 INVALID (`replaylib.invalid(reason)` — the rule was never exercised; never red), any other exit FAIL (`replay/README.md` § Verdicts) |
 | `redproof.py` | **required** — proves `check.py` scores simulated runs correctly |
 
 Start from the closest existing case: `replay/README.md` and the seeds
@@ -160,6 +160,21 @@ real verdict.
   `RUN_DIR/attempts.json` and are reported, never scored.
 - **Action, not mention**: a command that *names* `src/` to exclude it,
   or inside an `echo`, is not a read (D2, three rounds).
+- **INVALID is the checker's to say too**: when the iteration never
+  reached the rule — the dispatch under test never ran, the seat's work
+  was lost before it became observable — call `replaylib.invalid(reason)`
+  (exit 3) instead of failing; a FAIL means the rule was exercised and
+  broken. A do-nothing run is a FAIL, not an INVALID: the rule was
+  reachable and nothing was done.
+- **A case under a brief variant** (#199): the D10–D19 checkers build on
+  `replay/qaframe.py` — the shared verdict (INVALID gate, the attempt
+  rule, the blindness predicate, the outcome oracle that runs the pushed
+  suite against the build and against a one-line mutant) — and add the
+  case's mutant and its own expectations. Their seeds copy a fixture tree
+  from `replay/fx/` through `lib/qa-fixture.sh`; `case.json` lists the
+  tree, `fx/common`, `lib/qa-fixture.sh` and `qaframe.py` under `fixture`
+  so the fingerprint follows every shared dependency of the verdict. A new QA-brief case is
+  one `Frame(...)`, one `MUTANT`, and a `SHAPES` table for `Proof`.
 
 ### redproof.py
 
@@ -193,7 +208,10 @@ if a case has none. `cases/D4/redproof.py` is the template:
       (`docs/releasing.md`).
 
 Then measure: `python3 evals/replay/run_replay.py --sut <sut> --k <k> <ID>`
-— minutes and real tokens per iteration; the operator decides when.
+— minutes and real tokens per iteration; the operator decides when. A
+QA-brief case is measured once per variant (`--variant A`, `B`, `C`), on
+the same fixture and SUT; the brief's hash is in every result
+(`replay/README.md` § Variants).
 
 Each run records the fingerprint of the case that scored it (`case_fp` in
 `result.json`). Editing the checker, `case.json`, the seed or the state

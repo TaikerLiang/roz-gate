@@ -34,6 +34,15 @@ throwaway state, the resume rule against staged result.json files.
   the rate, a run without one is unknown and in, and a case whose valid
   runs are all stale reports no rate. The stub's journal entries carry
   the clock.
+- VARIANT (#199) — `variant_plugin("B")` is a copy of the plugin root that
+  differs from the checkout in exactly `references/qa-brief.md`, carrying
+  B.md's hash; `variant_plugin("A")` is the checkout itself; the stamp
+  records the hash read back from the plugin dir; `aggregate()` counts a run
+  whose `brief_sha256` differs from the variant file's current hash as stale
+  (like a fingerprint mismatch) and scores a `<case>@<V>` dir under its
+  case with the variant named; a checker's exit 3 (`replaylib.invalid`) is
+  an invalid iteration carrying the checker's reason, never a FAIL; the
+  fingerprint follows a case's shared fixture tree (`"fixture"`).
 
 Run by evals/replay/run_redproofs.py (pre-push and CI). Stdlib only,
 Python 3.9-compatible, like the hook suite.
@@ -393,19 +402,19 @@ def _fingerprint_meta():
 
 # (name, result.json files by run, expected row fields) — staged under a real
 # case dir's name (C5) so aggregate() has a current fingerprint to compare.
-def _aggregate(results):
+def _aggregate(results, key="C5"):
     d = tempfile.mkdtemp()
     try:
         report = os.path.join(d, "sut")
         for i, r in enumerate(results, 1):
-            run = os.path.join(report, "C5", "run-%d" % i)
+            run = os.path.join(report, key, "run-%d" % i)
             os.makedirs(run)
             with open(os.path.join(run, "result.json"), "w") as f:
                 json.dump(r, f)
         with contextlib.redirect_stdout(io.StringIO()):
             rr.aggregate({"name": "sut", "model": "m", "mode": "subscription"}, report)
         rows = json.load(open(os.path.join(report, "report.json")))["cases"]
-        return next((r for r in rows if r["case"] == "C5"), None)
+        return next((r for r in rows if r["case"] == key), None)
     finally:
         shutil.rmtree(d, ignore_errors=True)
 
@@ -454,6 +463,113 @@ def _fingerprint_moves():
                 and len(set(changed)) == 4 and absent != ref and driver != driver2)
     finally:
         shutil.rmtree(d, ignore_errors=True)
+
+
+def _score(check_src):
+    """rr.score() on a staged case dir whose check.py is `check_src`."""
+    d = tempfile.mkdtemp()
+    try:
+        cdir, rdir = os.path.join(d, "case"), os.path.join(d, "run")
+        os.makedirs(cdir)
+        os.makedirs(rdir)
+        with open(os.path.join(cdir, "check.py"), "w") as f:
+            f.write(check_src)
+        return rr.score(cdir, rdir, d, d)
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def _fixture_fingerprint_moves():
+    """A case naming a fixture tree hashes its files: a change under fx/ moves
+    the fingerprint; an unnamed tree does not."""
+    d = tempfile.mkdtemp(dir=rr.S)
+    try:
+        cdir = os.path.join(d, "case")
+        fx = os.path.join(d, "fx-x")
+        os.makedirs(cdir)
+        os.makedirs(fx)
+        rel = os.path.relpath(fx, rr.S)
+        for n, text in (("check.py", "c"), ("seed.sh", "s"), ("state.json", "{}")):
+            with open(os.path.join(cdir, n), "w") as f:
+                f.write(text)
+        with open(os.path.join(cdir, "case.json"), "w") as f:
+            json.dump({"fixture": rel}, f)
+        with open(os.path.join(fx, "a.py"), "w") as f:
+            f.write("x = 1\n")
+        before = rl.case_fingerprint(cdir)
+        with open(os.path.join(fx, "a.py"), "w") as f:
+            f.write("x = 2\n")
+        after = rl.case_fingerprint(cdir)
+        with open(os.path.join(cdir, "case.json"), "w") as f:
+            json.dump({}, f)
+        unnamed = rl.case_fingerprint(cdir)
+        with open(os.path.join(fx, "a.py"), "w") as f:
+            f.write("x = 3\n")
+        unnamed_still = rl.case_fingerprint(cdir)
+        # the list form: a tree and a single shared file (codex review, PR #217)
+        shared = os.path.join(d, "frame.py")
+        with open(shared, "w") as f:
+            f.write("v = 1\n")
+        with open(os.path.join(cdir, "case.json"), "w") as f:
+            json.dump({"fixture": [rel, os.path.relpath(shared, rr.S)]}, f)
+        listed = rl.case_fingerprint(cdir)
+        with open(shared, "w") as f:
+            f.write("v = 2\n")
+        listed_after = rl.case_fingerprint(cdir)
+        return (before != after and unnamed == unnamed_still and listed != listed_after
+                and listed != after)
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def variant_checks():
+    plugin = rr.variant_plugin("B")
+    diff = rr.variant_diff(plugin)
+    b_hash = rl.brief_sha256(os.path.join(rr.VARIANTS, "B.md"))
+    a_hash = rl.brief_sha256(os.path.join(rr.ROOT, rr.BRIEF_REL))
+    c5 = os.path.join(HERE, "cases", "C5")
+    stamp_b = rr.case_stamp(c5, "B", plugin)
+    stamp_a = rr.case_stamp(c5)
+    current = rl.case_fingerprint(c5)
+    ok = {"valid": True, "pass": True, "tokens": {"in": 1, "out": 1}, "case_fp": current}
+    row = _aggregate([{**ok, "brief_sha256": b_hash, "variant": "B"},
+                      {**ok, "pass": False, "brief_sha256": "0" * 64, "variant": "B"},
+                      {**ok, "variant": "B"}], key="C5@B")
+    row_a = _aggregate([{**ok, "brief_sha256": a_hash}, {**ok, "brief_sha256": "0" * 64}])
+    row_sig = _aggregate([{**ok, "brief_sha256": b_hash, "variant": "B", "suite_pushed": 1,
+                           "attempts_denied": 2, "signals": ["attempts_denied", "suite_pushed"]}],
+                         key="C5@B")
+    inv = _score("import sys\nprint('INVALID the brief was never exercised')\nsys.exit(3)\n")
+    return [
+        ("the variant plugin copy differs from the checkout in exactly references/qa-brief.md",
+         plugin != rr.ROOT and diff == [rr.BRIEF_REL]),
+        ("the copy's brief is the variant file, hash for hash; A is the checkout itself",
+         rl.brief_sha256(os.path.join(plugin, rr.BRIEF_REL)) == b_hash != a_hash
+         and rr.variant_plugin("A") == rr.ROOT),
+        ("the stamp carries the variant and the hash read back from the plugin dir",
+         stamp_b["variant"] == "B" and stamp_b["brief_sha256"] == b_hash
+         and stamp_a["variant"] == "A" and stamp_a["brief_sha256"] == a_hash
+         and {"case_fp", "plugin_sha"} <= set(stamp_b)),
+        ("a <case>@<V> report dir scores under its case with the variant named; a run whose brief "
+         "hash differs is stale and out of the rate; one without a hash stays in",
+         row is not None and row.get("variant") == "B" and row["runs"] == 2
+         and row["passes"] == 2 and row.get("stale") == 1 and row["rate"] == 1.0),
+        ("A's runs are measured against the checkout's brief: an old hash is stale",
+         row_a is not None and row_a.get("variant") == "A" and row_a["runs"] == 1
+         and row_a.get("stale") == 1),
+        ("a row with signal columns keeps its case key (codex review, PR #217)",
+         row_sig is not None and row_sig["case"] == "C5@B" and row_sig.get("variant") == "B"
+         and row_sig.get("attempts_denied") == 2 and row_sig.get("suite_pushed") == 1),
+        ("a checker's exit 3 is an invalid iteration carrying its INVALID line, never a FAIL",
+         inv == ("invalid", "checker: the brief was never exercised")
+         and _score("import sys\nsys.exit(0)\n") == ("pass", None)
+         and _score("import sys\nsys.exit(1)\n") == ("fail", None)),
+        ("the fingerprint follows a case's fixture tree and every listed shared file",
+         _fixture_fingerprint_moves()),
+        ("the report key splits into case and variant; a plain key is A",
+         rr.split_key("D10@B") == ("D10", "B") and rr.split_key("D10") == ("D10", "A")
+         and rr.case_key("D10", "A") == "D10" and rr.case_key("D10", "C") == "D10@C"),
+    ]
 
 
 def export_checks():
@@ -568,6 +684,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in fingerprint_checks():
         print("%s fingerprint: %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in variant_checks():
+        print("%s variant: %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     tmp, work = git_sandbox()
     try:
