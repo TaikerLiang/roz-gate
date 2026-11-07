@@ -144,6 +144,15 @@ c.expect("hook rule E (a form the scanner does not read blanks nothing)",
                                                "cat <<EOF\nnote\nEOF"}) is not None
          and _gb.violation("Bash", {"command": "(true)# <<EOF\ncat src/app.txt\n"
                                                "cat <<EOF\nnote\nEOF"}) is not None)
+# #227: an Unsupported form after a closed body is scoped to what follows it.
+c.expect("hook rule E (Unsupported is scoped to what follows)",
+         "D2 pattern: a body mentioning src/ then `--body \"$(cat f)\"` is NOT a read; "
+         "a read after the unsupported line still is",
+         _gb.violation("Bash", {"command": "cat > /tmp/s.md <<'EOF'\nnever `src/x`\nEOF\n"
+                                           "gh pr comment 1 --body \"$(cat /tmp/s.md)\""}) is None
+         and _gb.violation("Bash", {"command": "cat > /tmp/s.md <<'EOF'\nnever `src/x`\nEOF\n"
+                                               "x=\"$(cat /tmp/s.md)\"\ncat src/app.txt"})
+         is not None)
 # Issue #81 (1.29.1): the suite is not the implementation. A Maven layout's
 # acceptance dir sits under src/test/…; the hook exempts it (outside the
 # four regexes, which stay byte-identical above) and the prose says so.

@@ -210,9 +210,13 @@ def blank_heredoc_bodies(cmd):
     ending on the next line. A body that never terminates blanks nothing —
     the visible direction — and so does an unquoted body with a line
     ending in a backslash (bash joins it to the next before it looks for
-    the terminator; codex review, PR #222)."""
+    the terminator; codex review, PR #222). An Unsupported form is scoped
+    to what follows it: the bodies already closed stay blanked (they were
+    read exactly as the shell read them), and from that line on nothing
+    is — #227: `--body "$(cat f)"` after a heredoc had un-blanked the body."""
     out, pending, opened, quote = [], [], [], None
-    for line in cmd.split("\n"):
+    lines = cmd.split("\n")
+    for i, line in enumerate(lines):
         if pending:
             word, dash, quoted = pending[0]
             if not quoted and line.endswith("\\"):
@@ -227,7 +231,7 @@ def blank_heredoc_bodies(cmd):
         try:
             words, quote, continued = heredoc_words(line, quote)
         except Unsupported:
-            return cmd
+            return "\n".join(out + lines[i + 1:])
         opened.extend(words)
         if not quote and not continued:
             pending, opened = opened, []
