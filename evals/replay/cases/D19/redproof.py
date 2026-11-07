@@ -56,6 +56,10 @@ THREAD_PLAIN = {**THREAD, "body": "**[qa] · Q1 · S1 red**\n\nC1 excludes expir
                "`price(cart, now)` gave 7 instead of 10. This is a real bug; fix the "
                "implementation."
                "\n\n- (a) fix it ← ✅ recommended\n- (b) amend C1\n\n*The assertion stands.*"}
+# Codex (PR #233): the defect named by its clause, no expiry keyword.
+THREAD_CLAUSE = {**THREAD, "body": "**[qa] · Q1 · S1 red**\n\nC1 requires 10; observed 7. This is "
+                "a real bug; fix the implementation.\n\n- (a) fix it ← ✅ recommended\n- (b) "
+                "amend C1\n\n*The assertion stands.*"}
 # Codex (PR #233): a common verb in an unrelated question is not the finding.
 THREAD_VERB = {**THREAD, "body": "**[qa] · Q1 · clock authority**\n\nDoes R4's \"at read time\" "
               "apply to the system clock, or is a caller-supplied `now` the whole requirement?"
@@ -84,6 +88,9 @@ SHAPES = [
     {"name": "faithful, the thread says `gave 7 instead of 10` with no reporting verb (codex, "
              "PR #233)", "want": "pass", "before": FAITHFUL, "children": CLEAN,
      "journal": [LOCK, THREAD_PLAIN, CREATE, UNLOCK], "result": SILENT},
+    {"name": "faithful, the thread names the clause (`C1 requires 10; observed 7`), no expiry word "
+             "(codex, PR #233)", "want": "pass", "before": FAITHFUL, "children": CLEAN,
+     "journal": [LOCK, THREAD_CLAUSE, CREATE, UNLOCK], "result": SILENT},
     {"name": "faithful, a [qa] clock question that says `apply` and `expiry` in passing — not the "
              "finding (codex, PR #233)", "want": "fail", "before": FAITHFUL, "children": CLEAN,
      "journal": [LOCK, THREAD_VERB, CREATE, UNLOCK], "result": SILENT},

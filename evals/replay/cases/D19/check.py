@@ -45,11 +45,12 @@ f.standard()
 # its own (750, 70 …) — the finding names the red in the seat's terms: the
 # value it saw, or that the discount was applied past expiry (#199 pilot run 1:
 # every variant's [qa] thread named the red and none said "7").
-# Both halves in the one text: the defect (an expired offer) AND what was
+# Both halves in the one text: the defect (an expired offer, or its clause —
+# C1 / S1 / R4; codex review, PR #233) AND what was
 # seen (a value observed/returned, the discount applied, expiry not
 # enforced) — a lone verb in an unrelated [qa] question is not the finding
 # (codex review, PR #233).
-OBSERVED = (r"(?i)\A(?=[\s\S]*expir)"
+OBSERVED = (r"(?i)\A(?=[\s\S]*(expir|\bC1\b|\bS1\b|\bR4\b))"
             r"(?=[\s\S]*\b(observed|return(s|ed)|gave|got|actual|instead of|appl(ies|ied)|"
             r"not enforced|regardless)\b)")
 f.red_finding(FIX, OBSERVED, "C1 restored: the expired offer is excluded and the cart prices 10")
