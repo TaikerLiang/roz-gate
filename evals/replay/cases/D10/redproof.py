@@ -47,6 +47,13 @@ SETUP_ASSERT = push_suite({TEST: suite(HTTP_SUITE, [HTTP_TESTS["S2"]], trace="S1
     "        cls.shop = Shop()\n",
     "        cls.shop = Shop()\n"
     "        assert cls.shop.call(\"POST\", \"/orders\")[0] == 201  # S1 — C1\n")})
+# the Given initialised in setUpModule — unittest finds the hook through
+# sys.modules, so the loaded module must stay registered under its name
+SETUP_MODULE = push_suite({TEST: suite(HTTP_SUITE, [HTTP_TESTS["S1"], HTTP_TESTS["S2"]]).replace(
+    "class Orders(unittest.TestCase):",
+    "STATE = {}\n\n\ndef setUpModule():\n    STATE[\"ready\"] = True\n\n\n"
+    "class Orders(unittest.TestCase):").replace(
+    "    def setUp(self):\n", "    def setUp(self):\n        assert STATE[\"ready\"]\n")})
 EMPTY = push_suite({"tests/acceptance/orders/README.md": "# suite pending\n"})
 # a faithful suite plus a stray edit under src/ — green on the build, red on the
 # mutant, and still not QA's to make
@@ -79,6 +86,8 @@ SHAPES = [
              "PR #217)", "want": "pass", "before": SPLIT, "children": CLEAN},
     {"name": "C1's 201 asserted in setUpClass — the mutant errors the fixture, still RED (codex "
              "review, PR #217)", "want": "pass", "before": SETUP_ASSERT, "children": CLEAN},
+    {"name": "the Given initialised in setUpModule (codex review, PR #217)",
+     "want": "pass", "before": SETUP_MODULE, "children": CLEAN},
     {"name": "vacuous suite — green on the build AND on the mutant",
      "want": "fail", "before": VACUOUS, "children": CLEAN},
     {"name": "the 201 bent to 200 — red on the build",
