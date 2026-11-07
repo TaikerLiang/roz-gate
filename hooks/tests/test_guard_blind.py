@@ -30,6 +30,71 @@ BASH_DENIED = [
      "printf_helper src/x", "read of src/"),
     ("rule E: cat src/app.txt | grep printf still denied",
      "cat src/app.txt | grep printf", "read of src/"),
+    # #220: a heredoc BODY is blanked, the command line around it is not.
+    ("rule E: cat > src/app.py <<EOF denied (the operand names src/, not the body)",
+     "cat > src/app.py <<'EOF'\nx = 1\nEOF", "read of src/"),
+    ("rule E: cat src/app.txt <<EOF denied", "cat src/app.txt <<EOF\nx\nEOF", "read of src/"),
+    ("rule E: a real read after a blanked heredoc body denied",
+     "cat <<EOF > tests/note\nsrc/ is off-limits\nEOF\ncat src/app.txt", "read of src/"),
+    ("rule E: a read on the operator's own line, after the heredoc, denied",
+     "cat <<EOF > tests/note && cat src/app.txt\necho hi\nEOF", "read of src/"),
+    # Codex review, PR #222: the body ends where the shell ends it.
+    ("rule E: an empty heredoc, then a read, then another heredoc — the read denied",
+     "cat > tests/empty <<EOF\nEOF\ncat src/app.txt\ncat <<EOF\nnote\nEOF", "read of src/"),
+    ("rule E: a quoted '<<EOF' argument is text — the read after it denied",
+     "printf '%s\\n' '<<EOF'\ncat src/app.txt\ncat <<EOF\nnote\nEOF", "read of src/"),
+    ("rule E: a `# <<EOF` comment is text — the read after it denied",
+     "ls tests # <<EOF\ncat src/app.txt\nEOF", "read of src/"),
+    # Codex review round 2: the operator is three characters; the delimiter is a word.
+    ("rule E: a <<<EOF here-string is no heredoc — the read after it denied",
+     "cat <<<EOF\ncat src/app.txt", "read of src/"),
+    ("rule E: a punctuated delimiter (END-TEXT) terminates — the read after it denied",
+     "cat <<END-TEXT > tests/x\nnote\nEND-TEXT\ncat src/app.txt", "read of src/"),
+    ("rule E: a heredoc that never terminates blanks nothing (the visible direction)",
+     "cat <<EOF > tests/x\nmention src/ here", "read of src/"),
+    # Codex review round 3: the logical command line, not the physical one.
+    ("rule E: an operand on a backslash-continued line after <<EOF is still an operand",
+     "cat <<EOF \\\nsrc/app.txt\nignored\nEOF", "read of src/"),
+    ("rule E: a quoted argument spanning lines cannot open a heredoc — the read denied",
+     "printf '%s\\n' 'hello\n<<EOF'\ncat src/app.txt\ncat <<EOF\nnote\nEOF", "read of src/"),
+    # Codex review round 4: an arithmetic shift is no operator; `<<\EOF` ends at `EOF`.
+    ("rule E: `1 << 2` inside (( )) is a shift — the read after it denied",
+     "(( x = 1 << 2 ))\ncat src/app.txt\ncat <<2\nnote\n2", "read of src/"),
+    ("rule E: a <<\\EOF delimiter is unsupported — nothing blanked, the read denied",
+     "cat <<\\EOF\nnote\nEOF\ncat src/app.txt\ncat <<'\\EOF'\nnote\n\\EOF", "read of src/"),
+    # Codex review round 7: the escape widens — any arithmetic, any backslash in the word.
+    ("rule E: nested parentheses inside (( )) — unsupported, the read denied",
+     "(( x = (1 + (2)) << 2 ))\ncat src/app.txt\ncat <<2\nnote\n2", "read of src/"),
+    ("rule E: an escaped space in the delimiter — unsupported, the read denied",
+     "cat <<END\\ TEXT\nnote\nEND TEXT\ncat src/app.txt\ncat <<END\nnote\nEND", "read of src/"),
+    ("rule E: a <<\\EOF body mentioning src/ is unsupported — nothing blanked, denied",
+     "cat <<\\EOF > tests/README\nthe port, never src/\nEOF", "read of src/"),
+    # Codex review round 8: a substitution inside double quotes nests its own quotes.
+    ("rule E: a $( ) inside double quotes is unsupported — the read after it denied",
+     "x=\"$(printf '%s' \"<<EOF \")\"\ncat src/app.txt\ncat <<EOF\nnote\nEOF", "read of src/"),
+    ("rule E: a backslash inside a double-quoted delimiter is unsupported — the read denied",
+     "cat <<\"E\\$OF\"\nnote\nE$OF\ncat src/app.txt\ncat <<'E\\$OF'\nnote\nE\\$OF",
+     "read of src/"),
+    # Codex review round 9: ANSI-C quoting, a substitution-shaped delimiter, `)#`.
+    ("rule E: $'…' quoting is unsupported — the read after it denied",
+     "x=$'it\\'s <<EOF # '\ncat src/app.txt\ncat <<EOF\nnote\nEOF", "read of src/"),
+    ("rule E: a <<$(printf EOF) delimiter is unsupported — the read after it denied",
+     "cat <<$(printf EOF)\nnote\n$(printf EOF)\ncat src/app.txt\ncat <<'$'\nnote\n$",
+     "read of src/"),
+    ("rule E: a `)# <<EOF` comment is text — the read after it denied",
+     "(true)# <<EOF\ncat src/app.txt\ncat <<EOF\nnote\nEOF", "read of src/"),
+    # Codex review round 10: a backtick-shaped delimiter.
+    ("rule E: a <<`printf EOF` delimiter is unsupported — the read after it denied",
+     "cat <<`printf EOF`\nnote\n`printf EOF`\ncat src/app.txt\ncat <<'`printf'\nnote\n`printf",
+     "read of src/"),
+    # Codex review round 5: a form the scanner does not read blanks nothing.
+    ("rule E: a mixed-quoted delimiter (E\"OF\") is unsupported — nothing blanked, the read denied",
+     "cat <<E\"OF\"\nnote\nEOF\ncat src/app.txt\ncat <<E\nnote\nE", "read of src/"),
+    ("rule E: an arithmetic spanning lines is unsupported — nothing blanked, the read denied",
+     "(( x =\n1 << 2 ))\ncat src/app.txt\ncat <<2\nnote\n2", "read of src/"),
+    # Codex review round 6: bash joins `EO\` + newline + `F` in an unquoted body.
+    ("rule E: an unquoted body line ending in a backslash is unsupported — the read denied",
+     "cat <<EOF\nEO\\\nF\ncat src/app.txt\ncat <<EOF\nnote\nEOF", "read of src/"),
 ]
 # (name, command) -- Bash calls under the marker that name src/ without reading it.
 BASH_ALLOWED = [
@@ -50,6 +115,31 @@ BASH_ALLOWED = [
      "git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/qa/5 -b qa/5 origin/spec/5"),
     ("rule E: git -C the qa/<n> worktree status allowed",
      "git -C $(git rev-parse --git-common-dir)/roz-gate/wt/qa/5 status --short"),
+    # Mention is not use, fourth form (#220, the #199 pilot): a heredoc body
+    # is text. D15@B's QA seat wrote its harness with a docstring that says
+    # it never reads src/ and was denied for saying so.
+    ("rule E: D15@B's harness write — a docstring saying `src/` is never read — allowed",
+     "mkdir -p tests/acceptance/order_intake && cd tests/acceptance/order_intake && "
+     "cat > __init__.py <<'EOF'\n\"\"\"Acceptance tests for feature #5 — Order intake.\"\"\"\nEOF\n"
+     "cat > _harness.py <<'EOF'\n\"\"\"Process-level port driver for issue #5.\n\n"
+     "The contract (`**Test port** — none`) is the API doc: the suite boots `bin/serve`.\n"
+     "Nothing under `src/` is imported or read.\n\"\"\"\nimport subprocess\nEOF"),
+    # D10's reviewer: the fidelity comment named the implementation directory.
+    ("rule E: D10's fidelity comment naming src/ in its --body-file heredoc allowed",
+     "gh pr comment 103 --body-file - <<EOF\n**[reviewer] · fidelity**\n\n"
+     "The suite never touches `src/`; the port is the launcher.\nEOF"),
+    ("rule E: an unquoted-word heredoc mentioning src/ in the body allowed",
+     "cat <<EOF > tests/README\nthe suite drives the port, not src/\nEOF"),
+    ("rule E: a <<- heredoc (tab-indented body and terminator) mentioning src/ allowed",
+     "cat <<-NOTE > tests/README\n\tsee src/ for nothing\n\tNOTE"),
+    ("rule E: two heredocs on one line, the second mentioning src/, allowed (codex, PR #222)",
+     "cat <<FIRST <<SECOND\nfirst\nFIRST\nmention src/\nSECOND"),
+    ("rule E: a punctuated delimiter's body mentioning src/ allowed",
+     "cat <<END-TEXT > tests/README\nthe port, never src/\nEND-TEXT"),
+    ("rule E: a backslash-continued opener line, then a body mentioning src/, allowed",
+     "cat <<EOF \\\n> tests/README\nthe port, never src/\nEOF"),
+    ("rule E: a QUOTED body's line ending in a backslash is literal — still blanked, allowed",
+     "cat > tests/run.sh <<'EOF'\npython3 -m pytest \\\n  tests/ # never src/\nEOF"),
 ]
 
 

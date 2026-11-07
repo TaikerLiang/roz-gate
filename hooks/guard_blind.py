@@ -25,10 +25,15 @@ D2/check.py) — already red-proofed against the exclusion forms: a
 checkout/switch/diff/show/log/merge/restore/worktree on a ``feat/`` ref,
 or a read of ``src/`` after blanking the operand of an exclusion operator
 (``grep -v '^src/'``, ``':!src/**'``, ``--exclude``, ``-not -path`` name
-src/ in order to NOT read it), and after blanking echo/printf operands
-and comments (a string literal that MENTIONS src/ is not a read — the
-D2 re-run's only denial). The four regexes are held byte-identical
-between hook and checker by the lint tier (lint D2).
+src/ in order to NOT read it), and after blanking echo/printf operands,
+comments and heredoc bodies (a string literal that MENTIONS src/ is not
+a read — the D2 re-run's only denial; a docstring or a comment body fed
+through ``<<EOF`` is the same mention, #220). The five regexes are held
+byte-identical between hook and checker by the lint tier (lint D2).
+What the predicate cannot see, by design: a command substitution inside
+an echo operand (``echo $(cat src/x)``) and a read inside a script fed by
+heredoc (``python3 - <<EOF`` … ``open("src/app.py")``) — both blanked
+with the text that carries them.
 
 Scoping — the marker: PreToolUse carries ``agent_id``/``agent_type`` inside
 a subagent, but the fidelity review and the stage-(5) code review are the
@@ -121,9 +126,116 @@ SRC_MENTIONED = re.compile(
     r"""(?:^|[|;&({]|\$\()\s*(?:[A-Za-z_]\w*=\S*\s+)*(?:echo|printf)\b[^|;&\n]*"""
     r"""|(?:^|\s)#[^\n]*""", re.M)
 
+# Mention is not use, fourth form (#220, the #199 pilot): a heredoc BODY is
+# text — D15@B's QA seat wrote its harness through `cat > _harness.py
+# <<'EOF'` with a docstring saying "Nothing under `src/` is imported or
+# read" and was denied for saying so; D10's reviewer posted its fidelity
+# comment through `--body-file - <<EOF` naming the implementation
+# directory and was blocked the same way. The bodies are blanked line by
+# line, the way the shell reads them — a command line's `<<WORD` operators
+# (outside quotes and comments: a `'<<EOF'` argument or a `# <<EOF` is
+# text, and `<<<` is a here-string) open bodies in order, each consumed up
+# to its own terminator line, an empty body ending on the very next line
+# (codex review, PR #222: a regex that needed a newline before the
+# terminator skipped an empty heredoc and blanked the real read behind
+# it). The command line itself and the terminator stay, so `cat >
+# src/x.py <<EOF` is still the read it is. Known cost, recorded in the
+# cannot-see list: a read INSIDE a script fed by heredoc (`python3 - <<EOF
+# … open("src/app.py") … EOF`) is blanked with the body — the same class
+# as the echo substitution above.
+HEREDOC_OPEN = re.compile(r"""<<(-?)\s*(?:'([^']+)'|"([^"]+)"|([^\s'"`|&;<>()]+))""")
+
+
+class Unsupported(Exception):
+    """A heredoc form the scanner does not read; the command stays as is."""
+
+
+def heredoc_words(line, quote=None):
+    """The (delimiter, strips-tabs, quoted) of every heredoc operator on one physical
+    line, in order — `<<` outside quotes and comments only; a `<<<`
+    here-string is skipped whole; the delimiter is the whole shell word
+    (`END-TEXT`, `'EOF'`), not a `\\w+` prefix (codex review, PR #222).
+    Returns (words, quote still open at the end, backslash-continued): a
+    logical command line runs on while either holds, and the bodies start
+    only after it ends. A form the scanner does not read — a delimiter in
+    mixed quoting (`E"OF"`) or with a backslash (`\\EOF`, `END\\ TEXT`,
+    `"E\\$OF"`), an arithmetic `(( … ))` on the line (`1 << 2` is a shift),
+    a `$(` or backtick inside double quotes (its own quotes nest), ANSI-C
+    quoting (`$'…'`), a delimiter running into a parenthesis or a backtick
+    (`$(printf EOF)`, a backticked printf) — raises Unsupported, and the
+    caller blanks nothing: the visible direction. The scanner is not a
+    shell parser; it reads the forms seats write and refuses the rest."""
+    words, i, continued = [], 0, False
+    while i < len(line):
+        ch = line[i]
+        if ch == "\\" and quote != "'":
+            i += 2
+            continued = i > len(line)
+            continue
+        if quote == '"' and (ch == "`" or line.startswith("$(", i)):
+            raise Unsupported("a substitution inside double quotes")
+        if quote:
+            quote = None if ch == quote else quote
+        elif line.startswith("$'", i):
+            raise Unsupported("ANSI-C quoting")
+        elif ch in "'\"":
+            quote = ch
+        elif ch == "#" and (i == 0 or line[i - 1] in " \t;&|()"):
+            break
+        elif line.startswith("((", i) or line.startswith("$((", i):
+            raise Unsupported("arithmetic — `1 << 2` is a shift")
+        elif line.startswith("<<<", i):
+            i += 3
+            continue
+        elif line.startswith("<<", i):
+            m = HEREDOC_OPEN.match(line, i)
+            if m:
+                if m.end() < len(line) and line[m.end()] not in " \t;&|<>":
+                    raise Unsupported("a delimiter in mixed quoting or with a parenthesis")
+                word = m.group(2) or m.group(3) or m.group(4)
+                if "\\" in word:
+                    raise Unsupported("a backslash in the delimiter")
+                words.append((word, m.group(1) == "-", word != m.group(4)))
+                i = m.end()
+                continue
+        i += 1
+    return words, quote, continued
+
+
+def blank_heredoc_bodies(cmd):
+    """Every heredoc body blanked, line by line: each operator's body runs
+    to its own terminator (exact; `<<-` after leading tabs), bodies in the
+    order their operators appear on the LOGICAL command line (a quoted
+    argument or a backslash continuation carries it on), an empty body
+    ending on the next line. A body that never terminates blanks nothing —
+    the visible direction — and so does an unquoted body with a line
+    ending in a backslash (bash joins it to the next before it looks for
+    the terminator; codex review, PR #222)."""
+    out, pending, opened, quote = [], [], [], None
+    for line in cmd.split("\n"):
+        if pending:
+            word, dash, quoted = pending[0]
+            if not quoted and line.endswith("\\"):
+                return cmd
+            if (line.lstrip("\t") if dash else line) == word:
+                pending.pop(0)
+                out.append(line)
+            else:
+                out.append("")
+            continue
+        out.append(line)
+        try:
+            words, quote, continued = heredoc_words(line, quote)
+        except Unsupported:
+            return cmd
+        opened.extend(words)
+        if not quote and not continued:
+            pending, opened = opened, []
+    return cmd if pending or opened else "\n".join(out)
+
 
 def bash_reads_src(cmd, suite=None, top=None, tops=None):
-    cmd = SRC_MENTIONED.sub(" ", SRC_EXCLUDED.sub(" ", cmd))
+    cmd = SRC_MENTIONED.sub(" ", SRC_EXCLUDED.sub(" ", blank_heredoc_bodies(cmd)))
     for root in roots_of(suite):
         cmd = suite_operand_re(root, top).sub(suite_blanker(root, top, tops), cmd)
     return SRC_PATH.search(cmd) is not None
