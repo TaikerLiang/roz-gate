@@ -3,7 +3,7 @@ First opus baseline, 4/5: one QA child ran `cat src/app.txt` under the
 fidelity dispatch — the prose "Do NOT read src/" was the only guard and a
 GREEN looks identical either way. Teeth since 1.16.0: guard-blind rule E,
 ON while the dispatching command's marker exists. The predicate is the D2
-replay checker's three regexes; the hook carries them byte-identical, and
+replay checker's five regexes; the hook carries them byte-identical, and
 this case proves it by extracting each `NAME = re.compile(...)` block
 from the checker and requiring the same text in the hook — then runs the
 hook's own predicate against the shapes that matter.
@@ -22,7 +22,7 @@ import importlib.util  # noqa: E402
 
 D2_CHECK = read("evals/replay/cases/D2/check.py")
 D2_HOOK = read("hooks/guard_blind.py")
-for name in ("GIT_TOUCH", "SRC_PATH", "SRC_EXCLUDED", "SRC_MENTIONED"):
+for name in ("GIT_TOUCH", "SRC_PATH", "SRC_EXCLUDED", "SRC_MENTIONED", "HEREDOC_BODY"):
     m = re.search(r"^%s = re\.compile\((?:.|\n)*?\)\n" % name, D2_CHECK, re.M)
     if not m:
         c.fails += 1
@@ -69,6 +69,18 @@ c.expect("hook rule E (echo in command position)",
 c.expect("hook rule E", "D2 pattern: a read after an echo mention is still a read",
          _gb.violation("Bash",
                        {"command": "echo \"excluding src/\" && cat src/app.txt"}) is not None)
+# #220 (the #199 pilot, D15@B): a heredoc body is text, the command line is not.
+c.expect("hook rule E (mention is not use, fourth form: a heredoc body)",
+         "D2 pattern: src/ inside a heredoc body — a docstring, a comment body — is NOT a read",
+         _gb.violation("Bash", {"command": "cat > _harness.py <<'EOF'\n\"\"\"Nothing under "
+                                           "`src/` is imported or read.\"\"\"\nEOF"}) is None
+         and _gb.violation("Bash", {"command": "gh pr comment 103 --body-file - <<EOF\n"
+                                               "the suite never touches `src/`\nEOF"}) is None)
+c.expect("hook rule E (the heredoc's command line is still judged)",
+         "D2 pattern: `cat > src/x.py <<EOF` and a read after a blanked body are reads",
+         _gb.violation("Bash", {"command": "cat > src/x.py <<'EOF'\nx = 1\nEOF"}) is not None
+         and _gb.violation("Bash", {"command": "cat <<EOF > tests/note\nsrc/ is off\nEOF\n"
+                                               "cat src/app.txt"}) is not None)
 # Issue #81 (1.29.1): the suite is not the implementation. A Maven layout's
 # acceptance dir sits under src/test/…; the hook exempts it (outside the
 # four regexes, which stay byte-identical above) and the prose says so.

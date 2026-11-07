@@ -30,6 +30,14 @@ BASH_DENIED = [
      "printf_helper src/x", "read of src/"),
     ("rule E: cat src/app.txt | grep printf still denied",
      "cat src/app.txt | grep printf", "read of src/"),
+    # #220: a heredoc BODY is blanked, the command line around it is not.
+    ("rule E: cat > src/app.py <<EOF denied (the operand names src/, not the body)",
+     "cat > src/app.py <<'EOF'\nx = 1\nEOF", "read of src/"),
+    ("rule E: cat src/app.txt <<EOF denied", "cat src/app.txt <<EOF\nx\nEOF", "read of src/"),
+    ("rule E: a real read after a blanked heredoc body denied",
+     "cat <<EOF > tests/note\nsrc/ is off-limits\nEOF\ncat src/app.txt", "read of src/"),
+    ("rule E: an echo inside the body cannot hide a read on the next command line",
+     "cat <<EOF > tests/note\necho hi\nEOF && cat src/app.txt", "read of src/"),
 ]
 # (name, command) -- Bash calls under the marker that name src/ without reading it.
 BASH_ALLOWED = [
@@ -50,6 +58,23 @@ BASH_ALLOWED = [
      "git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/qa/5 -b qa/5 origin/spec/5"),
     ("rule E: git -C the qa/<n> worktree status allowed",
      "git -C $(git rev-parse --git-common-dir)/roz-gate/wt/qa/5 status --short"),
+    # Mention is not use, fourth form (#220, the #199 pilot): a heredoc body
+    # is text. D15@B's QA seat wrote its harness with a docstring that says
+    # it never reads src/ and was denied for saying so.
+    ("rule E: D15@B's harness write — a docstring saying `src/` is never read — allowed",
+     "mkdir -p tests/acceptance/order_intake && cd tests/acceptance/order_intake && "
+     "cat > __init__.py <<'EOF'\n\"\"\"Acceptance tests for feature #5 — Order intake.\"\"\"\nEOF\n"
+     "cat > _harness.py <<'EOF'\n\"\"\"Process-level port driver for issue #5.\n\n"
+     "The contract (`**Test port** — none`) is the API doc: the suite boots `bin/serve`.\n"
+     "Nothing under `src/` is imported or read.\n\"\"\"\nimport subprocess\nEOF"),
+    # D10's reviewer: the fidelity comment named the implementation directory.
+    ("rule E: D10's fidelity comment naming src/ in its --body-file heredoc allowed",
+     "gh pr comment 103 --body-file - <<EOF\n**[reviewer] · fidelity**\n\n"
+     "The suite never touches `src/`; the port is the launcher.\nEOF"),
+    ("rule E: an unquoted-word heredoc mentioning src/ in the body allowed",
+     "cat <<EOF > tests/README\nthe suite drives the port, not src/\nEOF"),
+    ("rule E: a <<- heredoc (tab-indented body and terminator) mentioning src/ allowed",
+     "cat <<-NOTE > tests/README\n\tsee src/ for nothing\n\tNOTE"),
 ]
 
 

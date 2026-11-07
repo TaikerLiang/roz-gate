@@ -25,10 +25,15 @@ D2/check.py) — already red-proofed against the exclusion forms: a
 checkout/switch/diff/show/log/merge/restore/worktree on a ``feat/`` ref,
 or a read of ``src/`` after blanking the operand of an exclusion operator
 (``grep -v '^src/'``, ``':!src/**'``, ``--exclude``, ``-not -path`` name
-src/ in order to NOT read it), and after blanking echo/printf operands
-and comments (a string literal that MENTIONS src/ is not a read — the
-D2 re-run's only denial). The four regexes are held byte-identical
-between hook and checker by the lint tier (lint D2).
+src/ in order to NOT read it), and after blanking echo/printf operands,
+comments and heredoc bodies (a string literal that MENTIONS src/ is not
+a read — the D2 re-run's only denial; a docstring or a comment body fed
+through ``<<EOF`` is the same mention, #220). The five regexes are held
+byte-identical between hook and checker by the lint tier (lint D2).
+What the predicate cannot see, by design: a command substitution inside
+an echo operand (``echo $(cat src/x)``) and a read inside a script fed by
+heredoc (``python3 - <<EOF`` … ``open("src/app.py")``) — both blanked
+with the text that carries them.
 
 Scoping — the marker: PreToolUse carries ``agent_id``/``agent_type`` inside
 a subagent, but the fidelity review and the stage-(5) code review are the
@@ -121,9 +126,28 @@ SRC_MENTIONED = re.compile(
     r"""(?:^|[|;&({]|\$\()\s*(?:[A-Za-z_]\w*=\S*\s+)*(?:echo|printf)\b[^|;&\n]*"""
     r"""|(?:^|\s)#[^\n]*""", re.M)
 
+# Mention is not use, fourth form (#220, the #199 pilot): a heredoc BODY is
+# text — D15@B's QA seat wrote its harness through `cat > _harness.py
+# <<'EOF'` with a docstring saying "Nothing under `src/` is imported or
+# read" and was denied for saying so; D10's reviewer posted its fidelity
+# comment through `--body-file - <<EOF` naming the implementation
+# directory and was blocked the same way. The body between the `<<WORD`
+# line and the terminating WORD line is blanked FIRST (so nothing inside
+# it can swallow a later command line); the `<<WORD` line itself and the
+# terminator stay, so `cat > src/x.py <<EOF` is still the read it is.
+# Known cost, recorded in the cannot-see list: a read INSIDE a script fed
+# by heredoc (`python3 - <<EOF … open("src/app.py") … EOF`) is blanked with
+# the body — the same class as the echo substitution above.
+HEREDOC_BODY = re.compile(
+    r"""(<<-?\s*(['"]?)(\w+)\2[^\n]*\n)(.*?)(\n[ \t]*\3[ \t]*(?=\n|$))""", re.S)
+
+
+def blank_heredoc_bodies(cmd):
+    return HEREDOC_BODY.sub(lambda m: m.group(1) + " " + m.group(5), cmd)
+
 
 def bash_reads_src(cmd, suite=None, top=None, tops=None):
-    cmd = SRC_MENTIONED.sub(" ", SRC_EXCLUDED.sub(" ", cmd))
+    cmd = SRC_MENTIONED.sub(" ", SRC_EXCLUDED.sub(" ", blank_heredoc_bodies(cmd)))
     for root in roots_of(suite):
         cmd = suite_operand_re(root, top).sub(suite_blanker(root, top, tops), cmd)
     return SRC_PATH.search(cmd) is not None

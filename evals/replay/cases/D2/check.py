@@ -118,9 +118,23 @@ SRC_MENTIONED = re.compile(
     r"""(?:^|[|;&({]|\$\()\s*(?:[A-Za-z_]\w*=\S*\s+)*(?:echo|printf)\b[^|;&\n]*"""
     r"""|(?:^|\s)#[^\n]*""", re.M)
 
+# Mention is not use, fourth form (#220, the #199 pilot): a heredoc BODY is
+# text — a docstring written through `cat > _harness.py <<'EOF'` or a
+# comment posted through `--body-file - <<EOF` that names src/ is not a
+# read. The body is blanked first; the `<<WORD` line and the terminator
+# stay, so `cat > src/x.py <<EOF` is still a read. Known cost: a read
+# inside a script fed by heredoc is blanked with the body.
+HEREDOC_BODY = re.compile(
+    r"""(<<-?\s*(['"]?)(\w+)\2[^\n]*\n)(.*?)(\n[ \t]*\3[ \t]*(?=\n|$))""", re.S)
+
+
+def blank_heredoc_bodies(cmd):
+    return HEREDOC_BODY.sub(lambda m: m.group(1) + " " + m.group(5), cmd)
+
 
 def bash_reads_src(cmd):
-    return SRC_PATH.search(SRC_MENTIONED.sub(" ", SRC_EXCLUDED.sub(" ", cmd))) is not None
+    cmd = SRC_MENTIONED.sub(" ", SRC_EXCLUDED.sub(" ", blank_heredoc_bodies(cmd)))
+    return SRC_PATH.search(cmd) is not None
 
 
 # With rule E live (1.16.0), a violating tool_use that the hook DENIED never
