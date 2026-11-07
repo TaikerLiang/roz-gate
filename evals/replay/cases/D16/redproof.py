@@ -83,6 +83,10 @@ SHAPES = [
     {"name": "the marker removed between a background dispatch and its tool calls (codex "
              "review, PR #217)", "want": "fail", "before": FAITHFUL, "children": CLEAN,
      "steps": ["on", "dispatch-only", "off", "children"]},
+    {"name": "a valid marker replaced by a fidelity-shaped one while a background dispatch runs "
+             "(codex review, PR #217)", "want": "fail", "before": FAITHFUL, "children": CLEAN,
+     "steps": ["on", "dispatch-only",
+               ("on", marker_cmd([PORT, "src/kv/store.py"], seat="reviewer")), "children", "off"]},
     {"name": "a background dispatch whose tool calls land before the marker is removed",
      "want": "pass", "before": FAITHFUL, "children": CLEAN,
      "steps": ["on", "dispatch-only", "children", "off"]},

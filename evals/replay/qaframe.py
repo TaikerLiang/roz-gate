@@ -330,13 +330,14 @@ class Frame:
         m = self.markers
         before = [x for x in m[:m.index("qa")] if x != "qa"] if "qa" in m else []
         last_child = max((i for i, x in enumerate(m) if x == "child"), default=-1)
+        during = set(m[m.index("qa"):last_child + 1]) if "qa" in m else set()
         on_during = (bool(before) and before[-1] == "on-qa"
-                     and "off" not in m[m.index("qa"):last_child + 1])
+                     and not during & {"off", "on-other"})   # neither removed nor replaced
         c.expect("next-stage.md B2.4 (the marker: seat=qa, feat=, read= the declared port — "
                  "written immediately before the dispatch, removed after it returns; the hook "
                  "is ON while the seat runs)",
                  "the marker was written with seat=qa, feat=%s and the port's read= lines (%s) "
-                 "before the dispatch, and not removed before its last tool call"
+                 "before the dispatch, and neither removed nor replaced before its last tool call"
                  % (self.feat, ", ".join(self.ports) or "none"), on_during)
         c.expect("next-stage.md B2.4 (one QA dispatch)",
                  "exactly one dispatch carries qa-brief.md", len(self.dispatches) == 1)
