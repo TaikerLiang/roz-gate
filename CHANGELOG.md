@@ -2,6 +2,34 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.9.0 — the loop merges only its own — 2026-11-07
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.9.0>
+
+**Behavior:** the loop can no longer merge a foreign branch into an issue branch — a missing dependency in the base is a STOP that tells you to sync the base — and a `ready-for-dev` applied again after its implementation merged is an illegal state, never an authorization to rebuild. The replay tier can run a case under a frozen variant of the QA brief and says which one it ran; the Pages site works again.
+
+### Behavior
+- **A missing dependency in the base is a STOP, never an option** (#213, PR #214): a seat that finds `<default_branch>` lacks code the issue needs reports it; the command posts `**[<command>] · blocked**` naming the missing code and the branch that holds it, resume line *sync `<default_branch>`, then clear `status: blocked`*. No seat offers merging, rebasing onto or cherry-picking from another branch (ConsoleAPI #1: 79 foreign commits in a spec CR). After the sync the loop merges the base as always.
+- **A gate label on a stage that passed** (#209, PR #212): a `track: spec` issue wearing `status: ready-for-dev` whose implementation CR has merged into the bound `<spec-branch>` is an illegal state in the patrol scan (`illegal: ready-for-dev on a passed stage (<feat-branch> merged)`, `needs you: yes`, queue item: remove the label, nothing else), and `next-stage` refuses it before its lock, without the STOP exit. Removing the label lets patrol resume from the CRs (Path B2, integrate). An open implementation CR stays legal: a STOP's resume line re-applies the label over it.
+
+### Hooks
+- **Rule K — the loop merges only the base or its own branches** (#213): in a `roz-gate/wt/` worktree, `git merge <ref>` / `git pull <remote> <branch>` is denied unless the branch is `origin/<default_branch>` or a `branch_template` branch of the same issue. Your own checkout is never judged; `rebase` / `cherry-pick` are out of scope.
+
+### Evals
+- **`run_replay.py --variant A|B|C`** (#199, PR #217): the runner copies the plugin, swaps only `references/qa-brief.md`, and stamps every result with the loaded brief's sha256 beside `plugin_sha` and `case_fp`; a stale hash counts like a stale fingerprint; a variant's runs live in `report/<sut>/<case>@<V>/`. Variants B and C (#139's STE rewrites, frozen 2026-11-06) live in `evals/replay/variants/qa-brief/` with their hashes. A checker may now say INVALID (exit 3) when the rule it scores was never exercised; `case_fp` follows a case's shared fixture tree.
+- **D10–D19** (#199): ten QA-seat contract cases across four fixture shapes (HTTP port, CLI port, port under/outside `src/`, multi-step contract; D8/D9 re-cut as D18/D19) through one frame, `evals/replay/qaframe.py`: PASS / FAIL / INVALID verdicts, a denied attempt is a FAIL, and an outcome oracle that runs the pushed suite against the build and against a one-line mutant, so a do-nothing seat cannot pass. Pilot run at opus, k=1, A/B/C: not yet run (the maintainer's quota call).
+- **F14** (replay, #209): ConsoleAPI #27's shape — the implementation merged, the QA CR clean, `ready-for-dev` re-applied by the holder; nothing is written, nothing is dispatched past the scanner, the row is `illegal:` with the remedy queued. **C27** (lint) anchors the rule on every surface.
+- **C28** (hook, `ledger-hook.json`) indexes rule K; **C29** (lint) anchors the STOP policy and keeps "merge master" out of every brief and command.
+- **L12 · every page's script parses** (#215): `node --check` on each `<script>` block of `docs/**/*.html`; the error names the page and line. CI declares node before the lint tier.
+
+### Docs
+- **`docs/index.html`** (#215, PR #216): one unescaped apostrophe had silenced every interactive feature on the live page since 2.7.0 — language toggle, track tabs, stage map, label cards, simulator, wizard. Fixed.
+- **`hooks/README.md`** rule K; **`README.md`** hook table row K and the passed-stage state; **`references/workflow.md`** STOP shapes and the label state machine; **`docs/onboarding.html`** § When it stops; **`agents/product.md`, `agents/em.md`** one bullet each.
+- **`evals/replay/README.md`** § Variants, § Verdicts; **`evals/CONTRIBUTING.md`** the vocabulary, the `fixture` key, the frame.
+
+### Checks
+Hook tests 602/602 · plugin test 29/29 · lint 1087/1087 · red-proofs 43/43 (harness 73 checks; 158 case shapes) · naming · ruff · judgment `--check` · ledger `--check` current (replay 58) · plugin validate · **baselines not yet run** (maintainer): F14 at `--sut opus --k 5`; the #199 pilot at `--sut opus --k 1 --variant A|B|C D10 … D19`
+
 ## v2.8.0 — up to N per pass — 2026-11-05
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.8.0>
