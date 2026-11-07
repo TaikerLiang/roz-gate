@@ -57,6 +57,11 @@ BASH_DENIED = [
      "cat <<EOF \\\nsrc/app.txt\nignored\nEOF", "read of src/"),
     ("rule E: a quoted argument spanning lines cannot open a heredoc — the read denied",
      "printf '%s\\n' 'hello\n<<EOF'\ncat src/app.txt\ncat <<EOF\nnote\nEOF", "read of src/"),
+    # Codex review round 4: an arithmetic shift is no operator; `<<\EOF` ends at `EOF`.
+    ("rule E: `1 << 2` inside (( )) is a shift — the read after it denied",
+     "(( x = 1 << 2 ))\ncat src/app.txt\ncat <<2\nnote\n2", "read of src/"),
+    ("rule E: a <<\\EOF delimiter terminates at EOF — the read after it denied",
+     "cat <<\\EOF\nnote\nEOF\ncat src/app.txt\ncat <<'\\EOF'\nnote\n\\EOF", "read of src/"),
 ]
 # (name, command) -- Bash calls under the marker that name src/ without reading it.
 BASH_ALLOWED = [
@@ -100,6 +105,8 @@ BASH_ALLOWED = [
      "cat <<END-TEXT > tests/README\nthe port, never src/\nEND-TEXT"),
     ("rule E: a backslash-continued opener line, then a body mentioning src/, allowed",
      "cat <<EOF \\\n> tests/README\nthe port, never src/\nEOF"),
+    ("rule E: a <<\\EOF body mentioning src/ allowed",
+     "cat <<\\EOF > tests/README\nthe port, never src/\nEOF"),
 ]
 
 
