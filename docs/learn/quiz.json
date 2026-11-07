@@ -1090,6 +1090,23 @@
    "why": "1.29.0 起四個分支都由 `branch_template` 渲染（預設 `{kind}/{n}` 才是 `qa/<n>`）。`{type}` 對 spec 分支是 `spec`、對 qa 分支是 `test`，只有 feat / fast 分支才讀 issue 的 `type:` label；`{user}` 是本地 key `branch_user`（沒設就是你的 forge 登入名），`{seq}` 是第幾次嘗試。別人的分支靠 pattern 在 remote 上找，不會去算。",
    "src": "references/branch-names.md · README § Branch names",
    "bg": "issue #75：目標 repo 有 `feat/pwliangc/BDPTOOL-779/1` 這種 server 端強制的分支慣例。Roz Gate 原本把 `spec/<n>`、`feat/<n>`、`qa/<n>`、`fast/<n>` 寫死在 22 個檔案裡。"
+  },
+  {
+   "id": 52,
+   "m": "M1",
+   "l": "L2",
+   "t": "single",
+   "q": "`/roz-gate:spec-answers` 把你的答案折進 spec 時,被重新喚起的 role agent 又冒出新問題。loop 怎麼處理?",
+   "o": [
+    "一律貼成新的 inline thread:每個模糊點一發現就問,issue 留在 `in-spec-review` 等你回答。",
+    "一律不問:fold 只負責回答,新問題寫進 spec 等下一個階段的 seat 自己判斷。",
+    "看被折入那題的深度:它來自 (2a)、intake 或 QA → 新問題貼 thread(附 *raised by the fold of Q<j>*);它本身就是 fold 冒出的 → 新問題標 `· deferred`,不開 thread,列在一則 `**[spec-answers] · deferred**` 留言,`ready-for-dev` 時照建議選項走。",
+    "交給 patrol:下一次 pass 的 scanner 決定要不要把新問題變成 thread。"
+   ],
+   "a": 2,
+   "why": "#206 的 ruling (c):fold 可以再問一輪,但「回答 fold 冒出的問題」再冒出的問題被延後——鏈長綁在深度 1。第一輪通常是答案真的揭露了新的模糊處,該問;無限遞迴則是 seat 用問題消耗你的 gate,每一層都要等一次 patrol pass。延後的問題仍在 `## Open Questions`(唯一收集點),你可以在 CR 上用 top-level 留言回答(當作 amendment 折入);不回答,貼 `ready-for-dev` 時就以建議選項為準,由此生出的規則帶 `(assumed)`。",
+   "src": "commands/spec-answers.md § 5 · commands/next-stage.md B2 · #206",
+   "bg": "(2a) 的每個問題都是 spec CR 上的一條 thread;spec-answers 把答案折回提問席位擁有的文件。ConsoleAPI #1 時折 Q6/Q7 又冒出 Q8/Q9,issue 多繞了一圈人工 gate——這題問的就是那條邊界。"
   }
  ]
 }

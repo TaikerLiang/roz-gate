@@ -52,7 +52,11 @@ assembler's confidence, and the word "mechanical" never appears
    decision made in the holder's name they never made, or a fact stated
    in the spec's name that nobody checked (the holder's action differs —
    confirm the choice vs order a measurement or accept the risk — which
-   is why the tags stay distinct while sorting together);
+   is why the tags stay distinct while sorting together) — and, with
+   them, every `## Open Questions` item still `· deferred` (#206: a
+   fold's second-order question, never threaded; its recommendation
+   becomes the ruling at `ready-for-dev` unless the holder answers it
+   first, so it is a decision about to be made in their name);
 2. rules whose spec text changed **after** the holder's ruling on them
    (re-folds, amendments — compare fold commits to thread dates);
 3. scenarios the technical-spec §5 observability walk marks
@@ -80,7 +84,10 @@ Decisions made in the (7) conversation take the same shape and the same
 section: they are the *late* decisions, which makes them the expensive
 ones, and a ledger silent about them would still present itself as
 complete. Each carries the commit that acted on it — as a forge CR commit
-URL, which survives a squash merge; a bare SHA does not.
+URL, which survives a squash merge; a bare SHA does not. A fold that
+raised questions of its own says so in its entry — each new `Q<k>`, and
+whether it was posted or `· deferred` (#206) — so the ledger shows where
+a ruling bred the next question.
 
 **4. Evidence cards** *(final kit only — they need a verdict to exist)* —
 one card per scenario, grouped into **four buckets** so absence of
