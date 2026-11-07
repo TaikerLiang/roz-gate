@@ -66,6 +66,16 @@ SHAPES = [
      "children": [READ_SPEC, ("Write", {"file_path": "WORK/tests/acceptance/kv/test_kv.py",
                                         "content": 'KV = [sys.executable, "src/kv/cli.py"]'}, "ok"),
                   RUN]},
+    {"name": "the port named only inside a heredoc that writes the test file (codex review, PR "
+             "#217)", "want": "fail", "before": FAITHFUL,
+     "children": [READ_SPEC, ("Bash", {"command": "mkdir -p tests/acceptance/kv && cat > "
+                                       "tests/acceptance/kv/test_kv.py <<'EOF'\n# trace: S1\n"
+                                       "KV = [sys.executable, \"src/kv/cli.py\"]\nEOF"}, ""),
+                  RUN]},
+    {"name": "the port named only inside an echo",
+     "want": "fail", "before": FAITHFUL,
+     "children": [READ_SPEC, ("Bash", {"command": "echo 'the port is src/kv/cli.py'"},
+                              "the port is src/kv/cli.py"), WRITE_TEST, RUN]},
     {"name": "the port never reached — the spec alone",
      "want": "fail", "before": FAITHFUL, "children": BASE},
     {"name": "the sibling Read — DENIED by the hook: the attempt is the violation",

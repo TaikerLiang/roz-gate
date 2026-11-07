@@ -59,6 +59,7 @@ _spec.loader.exec_module(_gb)
 DENIED = _gb.QA_OPEN          # "Roz Gate: blocked — this is a QA dispatch"
 MARKER = "roz-gate/fidelity-dispatch"
 GREEN, RED = "ACCEPTANCE: GREEN", "ACCEPTANCE: RED"
+HEREDOC = re.compile(r"<<-?\s*['\"]?(\w+)['\"]?[^\n]*\n.*?\n\s*\1\s*$", re.S | re.M)
 WRITE_OP = re.compile(r"(^|[|;&\s])(>>?|tee|cp|mv|install|cat\s*>|python3?\s+-\s*<<)")
 
 
@@ -91,10 +92,16 @@ class Frame:
 
     # ---- the transcript: marker on/off, the dispatch, its children ----------
     def _walk(self):
-        ordered, dispatches = [], []
+        """The marker writes, the dispatch and its children, in transcript
+        order: "on-qa" / "on-other" / "off" / "qa" / "child"."""
+        ordered, dispatches, ids = [], [], set()
         for ev in self.events:
+            under = ev.get("parent_tool_use_id") in ids
             for b in blocks(ev):
                 if b.get("type") != "tool_use":
+                    continue
+                if under:
+                    ordered.append("child")
                     continue
                 inp = b.get("input") or {}
                 if b.get("name") == "Bash":
@@ -107,6 +114,7 @@ class Frame:
                         and "qa-brief.md" in json.dumps(inp, ensure_ascii=False):
                     ordered.append("qa")
                     dispatches.append(b)
+                    ids.add(b.get("id"))
         return ordered, dispatches
 
     def _marker_ok(self, cmd):
@@ -169,6 +177,12 @@ class Frame:
         codex review, PR #217)."""
         field = {"Read": "file_path", "Bash": "command", "Grep": "path", "Glob": "path"}.get(tool)
         text = inp.get(field) or "" if field else ""
+        if tool == "Bash":
+            # a heredoc's body and an echo/printf operand are content, not a
+            # read: `cat > test.py <<'EOF' … src/kv/cli.py … EOF` writes the
+            # suite (codex review, PR #217)
+            text = HEREDOC.sub(" ", text)
+            text = _gb.SRC_MENTIONED.sub(" ", text)
         return any(re.search(r"(^|[\s/\"'])" + re.escape(p) + r"(?![\w.-])", text)
                    for p in self.ports)
 
@@ -300,11 +314,14 @@ class Frame:
         # a later one overwrote decides nothing (codex review, PR #217)
         m = self.markers
         before = [x for x in m[:m.index("qa")] if x != "qa"] if "qa" in m else []
-        on_during = bool(before) and before[-1] == "on-qa"
+        last_child = max((i for i, x in enumerate(m) if x == "child"), default=-1)
+        on_during = (bool(before) and before[-1] == "on-qa"
+                     and "off" not in m[m.index("qa"):last_child + 1])
         c.expect("next-stage.md B2.4 (the marker: seat=qa, feat=, read= the declared port — "
-                 "written immediately before the dispatch; the hook is ON while it runs)",
+                 "written immediately before the dispatch, removed after it returns; the hook "
+                 "is ON while the seat runs)",
                  "the marker was written with seat=qa, feat=%s and the port's read= lines (%s) "
-                 "before the dispatch, and not removed before it"
+                 "before the dispatch, and not removed before its last tool call"
                  % (self.feat, ", ".join(self.ports) or "none"), on_during)
         c.expect("next-stage.md B2.4 (one QA dispatch)",
                  "exactly one dispatch carries qa-brief.md", len(self.dispatches) == 1)
@@ -436,9 +453,12 @@ class Proof:
                               capture_output=True, text=True)
 
     def transcript(self, steps, children, denied, marker, result):
-        """steps: "on" | "off" | "dispatch"; children run under the dispatch as
-        (tool, input, result); `denied` = indexes whose result is the hook's
-        deny; the main agent's final text is `result`."""
+        """steps: "on" | "off" | "dispatch" (the Task call and its children)
+        | "dispatch-only" and "children" (the same, split — a background
+        dispatch whose children land later) | ("on", <marker command>);
+        children run under the dispatch as (tool, input, result); `denied`
+        = indexes whose result is the hook's deny; the main agent's final
+        text is `result`."""
         ev, n = [], 0
         for step in steps:
             n += 1
@@ -446,13 +466,16 @@ class Proof:
                 ev.append({"type": "assistant", "message": {"content": [
                     {"type": "tool_use", "id": "b%d" % n, "name": "Bash",
                      "input": {"command": step[1]}}]}})
-            elif step == "dispatch":
-                ev.append({"type": "assistant", "message": {"content": [
-                    {"type": "tool_use", "id": "d1", "name": "Task",
-                     "input": {"subagent_type": "roz-gate:qa",
-                               "prompt": "Contract: ${CLAUDE_PLUGIN_ROOT}/references/qa-brief.md "
-                                         "… Test port: %s" % (", ".join(self.ports) or "none")}}]}})
-                for i, (tool, inp, out) in enumerate(children):
+            elif step in ("dispatch", "dispatch-only", "children"):
+                if step != "children":
+                    ev.append({"type": "assistant", "message": {"content": [
+                        {"type": "tool_use", "id": "d1", "name": "Task",
+                         "input": {"subagent_type": "roz-gate:qa",
+                                   "prompt": "Contract: ${CLAUDE_PLUGIN_ROOT}/references/"
+                                             "qa-brief.md … Test port: %s"
+                                             % (", ".join(self.ports) or "none")}}]}})
+                for i, (tool, inp, out) in (enumerate(children) if step != "dispatch-only"
+                                            else ()):
                     ev.append({"type": "assistant", "parent_tool_use_id": "d1", "message": {
                         "content": [{"type": "tool_use", "id": "c%d" % i, "name": tool,
                                      "input": inp}]}})
