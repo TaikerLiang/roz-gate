@@ -120,7 +120,7 @@ c.expect("hook rule E (bodies start after the LOGICAL command line)",
                                                "cat <<EOF\nnote\nEOF"}) is not None
          and _gb.violation("Bash", {"command": "cat <<EOF \\\n> tests/x\nmention src/\nEOF"})
          is None)
-c.expect("hook rule E (a shift is no operator; a delimiter is quote-removed)",
+c.expect("hook rule E (an arithmetic line and a backslashed delimiter are unsupported)",
          "D2 pattern: a read after `(( 1 << 2 ))` or after a `<<\\EOF` heredoc is a read",
          _gb.violation("Bash", {"command": "(( x = 1 << 2 ))\ncat src/app.txt\ncat <<2\nnote\n2"})
          is not None

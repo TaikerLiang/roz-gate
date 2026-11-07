@@ -60,8 +60,15 @@ BASH_DENIED = [
     # Codex review round 4: an arithmetic shift is no operator; `<<\EOF` ends at `EOF`.
     ("rule E: `1 << 2` inside (( )) is a shift — the read after it denied",
      "(( x = 1 << 2 ))\ncat src/app.txt\ncat <<2\nnote\n2", "read of src/"),
-    ("rule E: a <<\\EOF delimiter terminates at EOF — the read after it denied",
+    ("rule E: a <<\\EOF delimiter is unsupported — nothing blanked, the read denied",
      "cat <<\\EOF\nnote\nEOF\ncat src/app.txt\ncat <<'\\EOF'\nnote\n\\EOF", "read of src/"),
+    # Codex review round 7: the escape widens — any arithmetic, any backslash in the word.
+    ("rule E: nested parentheses inside (( )) — unsupported, the read denied",
+     "(( x = (1 + (2)) << 2 ))\ncat src/app.txt\ncat <<2\nnote\n2", "read of src/"),
+    ("rule E: an escaped space in the delimiter — unsupported, the read denied",
+     "cat <<END\\ TEXT\nnote\nEND TEXT\ncat src/app.txt\ncat <<END\nnote\nEND", "read of src/"),
+    ("rule E: a <<\\EOF body mentioning src/ is unsupported — nothing blanked, denied",
+     "cat <<\\EOF > tests/README\nthe port, never src/\nEOF", "read of src/"),
     # Codex review round 5: a form the scanner does not read blanks nothing.
     ("rule E: a mixed-quoted delimiter (E\"OF\") is unsupported — nothing blanked, the read denied",
      "cat <<E\"OF\"\nnote\nEOF\ncat src/app.txt\ncat <<E\nnote\nE", "read of src/"),
@@ -113,8 +120,6 @@ BASH_ALLOWED = [
      "cat <<END-TEXT > tests/README\nthe port, never src/\nEND-TEXT"),
     ("rule E: a backslash-continued opener line, then a body mentioning src/, allowed",
      "cat <<EOF \\\n> tests/README\nthe port, never src/\nEOF"),
-    ("rule E: a <<\\EOF body mentioning src/ allowed",
-     "cat <<\\EOF > tests/README\nthe port, never src/\nEOF"),
     ("rule E: a QUOTED body's line ending in a backslash is literal — still blanked, allowed",
      "cat > tests/run.sh <<'EOF'\npython3 -m pytest \\\n  tests/ # never src/\nEOF"),
 ]

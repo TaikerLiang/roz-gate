@@ -138,12 +138,12 @@ def heredoc_words(line, quote=None):
     """The (delimiter, strips-tabs, quoted) of every heredoc operator on one physical
     line, in order — `<<` outside quotes and comments only; a `<<<`
     here-string is skipped whole; the delimiter is the whole shell word
-    (`END-TEXT`, `'EOF'`, `\\EOF` with its backslash removed), not a
-    `\\w+` prefix; `<<` inside `(( … ))` is a shift (codex review, PR #222).
+    (`END-TEXT`, `'EOF'`), not a `\\w+` prefix (codex review, PR #222).
     Returns (words, quote still open at the end, backslash-continued): a
     logical command line runs on while either holds, and the bodies start
     only after it ends. A form the scanner does not read — a delimiter in
-    mixed quoting (`E"OF"`), an arithmetic that spans lines — raises
+    mixed quoting (`E"OF"`) or with a backslash (`\\EOF`, `END\\ TEXT`),
+    an arithmetic `(( … ))` on the line (`1 << 2` is a shift) — raises
     Unsupported, and the caller blanks nothing: the visible direction."""
     words, i, continued = [], 0, False
     while i < len(line):
@@ -159,11 +159,7 @@ def heredoc_words(line, quote=None):
         elif ch == "#" and (i == 0 or line[i - 1] in " \t;&|("):
             break
         elif line.startswith("((", i) or line.startswith("$((", i):
-            j = line.find("))", i)       # arithmetic: `1 << 2` is a shift
-            if j < 0:
-                raise Unsupported("arithmetic spanning lines")
-            i = j + 2
-            continue
+            raise Unsupported("arithmetic — `1 << 2` is a shift")
         elif line.startswith("<<<", i):
             i += 3
             continue
@@ -172,7 +168,9 @@ def heredoc_words(line, quote=None):
             if m:
                 if m.end() < len(line) and line[m.end()] not in " \t;&|<>()":
                     raise Unsupported("a delimiter in mixed quoting")
-                word = m.group(2) or m.group(3) or m.group(4).replace("\\", "")
+                if m.group(4) and "\\" in m.group(4):
+                    raise Unsupported("a backslash-escaped delimiter")
+                word = m.group(2) or m.group(3) or m.group(4)
                 words.append((word, m.group(1) == "-", word != m.group(4)))
                 i = m.end()
                 continue
