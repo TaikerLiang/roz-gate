@@ -143,7 +143,7 @@ SRC_MENTIONED = re.compile(
 # cannot-see list: a read INSIDE a script fed by heredoc (`python3 - <<EOF
 # … open("src/app.py") … EOF`) is blanked with the body — the same class
 # as the echo substitution above.
-HEREDOC_OPEN = re.compile(r"""<<(-?)\s*(?:'([^']+)'|"([^"]+)"|([^\s'"|&;<>()]+))""")
+HEREDOC_OPEN = re.compile(r"""<<(-?)\s*(?:'([^']+)'|"([^"]+)"|([^\s'"`|&;<>()]+))""")
 
 
 class Unsupported(Exception):
@@ -161,10 +161,10 @@ def heredoc_words(line, quote=None):
     mixed quoting (`E"OF"`) or with a backslash (`\\EOF`, `END\\ TEXT`,
     `"E\\$OF"`), an arithmetic `(( … ))` on the line (`1 << 2` is a shift),
     a `$(` or backtick inside double quotes (its own quotes nest), ANSI-C
-    quoting (`$'…'`), a delimiter running into a parenthesis (`$(printf
-    EOF)`) — raises Unsupported, and the caller blanks nothing: the
-    visible direction. The scanner is not a shell parser; it reads the
-    forms seats write and refuses the rest."""
+    quoting (`$'…'`), a delimiter running into a parenthesis or a backtick
+    (`$(printf EOF)`, a backticked printf) — raises Unsupported, and the
+    caller blanks nothing: the visible direction. The scanner is not a
+    shell parser; it reads the forms seats write and refuses the rest."""
     words, i, continued = [], 0, False
     while i < len(line):
         ch = line[i]
