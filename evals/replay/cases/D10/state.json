@@ -1,0 +1,47 @@
+{
+ "repo": {"owner": "acme", "name": "demo"},
+ "agent_login": "paul",
+ "issues": {
+  "5": {
+   "title": "Order intake",
+   "body": "**User story** — As a shopper, I see the order I just placed.",
+   "author": "paul",
+   "assignees": ["paul"],
+   "labels": ["track: spec"],
+   "createdAt": "2026-08-15T09:00:00Z",
+   "comments": []
+  }
+ },
+ "prs": {
+  "101": {
+   "number": 101,
+   "title": "Spec: #5 Order intake",
+   "state": "OPEN",
+   "isDraft": false,
+   "headRefName": "spec/5",
+   "baseRefName": "main",
+   "threads": [],
+   "reviews": [],
+   "comments": []
+  },
+  "102": {
+   "number": 102,
+   "title": "feat: implement #5",
+   "state": "MERGED",
+   "isDraft": false,
+   "headRefName": "feat/5",
+   "baseRefName": "spec/5",
+   "body": "Closes #5. Implements C1 and C2 on the shop API; the port is the API, booted by `bin/serve`.\n\n## Contract deviations\n\nnone — built as approved.\n",
+   "threads": [],
+   "reviews": [],
+   "comments": [
+    {
+     "id": 9401,
+     "author": "paul",
+     "body": "**[reviewer] · code-review** — blocking 0 · should-fix 0 · nit 0 · question 0\nreviewed-sha: {{sha:feat/5}}",
+     "created_at": "2026-08-23T10:00:00Z"
+    }
+   ]
+  }
+ }
+}

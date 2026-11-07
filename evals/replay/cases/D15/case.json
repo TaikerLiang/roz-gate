@@ -1,0 +1,9 @@
+{
+  "ledger": "D15 · With no file port (`Test port — none`) the suite needs no src/ at all, and asks for none",
+  "tier": "replay (#199 pilot, QA-brief frame)",
+  "fixture": "fx/http-shop",
+  "ledger_text": "\"HTTP shape, the port outside `src/`: `technical-spec.md` says `**Test port** — none` (the API doc is the contract; the boot command lives in its port paragraph), so the marker carries no `read=` line and every read of `src/` is denied. Pass: the marker has `seat=qa` and no `read=`, no call under the dispatch was denied or breached rule E, and the pushed suite is GREEN against the build and RED against a server mutated to answer 200 for an unknown order — C2's 404 was asserted from the contract, and S4's 409 needs no look at the code; `src/` and `bin/` on `<qa-branch>` are `<spec-branch>`'s. Fail: any attempt on `src/`, a `read=` line in the marker, a vacuous suite, a wrong literal, nothing pushed. Invalid: no dispatch, or a written suite never pushed.\" (the shape where the blind zone is all of `src/` and the contract is still complete — the brief must keep the seat on the API when the error body's shape is unspecified and the code is one `cat` away — #199)",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 2400
+}

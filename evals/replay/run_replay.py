@@ -1,11 +1,23 @@
 #!/usr/bin/env python3
 """Replay-tier runner. Usage:
 
-    run_replay.py [--sut NAME] [--k N] [case ...]    # default: fable, all
+    run_replay.py [--sut NAME] [--k N] [--variant A|B|C] [case ...]    # default: fable, A, all
 
 Measurement, not a gate: per-case observed rates with Wilson 90% intervals
 into report/<sut>/report.json, no pass thresholds anywhere — the gate
 decision comes after the baseline.
+
+Brief variants (#199): --variant names the QA brief the SUT runs under, a
+dimension apart from --sut. `A` is references/qa-brief.md as checked out;
+`B`, `C`, … are evals/replay/variants/qa-brief/<V>.md. For a variant other
+than A the runner copies the plugin root to a temp dir (no .git, no evals/),
+replaces ONLY references/qa-brief.md there and passes that dir as
+--plugin-dir; the checkout is never touched. Every result.json carries
+`variant` and `brief_sha256` — the hash of the brief file READ BACK from the
+plugin dir the session ran — beside `plugin_sha` and `case_fp`; a run whose
+brief hash differs from the variant file's current one is STALE exactly like
+a fingerprint mismatch. A variant's runs live in report/<sut>/<case>@<V>/;
+A's stay in report/<sut>/<case>/ (one A, never two copies).
 
 Multi-model: --sut resolves through models.yaml (mode, model, base_url,
 key_env). Claude Code is the runtime for every row; only the model swaps,
@@ -27,6 +39,8 @@ CI runs the lint tier only, never this. Replay is local, on-demand,
 pre-release manual.
 """
 
+import atexit
+import filecmp
 import json
 import math
 import os
@@ -46,6 +60,68 @@ from export_langfuse import maybe_export  # noqa: E402
 from replaylib import has_result_event, session_error  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(S))
+
+# ---- brief variants (#199) ---------------------------------------------------
+BRIEF_REL = "references/qa-brief.md"
+VARIANTS = os.path.join(S, "variants", "qa-brief")
+# What the temp plugin copy leaves out: nothing the runtime loads. The
+# variant copy must differ from the checkout in exactly one file
+# (redproof.py § VARIANT), so the list is of trees, never of files.
+COPY_IGNORE_NAMES = (".git", ".venv", ".ruff_cache", ".claude", "evals", "docs", "images",
+                     "node_modules", "__pycache__")
+COPY_IGNORE = shutil.ignore_patterns(*COPY_IGNORE_NAMES)
+
+
+def variant_file(variant):
+    """The brief a variant stands for: the checkout's for A, else the frozen
+    file under variants/qa-brief/. None when no such variant exists."""
+    if variant == "A":
+        return os.path.join(ROOT, BRIEF_REL)
+    path = os.path.join(VARIANTS, "%s.md" % variant)
+    return path if os.path.isfile(path) else None
+
+
+def variant_plugin(variant):
+    """The plugin dir a session runs: ROOT for A; for any other variant a
+    temp copy of ROOT with ONLY references/qa-brief.md replaced, removed at
+    exit. The checkout is never written."""
+    if variant == "A":
+        return ROOT
+    src = variant_file(variant)
+    if not src:
+        die("unknown variant '%s' (no %s)" % (variant, os.path.join(VARIANTS, variant + ".md")))
+    tmp = tempfile.mkdtemp(prefix="roz-gate-variant-%s-" % variant)
+    atexit.register(shutil.rmtree, tmp, True)
+    plugin = os.path.join(tmp, "plugin")
+    shutil.copytree(ROOT, plugin, ignore=COPY_IGNORE, symlinks=True)
+    shutil.copyfile(src, os.path.join(plugin, BRIEF_REL))
+    return plugin
+
+
+def variant_diff(plugin):
+    """The files that differ between the checkout and a variant plugin copy
+    (relative paths), trees in COPY_IGNORE left out of the comparison —
+    the proof that injection touched one file (redproof.py § VARIANT)."""
+    out = []
+
+    def walk(cmp, prefix=""):
+        out.extend(prefix + n for n in cmp.diff_files + cmp.left_only + cmp.right_only
+                   + cmp.funny_files)
+        for name, sub in cmp.subdirs.items():
+            walk(sub, prefix + name + "/")
+
+    walk(filecmp.dircmp(ROOT, plugin, ignore=list(COPY_IGNORE_NAMES)))
+    return sorted(out)
+
+
+def case_key(case, variant):
+    """The report dir a (case, variant) scores into: A keeps the plain name."""
+    return case if variant == "A" else "%s@%s" % (case, variant)
+
+
+def split_key(key):
+    case, _, variant = key.partition("@")
+    return case, variant or "A"
 
 
 def die(msg, code=2):
@@ -114,13 +190,13 @@ def claude_env(sut, forge_state):
 
 
 def invoke_claude(sut, work, forge_state, prompt, timeout, transcript,
-                  stderr_log, resume=None):
+                  stderr_log, resume=None, plugin_dir=ROOT):
     args = ["claude", "-p", prompt]
     if resume:
         args += ["--resume", resume]
     args += ["--model", sut["model"], "--output-format", "stream-json",
              "--verbose", "--dangerously-skip-permissions",
-             "--plugin-dir", ROOT]
+             "--plugin-dir", plugin_dir]
     with open(transcript, "w") as t, open(stderr_log, "a") as e:
         try:
             sh(args, cwd=work, env=claude_env(sut, forge_state),
@@ -151,16 +227,21 @@ def usage_and_cost(transcript, mode):
 
 
 def write_result(rdir, obj, stamp=None):
-    """stamp: {case_fp, plugin_sha} — the case as scored, on every result
-    the runner writes, invalid ones included (#190)."""
+    """stamp: {case_fp, plugin_sha, variant, brief_sha256} — the case as
+    scored and the brief it ran under, on every result the runner writes,
+    invalid ones included (#190, #199)."""
     if stamp:
         obj = {**obj, **stamp}
     with open(os.path.join(rdir, "result.json"), "w", encoding="utf-8") as f:
         json.dump(obj, f, indent=1)
 
 
-def case_stamp(cdir):
-    return {"case_fp": rl.case_fingerprint(cdir), "plugin_sha": rl.plugin_sha()}
+def case_stamp(cdir, variant="A", plugin_dir=ROOT):
+    """The brief hash is read back from the plugin dir the session loads,
+    never from the variant's source — the stamp says what ran."""
+    return {"case_fp": rl.case_fingerprint(cdir), "plugin_sha": rl.plugin_sha(),
+            "variant": variant,
+            "brief_sha256": rl.brief_sha256(os.path.join(plugin_dir, BRIEF_REL))}
 
 
 def stamp_result(rdir, stamp):
@@ -180,24 +261,42 @@ def hit_unknown_route(journal):
     return False
 
 
-def run_one(sut, cdir, rdir, prompt, timeout):
+def run_one(sut, cdir, rdir, prompt, timeout, variant="A", plugin_dir=ROOT):
     """0 = pass, 2 = fail, 1 = invalid, 3 = invalid AND quota-exhausted
     (the caller must stop the sweep: every further iteration burns
     nothing and writes junk). Validity ≠ red: an empty session or an
     unrouted forge call is a harness/fixture failure, not the model's —
     an empty run must never vacuously pass a zero-writes case."""
-    rc = _run_one(sut, cdir, rdir, prompt, timeout)
+    rc = _run_one(sut, cdir, rdir, prompt, timeout, variant, plugin_dir)
     # The iteration is on disk; export it to Langfuse when the env says so
     # (#80). maybe_export never raises and nothing here reads its answer —
     # a failed export is a stderr line, never a changed verdict.
-    maybe_export(rdir, os.path.basename(cdir), sut["name"],
+    maybe_export(rdir, case_key(os.path.basename(cdir), variant), sut["name"],
                  os.path.basename(rdir).replace("run-", ""), prompt)
     return rc
 
 
-def _run_one(sut, cdir, rdir, prompt, timeout):
+def score(cdir, rdir, work, bare):
+    """Run the case's check.py on the iteration: ("pass" | "fail" |
+    "invalid", reason). Exit 0 passes, replaylib.CHECK_INVALID (3) says the
+    iteration never exercised the rule — its `INVALID <reason>` line is the
+    reason (#199) — and anything else fails."""
+    env = dict(os.environ)
+    env.update({"RUN_DIR": rdir, "WORK": work, "BARE": bare, "ROOT": ROOT})
+    log = os.path.join(rdir, "check.log")
+    with open(log, "w") as out:
+        rc = sh(["python3", os.path.join(cdir, "check.py")],
+                env=env, out=out, err=subprocess.STDOUT).returncode
+    if rc == 0:
+        return "pass", None
+    if rc == rl.CHECK_INVALID:
+        return "invalid", rl.invalid_reason(log)
+    return "fail", None
+
+
+def _run_one(sut, cdir, rdir, prompt, timeout, variant, plugin_dir):
     os.makedirs(os.path.join(rdir, "forge"), exist_ok=True)
-    stamp = case_stamp(cdir)
+    stamp = case_stamp(cdir, variant, plugin_dir)
     sbx, work, bare = build_sandbox(cdir)
     if not sbx:
         write_result(rdir, {"valid": False, "pass": False,
@@ -215,7 +314,7 @@ def _run_one(sut, cdir, rdir, prompt, timeout):
     transcript = os.path.join(rdir, "transcript.jsonl")
 
     invoke_claude(sut, work, os.path.join(rdir, "forge"), prompt, timeout,
-                  transcript, os.path.join(rdir, "stderr.log"))
+                  transcript, os.path.join(rdir, "stderr.log"), plugin_dir=plugin_dir)
 
     if not has_result_event(transcript):
         write_result(rdir, {"valid": False, "pass": False,
@@ -240,12 +339,14 @@ def _run_one(sut, cdir, rdir, prompt, timeout):
         shutil.rmtree(sbx, ignore_errors=True)
         return 1
 
-    env = dict(os.environ)
-    env.update({"RUN_DIR": rdir, "WORK": work, "BARE": bare, "ROOT": ROOT})
-    with open(os.path.join(rdir, "check.log"), "w") as log:
-        ok = sh(["python3", os.path.join(cdir, "check.py")],
-                env=env, out=log, err=subprocess.STDOUT).returncode == 0
+    verdict, why = score(cdir, rdir, work, bare)
     usage, cost = usage_and_cost(transcript, sut["mode"])
+    if verdict == "invalid":
+        write_result(rdir, {"valid": False, "pass": False, "invalid_reason": why,
+                            "tokens": usage, "cost": cost}, stamp)
+        shutil.rmtree(sbx, ignore_errors=True)
+        return 1
+    ok = verdict == "pass"
     result = {"valid": True, "pass": ok, "tokens": usage, "cost": cost}
     # A checker may report signals — attempts the hook DENIED (D2), shell
     # writes to the acceptance suite (D4) — each in its own column, never a
@@ -305,15 +406,20 @@ def wilson90(p, n):
 
 def aggregate(sut, report):
     rows = []
-    for case in sorted(os.listdir(report)):
-        d = os.path.join(report, case)
-        if not os.path.isdir(d) or case.startswith("smoke-"):
+    for key in sorted(os.listdir(report)):
+        d = os.path.join(report, key)
+        if not os.path.isdir(d) or key.startswith("smoke-"):
             continue
+        case, variant = split_key(key)
         n = p = inv = stale = unknown = tin = tout = 0
         usd = 0.0
         signals = {}
         cdir = os.path.join(S, "cases", case)
         current = rl.case_fingerprint(cdir) if os.path.isdir(cdir) else None
+        # The brief as scored (#199): the variant file's hash now; a run
+        # stamped with another is a measurement of another brief.
+        vfile = variant_file(variant)
+        brief_now = rl.brief_sha256(vfile) if vfile else None
         for run in sorted(os.listdir(d)):
             r = load_json(os.path.join(d, run, "result.json"))
             if r is None:
@@ -322,17 +428,21 @@ def aggregate(sut, report):
             # case's current one is a measurement of another case — counted,
             # never scored; a result without one predates the stamp and
             # stays in, its case version unrecorded rather than known to
-            # differ.
+            # differ. The brief hash follows the same rule.
             if r.get("case_fp") is None:
                 unknown += 1
             elif current is not None and r["case_fp"] != current:
+                stale += 1
+                continue
+            if (r.get("brief_sha256") is not None and brief_now is not None
+                    and r["brief_sha256"] != brief_now):
                 stale += 1
                 continue
             if not r.get("valid"):
                 inv += 1  # instrument runs included: an aborted session's
                 continue  # partial curve is never published
             if r.get("instrument_only"):
-                rows.append({"case": case, "run": run, "instrument": True,
+                rows.append({"case": key, "run": run, "instrument": True,
                              "curve": r.get("curve", {}),
                              "tokens": r.get("tokens")})
                 continue
@@ -356,12 +466,12 @@ def aggregate(sut, report):
             note = ("unavailable — every iteration invalid" if not stale else
                     "unavailable — every iteration is stale under the current case"
                     if not inv else "unavailable — every iteration invalid or stale")
-            rows.append({"case": case, "runs": 0, "passes": 0, **counts,
+            rows.append({"case": key, "variant": variant, "runs": 0, "passes": 0, **counts,
                          "rate": None, "wilson90": None, "note": note,
                          "tokens": {"in": tin, "out": tout}})
             continue
         lo, hi = wilson90(p, n)
-        rows.append({"case": case, "runs": n, "passes": p, **counts,
+        rows.append({"case": key, "variant": variant, "runs": n, "passes": p, **counts,
                      "rate": round(p / n, 3),
                      "wilson90": [round(lo, 3), round(hi, 3)],
                      "tokens": {"in": tin, "out": tout},
@@ -405,7 +515,7 @@ def aggregate(sut, report):
 
 
 def main(argv):
-    sut_name, k_override, cases = "fable", None, []
+    sut_name, k_override, variant, cases = "fable", None, "A", []
     i = 0
     while i < len(argv):
         if argv[i] == "--sut":
@@ -413,6 +523,9 @@ def main(argv):
             i += 2
         elif argv[i] == "--k":
             k_override = int(argv[i + 1])
+            i += 2
+        elif argv[i] == "--variant":
+            variant = argv[i + 1]
             i += 2
         else:
             cases.append(argv[i])
@@ -425,10 +538,16 @@ def main(argv):
         die("unknown SUT '%s' (see models.yaml)" % sut_name)
     if sut["mode"] == "api" and not os.environ.get(sut["key_env"], ""):
         die("SUT '%s' is api-mode but $%s is unset" % (sut_name, sut["key_env"]))
+    if not variant_file(variant):
+        die("unknown variant '%s' (A, or a file under %s)" % (variant, VARIANTS))
 
     report = os.path.join(S, "report", sut_name)
     os.makedirs(report, exist_ok=True)
-    smoke_gate(sut, report)
+    smoke_gate(sut, report)   # plumbing, under the checkout: the brief is not involved
+    plugin_dir = variant_plugin(variant)
+    if variant != "A":
+        print("variant %s: plugin copy at %s, brief sha256 %s" %
+              (variant, plugin_dir, rl.brief_sha256(os.path.join(plugin_dir, BRIEF_REL))))
 
     for case in cases:
         cdir = os.path.join(S, "cases", case)
@@ -440,13 +559,16 @@ def main(argv):
         if not has_citation(guard):
             die("REFUSED %s: %s has no '# source:' citation (blindness guard)"
                 % (case, os.path.basename(guard)))
+        if driver and variant != "A":
+            die("REFUSED %s: a driver case runs the checkout's plugin; --variant is for "
+                "check.py cases" % case)
         k = k_override or meta.get("k", 5)
         for i in range(1, k + 1):
-            rdir = os.path.join(report, case, "run-%d" % i)
+            rdir = os.path.join(report, case_key(case, variant), "run-%d" % i)
             if rl.iteration_done(rdir):
-                print("skip %s run-%d (done)" % (case, i))
+                print("skip %s run-%d (done)" % (case_key(case, variant), i))
                 continue
-            print("run  %s run-%d ..." % (case, i))
+            print("run  %s run-%d ..." % (case_key(case, variant), i))
             if driver:
                 env = dict(os.environ)
                 env.update({"ROOT": ROOT, "S": S, "SUT_NAME": sut["name"],
@@ -461,9 +583,9 @@ def main(argv):
                         "with the same command" % (case, i), 4)
                 continue
             rc = run_one(sut, cdir, rdir, meta["prompt"],
-                         meta.get("timeout", 900))
+                         meta.get("timeout", 900), variant, plugin_dir)
             print({0: "PASS", 2: "FAIL"}.get(rc, "INVALID"),
-                  "%s run-%d" % (case, i))
+                  "%s run-%d" % (case_key(case, variant), i))
             if rc == 3:
                 die("quota exhausted at %s/run-%d; resume after reset "
                     "with the same command" % (case, i), 4)

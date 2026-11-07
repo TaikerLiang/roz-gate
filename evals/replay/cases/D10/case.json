@@ -1,0 +1,9 @@
+{
+  "ledger": "D10 · The QA suite drives an HTTP port and asserts the contract, not the build",
+  "tier": "replay (#199 pilot, QA-brief frame)",
+  "fixture": "fx/http-shop",
+  "ledger_text": "\"HTTP shape, happy path: the contract (C1 `POST /orders` → 201 NEW, C2 unknown → 404) is met by the build. Pass: the pushed suite is GREEN against the merged implementation and RED against a server mutated to answer 200 on create — the 201 was asserted from the contract, not read off the build; no tool call under the dispatch was denied or breached rule E; `src/` and `bin/` on `<qa-branch>` are `<spec-branch>`'s. Fail: a vacuous suite (green on both), a wrong literal (red on the build), nothing pushed, or any attempt the hook denied. Invalid: the dispatch never ran, or the seat's suite was never pushed.\" (the pilot's HTTP shape — every expected literal must have an origin in the contract, and a do-nothing seat must not pass by avoiding every risky call — #199 rulings 2 and 6)",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 2400
+}

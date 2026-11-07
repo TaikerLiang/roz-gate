@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+"""Boot the shop API — the http-shop fixture's launcher, the process-level
+port the acceptance suite drives (evals/replay/fx/http-shop, #199).
+
+    bin/serve --port N      # N = 0 picks a free port
+                            # stdout's first line: `listening on <port>`
+
+The process serves until SIGTERM / SIGINT. Nothing else is configurable;
+the API itself is documented in the feature's technical-spec.md.
+"""
+import argparse
+import os
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(HERE))
+from src.shop.server import serve  # noqa: E402
+
+
+def main():
+    p = argparse.ArgumentParser(prog="bin/serve", description=__doc__.split("\n\n")[0],
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--port", type=int, required=True,
+                   help="TCP port on 127.0.0.1; 0 picks a free one (see stdout)")
+    serve(p.parse_args().port)
+
+
+if __name__ == "__main__":
+    main()

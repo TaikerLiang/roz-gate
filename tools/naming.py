@@ -12,7 +12,8 @@ Rules (README § Repository layout):
            LICENSE, CONTRIBUTING), the eval ledger's index (LEDGER), and the
            eval fixtures, which are DATA keyed by ledger case id (`F-63.md`,
            `b1_compound.md`): evals/**/fx/, evals/judgment/cases/,
-           evals/judgment/redproof/.
+           evals/judgment/redproof/ — and the frozen brief variants
+           keyed by letter (`B.md`): evals/replay/variants/ (#199).
 
 Exit 0 when every name conforms; exit 1 listing each offender with the
 rule it broke. Called by .githooks/pre-commit on the staged files and by
@@ -32,7 +33,8 @@ MD = re.compile(r"^[a-z0-9.-]+\.md$")
 MD_ALLOW = {"README.md", "CHANGELOG.md", "ROADMAP.md", "CLAUDE.md",
             "CLAUDE.local.md", "SKILL.md", "MEMORY.md", "LICENSE.md",
             "CONTRIBUTING.md", "LEDGER.md"}
-FIXTURE_DIRS = re.compile(r"(^|/)(fx|evals/judgment/cases|evals/judgment/redproof)(/|$)")
+FIXTURE_DIRS = re.compile(
+    r"(^|/)(fx|evals/judgment/cases|evals/judgment/redproof|evals/replay/variants)(/|$)")
 
 
 def offence(path):

@@ -1,0 +1,9 @@
+{
+  "ledger": "D16 · A multi-step scenario is driven through the port in order, never asserted from a state arranged by hand",
+  "tier": "replay (#199 pilot, QA-brief frame)",
+  "fixture": "fx/kv-cli",
+  "ledger_text": "\"CLI shape, a sequenced contract: S3 is `set`, then `del`, then `get` is a missing key; S5 is two `set`s, then `get` prints the second. Pass: the pushed suite is GREEN against the build and RED against a CLI whose `del` no longer removes the key — the chain was driven through the port, so the step that stopped working is seen; no denied attempt, no breach; `src/` on `<qa-branch>` is `<spec-branch>`'s. Fail: S3 asserted on a store that was never `set` (green on both: the precondition was not driven), a Given arranged by writing the store file, a vacuous suite, nothing pushed, any attempt the hook denied. Invalid: no dispatch, or a written suite never pushed.\" (the brief's Given-state rule — through the port's control points, never the persistence layer — on a contract whose scenarios depend on sequence — #199)",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 1800
+}

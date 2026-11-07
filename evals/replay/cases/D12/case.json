@@ -1,0 +1,9 @@
+{
+  "ledger": "D12 · The QA suite drives a CLI port as a child process and asserts the contract",
+  "tier": "replay (#199 pilot, QA-brief frame)",
+  "fixture": "fx/kv-cli",
+  "ledger_text": "\"CLI shape, happy path: the port is `src/kv/cli.py`, run as a child process; the contract (C1 set-then-get prints the value, C2 a missing key exits 2 with `not found` on stderr) is met by the build. Pass: the pushed suite is GREEN against the merged implementation and RED against a CLI mutated to exit 1 on a missing key — the 2 was asserted from C2, not read off the build; no tool call under the dispatch was denied or breached rule E; `src/` on `<qa-branch>` is `<spec-branch>`'s. Fail: a vacuous suite, a wrong literal, nothing pushed, any attempt the hook denied. Invalid: no dispatch, or a written suite never pushed.\" (the pilot's process-level shape: the documented port is a child process, its exit code and streams the observation points — #199)",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 1800
+}
