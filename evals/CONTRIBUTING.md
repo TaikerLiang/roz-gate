@@ -134,7 +134,9 @@ real verdict.
   creates; the issue number matches the prompt.
 - A call the stub has no route for invalidates the iteration (INVALID,
   never red). Extend the stub for a route the case needs; never let a
-  real call fall through.
+  real call fall through. A free-form `--jq` is fine when `jq` is
+  installed (CI's ubuntu runner has it; the stub falls back to it and
+  journals `jq: system`); without it the expression is UNKNOWN.
 
 ### check.py
 

@@ -70,7 +70,11 @@ STATE = {"agent_login": "roz-gatekeeper",
                          "comments": [{"id": 1, "author": "paul",
                                        "created_at": "2026-08-23T10:00:00Z",
                                        "body": "**[reviewer] · code-review** — nit 0\n"
-                                               "reviewed-sha: {{sha:spec/5}}"}]}},
+                                               "reviewed-sha: {{sha:spec/5}}"}],
+                         "threads": [{"path": "tests/acceptance/test_x.py", "line": 3,
+                                      "comments": [{"databaseId": 9101, "author": "paul",
+                                                    "body": "**[reviewer] · fidelity** — q",
+                                                    "createdAt": "2026-08-23T10:00:00Z"}]}]}},
          "issues": {"5": {"title": "x", "labels": []},
                     "6": {"title": "y", "labels": ["track: spec"], "state": "closed"}}}
 
@@ -95,6 +99,30 @@ ROUTES = [
     ("closed issues wearing a track label (the close-out scan)",
      ["issue", "list", "--state", "closed", "--label", "track: spec", "--json", "number,labels"],
      "issue-list", '"number": 6'),
+    # #219 — a seat's free-form --jq (string interpolation, a slice, `//`, an
+    # object with an expression value) is outside the evaluated subset and
+    # was UNKNOWN: 8 of the #199 pilot's 13 iterations. The system jq answers.
+    ("free-form --jq: D10's interpolation + slice",
+     ["api", "repos/acme/demo/pulls/101/comments", "--jq",
+      '.[] | "\\(.id) \\(.path):\\(.line) \\(.body[0:46])"'],
+     "review-comments-list", "9101 tests/acceptance/test_x.py:3 **[reviewer]"),
+    ("free-form --jq: D13@B's `//` default and a literal newline",
+     ["api", "repos/acme/demo/pulls/101/comments", "--jq",
+      '.[] | "--- id=\\(.id) in_reply_to=\\(.in_reply_to_id // "-")\\n\\(.body)"'],
+     "review-comments-list", "in_reply_to=-\n**[reviewer]"),
+    ("free-form --jq: D15's object with an expression value",
+     ["api", "repos/acme/demo/pulls/101/comments", "--jq",
+      ".[] | {id, path, line, opens: (.body[0:30])}"],
+     "review-comments-list", '"opens"'),
+    ("pr edit: title + inline body, in fixture", ["pr", "edit", "101", "--title", "T2",
+                                                  "--body", "B2"], "pr-edit", ""),
+    ("pr edit: absent number", ["pr", "edit", "999", "--body", "x"], "UNKNOWN", ""),
+    # codex, PR #223: a flag the stub does not perform must not journal a write
+    ("pr edit: --base is not performed → UNKNOWN", ["pr", "edit", "101", "--base", "other"],
+     "UNKNOWN", ""),
+    ("pr edit: --add-label beside a body → UNKNOWN",
+     ["pr", "edit", "101", "--body", "x", "--add-label", "bug"], "UNKNOWN", ""),
+    ("pr edit: nothing to edit → UNKNOWN", ["pr", "edit", "101"], "UNKNOWN", ""),
 ]
 
 # (name, result.json content or None for absent, iteration_done)
@@ -112,18 +140,25 @@ RESUME = [
 ]
 
 
-def run_route(argv, cwd=None):
-    d = tempfile.mkdtemp()
+def run_route(argv, cwd=None, env=None, state_dir=None, stdin=""):
+    """One stub call against a throwaway state — or `state_dir`, kept
+    between calls so a write can be read back. `env` overrides the
+    inherited environment (the PATH-without-jq row, #219); `stdin` is
+    what a `--body-file -` reads (empty by default, so no row can hang)."""
+    d = state_dir or tempfile.mkdtemp()
     try:
-        with open(os.path.join(d, "state.json"), "w") as f:
-            json.dump(STATE, f)
+        if not state_dir:
+            with open(os.path.join(d, "state.json"), "w") as f:
+                json.dump(STATE, f)
         p = subprocess.run([sys.executable, GH] + argv, capture_output=True, text=True,
-                           env={**os.environ, "FORGE_STATE": d}, cwd=cwd)
+                           env={**(env if env is not None else os.environ), "FORGE_STATE": d},
+                           cwd=cwd, input=stdin)
         routes = [json.loads(line)["route"]
                   for line in open(os.path.join(d, "journal.jsonl")) if line.strip()]
         return p.returncode, p.stdout, routes
     finally:
-        shutil.rmtree(d, ignore_errors=True)
+        if not state_dir:
+            shutil.rmtree(d, ignore_errors=True)
 
 
 def git_sandbox():
@@ -172,6 +207,15 @@ REF_ROUTES = [
     ("pulls/<n>: REST view, head.sha from the objects",
      ["api", "repos/acme/demo/pulls/101", "--jq", ".head.sha"], "work", "pr-view", 0, None),
     ("pulls/<n>: absent number → UNKNOWN", ["api", "repos/acme/demo/pulls/999"],
+     "work", "UNKNOWN", 64, ""),
+    # #219 — D13@B read the CR's changed files; the sandbox's base...head diff answers.
+    ("pulls/<n>/files: the CR's changed files from base...head",
+     ["api", "repos/acme/demo/pulls/101/files"], "work", "pr-files", 0,
+     '"filename": "docs/specs/5/spec.md"'),
+    ("pulls/<n>/files with --jq .[].filename", ["api", "repos/acme/demo/pulls/101/files",
+                                                "--jq", ".[].filename"],
+     "work", "pr-files", 0, "docs/specs/5/technical-spec.md"),
+    ("pulls/<n>/files: absent number → UNKNOWN", ["api", "repos/acme/demo/pulls/999/files"],
      "work", "UNKNOWN", 64, ""),
     ("pulls/<n>: PATCH stays UNKNOWN", ["api", "-X", "PATCH", "repos/acme/demo/pulls/101"],
      "work", "UNKNOWN", 64, ""),
@@ -717,6 +761,138 @@ def main():
             passed, failed = passed + ok, failed + (not ok)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+    # #219 — pr edit is a write the next read sees (one state dir for both calls).
+    d = tempfile.mkdtemp()
+    try:
+        with open(os.path.join(d, "state.json"), "w") as f:
+            json.dump(STATE, f)
+        rc, _, routes = run_route(["pr", "edit", "101", "--title", "T2", "--body-file", "-"],
+                                  state_dir=d, stdin="B3 from stdin")
+        rc2, out, _ = run_route(["pr", "view", "101", "--json", "title,body"], state_dir=d)
+        last = [json.loads(line) for line in open(os.path.join(d, "journal.jsonl"))][0]
+        ok = (rc == 0 and routes == ["pr-edit"] and last.get("write") is True
+              and last.get("title_edit") is True and last.get("body_edit") is True
+              and last.get("body_from") == "stdin"
+              and rc2 == 0 and json.loads(out) == {"title": "T2", "body": "B3 from stdin"})
+        print("%s route: pr edit --title/--body-file - is a write the next pr view reads back"
+              % ("PASS" if ok else "FAIL"),
+              "" if ok else "(got rc=%d routes=%s last=%s out=%r)" % (rc, routes, last, out[:120]))
+        passed, failed = passed + ok, failed + (not ok)
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+    # codex, PR #223: a rename that also changes content — numstat spells the
+    # path `old => new`, name-status the destination; the counts must join.
+    tmp2 = tempfile.mkdtemp()
+    try:
+        genv = dict(os.environ, GIT_AUTHOR_NAME="a", GIT_AUTHOR_EMAIL="a@a",
+                    GIT_COMMITTER_NAME="a", GIT_COMMITTER_EMAIL="a@a")
+        subprocess.run(["bash", "-c",
+                        "git init -q -b main . && printf 'a\\nb\\nc\\n' > old.txt && git add -A "
+                        "&& git commit -qm one && git checkout -q -b rn/1 "
+                        "&& git mv old.txt new.txt && echo d >> new.txt "
+                        "&& printf 'x\\n' > 日本語.md && git add -A "
+                        "&& git commit -qam two && git checkout -q main"],
+                       cwd=tmp2, env=genv, check=True, capture_output=True)
+        d = tempfile.mkdtemp()
+        st = {**STATE, "prs": {"102": {"number": 102, "title": "rn", "state": "OPEN",
+                                       "headRefName": "rn/1", "baseRefName": "main"}}}
+        with open(os.path.join(d, "state.json"), "w") as f:
+            json.dump(st, f)
+        rc, out, routes = run_route(["api", "repos/acme/demo/pulls/102/files"], cwd=tmp2,
+                                    state_dir=d)
+        rows = json.loads(out) if rc == 0 else None
+        want = [{"filename": "new.txt", "status": "renamed", "additions": 1, "deletions": 0,
+                 "changes": 1, "previous_filename": "old.txt"},
+                {"filename": "日本語.md", "status": "added", "additions": 1, "deletions": 0,
+                 "changes": 1}]
+        ok = (rc == 0 and routes == ["pr-files"] and rows is not None
+              and sorted(rows, key=lambda r: r["filename"]) == want)
+        print("%s route: pulls/<n>/files joins a rename's numstat to its destination path, "
+              "and a non-ASCII path is the real path (-z)" % ("PASS" if ok else "FAIL"),
+              "" if ok else "(got rc=%d routes=%s out=%r)" % (rc, routes, out[:300]))
+        passed, failed = passed + ok, failed + (not ok)
+        shutil.rmtree(d, ignore_errors=True)
+        # codex, PR #223: a head ref git cannot resolve is UNKNOWN, never an empty list
+        d = tempfile.mkdtemp()
+        st["prs"]["102"]["headRefName"] = "nope/9"
+        with open(os.path.join(d, "state.json"), "w") as f:
+            json.dump(st, f)
+        rc, out, routes = run_route(["api", "repos/acme/demo/pulls/102/files"], cwd=tmp2,
+                                    state_dir=d)
+        ok = rc == 64 and routes == ["UNKNOWN"]
+        print("%s route: pulls/<n>/files on an unresolvable head -> UNKNOWN, not []"
+              % ("PASS" if ok else "FAIL"), "" if ok else "(got rc=%d routes=%s out=%r)"
+              % (rc, routes, out[:120]))
+        passed, failed = passed + ok, failed + (not ok)
+        shutil.rmtree(d, ignore_errors=True)
+    finally:
+        shutil.rmtree(tmp2, ignore_errors=True)
+    # codex, PR #223: the journal is append-only — an invocation's entries land
+    # in one write at exit; a second invocation's line is never rewritten.
+    d = tempfile.mkdtemp()
+    try:
+        with open(os.path.join(d, "state.json"), "w") as f:
+            json.dump(STATE, f)
+        run_route(["api", "repos/acme/demo/pulls/999"], state_dir=d)        # UNKNOWN
+        run_route(["api", "repos/acme/demo/pulls/101/comments", "--jq", '.[] | "\\(.id)"'],
+                  state_dir=d)                                               # jq: system
+        run_route(["pr", "view", "101", "--json", "title"], state_dir=d)     # pr-view
+        entries = [json.loads(line) for line in open(os.path.join(d, "journal.jsonl"))]
+        ok = ([e["route"] for e in entries] == ["UNKNOWN", "review-comments-list", "pr-view"]
+              and entries[1].get("jq") == ("system" if shutil.which("jq") else None)
+              and "jq" not in entries[0] and "jq" not in entries[2])
+        print("%s route: the journal stays append-only across invocations (UNKNOWN kept, "
+              "the evaluator field on its own entry)" % ("PASS" if ok else "FAIL"),
+              "" if ok else "(got %s)" % entries)
+        passed, failed = passed + ok, failed + (not ok)
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+    # #219 — the fallback is explicit: without jq on PATH a free-form --jq is
+    # UNKNOWN again (the dependency is named, never silent), and the subset
+    # still answers what it always did.
+    no_jq = dict(os.environ, PATH=os.pathsep.join(
+        p for p in os.environ.get("PATH", "").split(os.pathsep)
+        if p and not os.path.exists(os.path.join(p, "jq"))))
+    free = ["api", "repos/acme/demo/pulls/101/comments", "--jq", '.[] | "\\(.id)"']
+    rc, out, routes = run_route(free, env=no_jq)
+    ok = rc == 64 and routes == ["review-comments-list", "UNKNOWN"]
+    print("%s route: free-form --jq with no jq on PATH -> UNKNOWN (explicit dependency)"
+          % ("PASS" if ok else "FAIL"), "" if ok else "(got rc=%d routes=%s)" % (rc, routes))
+    passed, failed = passed + ok, failed + (not ok)
+    rc, out, routes = run_route(free[:3] + ["length"], env=no_jq)
+    ok = rc == 0 and routes == ["review-comments-list"] and out.strip() == "1"
+    print("%s route: the evaluated subset answers without jq on PATH"
+          % ("PASS" if ok else "FAIL"), "" if ok else "(got rc=%d routes=%s out=%r)"
+          % (rc, routes, out[:60]))
+    passed, failed = passed + ok, failed + (not ok)
+    d = tempfile.mkdtemp()
+    try:
+        with open(os.path.join(d, "state.json"), "w") as f:
+            json.dump(STATE, f)
+        rc, out, routes = run_route(free, state_dir=d)
+        entries = [json.loads(line) for line in open(os.path.join(d, "journal.jsonl"))]
+        with_jq = shutil.which("jq") is not None
+        ok = (rc == 0 and routes == ["review-comments-list"] and out.strip() == "9101"
+              and entries[-1].get("jq") == "system") if with_jq \
+            else (rc == 64 and routes == ["review-comments-list", "UNKNOWN"])
+        print("%s route: free-form --jq journals which evaluator answered (jq: system)"
+              % ("PASS" if ok else "FAIL"), "" if ok else "(got rc=%d routes=%s out=%r last=%s)"
+              % (rc, routes, out[:60], entries[-1] if entries else None))
+        passed, failed = passed + ok, failed + (not ok)
+        rc, out, routes = run_route(["api", "repos/acme/demo/pulls/101/comments", "--jq", "length"],
+                                    state_dir=d)
+        entries = [json.loads(line) for line in open(os.path.join(d, "journal.jsonl"))]
+        ok = rc == 0 and "jq" not in entries[-1]
+        print("%s route: a subset-evaluated --jq journals no evaluator field"
+              % ("PASS" if ok else "FAIL"), "" if ok else "(got last=%s)" % entries[-1])
+        passed, failed = passed + ok, failed + (not ok)
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+    rc, out, routes = run_route(["api", "repos/acme/demo/pulls/101/comments", "--jq", '.[] | "'])
+    ok = rc == 64 and routes == ["review-comments-list", "UNKNOWN"]
+    print("%s route: a malformed --jq with jq present -> UNKNOWN (jq rejected it)"
+          % ("PASS" if ok else "FAIL"), "" if ok else "(got rc=%d routes=%s)" % (rc, routes))
+    passed, failed = passed + ok, failed + (not ok)
     for name, argv, route, needle in ROUTES:
         rc, out, routes = run_route(argv)
         ok = routes == [route] and (rc == 64) == (route == "UNKNOWN")

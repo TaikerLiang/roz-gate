@@ -17,9 +17,11 @@ does not define is the same disease as a silent network reach). Nothing
 here touches the network, ever.
 """
 
+import atexit
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -52,13 +54,42 @@ def save(st):
 BODY_ORIGIN = {"origin": None}
 
 
+# This invocation's journal entries, appended to the file in one write
+# when the process ends (atexit; `unknown()` and `main()` flush first).
+# The journal is append-only — seats run concurrently and two stub
+# invocations overlap, so a read/truncate/rewrite could drop another
+# invocation's entry (codex review, PR #223: an UNKNOWN vanished). A
+# field learned after the route journaled (`jq: system`, #219) is set on
+# the pending entry in memory, never on the file.
+PENDING = []
+
+
 def journal(route, write=False, **kw):
     entry = {"route": route, "write": write, "argv": sys.argv[1:], "ts": time.time()}
     if BODY_ORIGIN["origin"]:
         entry["body_from"] = BODY_ORIGIN["origin"]
     entry.update(kw)
+    PENDING.append(entry)
+
+
+def flush_journal():
+    if not PENDING:
+        return
     with open(JOURNAL, "a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        f.write("".join(json.dumps(e, ensure_ascii=False) + "\n" for e in PENDING))
+    PENDING.clear()
+
+
+atexit.register(flush_journal)
+
+
+def annotate_last(**kw):
+    """Add fields to this invocation's last journal entry — the route
+    handler journals before it projects, and the projection is what learns
+    which evaluator answered the --jq (#219). In memory: the file is
+    append-only."""
+    if PENDING:
+        PENDING[-1].update(kw)
 
 
 def read_body_file(path, origin="file"):
@@ -115,6 +146,7 @@ def out(obj):
 
 def unknown(why):
     journal("UNKNOWN", note=why)
+    flush_journal()
     sys.stderr.write("forge-stub: no route for: gh %s (%s)\n"
                      % (" ".join(sys.argv[1:]), why))
     sys.exit(64)
@@ -245,6 +277,70 @@ def pr_lookup(st, sel):
     return None, None
 
 
+def resolve_ref(ref):
+    """`origin/<ref>` when the sandbox has it, else `<ref>` (expand_shas's
+    order): a seed pushes every branch to the bare remote and may or may
+    not keep a local one."""
+    for cand in ("origin/%s" % ref, ref):
+        try:
+            rp = subprocess.run(["git", "rev-parse", "--verify", "-q", cand + "^{commit}"],
+                                capture_output=True, text=True, timeout=10)
+        except (OSError, subprocess.TimeoutExpired):
+            return ref
+        if rp.returncode == 0:
+            return cand
+    return ref
+
+
+def pr_files(base, head):
+    """`pulls/<n>/files` rows from `git diff base...head`: filename, status
+    (GitHub's words), additions, deletions — the fields a seat reads. NUL
+    records (`-z`), so a non-ASCII, tab or newline pathname is the real
+    path, not git's quoted display form; a diff git cannot make (an
+    unresolvable ref) raises — the route answers UNKNOWN, never an empty
+    list (codex review, PR #223)."""
+    status_word = {"A": "added", "M": "modified", "D": "removed", "R": "renamed",
+                   "C": "copied", "T": "changed"}
+    rng = "%s...%s" % (resolve_ref(base), resolve_ref(head))
+
+    def records(kind):
+        r = subprocess.run(["git", "diff", "-z", "-M", kind, rng], capture_output=True,
+                           timeout=30)
+        if r.returncode != 0:
+            err = r.stderr.decode("utf-8", "replace").strip().splitlines() or ["git diff failed"]
+            raise RuntimeError(err[0])
+        toks = r.stdout.decode("utf-8", "surrogateescape").split("\0")
+        return toks[:-1] if toks and toks[-1] == "" else toks
+
+    counts = {}
+    toks = records("--numstat")
+    i = 0
+    while i < len(toks):
+        a, d, path = (toks[i].split("\t", 2) + ["", ""])[:3]
+        i += 1
+        if path == "" and i + 1 < len(toks):   # a rename: old, new follow as records
+            path = toks[i + 1]
+            i += 2
+        counts[path] = (int(a) if a.isdigit() else 0, int(d) if d.isdigit() else 0)
+    rows = []
+    toks = records("--name-status")
+    i = 0
+    while i + 1 < len(toks):
+        st, i = toks[i], i + 1
+        prev = None
+        if st[:1] in ("R", "C"):
+            prev, name, i = toks[i], toks[i + 1], i + 2
+        else:
+            name, i = toks[i], i + 1
+        a, d = counts.get(name, (0, 0))
+        row = {"filename": name, "status": status_word.get(st[:1], "modified"),
+               "additions": a, "deletions": d, "changes": a + d}
+        if prev is not None:
+            row["previous_filename"] = prev
+        rows.append(row)
+    return rows
+
+
 def pr_shape(pr, want):
     full = {
         "number": pr.get("number"),
@@ -345,14 +441,29 @@ def jq_eval(data, expr):
 def jq_project(data, expr):
     """Print `data` through `--jq expr` the way gh does (strings raw, else
     JSON, one output per line); no expression → the JSON itself. An
-    expression outside the evaluated subset invalidates the iteration."""
+    expression outside the evaluated subset goes to the system `jq -rc`
+    (the same output convention) when one is on PATH, and the journal's
+    entry gains `jq: system`; a malformed expression, or no `jq`,
+    invalidates the iteration (#219)."""
     if not expr:
         out(data)
         return
     try:
         vals = jq_eval(data, expr)
     except (ValueError, TypeError, AttributeError):
-        unknown("jq expression not supported by the stub: %s" % expr)
+        if not shutil.which("jq"):
+            unknown("jq expression not supported by the stub: %s" % expr)
+        try:
+            r = subprocess.run(["jq", "-rc", expr], input=json.dumps(data), capture_output=True,
+                               text=True, timeout=30)
+        except (OSError, subprocess.TimeoutExpired) as e:
+            unknown("system jq failed: %s" % e)
+        if r.returncode != 0:
+            unknown("jq rejected the expression: %s"
+                    % ((r.stderr.strip().splitlines() or ["?"])[0]))
+        annotate_last(jq="system")
+        sys.stdout.write(r.stdout)
+        return
     for v in vals:
         print(v if isinstance(v, str) else json.dumps(v, ensure_ascii=False))
 
@@ -593,6 +704,38 @@ def main():
         st["prs"][n]["isDraft"] = False
         journal("pr-ready", write=True, pr=n)
         save(st)
+        return
+
+    # ---- gh pr edit <n> --title/--body/--body-file — a write (#219: a QA
+    # seat refreshed its CR body and the call was UNKNOWN). Not an op in
+    # forge-github.md; the stub mirrors gh, the doc lists what the loop needs.
+    if argv[:2] == ["pr", "edit"]:
+        n, pr = pr_lookup(st, argv[2] if len(argv) > 2 else "")
+        if n is None:
+            unknown("pr %s not in fixture" % (argv[2] if len(argv) > 2 else ""))
+        # A flag the stub does not perform (--base, --add-label, --milestone,
+        # --add-reviewer …) would journal a write that changed nothing: an
+        # unsupported mutation stays UNKNOWN (codex review, PR #223).
+        edits = ("--title", "-t", "--body", "-b", "--body-file", "-F")
+        rest = argv[3:]
+        i = 0
+        while i < len(rest):
+            a = rest[i]
+            if a.startswith("-") and a != "-" and a.split("=", 1)[0] not in edits:
+                unknown("pr edit flag not supported by the stub: %s" % a)
+            i += 2 if a in edits else 1   # a flag's value is never a flag
+        title = flag_val(argv, "--title", "-t")
+        body = body_arg(argv)
+        if title is None and body is None:
+            unknown("pr edit without --title or --body")
+        if title is not None:
+            pr["title"] = title
+        if body is not None:
+            pr["body"] = body
+        journal("pr-edit", write=True, pr=n, title_edit=title is not None,
+                body_edit=body is not None)
+        save(st)
+        print("https://github.com/x/y/pull/%s" % n)
         return
 
     if argv[:2] == ["pr", "comment"]:
@@ -1128,6 +1271,22 @@ def main():
                         return
             unknown("review-comment-view: pr %s comment %d not in fixture" % (n, cid))
 
+        # GET a PR's changed files — read-only, from the sandbox's own
+        # base...head diff (the pr diff route's method; #219: D13@B).
+        m = re.match(r"repos/[^/]+/[^/]+/pulls/(\d+)/files$", target)
+        if m and method == "GET":
+            n = m.group(1)
+            pr = st.get("prs", {}).get(n)
+            if pr is None:
+                unknown("pr-files: pr %s not in fixture" % n)
+            try:
+                rows = pr_files(pr.get("baseRefName", ""), pr.get("headRefName", ""))
+            except (RuntimeError, OSError, subprocess.TimeoutExpired) as e:
+                unknown("pr-files: git diff failed: %s" % e)
+            journal("pr-files", pr=n)
+            jq_project(rows, flag_val(argv, "--jq", "-q"))
+            return
+
         unknown("api target not routed: %s" % target)
 
     # ---- gh label list — read-only; a roz-gate fixture repo has the
@@ -1155,3 +1314,4 @@ def main():
 
 
 main()
+flush_journal()
