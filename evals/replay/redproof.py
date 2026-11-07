@@ -117,6 +117,12 @@ ROUTES = [
     ("pr edit: title + inline body, in fixture", ["pr", "edit", "101", "--title", "T2",
                                                   "--body", "B2"], "pr-edit", ""),
     ("pr edit: absent number", ["pr", "edit", "999", "--body", "x"], "UNKNOWN", ""),
+    # codex, PR #223: a flag the stub does not perform must not journal a write
+    ("pr edit: --base is not performed → UNKNOWN", ["pr", "edit", "101", "--base", "other"],
+     "UNKNOWN", ""),
+    ("pr edit: --add-label beside a body → UNKNOWN",
+     ["pr", "edit", "101", "--body", "x", "--add-label", "bug"], "UNKNOWN", ""),
+    ("pr edit: nothing to edit → UNKNOWN", ["pr", "edit", "101"], "UNKNOWN", ""),
 ]
 
 # (name, result.json content or None for absent, iteration_done)
@@ -771,6 +777,56 @@ def main():
         print("%s route: pr edit --title/--body-file - is a write the next pr view reads back"
               % ("PASS" if ok else "FAIL"),
               "" if ok else "(got rc=%d routes=%s last=%s out=%r)" % (rc, routes, last, out[:120]))
+        passed, failed = passed + ok, failed + (not ok)
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+    # codex, PR #223: a rename that also changes content — numstat spells the
+    # path `old => new`, name-status the destination; the counts must join.
+    tmp2 = tempfile.mkdtemp()
+    try:
+        genv = dict(os.environ, GIT_AUTHOR_NAME="a", GIT_AUTHOR_EMAIL="a@a",
+                    GIT_COMMITTER_NAME="a", GIT_COMMITTER_EMAIL="a@a")
+        subprocess.run(["bash", "-c",
+                        "git init -q -b main . && printf 'a\\nb\\nc\\n' > old.txt && git add -A "
+                        "&& git commit -qm one && git checkout -q -b rn/1 "
+                        "&& git mv old.txt new.txt && echo d >> new.txt "
+                        "&& git commit -qam two && git checkout -q main"],
+                       cwd=tmp2, env=genv, check=True, capture_output=True)
+        d = tempfile.mkdtemp()
+        st = {**STATE, "prs": {"102": {"number": 102, "title": "rn", "state": "OPEN",
+                                       "headRefName": "rn/1", "baseRefName": "main"}}}
+        with open(os.path.join(d, "state.json"), "w") as f:
+            json.dump(st, f)
+        rc, out, routes = run_route(["api", "repos/acme/demo/pulls/102/files"], cwd=tmp2,
+                                    state_dir=d)
+        rows = json.loads(out) if rc == 0 else None
+        ok = (rc == 0 and routes == ["pr-files"] and rows == [
+            {"filename": "new.txt", "status": "renamed", "additions": 1, "deletions": 0,
+             "changes": 1, "previous_filename": "old.txt"}])
+        print("%s route: pulls/<n>/files joins a rename's numstat to its destination path"
+              % ("PASS" if ok else "FAIL"), "" if ok else "(got rc=%d routes=%s out=%r)"
+              % (rc, routes, out[:200]))
+        passed, failed = passed + ok, failed + (not ok)
+        shutil.rmtree(d, ignore_errors=True)
+    finally:
+        shutil.rmtree(tmp2, ignore_errors=True)
+    # codex, PR #223: the journal is append-only — an invocation's entries land
+    # in one write at exit; a second invocation's line is never rewritten.
+    d = tempfile.mkdtemp()
+    try:
+        with open(os.path.join(d, "state.json"), "w") as f:
+            json.dump(STATE, f)
+        run_route(["api", "repos/acme/demo/pulls/999"], state_dir=d)        # UNKNOWN
+        run_route(["api", "repos/acme/demo/pulls/101/comments", "--jq", '.[] | "\\(.id)"'],
+                  state_dir=d)                                               # jq: system
+        run_route(["pr", "view", "101", "--json", "title"], state_dir=d)     # pr-view
+        entries = [json.loads(line) for line in open(os.path.join(d, "journal.jsonl"))]
+        ok = ([e["route"] for e in entries] == ["UNKNOWN", "review-comments-list", "pr-view"]
+              and entries[1].get("jq") == ("system" if shutil.which("jq") else None)
+              and "jq" not in entries[0] and "jq" not in entries[2])
+        print("%s route: the journal stays append-only across invocations (UNKNOWN kept, "
+              "the evaluator field on its own entry)" % ("PASS" if ok else "FAIL"),
+              "" if ok else "(got %s)" % entries)
         passed, failed = passed + ok, failed + (not ok)
     finally:
         shutil.rmtree(d, ignore_errors=True)

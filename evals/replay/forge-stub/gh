@@ -17,6 +17,7 @@ does not define is the same disease as a silent network reach). Nothing
 here touches the network, ever.
 """
 
+import atexit
 import json
 import os
 import re
@@ -53,29 +54,42 @@ def save(st):
 BODY_ORIGIN = {"origin": None}
 
 
+# This invocation's journal entries, appended to the file in one write
+# when the process ends (atexit; `unknown()` and `main()` flush first).
+# The journal is append-only — seats run concurrently and two stub
+# invocations overlap, so a read/truncate/rewrite could drop another
+# invocation's entry (codex review, PR #223: an UNKNOWN vanished). A
+# field learned after the route journaled (`jq: system`, #219) is set on
+# the pending entry in memory, never on the file.
+PENDING = []
+
+
 def journal(route, write=False, **kw):
     entry = {"route": route, "write": write, "argv": sys.argv[1:], "ts": time.time()}
     if BODY_ORIGIN["origin"]:
         entry["body_from"] = BODY_ORIGIN["origin"]
     entry.update(kw)
+    PENDING.append(entry)
+
+
+def flush_journal():
+    if not PENDING:
+        return
     with open(JOURNAL, "a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        f.write("".join(json.dumps(e, ensure_ascii=False) + "\n" for e in PENDING))
+    PENDING.clear()
+
+
+atexit.register(flush_journal)
 
 
 def annotate_last(**kw):
-    """Add fields to the journal's last entry — the route handler journals
-    before it projects, and the projection is what learns which evaluator
-    answered the --jq (#219)."""
-    with open(JOURNAL, "r+", encoding="utf-8") as f:
-        lines = f.read().splitlines(True)
-        if not lines:
-            return
-        entry = json.loads(lines[-1])
-        entry.update(kw)
-        f.seek(0)
-        f.truncate()
-        f.writelines(lines[:-1])
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    """Add fields to this invocation's last journal entry — the route
+    handler journals before it projects, and the projection is what learns
+    which evaluator answered the --jq (#219). In memory: the file is
+    append-only."""
+    if PENDING:
+        PENDING[-1].update(kw)
 
 
 def read_body_file(path, origin="file"):
@@ -132,6 +146,7 @@ def out(obj):
 
 def unknown(why):
     journal("UNKNOWN", note=why)
+    flush_journal()
     sys.stderr.write("forge-stub: no route for: gh %s (%s)\n"
                      % (" ".join(sys.argv[1:]), why))
     sys.exit(64)
@@ -290,12 +305,19 @@ def pr_files(base, head):
                               capture_output=True, text=True, timeout=30)
     except (OSError, subprocess.TimeoutExpired):
         return []
+    def dest(path):
+        # numstat spells a rename `old => new` or `dir/{old => new}/x`;
+        # --name-status gives the destination alone (codex review, PR #223).
+        if " => " not in path:
+            return path
+        m = re.match(r"^(.*)\{(.*) => (.*)\}(.*)$", path)
+        return m.group(1) + m.group(3) + m.group(4) if m else path.split(" => ", 1)[1]
     counts = {}
     for line in nums.stdout.splitlines():
         parts = line.split("\t")
         if len(parts) >= 3:
             a, d = parts[0], parts[1]
-            counts[parts[-1]] = (int(a) if a.isdigit() else 0, int(d) if d.isdigit() else 0)
+            counts[dest(parts[-1])] = (int(a) if a.isdigit() else 0, int(d) if d.isdigit() else 0)
     rows = []
     for line in names.stdout.splitlines():
         parts = line.split("\t")
@@ -683,8 +705,21 @@ def main():
         n, pr = pr_lookup(st, argv[2] if len(argv) > 2 else "")
         if n is None:
             unknown("pr %s not in fixture" % (argv[2] if len(argv) > 2 else ""))
+        # A flag the stub does not perform (--base, --add-label, --milestone,
+        # --add-reviewer …) would journal a write that changed nothing: an
+        # unsupported mutation stays UNKNOWN (codex review, PR #223).
+        edits = ("--title", "-t", "--body", "-b", "--body-file", "-F")
+        rest = argv[3:]
+        i = 0
+        while i < len(rest):
+            a = rest[i]
+            if a.startswith("-") and a != "-" and a.split("=", 1)[0] not in edits:
+                unknown("pr edit flag not supported by the stub: %s" % a)
+            i += 2 if a in edits else 1   # a flag's value is never a flag
         title = flag_val(argv, "--title", "-t")
         body = body_arg(argv)
+        if title is None and body is None:
+            unknown("pr edit without --title or --body")
         if title is not None:
             pr["title"] = title
         if body is not None:
@@ -1268,3 +1303,4 @@ def main():
 
 
 main()
+flush_journal()
