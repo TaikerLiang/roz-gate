@@ -147,16 +147,25 @@ half-done:
    carries the italic line *raised by the fold of Q<i>* or it does not.
    - **Depth 0** (a (2a), intake or `[qa]` question): append each new item
      as `Q<k>` (append-only, A3) with one more italic line at its end —
-     *raised by the fold of Q<j>* — and THREAD-POST-INLINE it as A6 does.
-     The issue stays `in-spec-review`.
+     *raised by the fold of Q<j>* — and **collect it**: its thread is
+     posted in step 6, after the push, in A6's shape (the thread anchors
+     to the item's line, and the remote does not have that line until the
+     push — the adapters anchor to the CR's head SHA; codex review, PR
+     #230). The issue stays `in-spec-review`.
    - **Depth 1** (the item being folded was itself fold-raised): append
      each new item as `Q<k>` with the title line ending `· deferred` and
      the italic line *deferred — raised at depth 2 by the fold of Q<j>;
      resolves to its recommendation at `ready-for-dev` unless you answer it
-     on the CR* — and post **no thread**. After the pass, one top-level
-     CR-COMMENT `**[spec-answers] · deferred**` lists the deferred items
-     with their recommended options (a top-level reply from the holder is
-     an amendment and folds as one — § 3).
+     on the CR* — and post **no thread**. After the push (step 6), one
+     top-level CR-COMMENT `**[spec-answers] · deferred**` lists the
+     deferred items with their recommended options (a top-level reply from
+     the holder is an amendment and folds as one — § 3). On a **mid-flight
+     re-entry** (step 7: `ready-for-dev` was already applied, so no later
+     gate will rule) the default applies at once: the item gets its
+     `**Resolved:**` block in the same fold commit — *the recommended
+     option, by default at re-entry (<date>), unanswered* — the deferred
+     comment says so, and the resumed seat builds to it (a line born from
+     it carries `(assumed)`).
    A `**[<role>] · follow-up**` reply (step 3 below: more information
    needed on the *same* question) is not a new question and is never
    deferred. The chain is bounded at depth 1: the first round of new
@@ -188,7 +197,11 @@ through the **commit** sub-agent — one dispatch, on `helper_model` when set,
 `<spec-branch>`, the spec files and the message; it returns one `branch · sha ·
 hook` row and the hook output stays out of your context — then push from
 the returned `sha` (so the CR reflects the resolutions; `no-verify:` → say
-so; `failed:` → STOP with the excerpt). **Keep the worktree** through
+so; `failed:` → STOP with the excerpt). **Then post what the folds raised**
+(step 5): THREAD-POST-INLINE every depth-0 item collected, anchored to its
+new line on the pushed head (A6's shape), and the one
+`**[spec-answers] · deferred**` CR-COMMENT when any item was deferred —
+after the push, never before. **Keep the worktree** through
 step 7 — the post-integration re-entry runs the hand-back suites in it —
 and remove it at step 7's end.
 
@@ -233,7 +246,9 @@ depends on where the issue is — decided by CR-FIND for `<feat-branch>` /
   QA's `[qa]` contract-review findings — since 2.0.0 the implementation CR
   is normally already merged when QA's threads open): LABEL-REMOVE both
   `status: in-spec-review` and `status: processing`, then re-dispatch the
-  paused side (normally `qa`) with the amended contract so it resumes. The
+  paused side (normally `qa`) with the amended contract so it resumes —
+  naming any `· deferred` item step 5 resolved by default, so the seat
+  builds to its recommendation (`(assumed)`). The
   fold landed on `<spec-branch>` (step 6); `<qa-branch>` still carries the
   pre-amendment contract, so **bring the amended tip into the QA worktree
   first**: `git fetch`, then

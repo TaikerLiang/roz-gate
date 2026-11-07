@@ -20,14 +20,22 @@ src("E11: the seat returns the batch, never writes the section", "commands/spec-
     "it never writes\n   `## Open Questions` itself")
 src("E11: depth is read from the provenance line", "commands/spec-answers.md",
     "carries the italic line *raised by the fold of Q<i>* or it does not")
-src("E11: depth 0 posts the thread with the provenance line", "commands/spec-answers.md",
-    "*raised by the fold of Q<j>* — and THREAD-POST-INLINE it as A6 does")
+src("E11: depth 0 carries the provenance line and is collected for step 6",
+    "commands/spec-answers.md", "*raised by the fold of Q<j>* — and **collect it**")
+src("E11: the new threads are posted after the push (codex, PR #230)",
+    "commands/spec-answers.md", "**Then post what the folds raised**")
+src("E11: after the push, never before", "commands/spec-answers.md",
+    "after the push, never before")
+src("E11: a mid-flight re-entry applies the default at once (codex, PR #230)",
+    "commands/spec-answers.md", "the default applies at once")
+src("E11: the resumed seat is told what resolved by default", "commands/spec-answers.md",
+    "naming any `· deferred` item step 5 resolved by default")
 src("E11: depth 1 marks the item deferred", "commands/spec-answers.md",
     "the title line ending `· deferred`")
 src("E11: depth 1 posts no thread", "commands/spec-answers.md",
     "and post **no thread**")
 src("E11: one top-level deferred comment", "commands/spec-answers.md",
-    "CR-COMMENT `**[spec-answers] · deferred**` lists the deferred items")
+    "top-level CR-COMMENT `**[spec-answers] · deferred**` lists the\n     deferred items")
 src("E11: a follow-up is not a new question", "commands/spec-answers.md",
     "is not a new question and is never\n   deferred")
 src("E11: §7 reports deferred items apart from threads", "commands/spec-answers.md",
