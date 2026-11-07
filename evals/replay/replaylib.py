@@ -106,9 +106,11 @@ def iteration_done(rdir):
 def case_fingerprint(cdir):
     """sha256 (16 hex) over check.py — or the driver case.json names —
     case.json, seed.sh and state.json; an absent file hashes as absent. A
-    case whose seed copies a shared fixture tree (`"fixture": "fx/<name>"`
-    in case.json, relative to evals/replay — #199) hashes every file under
-    it too: the seed is the recipe, the tree is the ingredients."""
+    case that depends on shared files (`"fixture"` in case.json: a path or a
+    list of paths relative to evals/replay — fixture trees the seed copies,
+    the frame the checker imports, #199) hashes each of them too, every file
+    under a directory: the seed is the recipe, the tree is the ingredients,
+    the frame is most of the verdict."""
     try:
         with open(os.path.join(cdir, "case.json"), encoding="utf-8") as f:
             meta = json.load(f) or {}
@@ -123,15 +125,18 @@ def case_fingerprint(cdir):
         except OSError:
             data = b"<absent>"
         h.update(name.encode("utf-8") + b"\0" + data + b"\0")
-    if fixture:
-        fdir = os.path.join(S, fixture)
-        for dirpath, dirs, files in sorted(os.walk(fdir)):
-            dirs[:] = sorted(d for d in dirs if d != "__pycache__")
-            for name in sorted(files):
-                path = os.path.join(dirpath, name)
-                rel = os.path.relpath(path, S).replace(os.sep, "/")
-                with open(path, "rb") as f:
-                    h.update(rel.encode("utf-8") + b"\0" + f.read() + b"\0")
+    deps = [fixture] if isinstance(fixture, str) else list(fixture or [])
+    for dep in [d for d in deps if d]:
+        top = os.path.join(S, dep)
+        paths = [top] if os.path.isfile(top) else []
+        if not paths:
+            for dirpath, dirs, files in os.walk(top):
+                dirs[:] = sorted(d for d in dirs if d != "__pycache__")
+                paths += [os.path.join(dirpath, name) for name in sorted(files)]
+        for path in paths:
+            rel = os.path.relpath(path, S).replace(os.sep, "/")
+            with open(path, "rb") as f:
+                h.update(rel.encode("utf-8") + b"\0" + f.read() + b"\0")
     return h.hexdigest()[:16]
 
 

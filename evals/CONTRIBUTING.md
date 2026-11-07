@@ -102,7 +102,7 @@ A directory `replay/cases/<ID>/` with five files:
 
 | file | what it is |
 |---|---|
-| `case.json` | `ledger` (ID · title), `tier` and `ledger_text` (the ledger row's last two columns — the quoted outcome and its parenthetical), `prompt` (the command `claude -p` runs), `k` (default 5), `timeout` (seconds, default 900); optionally `fixture` — a tree under `replay/fx/` the seed copies in, hashed into `case_fp` with the case's own files |
+| `case.json` | `ledger` (ID · title), `tier` and `ledger_text` (the ledger row's last two columns — the quoted outcome and its parenthetical), `prompt` (the command `claude -p` runs), `k` (default 5), `timeout` (seconds, default 900); optionally `fixture` — a path or list of paths under `replay/` (fixture trees the seed copies in, the frame the checker imports), hashed into `case_fp` with the case's own files |
 | `seed.sh` | builds the sandbox repo — branches, files, config — as it stands when the command starts |
 | `state.json` | the forge (issues, labels, PRs) the stub `gh` serves |
 | `check.py` | scores one run: exit 0 PASS, exit 3 INVALID (`replaylib.invalid(reason)` — the rule was never exercised; never red), any other exit FAIL (`replay/README.md` § Verdicts) |
@@ -171,8 +171,9 @@ real verdict.
   rule, the blindness predicate, the outcome oracle that runs the pushed
   suite against the build and against a one-line mutant) — and add the
   case's mutant and its own expectations. Their seeds copy a fixture tree
-  from `replay/fx/` through `lib/qa-fixture.sh`; `case.json` names it
-  under `fixture` so the fingerprint follows it. A new QA-brief case is
+  from `replay/fx/` through `lib/qa-fixture.sh`; `case.json` lists the
+  tree, `fx/common`, `lib/qa-fixture.sh` and `qaframe.py` under `fixture`
+  so the fingerprint follows every shared dependency of the verdict. A new QA-brief case is
   one `Frame(...)`, one `MUTANT`, and a `SHAPES` table for `Proof`.
 
 ### redproof.py

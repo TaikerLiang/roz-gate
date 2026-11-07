@@ -9,7 +9,8 @@ child process; it is the one file under src/ the QA seat may read.
 
 The store is a JSON file: --store, else $KV_STORE, else ./kv.json. Exit 0
 on success. `get` and `del` of a missing key print `kv: not found: <key>`
-on stderr and exit 2. A usage error exits 64.
+on stderr and exit 2. A usage error exits 64; a store file that is not
+the CLI's own exits 65.
 """
 import argparse
 import os

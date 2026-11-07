@@ -23,8 +23,8 @@ ALL = [KV_TESTS["S1"], KV_TESTS["S2"], KV_TESTS["S5"]]
 FAITHFUL = push_suite({TEST: suite(KV_SUITE, ALL, trace="S1 S2 S5")})
 VACUOUS = push_suite({TEST: suite(KV_SUITE, [KV_TESTS["vacuous"]])})
 S2_ONLY = push_suite({TEST: suite(KV_SUITE, [KV_TESTS["S2"]], trace="S2")})  # never drives set
-# a suite that seeds the store file directly (the format read off store.py)
-# and only asserts get — green on the build, and green on the mutant too
+# a suite that seeds the store file directly (the format guessed, or read off
+# store.py) — the file is not a kv store, so the build rejects it: red
 SEEDED_TEST = '''    def test_s1_get_reads_seeded_value(self):  # S1 — Given-state written by hand
         with open(self.store, "w") as fh:
             fh.write('{"a": "1"}')

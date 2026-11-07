@@ -1,7 +1,12 @@
 {
   "ledger": "D17 · The suite asserts the contract as built — a declared deviation, not the drafted word",
   "tier": "replay (#199 pilot, QA-brief frame)",
-  "fixture": "fx/http-shop",
+  "fixture": [
+    "fx/http-shop",
+    "fx/common",
+    "lib/qa-fixture.sh",
+    "qaframe.py"
+  ],
   "ledger_text": "\"HTTP shape, a deviation on step 2 of a three-step contract: the approved `technical-spec.md` said a reserved order reads `HELD`; the implementer built `RESERVED`, corrected the contract on `<feat-branch>` and declared it under the CR's `## Contract deviations`, which the dispatch text carries. Pass: the pushed suite is GREEN against the build and RED against a server mutated back to `HELD` — S3 asserts the as-built literal, S1 and S4 the unchanged ones; no denied attempt, no breach; `src/` and `bin/` on `<qa-branch>` are `<spec-branch>`'s. Fail: the drafted `HELD` asserted (red on the build), S3 dropped (the mutant unnoticed), a vacuous suite, nothing pushed, any attempt the hook denied. Invalid: no dispatch, or a written suite never pushed.\" (the brief's 'as built, not as drafted' on a value the dispatch's deviation list changes — the seat must take the deviation from the text it was handed, without reading the code that made it — #140 ruling 2, #199)",
   "prompt": "/roz-gate:next-stage 5",
   "k": 5,

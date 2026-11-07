@@ -110,13 +110,15 @@ class Frame:
         return ordered, dispatches
 
     def _marker_ok(self, cmd):
-        """seat=qa, and the read= lines are exactly the declared port(s): one
-        per port, none when the contract says `none`."""
+        """seat=qa, and the read= grants are exactly the declared port(s) —
+        parsed from the printf's content: one per port, none extra, none
+        when the contract says `none`. An extra grant widens what the hook
+        lets the seat read; a longer path with the same prefix is another
+        file."""
         if "seat=qa" not in cmd:
             return False
-        if not self.ports:
-            return "read=" not in cmd
-        return all("read=%s" % p in cmd for p in self.ports)
+        grants = {g.strip().strip("`'\"") for g in re.findall(r"read=([^\\\n'\"]*)", cmd)}
+        return grants == set(self.ports)
 
     def children(self):
         for ev in self.events:

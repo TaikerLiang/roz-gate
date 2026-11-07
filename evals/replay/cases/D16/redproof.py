@@ -14,7 +14,7 @@ import sys
 
 CASE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(os.path.dirname(CASE)))
-from qaframe import KV_SUITE, KV_TESTS, Proof, push_suite, suite  # noqa: E402
+from qaframe import KV_SUITE, KV_TESTS, Proof, marker_cmd, push_suite, suite  # noqa: E402
 
 PORT = "src/kv/cli.py"
 TEST = "tests/acceptance/kv/test_kv.py"
@@ -39,6 +39,12 @@ S3_BY_HAND = '''    def test_s3_del_forgets(self):  # S3 — the Given written b
 '''
 HAND_SEEDED = push_suite({TEST: suite(KV_SUITE, [KV_TESTS["S1"], S3_BY_HAND, KV_TESTS["S5"]],
                                       trace=TRACE)})
+# the whole sequence asserted, but the Given written by hand: the file is not
+# a kv store (no envelope), so the build itself rejects it — red on the build
+S3_BY_HAND_FULL = S3_BY_HAND + '''        self.assertEqual(self.kv("get", "a").returncode, 2)
+'''
+HAND_SEEDED_FULL = push_suite({TEST: suite(KV_SUITE, [KV_TESTS["S1"], S3_BY_HAND_FULL,
+                                                      KV_TESTS["S5"]], trace=TRACE)})
 S1_S5_ONLY = push_suite({TEST: suite(KV_SUITE, [KV_TESTS["S1"], KV_TESTS["S5"]], trace="S1 S5")})
 VACUOUS = push_suite({TEST: suite(KV_SUITE, [KV_TESTS["vacuous"]])})
 
@@ -58,6 +64,12 @@ SHAPES = [
      "want": "fail", "before": NO_PRECONDITION, "children": CLEAN},
     {"name": "the Given written into the store file by hand, only del's exit asserted",
      "want": "fail", "before": HAND_SEEDED, "children": CLEAN},
+    {"name": "the Given written by hand and the whole chain asserted — not a kv store, red on the "
+             "build (codex review, PR #217)",
+     "want": "fail", "before": HAND_SEEDED_FULL, "children": CLEAN},
+    {"name": "the marker grants read= to the sibling beside the port (codex review, PR #217)",
+     "want": "fail", "before": FAITHFUL, "children": CLEAN,
+     "marker": marker_cmd([PORT, "src/kv/store.py"])},
     {"name": "S3 dropped — the mutant on del unnoticed",
      "want": "fail", "before": S1_S5_ONLY, "children": CLEAN},
     {"name": "vacuous suite",

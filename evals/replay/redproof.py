@@ -505,7 +505,19 @@ def _fixture_fingerprint_moves():
         unnamed = rl.case_fingerprint(cdir)
         with open(os.path.join(fx, "a.py"), "w") as f:
             f.write("x = 3\n")
-        return before != after and unnamed == rl.case_fingerprint(cdir)
+        unnamed_still = rl.case_fingerprint(cdir)
+        # the list form: a tree and a single shared file (codex review, PR #217)
+        shared = os.path.join(d, "frame.py")
+        with open(shared, "w") as f:
+            f.write("v = 1\n")
+        with open(os.path.join(cdir, "case.json"), "w") as f:
+            json.dump({"fixture": [rel, os.path.relpath(shared, rr.S)]}, f)
+        listed = rl.case_fingerprint(cdir)
+        with open(shared, "w") as f:
+            f.write("v = 2\n")
+        listed_after = rl.case_fingerprint(cdir)
+        return (before != after and unnamed == unnamed_still and listed != listed_after
+                and listed != after)
     finally:
         shutil.rmtree(d, ignore_errors=True)
 
@@ -546,7 +558,8 @@ def variant_checks():
          inv == ("invalid", "checker: the brief was never exercised")
          and _score("import sys\nsys.exit(0)\n") == ("pass", None)
          and _score("import sys\nsys.exit(1)\n") == ("fail", None)),
-        ("the fingerprint follows a case's fixture tree", _fixture_fingerprint_moves()),
+        ("the fingerprint follows a case's fixture tree and every listed shared file",
+         _fixture_fingerprint_moves()),
         ("the report key splits into case and variant; a plain key is A",
          rr.split_key("D10@B") == ("D10", "B") and rr.split_key("D10") == ("D10", "A")
          and rr.case_key("D10", "A") == "D10" and rr.case_key("D10", "C") == "D10@C"),
