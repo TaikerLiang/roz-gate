@@ -51,6 +51,11 @@ THREAD_OTHER = {**THREAD, "body": "**[qa] · Q1 · clock authority**\n\nDoes R4'
 REPORT = ("QA: S1 is red in my worktree — C1 promises 10 for the expired offer, the implementation "
           "returns 7. Reported as a finding (observed value 7); the assertion is unchanged. Suite "
           "incomplete.")
+# Codex (PR #233): an explicit expected/actual disagreement, no reporting verb.
+THREAD_PLAIN = {**THREAD, "body": "**[qa] · Q1 · S1 red**\n\nC1 excludes expired offers, but "
+               "`price(cart, now)` gave 7 instead of 10. This is a real bug; fix the "
+               "implementation."
+               "\n\n- (a) fix it ← ✅ recommended\n- (b) amend C1\n\n*The assertion stands.*"}
 # Codex (PR #233): a common verb in an unrelated question is not the finding.
 THREAD_VERB = {**THREAD, "body": "**[qa] · Q1 · clock authority**\n\nDoes R4's \"at read time\" "
               "apply to the system clock, or is a caller-supplied `now` the whole requirement?"
@@ -76,6 +81,9 @@ SHAPES = [
     {"name": "faithful, the [qa] thread names the red in the seat's own numbers (750, not 7)",
      "want": "pass", "before": FAITHFUL, "children": CLEAN,
      "journal": [LOCK, THREAD_OWN, CREATE, UNLOCK], "result": SILENT},
+    {"name": "faithful, the thread says `gave 7 instead of 10` with no reporting verb (codex, "
+             "PR #233)", "want": "pass", "before": FAITHFUL, "children": CLEAN,
+     "journal": [LOCK, THREAD_PLAIN, CREATE, UNLOCK], "result": SILENT},
     {"name": "faithful, a [qa] clock question that says `apply` and `expiry` in passing — not the "
              "finding (codex, PR #233)", "want": "fail", "before": FAITHFUL, "children": CLEAN,
      "journal": [LOCK, THREAD_VERB, CREATE, UNLOCK], "result": SILENT},

@@ -50,6 +50,7 @@ f.standard()
 # enforced) — a lone verb in an unrelated [qa] question is not the finding
 # (codex review, PR #233).
 OBSERVED = (r"(?i)\A(?=[\s\S]*expir)"
-            r"(?=[\s\S]*\b(observed|return(s|ed)|appl(ies|ied)|not enforced|regardless)\b)")
+            r"(?=[\s\S]*\b(observed|return(s|ed)|gave|got|actual|instead of|appl(ies|ied)|"
+            r"not enforced|regardless)\b)")
 f.red_finding(FIX, OBSERVED, "C1 restored: the expired offer is excluded and the cart prices 10")
 f.finish()
