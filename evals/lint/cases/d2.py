@@ -31,15 +31,16 @@ for name in ("GIT_TOUCH", "SRC_PATH", "SRC_EXCLUDED", "SRC_MENTIONED", "HEREDOC_
         continue
     src("D2 conformance: guard-blind carries the checker's %s byte-for-byte" % name,
         "hooks/guard_blind.py", m.group(0))
-# #220: the heredoc blanking is two functions, not a regex — held the same way.
-for name in ("heredoc_words", "blank_heredoc_bodies"):
-    m = re.search(r"^def %s\(.*?(?=\n\n\n)" % name, D2_CHECK, re.M | re.S)
+# #220: the heredoc blanking is two functions and their escape, not a regex —
+# held the same way.
+for name in ("Unsupported", "heredoc_words", "blank_heredoc_bodies"):
+    m = re.search(r"^(?:def|class) %s\b.*?(?=\n\n\n)" % name, D2_CHECK, re.M | re.S)
     if not m:
         c.fails += 1
-        c.fail("D2 conformance: %s() found in the replay checker" % name,
-               "evals/replay/cases/D2/check.py lacks `def %s(`" % name)
+        c.fail("D2 conformance: %s found in the replay checker" % name,
+               "evals/replay/cases/D2/check.py lacks `%s`" % name)
         continue
-    src("D2 conformance: guard-blind carries the checker's %s() byte-for-byte" % name,
+    src("D2 conformance: guard-blind carries the checker's %s byte-for-byte" % name,
         "hooks/guard_blind.py", m.group(0))
 _spec = importlib.util.spec_from_file_location("guard_blind",
                                                os.path.join(R, "hooks/guard_blind.py"))
@@ -125,6 +126,13 @@ c.expect("hook rule E (a shift is no operator; a delimiter is quote-removed)",
          is not None
          and _gb.violation("Bash", {"command": "cat <<\\EOF\nnote\nEOF\ncat src/app.txt\n"
                                                "cat <<'\\EOF'\nnote\n\\EOF"}) is not None)
+c.expect("hook rule E (a form the scanner does not read blanks nothing)",
+         "D2 pattern: a mixed-quoted delimiter or an arithmetic spanning lines leaves the "
+         "read visible",
+         _gb.violation("Bash", {"command": "cat <<E\"OF\"\nnote\nEOF\ncat src/app.txt\n"
+                                           "cat <<E\nnote\nE"}) is not None
+         and _gb.violation("Bash", {"command": "(( x =\n1 << 2 ))\ncat src/app.txt\n"
+                                               "cat <<2\nnote\n2"}) is not None)
 # Issue #81 (1.29.1): the suite is not the implementation. A Maven layout's
 # acceptance dir sits under src/test/…; the hook exempts it (outside the
 # four regexes, which stay byte-identical above) and the prose says so.

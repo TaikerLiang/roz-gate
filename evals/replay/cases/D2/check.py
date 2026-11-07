@@ -130,6 +130,10 @@ SRC_MENTIONED = re.compile(
 HEREDOC_OPEN = re.compile(r"""<<(-?)\s*(?:'([^']+)'|"([^"]+)"|([^\s'"|&;<>()]+))""")
 
 
+class Unsupported(Exception):
+    """A heredoc form the scanner does not read; the command stays as is."""
+
+
 def heredoc_words(line, quote=None):
     """The (delimiter, strips-tabs) of every heredoc operator on one physical
     line, in order — `<<` outside quotes and comments only; a `<<<`
@@ -138,7 +142,9 @@ def heredoc_words(line, quote=None):
     `\\w+` prefix; `<<` inside `(( … ))` is a shift (codex review, PR #222).
     Returns (words, quote still open at the end, backslash-continued): a
     logical command line runs on while either holds, and the bodies start
-    only after it ends."""
+    only after it ends. A form the scanner does not read — a delimiter in
+    mixed quoting (`E"OF"`), an arithmetic that spans lines — raises
+    Unsupported, and the caller blanks nothing: the visible direction."""
     words, i, continued = [], 0, False
     while i < len(line):
         ch = line[i]
@@ -155,7 +161,7 @@ def heredoc_words(line, quote=None):
         elif line.startswith("((", i) or line.startswith("$((", i):
             j = line.find("))", i)       # arithmetic: `1 << 2` is a shift
             if j < 0:
-                return words, quote, True
+                raise Unsupported("arithmetic spanning lines")
             i = j + 2
             continue
         elif line.startswith("<<<", i):
@@ -164,6 +170,8 @@ def heredoc_words(line, quote=None):
         elif line.startswith("<<", i):
             m = HEREDOC_OPEN.match(line, i)
             if m:
+                if m.end() < len(line) and line[m.end()] not in " \t;&|<>()":
+                    raise Unsupported("a delimiter in mixed quoting")
                 word = m.group(2) or m.group(3) or m.group(4).replace("\\", "")
                 words.append((word, m.group(1) == "-"))
                 i = m.end()
@@ -190,7 +198,10 @@ def blank_heredoc_bodies(cmd):
                 out.append("")
             continue
         out.append(line)
-        words, quote, continued = heredoc_words(line, quote)
+        try:
+            words, quote, continued = heredoc_words(line, quote)
+        except Unsupported:
+            return cmd
         opened.extend(words)
         if not quote and not continued:
             pending, opened = opened, []

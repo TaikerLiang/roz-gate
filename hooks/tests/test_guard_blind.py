@@ -62,6 +62,11 @@ BASH_DENIED = [
      "(( x = 1 << 2 ))\ncat src/app.txt\ncat <<2\nnote\n2", "read of src/"),
     ("rule E: a <<\\EOF delimiter terminates at EOF — the read after it denied",
      "cat <<\\EOF\nnote\nEOF\ncat src/app.txt\ncat <<'\\EOF'\nnote\n\\EOF", "read of src/"),
+    # Codex review round 5: a form the scanner does not read blanks nothing.
+    ("rule E: a mixed-quoted delimiter (E\"OF\") is unsupported — nothing blanked, the read denied",
+     "cat <<E\"OF\"\nnote\nEOF\ncat src/app.txt\ncat <<E\nnote\nE", "read of src/"),
+    ("rule E: an arithmetic spanning lines is unsupported — nothing blanked, the read denied",
+     "(( x =\n1 << 2 ))\ncat src/app.txt\ncat <<2\nnote\n2", "read of src/"),
 ]
 # (name, command) -- Bash calls under the marker that name src/ without reading it.
 BASH_ALLOWED = [
