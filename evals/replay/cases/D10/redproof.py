@@ -54,6 +54,16 @@ SETUP_MODULE = push_suite({TEST: suite(HTTP_SUITE, [HTTP_TESTS["S1"], HTTP_TESTS
     "STATE = {}\n\n\ndef setUpModule():\n    STATE[\"ready\"] = True\n\n\n"
     "class Orders(unittest.TestCase):").replace(
     "    def setUp(self):\n", "    def setUp(self):\n        assert STATE[\"ready\"]\n")})
+# the Shop helper in a sibling module, imported package-relative (__init__.py
+# files make orders/ a package) — conventional layout, must load
+HELPER_SRC = suite(HTTP_SUITE, [])
+HELPER = HELPER_SRC[HELPER_SRC.index("import json"):HELPER_SRC.index("class Orders")]
+TESTS_ONLY = ("# trace: S1 S2\nimport unittest\n\nfrom ._harness import Shop\n\n\n"
+              + HTTP_SUITE[HTTP_SUITE.index("class Orders"):].replace(
+                  "@TESTS@", HTTP_TESTS["S1"] + HTTP_TESTS["S2"]))
+PACKAGED = push_suite({"tests/acceptance/__init__.py": "",
+                       "tests/acceptance/orders/__init__.py": "",
+                       "tests/acceptance/orders/_harness.py": HELPER, TEST: TESTS_ONLY})
 EMPTY = push_suite({"tests/acceptance/orders/README.md": "# suite pending\n"})
 # a faithful suite plus a stray edit under src/ — green on the build, red on the
 # mutant, and still not QA's to make
@@ -88,6 +98,8 @@ SHAPES = [
              "review, PR #217)", "want": "pass", "before": SETUP_ASSERT, "children": CLEAN},
     {"name": "the Given initialised in setUpModule (codex review, PR #217)",
      "want": "pass", "before": SETUP_MODULE, "children": CLEAN},
+    {"name": "the helper imported package-relative (`from ._harness import Shop`) (codex review, "
+             "PR #217)", "want": "pass", "before": PACKAGED, "children": CLEAN},
     {"name": "vacuous suite — green on the build AND on the mutant",
      "want": "fail", "before": VACUOUS, "children": CLEAN},
     {"name": "the 201 bent to 200 — red on the build",
