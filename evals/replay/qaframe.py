@@ -106,7 +106,7 @@ class Frame:
                 inp = b.get("input") or {}
                 if b.get("name") == "Bash":
                     cmd = inp.get("command", "")
-                    if MARKER in cmd and "feat=%s" % self.feat in cmd and ">" in cmd:
+                    if MARKER in cmd and ">" in cmd:    # every write, whatever it names
                         ordered.append("on-qa" if self._marker_ok(cmd) else "on-other")
                     elif "rm -f" in cmd and MARKER in cmd:
                         ordered.append("off")
@@ -125,8 +125,9 @@ class Frame:
         file."""
         if "seat=qa" not in cmd:
             return False
+        feats = {g.strip() for g in re.findall(r"feat=([^\\\n'\"]*)", cmd)}
         grants = {g.strip().strip("`'\"") for g in re.findall(r"read=([^\\\n'\"]*)", cmd)}
-        return grants == set(self.ports)
+        return feats == {self.feat} and grants == set(self.ports)
 
     def children(self):
         for ev in self.events:

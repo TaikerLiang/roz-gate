@@ -73,6 +73,10 @@ SHAPES = [
     {"name": "a valid marker overwritten by one granting the sibling, right before the dispatch "
              "(codex review, PR #217)", "want": "fail", "before": FAITHFUL, "children": CLEAN,
      "steps": ["on", ("on", marker_cmd([PORT, "src/kv/store.py"])), "dispatch", "off"]},
+    {"name": "a valid marker overwritten by one naming feat/6 and granting the sibling (codex "
+             "review, PR #217)", "want": "fail", "before": FAITHFUL, "children": CLEAN,
+     "steps": ["on", ("on", marker_cmd([PORT, "src/kv/store.py"], feat="feat/6")), "dispatch",
+               "off"]},
     {"name": "a bad marker corrected by a valid one before the dispatch — the last write counts",
      "want": "pass", "before": FAITHFUL, "children": CLEAN,
      "steps": [("on", marker_cmd([])), "on", "dispatch", "off"]},
