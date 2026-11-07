@@ -2,6 +2,25 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.10.0 — a mention is not a read — 2026-11-07
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.10.0>
+
+**Behavior:** under a blind dispatch, a heredoc body that merely mentions `src/` is no longer denied; the command line around it is judged as before. The replay forge stub answers a seat's free-form `--jq` and two more `gh` calls instead of invalidating the iteration.
+
+### Hooks
+- **Rule E — a heredoc body is a mention, not a read** (#220, PR #222): `guard-blind` blanks every `<<WORD … WORD` body before the `src/` match, as it blanks echo/printf operands and comments — read the way the shell reads them (operators outside quotes and comments, bodies in order after the logical command line, each to its own terminator). A QA seat's docstring saying "nothing under `src/` is read", or a reviewer's thread text naming the implementation directory, no longer costs a denied turn (the #199 pilot: D15@B scored FAIL, D10's fidelity comment was blocked). `cat > src/x.py <<EOF` is still denied — the operand is on the command line. A heredoc form the scanner does not read (a backslashed, mixed-quoted or parenthesised delimiter, an arithmetic on the line, a substitution inside double quotes, ANSI-C quoting, an unterminated body) blanks nothing: the mention stays a read, the visible direction. Known costs, recorded: a read inside a script fed by heredoc (`python3 - <<EOF`), and a `<<` hidden in a parameter expansion — the scanner is not a shell parser.
+
+### Evals
+- **Forge stub: system `jq` fallback** (#219, PR #223): a `--jq` expression outside the stub's evaluated subset is piped through the installed `jq -rc`; the journal says which evaluator answered (`jq: system`). Without `jq` on `PATH` the expression stays UNKNOWN and the iteration INVALID. Routes added: `gh pr edit <n> --title/--body/--body-file` (write, `pr-edit`), `gh api repos/<o>/<r>/pulls/<n>/files` (read, `pr-files`, from the sandbox's own diff). The journal is append-only. The #199 pilot had lost 8 of 13 iterations to these.
+- **Lint D2** holds the heredoc scanner (`HEREDOC_OPEN`, `Unsupported`, `heredoc_words()`, `blank_heredoc_bodies()`) byte-identical between hook and checker; hook tests +34 (636); harness red-proofs +16 (93).
+
+### Docs
+- **`hooks/README.md`** rule-E row and § Instrument blindness (sixth entry: mention in a heredoc body); **`evals/replay/README.md`**, **`evals/CONTRIBUTING.md`** the `jq` fallback and its dependency.
+
+### Checks
+Hook tests 636/636 · lint 1098/1098 · red-proofs 43/43 (harness 93) · naming · ruff · judgment `--check` · ledger `--check` current · **pilot resume** (maintainer): the eight INVALID runs and D15@B deleted, the three `--variant` sweeps re-run
+
 ## v2.9.0 — the loop merges only its own — 2026-11-07
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.9.0>
