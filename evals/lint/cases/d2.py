@@ -136,7 +136,10 @@ c.expect("hook rule E (a form the scanner does not read blanks nothing)",
          and _gb.violation("Bash", {"command": "cat <<EOF\nEO\\\nF\ncat src/app.txt\n"
                                                "cat <<EOF\nnote\nEOF"}) is not None
          and _gb.violation("Bash", {"command": "cat > tests/r.sh <<'EOF'\npytest \\\n"
-                                               "  tests/ # never src/\nEOF"}) is None)
+                                               "  tests/ # never src/\nEOF"}) is None
+         and _gb.violation("Bash", {"command": "x=\"$(printf '%s' \"<<EOF \")\"\n"
+                                               "cat src/app.txt\ncat <<EOF\nnote\nEOF"})
+         is not None)
 # Issue #81 (1.29.1): the suite is not the implementation. A Maven layout's
 # acceptance dir sits under src/test/…; the hook exempts it (outside the
 # four regexes, which stay byte-identical above) and the prose says so.

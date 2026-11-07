@@ -69,6 +69,12 @@ BASH_DENIED = [
      "cat <<END\\ TEXT\nnote\nEND TEXT\ncat src/app.txt\ncat <<END\nnote\nEND", "read of src/"),
     ("rule E: a <<\\EOF body mentioning src/ is unsupported — nothing blanked, denied",
      "cat <<\\EOF > tests/README\nthe port, never src/\nEOF", "read of src/"),
+    # Codex review round 8: a substitution inside double quotes nests its own quotes.
+    ("rule E: a $( ) inside double quotes is unsupported — the read after it denied",
+     "x=\"$(printf '%s' \"<<EOF \")\"\ncat src/app.txt\ncat <<EOF\nnote\nEOF", "read of src/"),
+    ("rule E: a backslash inside a double-quoted delimiter is unsupported — the read denied",
+     "cat <<\"E\\$OF\"\nnote\nE$OF\ncat src/app.txt\ncat <<'E\\$OF'\nnote\nE\\$OF",
+     "read of src/"),
     # Codex review round 5: a form the scanner does not read blanks nothing.
     ("rule E: a mixed-quoted delimiter (E\"OF\") is unsupported — nothing blanked, the read denied",
      "cat <<E\"OF\"\nnote\nEOF\ncat src/app.txt\ncat <<E\nnote\nE", "read of src/"),

@@ -158,8 +158,9 @@ def heredoc_words(line, quote=None):
     Returns (words, quote still open at the end, backslash-continued): a
     logical command line runs on while either holds, and the bodies start
     only after it ends. A form the scanner does not read — a delimiter in
-    mixed quoting (`E"OF"`) or with a backslash (`\\EOF`, `END\\ TEXT`),
-    an arithmetic `(( … ))` on the line (`1 << 2` is a shift) — raises
+    mixed quoting (`E"OF"`) or with a backslash (`\\EOF`, `END\\ TEXT`,
+    `"E\\$OF"`), an arithmetic `(( … ))` on the line (`1 << 2` is a shift),
+    a `$(` or backtick inside double quotes (its own quotes nest) — raises
     Unsupported, and the caller blanks nothing: the visible direction."""
     words, i, continued = [], 0, False
     while i < len(line):
@@ -168,6 +169,8 @@ def heredoc_words(line, quote=None):
             i += 2
             continued = i > len(line)
             continue
+        if quote == '"' and (ch == "`" or line.startswith("$(", i)):
+            raise Unsupported("a substitution inside double quotes")
         if quote:
             quote = None if ch == quote else quote
         elif ch in "'\"":
@@ -184,9 +187,9 @@ def heredoc_words(line, quote=None):
             if m:
                 if m.end() < len(line) and line[m.end()] not in " \t;&|<>()":
                     raise Unsupported("a delimiter in mixed quoting")
-                if m.group(4) and "\\" in m.group(4):
-                    raise Unsupported("a backslash-escaped delimiter")
                 word = m.group(2) or m.group(3) or m.group(4)
+                if "\\" in word:
+                    raise Unsupported("a backslash in the delimiter")
                 words.append((word, m.group(1) == "-", word != m.group(4)))
                 i = m.end()
                 continue
