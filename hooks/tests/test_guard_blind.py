@@ -70,6 +70,10 @@ BASH_DENIED = [
     ("rule E: a <<\\EOF body mentioning src/ is unsupported — nothing blanked, denied",
      "cat <<\\EOF > tests/README\nthe port, never src/\nEOF", "read of src/"),
     # Codex review round 8: a substitution inside double quotes nests its own quotes.
+    ("rule E: an unsupported opener line leaves itself and what follows visible — denied",
+     "x=\"$(printf '%s' \"<<EOF \")\" && cat > tests/x <<'EOF'\nsee src/ never\nEOF\n"
+     "cat src/app.txt",
+     "read of src/"),
     ("rule E: a $( ) inside double quotes is unsupported — the read after it denied",
      "x=\"$(printf '%s' \"<<EOF \")\"\ncat src/app.txt\ncat <<EOF\nnote\nEOF", "read of src/"),
     ("rule E: a backslash inside a double-quoted delimiter is unsupported — the read denied",
@@ -138,6 +142,12 @@ BASH_ALLOWED = [
      "cat <<END-TEXT > tests/README\nthe port, never src/\nEND-TEXT"),
     ("rule E: a backslash-continued opener line, then a body mentioning src/, allowed",
      "cat <<EOF \\\n> tests/README\nthe port, never src/\nEOF"),
+    # #227 (2.10.0 regression, D13's reviewer): an Unsupported form AFTER a closed
+    # body — `--body "$(cat f)"` — must not un-blank the body.
+    ("rule E: a heredoc body mentioning src/, then --body \"$(cat f)\" on the next line, allowed",
+     "cat > /tmp/summary.md <<'BODYEOF'\n**[reviewer] · fidelity**\n\nblind to the implementation "
+     "(`src/kv/store.py` never read)\nBODYEOF\n"
+     "gh pr comment 103 --body \"$(cat /tmp/summary.md)\""),
     ("rule E: a QUOTED body's line ending in a backslash is literal — still blanked, allowed",
      "cat > tests/run.sh <<'EOF'\npython3 -m pytest \\\n  tests/ # never src/\nEOF"),
 ]
