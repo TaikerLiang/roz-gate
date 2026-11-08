@@ -48,6 +48,12 @@ src("F15: the report clause, needs you —, never blocked:", "commands/patrol.md
 src("F15: the report — blockers unknown needs you", "commands/patrol.md",
     "is `waits on: blockers\n  unknown` with `needs you: yes`")
 src("F15: the queue verb", "commands/patrol.md", "fix the dependency lookup — `<error>`")
+src("F15: the queue item links the issue itself (baseline: 3 of 5 wrote none)",
+    "commands/patrol.md", "Its queue item links **the\n  issue itself**")
+src("F15: the queue verb names its link", "commands/patrol.md",
+    "are unknown; its link is the issue's)")
+src("F15: a waiting row is never queued: (baseline run 4)", "commands/patrol.md",
+    "the clause is `waits on #<n>` alone, never `queued: waits\n  on …`")
 src("F15: tip's row", "commands/tip.md",
     "| waits on #<n> until it closes — patrol reads the blockers of every gated row")
 src("F15: the workflow states the wait", "references/workflow.md",

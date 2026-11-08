@@ -339,10 +339,13 @@ in the scanner's order, nothing else in it:
   A gated row the scanner holds on an open forge blocker (`waiting on: #<n>`,
   #205) is `waits on #<n>` — the open blockers only, `needs you: —`: the
   dependency clears itself when the blocker closes, so it is neither acted
-  on nor queued, and never `blocked:`. One whose blocker read failed
+  on nor queued: the clause is `waits on #<n>` alone, never `queued: waits
+  on …` and never `blocked:`. One whose blocker read failed
   (`waiting on: blockers unknown (<error>)`) is `waits on: blockers
   unknown` with `needs you: yes`: an unreadable relationship is not an
-  absent one, and someone must fix the read.
+  absent one, and someone must fix the read. Its queue item links **the
+  issue itself** — the page where the forge shows and edits its
+  relationships — like every other item, never written without it.
 - `needs you` — `yes` or `—`; `yes` whenever the next move is a human's: a
   wait, a `blocked`, an illegal row, a stale lock, an intake batch, an
   intake reply or a `· question` posted this pass, a review to merge.
@@ -356,7 +359,7 @@ order, one line each, `- #n — <verb phrase> — <link>` (answer the threads,
 answer the intake questions, read the intake reply, say `summary`, apply
 the gate label, decide the STOP, review & merge, needs an assignee, clear
 a stale lock, fix the dependency lookup — `<error>` (a row whose blockers
-are unknown), remove `status: ready-for-dev` from a stage that passed —
+are unknown; its link is the issue's), remove `status: ready-for-dev` from a stage that passed —
 nothing else: patrol resumes from the CRs, remove
 the gate label `<login>` applied — then reapply it yourself to authorize:
 re-adding a label already worn records no new event, so the bot's stays
