@@ -299,7 +299,8 @@ def git_sandbox():
                GIT_COMMITTER_NAME="a", GIT_COMMITTER_EMAIL="a@a")
     for cmd, cwd in (("git init -q --bare origin.git", tmp),
                      ("git init -q -b main work", tmp),
-                     ("git commit -q --allow-empty -m seed && git checkout -q -b spec/5 "
+                     ("printf x > 'notes,old [v2].md' && git add -A && git commit -q -m seed "
+                      "&& git checkout -q -b spec/5 "
                       "&& mkdir -p docs/specs/5 && echo '# Spec #5' > docs/specs/5/spec.md "
                       "&& echo '# Tech' > docs/specs/5/technical-spec.md && git add -A "
                       "&& git commit -qm spec && git checkout -q main "
@@ -310,6 +311,11 @@ def git_sandbox():
 
 # (name, argv, cwd kind, expected route, exit code, stdout needle)
 REF_ROUTES = [
+    # codex, PR #242: a file path is not an id — commas, quotes and brackets
+    # are legal in a filename, so the malformed-segment rule stops at contents/
+    ("contents of a file whose name carries a comma and brackets",
+     ["api", "repos/acme/demo/contents/notes,old [v2].md", "--jq", ".path"],
+     "work", "contents", 0, "notes,old [v2].md"),
     ("graphql: a PR's headRefOid, number in a variable",
      ["api", "graphql", "-f",
       "query=query($owner:String!,$repo:String!,$pr:Int!){ repository(owner:$owner,name:$repo)"

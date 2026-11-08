@@ -833,8 +833,13 @@ def main():
             # segment (`pulls/comments/`) — gh gets 404 for both. A trailing
             # `contents/` is the repository root and stays valid.
             rest_segs = target.split("/")[3:]
-            if rest_segs[-1:] == [""] and rest_segs[-2:-1] == ["contents"]:
-                rest_segs = rest_segs[:-1]
+            # A file path, a ref or a commit-ish is not an id: commas, quotes
+            # and brackets are legal there (codex, PR #242) — the check stops
+            # at contents/, git/ and commits/.
+            for i, seg in enumerate(rest_segs):
+                if seg in ("contents", "git", "commits"):
+                    rest_segs = rest_segs[:i + 1]
+                    break
             if not mt or "//" in target \
                     or not all(REPO_SEG.match(seg) for seg in mt.groups()) \
                     or any(not seg or (re.search(r'[{}\[\]"\',\s]', seg)
