@@ -2,6 +2,27 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.11.0 — a fold may ask once — 2026-11-08
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.11.0>
+
+**Behavior:** a spec-answers fold may raise a new question once. A question raised by answering a fold-raised question is deferred — recorded in `spec.md`'s `## Open Questions` as `· deferred`, listed in one `**[spec-answers] · deferred**` CR comment, and resolved to its recommendation when you apply `ready-for-dev` unless you answer it first. No hook change.
+
+### Behavior
+- **A fold may ask once** (#206, PRs #230 + #231): the first-pass fold in `commands/spec-answers.md` reads the depth of the question it folds from its provenance line. A depth-0 question's fold may post new `Q<k>` threads (each carrying *raised by the fold of Q<j>*); a depth-1 question's fold defers them — `· deferred` items under `## Open Questions`, no thread, one top-level comment carrying the recommendations. A mid-flight re-entry applies the same rule; a post-integration re-entry keeps its one `**[review] · question**` comment whatever the depth — never a thread, never deferred. `ready-for-dev` resolves what is still deferred by default (noted on the kit's `approved at` line); a rule born that way carries `(assumed)` as its provenance, never `(from Q<k>)`. Follow-ups on the same thread are unchanged.
+
+### Evals
+- **E11** (#206, replay + lint): the deferred shape on a fold whose answer needs a contract fact the spec lacks; INVALID when the fold raised nothing. Nine red-proof shapes. Baseline: not yet run (maintainer, `--sut opus --k 5 E11`).
+- **qaframe: the dispatch is the qa seat** (#232, PR #233): a `roz-gate:qa` dispatch counts as the QA dispatch whether or not its prompt names `qa-brief.md`; the commit sub-agent after the seat never does. The #199 pilot's D13@C had been scored INVALID with the brief inlined. D10 red-proofs 25 → 27.
+- **D19: the finding names the red in the seat's terms** (#199, PR #233): the observed value is the seat's own suite's, not the fixture's `7`; a `[qa]` thread about something else, or one with the verbs in passing, still fails. Run 1 had scored all three variants FAIL on the literal. D19 red-proofs 14 → 19. Every D10–D19 `case_fp` moves; run 1 stays recorded under the previous one.
+- **Pilot run 1 recorded** (`evals/README.md` § Baseline results, #199): opus, k=1, A 7/10 · B 7/10 · C 8/9 as scored (B 8/10 · C 9/9 under the corrected D19); every genuine FAIL is the QA seat reaching into `src/` beyond the declared port; the six instrument defects the run surfaced are listed.
+
+### Docs
+- `README.md` (2a) row; `references/workflow.md` (2a); `docs/index.html` (2a) card and walkthrough; `docs/learn/quiz.json` #52; `references/gate-kit.md`; `agents/product.md`, `agents/em.md`.
+
+### Checks
+Hook tests 638/638 · lint 1124/1124 · red-proofs 44/44 (E11 9, D10 27, D19 19) · naming · ruff · judgment `--check` · ledger `--check` current (replay 59)
+
 ## v2.10.1 — what the scanner read stays read — 2026-11-07
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.10.1>
