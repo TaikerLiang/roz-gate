@@ -2,6 +2,29 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.12.0 — every unreached row is queued — 2026-11-08
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.12.0>
+
+**Behavior:** the patrol report says `queued: integrate` for a stage-(6) row the pass did not reach — there is no label for integrate, and the docs now say so. Every unreached actionable row reads `queued: <action>`, never `in progress`.
+
+### Behavior
+- **Every unreached actionable row is `queued:`** (#207, PR #240): `queued: <action>` covers in-flight rows too — `queued: integrate`, `queued: address-review` — never `in progress`; gated rows keep their `· <gate label> <age>` tail (#204); a queued row is `needs you: —`. ConsoleAPI #27's holder re-applied `ready-for-dev` for want of that line.
+
+### Evals
+- **C30** (`lint + replay`, #207): two `actionable: integrate` rows at N=1 — one acted on, the other as seeded with `queued: integrate`; the lint holds patrol §4's clause, workflow's owner-table row, README and tip. Red-proof: 14 shapes; every `check.py` expect has a shape that goes red alone. Baseline: not yet run (maintainer, `--sut haiku55 --k 5 C30`).
+- **Forge stub: Haiku's `gh api` forms** (#237, PR #238): a request's method follows gh's rule everywhere (fields imply POST; `--method`); routes for `pulls/comments/<id>` GET/PATCH/DELETE, `issues/comments/<id>` DELETE, `issues/<n>/labels`, graphql `repository{ id }`, `gh pr ready --undo`; `{owner}`/`:owner` placeholders pass; every graphql and write answer honours `--jq`. A `repos/…` target whose owner or repo is not a name answers `HTTP 404` (journal `http-404`), a graphql owner that is a placeholder answers `NOT_FOUND` (`graphql-error`) — exit 1, as gh, not UNKNOWN. 19 of the #199 k=3 top-up's first 44 iterations had been INVALID on these. Harness red-proofs 97 → 120.
+- **SUT row `haiku55`** (`claude-haiku-5-5`, PR #235): new baselines run on it; `opus` stays as the reference the published rows were measured on, and rows of different SUTs are never compared. The baseline commands in `evals/replay/README.md`, `evals/judgment/README.md`, the qa-brief variants README and the plan-issue skill name `--sut haiku55`.
+
+### Tooling
+- **`/release` skill** (PR #236): `.claude/skills/release/SKILL.md` runs `docs/releasing.md` on Haiku — `prepare <x.y.z>` assembles the note from the merged PRs' `## Release note` sections, bumps, writes the pending `CHANGELOG.md` entry and opens the release PR; `publish <pr>` creates the release on the merge commit from the merged changelog entry, checks the changelog, comments "Shipped in" and cleans up. The gate runs in the release worktree before every push.
+
+### Docs
+- **`references/workflow.md`**: the owner table gains the (6) row — `integrate`, no gate label, no "go integrate" signal; the invocation policy says what a pass does not reach is `queued:`. **`README.md`** § patrol and **`commands/tip.md`** (the in-flight (4) row) say there is no label for (6).
+
+### Checks
+Hook tests 638/638 · lint 1133/1133 · red-proofs 45/45 (harness 120) · ruff · judgment `--check` · ledger `--check` current
+
 ## v2.11.0 — a fold may ask once — 2026-11-08
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.11.0>
