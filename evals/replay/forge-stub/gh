@@ -1373,6 +1373,36 @@ def main():
                             return
             unknown("comment-view: %d not in fixture" % cid)
 
+        # #205 — ISSUE-BLOCKED-BY: an issue's forge-native blockers. Fixture:
+        # `issues.<n>.blocked_by` (numbers; each blocker's state is its own
+        # issue's) and `blocked_by_error` (an HTTP status the lookup answers
+        # instead — an older GHES, a token without the scope). Patrol only
+        # reads relationships: a write here is UNKNOWN, never performed.
+        m = re.match(r"repos/[^/]+/[^/]+/issues/(\d+)/dependencies/blocked_by$", target)
+        if m:
+            n = m.group(1)
+            if method != "GET":
+                unknown("dependency write (%s): patrol never writes relationships" % method)
+            iss = st.get("issues", {}).get(n)
+            if iss is None:
+                unknown("issue-blocked-by: %s not in fixture" % n)
+            if iss.get("blocked_by_error"):
+                code = int(iss["blocked_by_error"])
+                http_error(code, {403: "Resource not accessible by integration",
+                                  404: "Not Found"}.get(code, "Error"), target=target[:120])
+            rows = []
+            for b in iss.get("blocked_by", []):
+                bi = st.get("issues", {}).get(str(b))
+                if bi is None:
+                    unknown("issue-blocked-by: blocker %s not in fixture" % b)
+                rows.append({"number": int(b), "title": bi.get("title", ""),
+                             "state": bi.get("state", "open"),
+                             "html_url": "https://github.com/x/y/issues/%s" % b,
+                             "repository": {"full_name": "acme/demo"}})
+            journal("issue-blocked-by", issue=n)
+            jq_project(rows, flag_val(argv, "--jq", "-q"))
+            return
+
         # GET one issue by number through REST — `gh issue view`'s twin
         # (D2 re-run: `gh api repos/o/r/issues/5 --jq '.title, .body'`).
         m = re.match(r"repos/[^/]+/[^/]+/issues/(\d+)$", target)

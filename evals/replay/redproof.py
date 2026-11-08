@@ -76,10 +76,29 @@ STATE = {"agent_login": "roz-gatekeeper",
                                                     "body": "**[reviewer] · fidelity** — q",
                                                     "createdAt": "2026-08-23T10:00:00Z"}]}]}},
          "issues": {"5": {"title": "x", "labels": []},
-                    "6": {"title": "y", "labels": ["track: spec"], "state": "closed"}}}
+                    "6": {"title": "y", "labels": ["track: spec"], "state": "closed"},
+                    # #205: blocked by open #5 and closed #6; #8's lookup refused
+                    "7": {"title": "z", "labels": [], "blocked_by": [5, 6]},
+                    "8": {"title": "w", "labels": [], "blocked_by_error": 403}}}
 
 # (name, argv after `gh`, expected journal route, a string stdout must carry)
 ROUTES = [
+    # #205 — ISSUE-BLOCKED-BY, read only
+    ("blocked_by: an open and a closed blocker, each with its own state",
+     ["api", "repos/acme/demo/issues/7/dependencies/blocked_by"], "issue-blocked-by",
+     '"state": "closed"'),
+    ("blocked_by: the doc's --jq projection",
+     ["api", "repos/{owner}/{repo}/issues/7/dependencies/blocked_by", "--jq",
+      "[.[] | {number, state, repo: .repository.full_name}]"], "issue-blocked-by", '"number": 5'),
+    ("blocked_by: no blockers is an empty list, not an error",
+     ["api", "repos/acme/demo/issues/5/dependencies/blocked_by"], "issue-blocked-by", "[]"),
+    ("blocked_by: an issue not in the fixture → UNKNOWN",
+     ["api", "repos/acme/demo/issues/99/dependencies/blocked_by"], "UNKNOWN", ""),
+    ("blocked_by: a POST (patrol never writes relationships) → UNKNOWN",
+     ["api", "-X", "POST", "repos/acme/demo/issues/7/dependencies/blocked_by",
+      "-F", "issue_id=1"], "UNKNOWN", ""),
+    ("blocked_by: a DELETE → UNKNOWN",
+     ["api", "-X", "DELETE", "repos/acme/demo/issues/7/dependencies/blocked_by/5"], "UNKNOWN", ""),
     # #225: the PR number of a reviewThreads query comes from whatever variable
     # the seat named — `$p` in D12's run, not only `pr` / `number`.
     ("graphql threads, PR number in a seat-named variable ($p)",
@@ -242,6 +261,8 @@ JQ_EXACT = [
 # #237 ruling 1 — a target gh itself refuses answers as gh does (exit 1, the
 # journal names the HTTP error), not UNKNOWN: (name, argv, expected route)
 GH_ERRORS = [
+    ("#205: the blocker lookup refused (an older GHES / no scope) — gh's HTTP 403",
+     ["api", "repos/acme/demo/issues/8/dependencies/blocked_by"], "http-403"),
     # haiku55 k=3 resume: the number segment is a pasted JSON fragment, or empty
     ("a JSON fragment as the PR number",
      ["api", 'repos/:owner/:repo/issues/[{"number": 102}]/comments', "--jq", ".[]"], "http-404"),
