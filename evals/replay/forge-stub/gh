@@ -365,8 +365,19 @@ def pr_shape(pr, want):
         "headRefName": pr.get("headRefName", ""),
         "baseRefName": pr.get("baseRefName", ""),
         "body": pr.get("body", ""),
+        "labels": [{"name": l} for l in pr.get("labels", [])],
     }
     return {k: v for k, v in full.items() if not want or k in want}
+
+
+def repo_labels(st):
+    """The fixture repo's label set: the plugin's scheme (state may
+    override via "labels")."""
+    return st.get("labels") or [
+        "track: spec", "track: fast", "status: ready-for-spec",
+        "status: ready-for-dev", "status: in-spec-review",
+        "status: in-user-review", "status: processing",
+        "status: blocked"]
 
 
 def api_method(argv):
@@ -714,8 +725,16 @@ def main():
     if argv[:2] == ["pr", "ready"]:
         # #237: `--undo` converts back to draft; no selector means the
         # current branch's PR, as in gh.
-        sel = positional(argv, 2) or current_branch()
+        explicit = positional(argv, 2)
+        sel = explicit or current_branch()
         n, _pr = pr_lookup(st, sel)
+        if n is None and not (explicit and explicit.isdigit()):
+            # gh reads a non-number selector as a branch name (pr view's rule)
+            # gh's own answer when the checked-out branch has no PR
+            journal("gh-error", branch=sel)
+            flush_journal()
+            sys.stderr.write('no pull requests found for branch "%s"\n' % sel)
+            sys.exit(1)
         if n is None:
             unknown("pr %s not in fixture" % sel)
         undo = "--undo" in argv
@@ -731,10 +750,11 @@ def main():
         n, pr = pr_lookup(st, argv[2] if len(argv) > 2 else "")
         if n is None:
             unknown("pr %s not in fixture" % (argv[2] if len(argv) > 2 else ""))
-        # A flag the stub does not perform (--base, --add-label, --milestone,
+        # A flag the stub does not perform (--base, --milestone,
         # --add-reviewer …) would journal a write that changed nothing: an
         # unsupported mutation stays UNKNOWN (codex review, PR #223).
-        edits = ("--title", "-t", "--body", "-b", "--body-file", "-F")
+        edits = ("--title", "-t", "--body", "-b", "--body-file", "-F",
+                 "--add-label", "--remove-label")
         rest = argv[3:]
         i = 0
         while i < len(rest):
@@ -744,14 +764,28 @@ def main():
             i += 2 if a in edits else 1   # a flag's value is never a flag
         title = flag_val(argv, "--title", "-t")
         body = body_arg(argv)
-        if title is None and body is None:
-            unknown("pr edit without --title or --body")
+        # gh splits a flag value on commas: --add-label "bug,help wanted"
+        added = [x.strip() for v in flag_vals(argv, "--add-label") for x in v.split(",")]
+        removed = [x.strip() for v in flag_vals(argv, "--remove-label") for x in v.split(",")]
+        if title is None and body is None and not added and not removed:
+            unknown("pr edit without --title, --body or a label")
+        # haiku55 k=3 (#199): gh refuses a label the repository does not have
+        # and edits nothing
+        for l in added + removed:
+            if l not in repo_labels(st):
+                journal("gh-error", pr=n, label=l)
+                flush_journal()
+                sys.stderr.write("could not add label: '%s' not found\n" % l)
+                sys.exit(1)
         if title is not None:
             pr["title"] = title
         if body is not None:
             pr["body"] = body
+        labels = pr.setdefault("labels", [])
+        labels[:] = [l for l in labels if l not in removed] + \
+            [l for l in added if l not in labels]
         journal("pr-edit", write=True, pr=n, title_edit=title is not None,
-                body_edit=body is not None)
+                body_edit=body is not None, add=added, remove=removed)
         save(st)
         print("https://github.com/x/y/pull/%s" % n)
         return
@@ -817,10 +851,27 @@ def main():
         # is not a name (a pasted JSON fragment, an empty segment from `//`)
         # is one gh answers with 404. `{owner}`/`{repo}` and `:owner`/`:repo`
         # are gh's own placeholders and pass (every route below accepts them).
+        if target.startswith("/repos/"):   # gh accepts the leading slash
+            target = target[1:]
         if target.startswith("repos/"):
             mt = re.match(r"repos/([^/]*)/([^/]*)(?:/|$)", target)
+            # Every later segment too: a pasted JSON fragment where the PR
+            # number goes (`pulls/[{"number": 102}]/comments`), or an empty
+            # segment (`pulls/comments/`) — gh gets 404 for both. A trailing
+            # `contents/` is the repository root and stays valid.
+            rest_segs = target.split("/")[3:]
+            # A file path, a ref or a commit-ish is not an id: commas, quotes
+            # and brackets are legal there (codex, PR #242) — the check stops
+            # at contents/, git/ and commits/.
+            for i, seg in enumerate(rest_segs):
+                if seg in ("contents", "git", "commits"):
+                    rest_segs = rest_segs[:i + 1]
+                    break
             if not mt or "//" in target \
-                    or not all(REPO_SEG.match(seg) for seg in mt.groups()):
+                    or not all(REPO_SEG.match(seg) for seg in mt.groups()) \
+                    or any(not seg or (re.search(r'[{}\[\]"\',\s]', seg)
+                                       and seg not in ("{owner}", "{repo}", "{branch}"))
+                           for seg in rest_segs):
                 http_error(404, "Not Found", target=target[:120])
 
         # ---- gh api user — the caller's own identity (the "who am I"
@@ -1039,31 +1090,58 @@ def main():
                 jq_project({"data": {"repository": {"id": "R_kgDOTqtK8g"}}},
                            flag_val(argv, "--jq", "-q"))
                 return
+            # haiku55 k=3: a PR's head SHA through graphql — the number as in
+            # the threads route (a literal or the variable the query names).
+            if "headRefOid" in q and "reviewThreads" not in q:
+                m2 = re.search(r"pullRequest\(\s*number:\s*(?:\$(\w+)|(\d+))", q)
+                pr = (fields.get(m2.group(1)) if m2 and m2.group(1)
+                      else m2.group(2) if m2 else None)
+                prd = st.get("prs", {}).get(str(pr))
+                if not prd:
+                    unknown("graphql headRefOid: pr %s not in fixture" % pr)
+                rp = subprocess.run(["git", "rev-parse", "--verify", "-q",
+                                     resolve_ref(prd.get("headRefName", "")) + "^{commit}"],
+                                    capture_output=True, text=True)
+                if rp.returncode != 0:
+                    unknown("graphql headRefOid: head of pr %s unresolvable" % pr)
+                journal("graphql-pr-head", pr=str(pr))
+                jq_project({"data": {"repository": {"pullRequest":
+                            {"headRefOid": rp.stdout.strip()}}}},
+                           flag_val(argv, "--jq", "-q"))
+                return
             if "reviewThreads" in q:
                 # The number is whatever the query says it is: a literal, or
                 # the variable it names — `$pr`, `$number`, `$p` (D12's seat,
                 # #225) — read from the -F/-f fields under that name. A
                 # variable no field supplies is UNKNOWN, as gh would error.
-                m2 = re.search(r"pullRequest\(\s*number:\s*(?:\$(\w+)|(\d+))", q)
-                if m2:
-                    pr = fields.get(m2.group(1)) if m2.group(1) else m2.group(2)
-                else:
-                    pr = fields.get("pr") or fields.get("number")
-                prd = st.get("prs", {}).get(str(pr))
-                if not prd:
-                    unknown("graphql threads: pr %s not in fixture" % pr)
-                journal("threads-list", pr=str(pr))
-                nodes = [{"id": t.get("id"), "isResolved": t.get("isResolved", False),
-                          "path": t.get("path"), "line": t.get("line"),
-                          "comments": {"nodes": [
-                              {"databaseId": c.get("databaseId"),
-                               "body": c.get("body", ""),
-                               "author": {"login": c.get("author", "")},
-                               "createdAt": c.get("createdAt", "")}
-                              for c in t.get("comments", [])]}}
-                         for t in prd.get("threads", [])]
-                jq_project({"data": {"repository": {"pullRequest":
-                            {"reviewThreads": {"nodes": nodes}}}}},
+                # Each `[alias:]pullRequest(number:…)` field is answered under
+                # its alias (haiku55 k=3: two PRs' threads in one query);
+                # without an alias the key is `pullRequest`, as before.
+                fields_q = re.findall(r"(?:(\w+)\s*:\s*)?pullRequest\(\s*number:\s*"
+                                      r"(?:\$(\w+)|(\d+))", q)
+                if not fields_q:
+                    fields_q = [("", "", fields.get("pr") or fields.get("number"))]
+                repo, prs_seen = {}, []
+                for alias, var, lit in fields_q:
+                    pr = fields.get(var) if var else lit
+                    prd = st.get("prs", {}).get(str(pr))
+                    if not prd:
+                        unknown("graphql threads: pr %s not in fixture" % pr)
+                    prs_seen.append(str(pr))
+                    nodes = [{"id": t.get("id"), "isResolved": t.get("isResolved", False),
+                              "path": t.get("path"), "line": t.get("line"),
+                              "comments": {"nodes": [
+                                  {"databaseId": c.get("databaseId"),
+                                   "body": c.get("body", ""),
+                                   "author": {"login": c.get("author", "")},
+                                   "createdAt": c.get("createdAt", "")}
+                                  for c in t.get("comments", [])]}}
+                             for t in prd.get("threads", [])]
+                    repo[alias or "pullRequest"] = {"reviewThreads": {"nodes": nodes}}
+                # one call, one journal entry (checkers count reads per call)
+                journal("threads-list", pr=prs_seen[0],
+                        **({"prs": prs_seen} if len(prs_seen) > 1 else {}))
+                jq_project({"data": {"repository": repo}},
                            flag_val(argv, "--jq", "-q"))   # codex, PR #238: --jq honoured
                 return
             if "resolveReviewThread" in q:
@@ -1407,6 +1485,8 @@ def main():
         # #237 — an issue's (or PR's) labels through REST, `gh issue view
         # --json labels`'s twin.
         m = re.match(r"repos/[^/]+/[^/]+/issues/(\d+)/labels$", target)
+        if m and method == "PATCH":   # GitHub has GET/POST/PUT/DELETE here, no PATCH
+            http_error(404, "Not Found", target=target[:120])
         if m and method == "GET":
             n = m.group(1)
             item = st.get("issues", {}).get(n) or st.get("prs", {}).get(n)
@@ -1423,11 +1503,7 @@ def main():
     # plugin's label scheme installed (state may override via "labels")
     if argv[:2] == ["label", "list"]:
         journal("label-list")
-        names = st.get("labels") or [
-            "track: spec", "track: fast", "status: ready-for-spec",
-            "status: ready-for-dev", "status: in-spec-review",
-            "status: in-user-review", "status: processing",
-            "status: blocked"]
+        names = repo_labels(st)
         if flag_val(argv, "--jq"):
             for nm in names:
                 print(nm)

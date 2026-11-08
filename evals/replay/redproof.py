@@ -141,9 +141,15 @@ ROUTES = [
     # codex, PR #223: a flag the stub does not perform must not journal a write
     ("pr edit: --base is not performed → UNKNOWN", ["pr", "edit", "101", "--base", "other"],
      "UNKNOWN", ""),
-    ("pr edit: --add-label beside a body → UNKNOWN",
-     ["pr", "edit", "101", "--body", "x", "--add-label", "bug"], "UNKNOWN", ""),
     ("pr edit: nothing to edit → UNKNOWN", ["pr", "edit", "101"], "UNKNOWN", ""),
+    # haiku55 k=3 (#199): labels on a PR are performed
+    ("pr edit: --add-label of a repo label", ["pr", "edit", "101", "--add-label",
+                                              "status: blocked"], "pr-edit", ""),
+    ("pr edit: --remove-label beside a body", ["pr", "edit", "101", "--body", "x",
+                                               "--remove-label", "track: spec"],
+     "pr-edit", ""),
+    ("pr edit: comma-separated labels in one value (codex review, PR #242)",
+     ["pr", "edit", "101", "--add-label", "track: spec,status: blocked"], "pr-edit", ""),
     # #237 — the forms Haiku's seats wrote in the k=3 top-up (19 of 44
     # iterations INVALID on them); every one is a call gh performs.
     ("implied POST: inline comment with -f fields and no -X (gh's rule)",
@@ -181,8 +187,16 @@ ROUTES = [
      ["api", "graphql", "-f", "query=query{repository(owner:\"acme\",name:\"demo\"){ id }}"],
      "graphql-repo-id", '"id"'),
     ("pr ready --undo: back to draft", ["pr", "ready", "101", "--undo"], "pr-draft", ""),
+    # haiku55 k=3 resume (2026-11-08): a leading slash on a write route
+    ("leading slash on an inline-comment POST",
+     ["api", "-X", "POST", "/repos/acme/demo/pulls/101/comments", "-f", "body=x", "-f",
+      "path=p", "-F", "line=1"], "thread-post-inline", '"id"'),
 ]
 
+# (also) graphql aliases: two PRs' threads in one query, each under its alias
+ALIASED_Q = ("query=query{repository(owner:\"acme\",name:\"demo\"){"
+             "a1:pullRequest(number:101){reviewThreads(first:100){nodes{path}}} "
+             "a2:pullRequest(number:101){reviewThreads(first:100){nodes{isResolved}}}}}")
 # codex, PR #238: every answer honours --jq like the REST reads do — the
 # exact stdout, since the envelope would also *contain* the needle:
 # (name, argv, expected route, exact stdout)
@@ -197,6 +211,11 @@ JQ_EXACT = [
       "{pullRequest(number:101){reviewThreads(first:100){nodes{path}}}}}",
       "--jq", ".data.repository.pullRequest.reviewThreads.nodes[].path"],
      "threads-list", "tests/acceptance/test_x.py"),
+    ("graphql threads under aliases (two pullRequest fields in one query)",
+     ["api", "graphql", "-f", ALIASED_Q, "--jq",
+      "[.data.repository.a1.reviewThreads.nodes[0].path,"
+      " .data.repository.a2.reviewThreads.nodes[0].isResolved] | @csv"],
+     "threads-list", '"tests/acceptance/test_x.py",false'),
     # codex, PR #238 round 2: the write answers too — Haiku's seats wrote
     # `--jq .id` / `--jq .html_url` on the POST and the PATCH.
     ("inline comment POST, --jq .path", ["api", "repos/acme/demo/pulls/101/comments", "-f",
@@ -223,6 +242,21 @@ JQ_EXACT = [
 # #237 ruling 1 — a target gh itself refuses answers as gh does (exit 1, the
 # journal names the HTTP error), not UNKNOWN: (name, argv, expected route)
 GH_ERRORS = [
+    # haiku55 k=3 resume: the number segment is a pasted JSON fragment, or empty
+    ("a JSON fragment as the PR number",
+     ["api", 'repos/:owner/:repo/issues/[{"number": 102}]/comments', "--jq", ".[]"], "http-404"),
+    ("a fragment's tail as the PR number", ["api", "repos/{owner}/{repo}/pulls/101},/comments"],
+     "http-404"),
+    ("an empty id segment (trailing slash)",
+     ["api", "-X", "DELETE", "repos/acme/demo/pulls/comments/"], "http-404"),
+    ("PATCH on an issue's labels — GitHub has no such endpoint",
+     ["api", "-X", "PATCH", "repos/{owner}/{repo}/issues/5/labels"], "http-404"),
+    ("pr ready --undo with no selector, the current branch has no PR",
+     ["pr", "ready", "--undo"], "gh-error"),
+    ("pr ready with a JSON fragment as the selector (gh reads it as a branch)",
+     ["pr", "ready", '[{"number": 103}]'], "gh-error"),
+    ("pr edit --add-label of a label the repo does not have (gh: 'x' not found)",
+     ["pr", "edit", "101", "--add-label", "x"], "gh-error"),
     ("a JSON fragment pasted as owner/repo, `//` in the path",
      ["api", 'repos/{"owner": {"login": "acme"}, "name": "demo"}//issues/1', "--jq", ".[]"],
      "http-404"),
@@ -284,7 +318,8 @@ def git_sandbox():
                GIT_COMMITTER_NAME="a", GIT_COMMITTER_EMAIL="a@a")
     for cmd, cwd in (("git init -q --bare origin.git", tmp),
                      ("git init -q -b main work", tmp),
-                     ("git commit -q --allow-empty -m seed && git checkout -q -b spec/5 "
+                     ("printf x > 'notes,old [v2].md' && git add -A && git commit -q -m seed "
+                      "&& git checkout -q -b spec/5 "
                       "&& mkdir -p docs/specs/5 && echo '# Spec #5' > docs/specs/5/spec.md "
                       "&& echo '# Tech' > docs/specs/5/technical-spec.md && git add -A "
                       "&& git commit -qm spec && git checkout -q main "
@@ -295,6 +330,18 @@ def git_sandbox():
 
 # (name, argv, cwd kind, expected route, exit code, stdout needle)
 REF_ROUTES = [
+    # codex, PR #242: a file path is not an id — commas, quotes and brackets
+    # are legal in a filename, so the malformed-segment rule stops at contents/
+    ("contents of a file whose name carries a comma and brackets",
+     ["api", "repos/acme/demo/contents/notes,old [v2].md", "--jq", ".path"],
+     "work", "contents", 0, "notes,old [v2].md"),
+    ("graphql: a PR's headRefOid, number in a variable",
+     ["api", "graphql", "-f",
+      "query=query($owner:String!,$repo:String!,$pr:Int!){ repository(owner:$owner,name:$repo)"
+      "{ pullRequest(number:$pr){ headRefOid } } }",
+      "-F", "owner=acme", "-F", "repo=demo", "-F", "pr=101",
+      "--jq", ".data.repository.pullRequest.headRefOid"],
+     "work", "graphql-pr-head", 0, None),
     ("branch present → its SHA",
      ["api", "repos/acme/demo/git/ref/heads/spec%2F5", "--jq", ".object.sha"],
      "work", "git-ref", 0, None),
