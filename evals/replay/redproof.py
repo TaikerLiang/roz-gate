@@ -148,6 +148,8 @@ ROUTES = [
     ("pr edit: --remove-label beside a body", ["pr", "edit", "101", "--body", "x",
                                                "--remove-label", "track: spec"],
      "pr-edit", ""),
+    ("pr edit: comma-separated labels in one value (codex review, PR #242)",
+     ["pr", "edit", "101", "--add-label", "track: spec,status: blocked"], "pr-edit", ""),
     # #237 — the forms Haiku's seats wrote in the k=3 top-up (19 of 44
     # iterations INVALID on them); every one is a call gh performs.
     ("implied POST: inline comment with -f fields and no -X (gh's rule)",

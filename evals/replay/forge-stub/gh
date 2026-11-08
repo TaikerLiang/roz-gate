@@ -764,8 +764,9 @@ def main():
             i += 2 if a in edits else 1   # a flag's value is never a flag
         title = flag_val(argv, "--title", "-t")
         body = body_arg(argv)
-        added = flag_vals(argv, "--add-label")
-        removed = flag_vals(argv, "--remove-label")
+        # gh splits a flag value on commas: --add-label "bug,help wanted"
+        added = [x.strip() for v in flag_vals(argv, "--add-label") for x in v.split(",")]
+        removed = [x.strip() for v in flag_vals(argv, "--remove-label") for x in v.split(",")]
         if title is None and body is None and not added and not removed:
             unknown("pr edit without --title, --body or a label")
         # haiku55 k=3 (#199): gh refuses a label the repository does not have
