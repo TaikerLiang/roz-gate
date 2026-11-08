@@ -2,6 +2,25 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.13.0 — A questioned scenario still gets its test — 2026-11-08
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.13.0>
+
+**Behavior:** a QA seat's `[qa]` question no longer leaves a drivable scenario untested, and guard-blind no longer denies a blind dispatch's read of its declared port or suite when the session's cwd is inside `.git`.
+
+### Behavior
+- **A questioned scenario is not an undrivable one** (#243): `references/qa-brief.md` step zero now has QA write a scenario's test now whenever the contract as built and the declared port can drive it, and a `[qa]` question coexists with that test. Only an undrivable scenario waits on its `Q<k>`: one with no usable clause, or one missing a control or observation point in the declared port. The report says why it waits. A test changes when an approved answer changes the contract, never to match observed behaviour. `commands/next-stage.md` B2.5 says the same. Found by the #199 Haiku reading, where 12 of 15 FAILs were a one-scenario spec left with an empty suite.
+
+### Evals
+- **Lint E12**: the step-zero and B2.5 statements.
+- **Forge stub: Haiku's forms, round 2** (follow-up to #237): every path segment is checked, so a JSON fragment where the PR number goes, or an empty id segment, answers gh's `HTTP 404`; `/repos/…` with a leading slash routes on writes too; graphql `pullRequest{ headRefOid }` answers the head's SHA; `PATCH …/issues/<n>/labels` answers 404; `gh pr ready --undo` with no PR for the checked-out branch answers gh's own error, as does a non-number selector; graphql aliases answer per PR; `gh pr edit --add-label/--remove-label` is performed, an unknown label is gh's error. Harness red-proofs 120 → 133.
+
+### Hooks
+- **guard-blind: a cwd inside `.git` resolves the main worktree** (#245): a session that `cd`'d into the git common dir to write the marker left its sub-agents there. From that cwd the hook found no toplevel, so the marker's `read=` port, and the suite, were denied as reads under `src/`. Under #199 ruling 2 a denied attempt is a violation. The hook now resolves the repository's main worktree from there; everything else under `src/` stays denied.
+
+### Checks
+Hook tests 642/642 · lint 1140/1140 · red-proofs 45/45 · ruff · ledger `--check` current
+
 ## v2.12.0 — every unreached row is queued — 2026-11-08
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.12.0>
