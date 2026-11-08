@@ -2,6 +2,24 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.14.0 — Patrol reads forge-native blockers — 2026-11-08
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.14.0>
+
+**Behavior:** patrol holds a gated issue back while the forge records an open blocker for it.
+
+### Behavior
+- **Patrol reads forge-native blockers** (#205): `ready-for-spec` / `ready-for-dev` rows are read with the new `ISSUE-BLOCKERS` op (GitHub's `blocked by`, GitLab's `is_blocked_by` links). An open blocker reads `waits on #n` and the issue is not started; a closed one releases it. A lookup the forge refuses reads `blockers unknown` and lands in your queue. `/roz-gate:tip` says the same. Patrol only reads relationships; it never writes one.
+
+### Evals
+- **F15** (replay + lint): a gated row with an open blocker waits. Forge-stub `dependencies/blocked_by` route; harness red-proofs 133 → 140.
+
+### Tooling
+- **`/release` runs the full gate once per release** (#248): the bump commit is proven to touch only `plugin.json` and `CHANGELOG.md`, then lint and `ledger --check` run, instead of a second full gate.
+
+### Checks
+Hook tests 642/642 · lint 1158/1158 · red-proofs 46/46 · ruff · ledger `--check` current
+
 ## v2.13.0 — A questioned scenario still gets its test — 2026-11-08
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.13.0>
