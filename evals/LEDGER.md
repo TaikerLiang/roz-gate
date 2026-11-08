@@ -155,6 +155,7 @@ refuses a rule that lands unindexed (#189).
 | E9 | QA's contract review reaches the holder as `[qa]` spec-CR threads | lint + replay (#140 ruling 3, 2.0.0) | "QA's finding batch is posted by the main agent as `**[qa] · Q<k> · <label>**` threads on the spec CR (rule F bullets), `in-spec-review` applied, the item appended to `spec.md`'s Open Questions; the QA CR opens and stays a draft; spec-answers' mid-flight re-entry resumes qa." (a contradiction between the as-built contract and a spec rule, found by QA's first step, is a question for the holder — never interpreted into a test, never left in QA's report where no gate reads it) |
 | E10 | the implementation CR declares its contract deviations | hook (guard-gate rule H) + lint (#140, 2.0.0) | — |
 | E11 | A fold may ask once — the second-order question is deferred | replay + lint (#206) | "The depth-1 thread (Q6, itself raised by the fold of Q3) is folded and resolved; the question its answer forces — the cart line has no timestamp — lands in `spec.md`'s `## Open Questions` as `Q7 … · deferred` naming the fold of Q6, with no thread posted; one `**[spec-answers] · deferred**` CR comment names it; labels end `in-spec-review` alone." (ConsoleAPI #1: folding Q6/Q7 raised Q8/Q9 — every fold could send the issue back behind the human gate for another pass; ruling (c): a fold may ask once, the chain is bounded at depth 1) |
+| E12 | A `[qa]` finding does not stop a scenario's test | lint (defect 2.12.0-, #243) | — |
 
 ### F · the loop end to end
 

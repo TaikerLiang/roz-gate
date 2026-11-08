@@ -60,8 +60,17 @@ label>**` (the main agent assigns `k`), the question as one sentence, the
 options as `- (a)` / `- (b)` bullets with `← ✅ recommended` on one, one
 italic line of why — so the main agent can post it verbatim as a thread on
 the spec CR (guard-gate rule F denies a question without its bullets). You
-do not stop on a finding: continue with the scenarios it does not touch, and
-say in the report which scenarios wait on which `Q<k>`. The QA CR stays a
+do not stop on a finding, and **a questioned scenario is not an undrivable
+one**. When the contract as built and the declared port give you enough to
+drive a scenario, write its test now, against the clause as it stands; a
+`Q<k>` that touches the scenario coexists with its test. A scenario is
+**undrivable** only when no usable clause states its outcome, or the
+declared port lacks a control or observation point it needs (an untestable
+clause, a port gap) — and only an undrivable scenario waits on its `Q<k>`.
+Say in the report which scenarios wait on which `Q<k>`, and why each is
+undrivable. When an approved answer changes the contract, update the test
+to the newly approved contract; never edit an assertion to match what the
+implementation returned (§ Run the suite). The QA CR stays a
 draft until every `[qa]` thread is resolved and the suite is complete.
 
 ## The suite — through the port only
@@ -122,7 +131,7 @@ reads your assertions against the spec text before that.
 
 Your report to the main agent: the step-zero batch (or `none`), the
 scenario→test map, the `uncovered` rows with their §5 citations, the
-scenarios that wait on a `Q<k>`, the result of your last run (green, or the
+scenarios that wait on a `Q<k>` (each with why it is undrivable), the result of your last run (green, or the
 red classified as above), and whether the suite is **complete** — the one
 word `next-stage` keys CR-READY on. You never commit (the commit sub-agent
 does), never post to the forge, never touch `<feat-branch>` or

@@ -573,8 +573,10 @@ anchored to its line (every agent question comment starts with `**[`; the
 options are `- (a)` / `- (b)` bullets — rule F). LABEL-ADD
 `status: in-spec-review`: the backward transition. The answers fold through
 `/roz-gate:spec-answers`, whose mid-flight re-entry re-dispatches `qa` with
-the amended contract. QA did not stop — the scenarios the batch does not
-touch are already written — so B2.6 still opens its CR. An empty batch
+the amended contract. QA did not stop — every scenario the contract can drive
+is already written, a questioned one included (only an undrivable scenario
+waits) — so B2.6 still opens
+its CR. An empty batch
 writes nothing here.
 
 ### B2.6 Commit + push + open the QA CR (target = the spec branch)
