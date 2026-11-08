@@ -89,7 +89,7 @@ ROUTES = [
      '"state": "closed"'),
     ("blocked_by: the doc's --jq projection, --paginate (codex review, PR #249)",
      ["api", "--paginate", "repos/{owner}/{repo}/issues/7/dependencies/blocked_by", "--jq",
-      "[.[] | {number, state, repo: .repository.full_name}]"], "issue-blocked-by", '"number": 5'),
+      "[.[] | {number, state, url: .html_url}]"], "issue-blocked-by", '"url": "https://github.com/x/y/issues/5"'),
     ("blocked_by: no blockers is an empty list, not an error",
      ["api", "repos/acme/demo/issues/5/dependencies/blocked_by"], "issue-blocked-by", "[]"),
     ("blocked_by: an issue not in the fixture → UNKNOWN",

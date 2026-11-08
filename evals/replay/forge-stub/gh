@@ -1398,7 +1398,7 @@ def main():
                 rows.append({"number": int(b), "title": bi.get("title", ""),
                              "state": bi.get("state", "open"),
                              "html_url": "https://github.com/x/y/issues/%s" % b,
-                             "repository": {"full_name": "acme/demo"}})
+                             "repository_url": "https://api.github.com/repos/x/y"})
             journal("issue-blocked-by", issue=n)
             jq_project(rows, flag_val(argv, "--jq", "-q"))
             return
