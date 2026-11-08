@@ -597,6 +597,22 @@ class RuleE_TestPortIsReadable(HookTest):
         with self.case("port: the suite stays readable beside the port"):
             self.assertAllowed(self.run_bash("cat %s/ExpiryTest.java" % self.SUITE))
 
+    def test_cwd_inside_the_git_dir(self):
+        """#245: a session that cd'd into the common dir to write the marker
+        leaves its sub-agents there; the hook fired from `<repo>/.git` found
+        no toplevel and the port's exemption resolved nothing."""
+        repo, port, gitdir = self.repo, self.PORT, self.repo / ".git"
+        with self.case("cwd inside .git: Read of the absolute port file allowed"):
+            self.assertAllowed(self.tool("Read", cwd=gitdir, file_path=str(repo / port)))
+        with self.case("cwd inside .git: cat of the absolute port file allowed"):
+            self.assertAllowed(self.run_bash("cat %s/%s" % (repo, port), cwd=gitdir))
+        with self.case("cwd inside .git: the suite stays readable"):
+            self.assertAllowed(self.tool("Read", cwd=gitdir,
+                                         file_path=str(repo / self.SUITE / "ExpiryTest.java")))
+        with self.case("cwd inside .git: a Read of src/main is still denied"):
+            self.assertDenied(self.tool("Read", cwd=gitdir, file_path=str(repo / self.MAIN)),
+                              "a Read under src/")
+
     def test_everything_else_stays_denied(self):
         repo, port, kit = self.repo, self.PORT, self.KIT
         for name, cmd in [
