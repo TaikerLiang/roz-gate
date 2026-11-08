@@ -187,6 +187,10 @@ ROUTES = [
       "path=p", "-F", "line=1"], "thread-post-inline", '"id"'),
 ]
 
+# (also) graphql aliases: two PRs' threads in one query, each under its alias
+ALIASED_Q = ("query=query{repository(owner:\"acme\",name:\"demo\"){"
+             "a1:pullRequest(number:101){reviewThreads(first:100){nodes{path}}} "
+             "a2:pullRequest(number:101){reviewThreads(first:100){nodes{isResolved}}}}}")
 # codex, PR #238: every answer honours --jq like the REST reads do — the
 # exact stdout, since the envelope would also *contain* the needle:
 # (name, argv, expected route, exact stdout)
@@ -201,6 +205,11 @@ JQ_EXACT = [
       "{pullRequest(number:101){reviewThreads(first:100){nodes{path}}}}}",
       "--jq", ".data.repository.pullRequest.reviewThreads.nodes[].path"],
      "threads-list", "tests/acceptance/test_x.py"),
+    ("graphql threads under aliases (two pullRequest fields in one query)",
+     ["api", "graphql", "-f", ALIASED_Q, "--jq",
+      "[.data.repository.a1.reviewThreads.nodes[0].path,"
+      " .data.repository.a2.reviewThreads.nodes[0].isResolved] | @csv"],
+     "threads-list", '"tests/acceptance/test_x.py",false'),
     # codex, PR #238 round 2: the write answers too — Haiku's seats wrote
     # `--jq .id` / `--jq .html_url` on the POST and the PATCH.
     ("inline comment POST, --jq .path", ["api", "repos/acme/demo/pulls/101/comments", "-f",
@@ -238,6 +247,8 @@ GH_ERRORS = [
      ["api", "-X", "PATCH", "repos/{owner}/{repo}/issues/5/labels"], "http-404"),
     ("pr ready --undo with no selector, the current branch has no PR",
      ["pr", "ready", "--undo"], "gh-error"),
+    ("pr ready with a JSON fragment as the selector (gh reads it as a branch)",
+     ["pr", "ready", '[{"number": 103}]'], "gh-error"),
     ("a JSON fragment pasted as owner/repo, `//` in the path",
      ["api", 'repos/{"owner": {"login": "acme"}, "name": "demo"}//issues/1', "--jq", ".[]"],
      "http-404"),

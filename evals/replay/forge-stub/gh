@@ -717,7 +717,8 @@ def main():
         explicit = positional(argv, 2)
         sel = explicit or current_branch()
         n, _pr = pr_lookup(st, sel)
-        if n is None and not explicit:
+        if n is None and not (explicit and explicit.isdigit()):
+            # gh reads a non-number selector as a branch name (pr view's rule)
             # gh's own answer when the checked-out branch has no PR
             journal("gh-error", branch=sel)
             flush_journal()
@@ -1087,26 +1088,34 @@ def main():
                 # the variable it names — `$pr`, `$number`, `$p` (D12's seat,
                 # #225) — read from the -F/-f fields under that name. A
                 # variable no field supplies is UNKNOWN, as gh would error.
-                m2 = re.search(r"pullRequest\(\s*number:\s*(?:\$(\w+)|(\d+))", q)
-                if m2:
-                    pr = fields.get(m2.group(1)) if m2.group(1) else m2.group(2)
-                else:
-                    pr = fields.get("pr") or fields.get("number")
-                prd = st.get("prs", {}).get(str(pr))
-                if not prd:
-                    unknown("graphql threads: pr %s not in fixture" % pr)
-                journal("threads-list", pr=str(pr))
-                nodes = [{"id": t.get("id"), "isResolved": t.get("isResolved", False),
-                          "path": t.get("path"), "line": t.get("line"),
-                          "comments": {"nodes": [
-                              {"databaseId": c.get("databaseId"),
-                               "body": c.get("body", ""),
-                               "author": {"login": c.get("author", "")},
-                               "createdAt": c.get("createdAt", "")}
-                              for c in t.get("comments", [])]}}
-                         for t in prd.get("threads", [])]
-                jq_project({"data": {"repository": {"pullRequest":
-                            {"reviewThreads": {"nodes": nodes}}}}},
+                # Each `[alias:]pullRequest(number:…)` field is answered under
+                # its alias (haiku55 k=3: two PRs' threads in one query);
+                # without an alias the key is `pullRequest`, as before.
+                fields_q = re.findall(r"(?:(\w+)\s*:\s*)?pullRequest\(\s*number:\s*"
+                                      r"(?:\$(\w+)|(\d+))", q)
+                if not fields_q:
+                    fields_q = [("", "", fields.get("pr") or fields.get("number"))]
+                repo, prs_seen = {}, []
+                for alias, var, lit in fields_q:
+                    pr = fields.get(var) if var else lit
+                    prd = st.get("prs", {}).get(str(pr))
+                    if not prd:
+                        unknown("graphql threads: pr %s not in fixture" % pr)
+                    prs_seen.append(str(pr))
+                    nodes = [{"id": t.get("id"), "isResolved": t.get("isResolved", False),
+                              "path": t.get("path"), "line": t.get("line"),
+                              "comments": {"nodes": [
+                                  {"databaseId": c.get("databaseId"),
+                                   "body": c.get("body", ""),
+                                   "author": {"login": c.get("author", "")},
+                                   "createdAt": c.get("createdAt", "")}
+                                  for c in t.get("comments", [])]}}
+                             for t in prd.get("threads", [])]
+                    repo[alias or "pullRequest"] = {"reviewThreads": {"nodes": nodes}}
+                # one call, one journal entry (checkers count reads per call)
+                journal("threads-list", pr=prs_seen[0],
+                        **({"prs": prs_seen} if len(prs_seen) > 1 else {}))
+                jq_project({"data": {"repository": repo}},
                            flag_val(argv, "--jq", "-q"))   # codex, PR #238: --jq honoured
                 return
             if "resolveReviewThread" in q:
