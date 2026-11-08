@@ -144,6 +144,20 @@ def out(obj):
     print(json.dumps(obj, ensure_ascii=False))
 
 
+REPO_SEG = re.compile(r"^(?:[A-Za-z0-9_.-]+|\{owner\}|\{repo\}|:owner|:repo)$")
+
+
+def http_error(status, text, **kw):
+    """gh's own answer to a request GitHub refuses — not UNKNOWN: what gh
+    does here is known, and the seat's recovery from its own bad call is
+    the behaviour under measurement (#237: Haiku's seats pasted a JSON
+    fragment into the path 13 times in 44 iterations)."""
+    journal("http-%d" % status, **kw)
+    flush_journal()
+    sys.stderr.write("gh: %s (HTTP %d)\n" % (text, status))
+    sys.exit(1)
+
+
 def unknown(why):
     journal("UNKNOWN", note=why)
     flush_journal()
@@ -698,11 +712,15 @@ def main():
         return
 
     if argv[:2] == ["pr", "ready"]:
-        n, _pr = pr_lookup(st, argv[2])
+        # #237: `--undo` converts back to draft; no selector means the
+        # current branch's PR, as in gh.
+        sel = positional(argv, 2) or current_branch()
+        n, _pr = pr_lookup(st, sel)
         if n is None:
-            unknown("pr %s not in fixture" % argv[2])
-        st["prs"][n]["isDraft"] = False
-        journal("pr-ready", write=True, pr=n)
+            unknown("pr %s not in fixture" % sel)
+        undo = "--undo" in argv
+        st["prs"][n]["isDraft"] = undo
+        journal("pr-draft" if undo else "pr-ready", write=True, pr=n)
         save(st)
         return
 
@@ -794,6 +812,16 @@ def main():
         method = api_method(argv)
         if method == "GET" and flag_val(argv, "-X", "--method"):
             query.update(api_fields(argv))   # explicit GET: fields are query params
+
+        # #237 — a `repos/<owner>/<repo>/…` target whose owner or repo segment
+        # is not a name (a pasted JSON fragment, an empty segment from `//`)
+        # is one gh answers with 404. `{owner}`/`{repo}` and `:owner`/`:repo`
+        # are gh's own placeholders and pass (every route below accepts them).
+        if target.startswith("repos/"):
+            mt = re.match(r"repos/([^/]*)/([^/]*)(?:/|$)", target)
+            if not mt or "//" in target \
+                    or not all(REPO_SEG.match(seg) for seg in mt.groups()):
+                http_error(404, "Not Found", target=target[:120])
 
         # ---- gh api user — the caller's own identity (the "who am I"
         # probe; judgment sweep F-67). The login is the fixture's
@@ -996,6 +1024,21 @@ def main():
                         and argv[i + 1].startswith("query="):
                     q = argv[i + 1].split("=", 1)[1]
             fields = api_fields(argv)
+            # #237 — an owner that is not a name (a `{o}` placeholder left in,
+            # a pasted JSON fragment) is gh's NOT_FOUND error, not UNKNOWN.
+            mo = re.search(r'owner:\s*"([^"]*)"', q)
+            if mo and not re.match(r"^[A-Za-z0-9_.-]+$", mo.group(1)):
+                journal("graphql-error", owner=mo.group(1)[:40])
+                flush_journal()
+                sys.stderr.write("gh: Could not resolve to a Repository with the name "
+                                 "'%s'. (NOT_FOUND)\n" % mo.group(1)[:40])
+                sys.exit(1)
+            # #237 — `repository(owner:…,name:…){ id }` alone: the node id.
+            if re.search(r"repository\([^)]*\)\s*\{\s*id\s*\}", q):
+                journal("graphql-repo-id")
+                jq_project({"data": {"repository": {"id": "R_kgDOTqtK8g"}}},
+                           flag_val(argv, "--jq", "-q"))
+                return
             if "reviewThreads" in q:
                 # The number is whatever the query says it is: a literal, or
                 # the variable it names — `$pr`, `$number`, `$p` (D12's seat,
@@ -1019,8 +1062,9 @@ def main():
                                "createdAt": c.get("createdAt", "")}
                               for c in t.get("comments", [])]}}
                          for t in prd.get("threads", [])]
-                out({"data": {"repository": {"pullRequest":
-                    {"reviewThreads": {"nodes": nodes}}}}})
+                jq_project({"data": {"repository": {"pullRequest":
+                            {"reviewThreads": {"nodes": nodes}}}}},
+                           flag_val(argv, "--jq", "-q"))   # codex, PR #238: --jq honoured
                 return
             if "resolveReviewThread" in q:
                 tid = fields.get("t") or fields.get("threadId")
@@ -1030,8 +1074,9 @@ def main():
                             t["isResolved"] = True
                             journal("thread-resolve", write=True, thread=tid)
                             save(st)
-                            out({"data": {"resolveReviewThread":
-                                {"thread": {"isResolved": True}}}})
+                            jq_project({"data": {"resolveReviewThread":
+                                        {"thread": {"isResolved": True}}}},
+                                       flag_val(argv, "--jq", "-q"))
                             return
                 unknown("resolve: thread %s not in fixture" % tid)
             unknown("graphql query not routed")
@@ -1057,7 +1102,7 @@ def main():
             return
 
         m = re.match(r"repos/[^/]+/[^/]+/issues/(\d+)/comments$", target)
-        if m and flag_val(argv, "-X") == "POST":
+        if m and method == "POST":   # #237: fields imply POST, as in gh
             # POST to the issues comments endpoint = top-level comment write
             # (works for PRs too — they are issues).
             n = m.group(1)
@@ -1073,7 +1118,11 @@ def main():
             journal("pr-comment" if n in st.get("prs", {}) else "issue-comment",
                     write=True, pr=n, body=fields.get("body", ""), via="api")
             save(st)
-            out({"id": cid})
+            jq_project({"id": cid, "body": fields.get("body", ""),
+                        "user": {"login": st.get("agent_login", "paul")},
+                        "html_url": "https://github.com/x/y/%s/%s#issuecomment-%d"
+                                    % ("pull" if n in st.get("prs", {}) else "issues", n, cid)},
+                       flag_val(argv, "--jq", "-q"))   # codex, PR #238: --jq honoured
             return
 
         # ---- gh api repos/o/r/issues/<n>/timeline — the issue's events, for
@@ -1157,7 +1206,7 @@ def main():
             return
 
         m = re.match(r"repos/[^/]+/[^/]+/pulls/(\d+)/comments$", target)
-        if m and "-X" in argv and flag_val(argv, "-X") == "POST":
+        if m and method == "POST":   # #237: fields imply POST, as in gh
             n = m.group(1)
             if n not in st.get("prs", {}):
                 unknown("thread-post: pr %s not in fixture" % n)
@@ -1173,7 +1222,11 @@ def main():
             journal("thread-post-inline", write=True, pr=n,
                     body=fields.get("body", ""), path=fields.get("path"))
             save(st)
-            out({"id": cid})
+            jq_project({"id": cid, "body": fields.get("body", ""),
+                        "path": fields.get("path"), "line": fields.get("line"),
+                        "user": {"login": st.get("agent_login", "paul")},
+                        "html_url": "https://github.com/x/y/pull/%s#discussion_r%d" % (n, cid)},
+                       flag_val(argv, "--jq", "-q"))   # codex, PR #238: --jq honoured
             return
 
         m = re.match(r"repos/[^/]+/[^/]+/pulls/(\d+)/comments/(\d+)/replies$",
@@ -1192,12 +1245,17 @@ def main():
                     journal("thread-reply", write=True, pr=n, base=base,
                             body=fields.get("body", ""))
                     save(st)
-                    out({"id": cid})
+                    jq_project({"id": cid, "body": fields.get("body", ""),
+                                "in_reply_to_id": base,
+                                "user": {"login": st.get("agent_login", "paul")},
+                                "html_url": "https://github.com/x/y/pull/%s#discussion_r%d"
+                                            % (n, cid)},
+                               flag_val(argv, "--jq", "-q"))
                     return
             unknown("reply: comment %d not in fixture" % base)
 
         m = re.match(r"repos/[^/]+/[^/]+/issues/comments/(\d+)$", target)
-        if m and flag_val(argv, "-X") == "PATCH":
+        if m and method == "PATCH":   # #237: -X or --method, as in gh
             cid = int(m.group(1))
             fields = api_fields(argv)
             for coll in (st.get("issues", {}), st.get("prs", {})):
@@ -1208,7 +1266,8 @@ def main():
                             journal("comment-edit", write=True, comment=cid,
                                     body=fields.get("body", ""))
                             save(st)
-                            out({"id": cid})
+                            jq_project({"id": cid, "body": c["body"]},
+                                       flag_val(argv, "--jq", "-q"))
                             return
             unknown("comment-edit: %d not in fixture" % cid)
 
@@ -1290,6 +1349,72 @@ def main():
                 unknown("pr-files: git diff failed: %s" % e)
             journal("pr-files", pr=n)
             jq_project(rows, flag_val(argv, "--jq", "-q"))
+            return
+
+        # #237 — one review comment by id, the REST shape without the PR
+        # number (`/pulls/comments/<id>`): read, edit, delete. The deletes are
+        # routed, not refused — gh performs them; the journal shows the write.
+        m = re.match(r"repos/[^/]+/[^/]+/pulls/comments/(\d+)$", target)
+        if m:
+            cid = int(m.group(1))
+            for n, pr in st.get("prs", {}).items():
+                for t in pr.get("threads", []):
+                    for c in t.get("comments", []):
+                        if c.get("databaseId") != cid:
+                            continue
+                        if method == "GET":
+                            journal("review-comment-view", pr=n, comment=cid)
+                            jq_project({"id": cid, "body": c.get("body", ""),
+                                        "user": {"login": c.get("author", "")},
+                                        "path": t.get("path"), "line": t.get("line"),
+                                        "created_at": c.get("createdAt", ""),
+                                        "html_url": "https://github.com/x/y/pull/%s"
+                                                    "#discussion_r%s" % (n, cid)},
+                                       flag_val(argv, "--jq", "-q"))
+                            return
+                        if method == "PATCH":
+                            c["body"] = api_fields(argv).get("body", c.get("body", ""))
+                            journal("review-comment-edit", write=True, pr=n, comment=cid,
+                                    body=c["body"])
+                            save(st)
+                            jq_project({"id": cid, "body": c["body"], "path": t.get("path"),
+                                        "line": t.get("line")},
+                                       flag_val(argv, "--jq", "-q"))
+                            return
+                        if method == "DELETE":
+                            t["comments"].remove(c)
+                            if not t["comments"]:
+                                pr["threads"].remove(t)
+                            journal("review-comment-delete", write=True, pr=n, comment=cid)
+                            save(st)
+                            return
+            unknown("review-comment: %d not in fixture" % cid)
+
+        # #237 — delete a top-level issue/CR comment.
+        m = re.match(r"repos/[^/]+/[^/]+/issues/comments/(\d+)$", target)
+        if m and method == "DELETE":
+            cid = int(m.group(1))
+            for coll in (st.get("issues", {}), st.get("prs", {})):
+                for item in coll.values():
+                    for c in item.get("comments", []):
+                        if c.get("id") == cid:
+                            item["comments"].remove(c)
+                            journal("comment-delete", write=True, comment=cid)
+                            save(st)
+                            return
+            unknown("comment-delete: %d not in fixture" % cid)
+
+        # #237 — an issue's (or PR's) labels through REST, `gh issue view
+        # --json labels`'s twin.
+        m = re.match(r"repos/[^/]+/[^/]+/issues/(\d+)/labels$", target)
+        if m and method == "GET":
+            n = m.group(1)
+            item = st.get("issues", {}).get(n) or st.get("prs", {}).get(n)
+            if item is None:
+                unknown("issue-labels: %s not in fixture" % n)
+            journal("issue-labels", issue=n)
+            jq_project([{"name": lb} for lb in item.get("labels", [])],
+                       flag_val(argv, "--jq", "-q"))
             return
 
         unknown("api target not routed: %s" % target)
