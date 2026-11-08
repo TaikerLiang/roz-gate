@@ -14,6 +14,12 @@ fable: {mode: subscription, model: claude-fable-5}
 # the judgment tier's judge (run_judgment.py JUDGE_MODEL) is unaffected.
 opus55: {mode: subscription, model: claude-opus-5-5}
 
+# haiku55 is the row new baselines run on from 2026-11-08 (maintainer's
+# ruling: the quota a replay sweep costs on Opus is not worth the ceiling
+# reading). `opus` stays as the reference the published rows were measured
+# on; a haiku55 row is never compared with an opus row of the same case.
+haiku55: {mode: subscription, model: claude-haiku-5-5}
+
 # TODO — API rows via an OpenAI-compatible translation proxy (LiteLLM-shaped,
 # ANTHROPIC_BASE_URL). The runner's resolution already accommodates these;
 # the rows are unwired until the proxy exists. Never scored 0 on plumbing
