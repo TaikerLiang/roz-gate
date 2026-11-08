@@ -714,8 +714,15 @@ def main():
     if argv[:2] == ["pr", "ready"]:
         # #237: `--undo` converts back to draft; no selector means the
         # current branch's PR, as in gh.
-        sel = positional(argv, 2) or current_branch()
+        explicit = positional(argv, 2)
+        sel = explicit or current_branch()
         n, _pr = pr_lookup(st, sel)
+        if n is None and not explicit:
+            # gh's own answer when the checked-out branch has no PR
+            journal("gh-error", branch=sel)
+            flush_journal()
+            sys.stderr.write('no pull requests found for branch "%s"\n' % sel)
+            sys.exit(1)
         if n is None:
             unknown("pr %s not in fixture" % sel)
         undo = "--undo" in argv
@@ -817,10 +824,22 @@ def main():
         # is not a name (a pasted JSON fragment, an empty segment from `//`)
         # is one gh answers with 404. `{owner}`/`{repo}` and `:owner`/`:repo`
         # are gh's own placeholders and pass (every route below accepts them).
+        if target.startswith("/repos/"):   # gh accepts the leading slash
+            target = target[1:]
         if target.startswith("repos/"):
             mt = re.match(r"repos/([^/]*)/([^/]*)(?:/|$)", target)
+            # Every later segment too: a pasted JSON fragment where the PR
+            # number goes (`pulls/[{"number": 102}]/comments`), or an empty
+            # segment (`pulls/comments/`) — gh gets 404 for both. A trailing
+            # `contents/` is the repository root and stays valid.
+            rest_segs = target.split("/")[3:]
+            if rest_segs[-1:] == [""] and rest_segs[-2:-1] == ["contents"]:
+                rest_segs = rest_segs[:-1]
             if not mt or "//" in target \
-                    or not all(REPO_SEG.match(seg) for seg in mt.groups()):
+                    or not all(REPO_SEG.match(seg) for seg in mt.groups()) \
+                    or any(not seg or (re.search(r'[{}\[\]"\',\s]', seg)
+                                       and seg not in ("{owner}", "{repo}", "{branch}"))
+                           for seg in rest_segs):
                 http_error(404, "Not Found", target=target[:120])
 
         # ---- gh api user — the caller's own identity (the "who am I"
@@ -1037,6 +1056,25 @@ def main():
             if re.search(r"repository\([^)]*\)\s*\{\s*id\s*\}", q):
                 journal("graphql-repo-id")
                 jq_project({"data": {"repository": {"id": "R_kgDOTqtK8g"}}},
+                           flag_val(argv, "--jq", "-q"))
+                return
+            # haiku55 k=3: a PR's head SHA through graphql — the number as in
+            # the threads route (a literal or the variable the query names).
+            if "headRefOid" in q and "reviewThreads" not in q:
+                m2 = re.search(r"pullRequest\(\s*number:\s*(?:\$(\w+)|(\d+))", q)
+                pr = (fields.get(m2.group(1)) if m2 and m2.group(1)
+                      else m2.group(2) if m2 else None)
+                prd = st.get("prs", {}).get(str(pr))
+                if not prd:
+                    unknown("graphql headRefOid: pr %s not in fixture" % pr)
+                rp = subprocess.run(["git", "rev-parse", "--verify", "-q",
+                                     resolve_ref(prd.get("headRefName", "")) + "^{commit}"],
+                                    capture_output=True, text=True)
+                if rp.returncode != 0:
+                    unknown("graphql headRefOid: head of pr %s unresolvable" % pr)
+                journal("graphql-pr-head", pr=str(pr))
+                jq_project({"data": {"repository": {"pullRequest":
+                            {"headRefOid": rp.stdout.strip()}}}},
                            flag_val(argv, "--jq", "-q"))
                 return
             if "reviewThreads" in q:
@@ -1407,6 +1445,8 @@ def main():
         # #237 — an issue's (or PR's) labels through REST, `gh issue view
         # --json labels`'s twin.
         m = re.match(r"repos/[^/]+/[^/]+/issues/(\d+)/labels$", target)
+        if m and method == "PATCH":   # GitHub has GET/POST/PUT/DELETE here, no PATCH
+            http_error(404, "Not Found", target=target[:120])
         if m and method == "GET":
             n = m.group(1)
             item = st.get("issues", {}).get(n) or st.get("prs", {}).get(n)

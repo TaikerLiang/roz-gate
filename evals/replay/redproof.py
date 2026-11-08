@@ -181,6 +181,10 @@ ROUTES = [
      ["api", "graphql", "-f", "query=query{repository(owner:\"acme\",name:\"demo\"){ id }}"],
      "graphql-repo-id", '"id"'),
     ("pr ready --undo: back to draft", ["pr", "ready", "101", "--undo"], "pr-draft", ""),
+    # haiku55 k=3 resume (2026-11-08): a leading slash on a write route
+    ("leading slash on an inline-comment POST",
+     ["api", "-X", "POST", "/repos/acme/demo/pulls/101/comments", "-f", "body=x", "-f",
+      "path=p", "-F", "line=1"], "thread-post-inline", '"id"'),
 ]
 
 # codex, PR #238: every answer honours --jq like the REST reads do — the
@@ -223,6 +227,17 @@ JQ_EXACT = [
 # #237 ruling 1 — a target gh itself refuses answers as gh does (exit 1, the
 # journal names the HTTP error), not UNKNOWN: (name, argv, expected route)
 GH_ERRORS = [
+    # haiku55 k=3 resume: the number segment is a pasted JSON fragment, or empty
+    ("a JSON fragment as the PR number",
+     ["api", 'repos/:owner/:repo/issues/[{"number": 102}]/comments', "--jq", ".[]"], "http-404"),
+    ("a fragment's tail as the PR number", ["api", "repos/{owner}/{repo}/pulls/101},/comments"],
+     "http-404"),
+    ("an empty id segment (trailing slash)",
+     ["api", "-X", "DELETE", "repos/acme/demo/pulls/comments/"], "http-404"),
+    ("PATCH on an issue's labels — GitHub has no such endpoint",
+     ["api", "-X", "PATCH", "repos/{owner}/{repo}/issues/5/labels"], "http-404"),
+    ("pr ready --undo with no selector, the current branch has no PR",
+     ["pr", "ready", "--undo"], "gh-error"),
     ("a JSON fragment pasted as owner/repo, `//` in the path",
      ["api", 'repos/{"owner": {"login": "acme"}, "name": "demo"}//issues/1', "--jq", ".[]"],
      "http-404"),
@@ -295,6 +310,13 @@ def git_sandbox():
 
 # (name, argv, cwd kind, expected route, exit code, stdout needle)
 REF_ROUTES = [
+    ("graphql: a PR's headRefOid, number in a variable",
+     ["api", "graphql", "-f",
+      "query=query($owner:String!,$repo:String!,$pr:Int!){ repository(owner:$owner,name:$repo)"
+      "{ pullRequest(number:$pr){ headRefOid } } }",
+      "-F", "owner=acme", "-F", "repo=demo", "-F", "pr=101",
+      "--jq", ".data.repository.pullRequest.headRefOid"],
+     "work", "graphql-pr-head", 0, None),
     ("branch present → its SHA",
      ["api", "repos/acme/demo/git/ref/heads/spec%2F5", "--jq", ".object.sha"],
      "work", "git-ref", 0, None),
