@@ -168,6 +168,25 @@ than the 2026-08 run (14–15 vs 8) and hits the design-changing one less.
 A recall miss this consistent points at the seat brief (what stage (2)
 reads before it asks), not at k. Open item.
 
+**Replay, k=1, plugin v2.10.0–v2.10.1 (2026-11-07 → 08) — the #199 QA-brief pilot,
+D10–D19 under three briefs** (`run_replay.py --variant A|B|C`; A =
+`references/qa-brief.md`, B and C = the frozen STE rewrites in
+`evals/replay/variants/qa-brief/`). One iteration per cell, so a cell is a
+reading, not a rate. As scored: **A 7/10** (Wilson 90% [44%, 87%]), **B 7/10**
+([44%, 87%]), **C 8/9** ([62%, 97%]; D13@C INVALID, #232). Every genuine FAIL
+is one act — the QA seat reaching into `src/` beyond the declared port: D13 A
+and B `cat src/app.txt`, D14 A `cat src/kv/README.md`, D14 B `ls -la src
+src/kv`, D19 A `ls -la src/` beside the port it was granted. C made none of
+these moves. No cell failed on the outcome oracle (no vacuous suite, no bent
+assertion). D19's "finding names the observed value" check demanded the
+fixture's digit `7` while every seat reported the red in its own suite's
+numbers (750, 70, "applies the discount regardless") — the checker's defect,
+corrected in PR #233; under the corrected checker B is 8/10 and C 9/9.
+Instrument defects the run surfaced, all fixed before the brief was blamed:
+#219, #220, #225, #227, #232 and D19's literal — again roughly one per model
+finding. PR #233 moves every D10–D19 `case_fp`, so run 1 stays recorded here
+and in #199; the k>1 top-up re-measures all thirty cells.
+
 ## Autopsy taxonomy — read this before trusting any red
 
 Every red in every sweep was autopsied before it counted. Four classes
