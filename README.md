@@ -195,7 +195,9 @@ cannot authorize it.
 
 Run `/roz-gate:patrol` manually as a "what's next" button, or schedule it
 (e.g. every 30 minutes) for an unattended loop — it acts on up to `patrol_issues_per_pass` in-loop issues
-per pass (default one, in priority order, each issue at most once) and triages the whole inbox every pass, treats the `processing` label
+per pass (default one, in priority order, each issue at most once) — what it
+does not reach shows as `queued: <action>` in the report, `queued: integrate`
+included: there is no label for (6) — and triages the whole inbox every pass, treats the `processing` label
 as a lock, never applies a gate label, and reports one a bot identity applied
 (the scanner audits the forge's label events) as an illegal state it never
 acts on. A `ready-for-dev` applied again on a stage that passed — its
