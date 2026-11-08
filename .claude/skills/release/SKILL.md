@@ -26,8 +26,11 @@ The gate and the push: `.githooks/pre-push` runs the full gate (hook
 tests, lint, ledger `--check`, red-proofs) and GitHub closes the SSH
 connection before it finishes ("Connection to github.com closed by remote
 host", nothing pushed). The pre-commit hook runs only naming + ruff. So
-run the gate yourself, in the worktree, on the commit you are about to
-push — and only when all four are green push with `git push --no-verify`:
+run the gate yourself, in the worktree, and only when all four are green
+push with `git push --no-verify`. **The full gate runs once per release**
+(prepare step 3, on the released tree, ~3–4 min); the bump commit changes
+only `plugin.json` and `CHANGELOG.md`, which no suite reads, so step 4
+proves that instead of re-running it:
 ```sh
 python3 hooks/tests/run_tests.py && python3 evals/lint/run_lint.py && python3 tools/ledger.py --check && python3 evals/replay/run_redproofs.py
 ```
@@ -96,7 +99,13 @@ CI re-runs the same suites; a red there is a stop, never a merge.
    git add .claude-plugin/plugin.json CHANGELOG.md
    git commit -q -F <scratchpad>/rel-commit.txt      # "release: <x.y.z>", blank line, one paragraph why minor/patch, blank line, the trailer
    ```
-   Run the gate (the four commands at the top) on this commit; all green →
+   Do **not** re-run the full gate: step 3 ran it on this tree minus the
+   bump. Prove the commit is only the bump, then the two fast checks:
+   ```sh
+   test "$(git diff --name-only HEAD^ HEAD | LC_ALL=C sort | tr '\n' ' ')" = ".claude-plugin/plugin.json CHANGELOG.md " \
+     && python3 evals/lint/run_lint.py >/dev/null && python3 tools/ledger.py --check
+   ```
+   Any other file in the diff, or a red, is a stop. Green →
    `git push --no-verify -u origin release/<x.y.z>`, confirm with
    `ls-remote`, and open the PR from inside the worktree:
    ```sh
