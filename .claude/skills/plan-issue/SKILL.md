@@ -71,9 +71,9 @@ omitted.
   `hooks/tests/` cases; every lint case is red-proofed by mutation (old →
   new, both directions) and the mutation recorded in the commit message.
 - Whether a **baseline SUT run** is needed, by tier: a replay case —
-  `python3 evals/replay/run_replay.py --sut opus --k 5 <ID>`; a judgment
+  `python3 evals/replay/run_replay.py --sut haiku55 --k 5 <ID>`; a judgment
   fixture — `python3 evals/judgment/run_judgment.py --redproof` first
-  (green under the current judge fingerprint), then `--sut opus --k 2
+  (green under the current judge fingerprint), then `--sut haiku55 --k 2
   <F-id>` (`evals/judgment/README.md` § Running). That spends quota: name
   it as a decision for the maintainer, never start it in the plan.
 - **Order**: the checker (and its red-proof) is committed in a **distinct

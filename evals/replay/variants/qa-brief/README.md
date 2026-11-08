@@ -22,7 +22,7 @@ lexical substitution, not a further structural pass.
 ## How a variant is used
 
 ```sh
-python3 evals/replay/run_replay.py --sut opus --k 1 --variant B D10   # one case under B
+python3 evals/replay/run_replay.py --sut haiku55 --k 1 --variant B D10   # one case under B
 ```
 
 The runner copies the plugin root to a temp dir (no `.git`, no `evals/`),

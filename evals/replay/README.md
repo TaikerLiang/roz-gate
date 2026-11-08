@@ -22,8 +22,10 @@ uv run evals/replay/run_replay.py [--sut NAME] [--k N] [--variant A|B|C] [case .
 #  the root pyproject.toml — one environment for evals/, hooks/, tools/.)
 ```
 
-- SUT rows live in `models.yaml`. `opus` is the fixed reference baseline;
-  `fable` is the current operator. API rows (translation proxy) are a
+- SUT rows live in `models.yaml`. `opus` is the fixed reference baseline
+  the rows published before 2026-11-08 were measured on; new baselines run
+  on `haiku55` (quota); `fable` is the current operator. Rows of different
+  SUTs are never compared with each other. API rows (translation proxy) are a
   marked TODO — the resolution architecture accommodates them unchanged.
 - **Baseline note, verbatim in every report**: the baseline measures the
   protocol's ceiling reference, not necessarily the production loop's
