@@ -15,7 +15,8 @@ META = {
 }
 
 src("F15: GitHub has the op", "references/forge-github.md",
-    '| ISSUE-BLOCKERS | `gh api "repos/<owner>/<repo>/issues/<n>/dependencies/blocked_by"')
+    '| ISSUE-BLOCKERS | `gh api --paginate '
+    '"repos/<owner>/<repo>/issues/<n>/dependencies/blocked_by"')
 src("F15: GitLab has the op (both forges, one name)", "references/forge-gitlab.md",
     "| ISSUE-BLOCKERS | `glab api \"projects/:id/issues/<n>/links\" --jq '.[] \\| "
     "select(.link_type == \"is_blocked_by\")")
