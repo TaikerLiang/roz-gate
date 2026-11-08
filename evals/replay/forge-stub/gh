@@ -1118,7 +1118,11 @@ def main():
             journal("pr-comment" if n in st.get("prs", {}) else "issue-comment",
                     write=True, pr=n, body=fields.get("body", ""), via="api")
             save(st)
-            out({"id": cid})
+            jq_project({"id": cid, "body": fields.get("body", ""),
+                        "user": {"login": st.get("agent_login", "paul")},
+                        "html_url": "https://github.com/x/y/%s/%s#issuecomment-%d"
+                                    % ("pull" if n in st.get("prs", {}) else "issues", n, cid)},
+                       flag_val(argv, "--jq", "-q"))   # codex, PR #238: --jq honoured
             return
 
         # ---- gh api repos/o/r/issues/<n>/timeline — the issue's events, for
@@ -1218,7 +1222,11 @@ def main():
             journal("thread-post-inline", write=True, pr=n,
                     body=fields.get("body", ""), path=fields.get("path"))
             save(st)
-            out({"id": cid})
+            jq_project({"id": cid, "body": fields.get("body", ""),
+                        "path": fields.get("path"), "line": fields.get("line"),
+                        "user": {"login": st.get("agent_login", "paul")},
+                        "html_url": "https://github.com/x/y/pull/%s#discussion_r%d" % (n, cid)},
+                       flag_val(argv, "--jq", "-q"))   # codex, PR #238: --jq honoured
             return
 
         m = re.match(r"repos/[^/]+/[^/]+/pulls/(\d+)/comments/(\d+)/replies$",
@@ -1237,7 +1245,12 @@ def main():
                     journal("thread-reply", write=True, pr=n, base=base,
                             body=fields.get("body", ""))
                     save(st)
-                    out({"id": cid})
+                    jq_project({"id": cid, "body": fields.get("body", ""),
+                                "in_reply_to_id": base,
+                                "user": {"login": st.get("agent_login", "paul")},
+                                "html_url": "https://github.com/x/y/pull/%s#discussion_r%d"
+                                            % (n, cid)},
+                               flag_val(argv, "--jq", "-q"))
                     return
             unknown("reply: comment %d not in fixture" % base)
 
@@ -1253,7 +1266,8 @@ def main():
                             journal("comment-edit", write=True, comment=cid,
                                     body=fields.get("body", ""))
                             save(st)
-                            out({"id": cid})
+                            jq_project({"id": cid, "body": c["body"]},
+                                       flag_val(argv, "--jq", "-q"))
                             return
             unknown("comment-edit: %d not in fixture" % cid)
 
@@ -1363,7 +1377,9 @@ def main():
                             journal("review-comment-edit", write=True, pr=n, comment=cid,
                                     body=c["body"])
                             save(st)
-                            out({"id": cid, "body": c["body"]})
+                            jq_project({"id": cid, "body": c["body"], "path": t.get("path"),
+                                        "line": t.get("line")},
+                                       flag_val(argv, "--jq", "-q"))
                             return
                         if method == "DELETE":
                             t["comments"].remove(c)

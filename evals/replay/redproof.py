@@ -183,10 +183,10 @@ ROUTES = [
     ("pr ready --undo: back to draft", ["pr", "ready", "101", "--undo"], "pr-draft", ""),
 ]
 
-# codex, PR #238: a graphql answer honours --jq like every REST read — the
+# codex, PR #238: every answer honours --jq like the REST reads do — the
 # exact stdout, since the envelope would also *contain* the needle:
 # (name, argv, expected route, exact stdout)
-GRAPHQL_JQ = [
+JQ_EXACT = [
     ("graphql repo id, --jq to the scalar",
      ["api", "graphql", "-f", "query=query{repository(owner:\"acme\",name:\"demo\"){ id }}",
       "--jq", ".data.repository.id"],
@@ -197,6 +197,27 @@ GRAPHQL_JQ = [
       "{pullRequest(number:101){reviewThreads(first:100){nodes{path}}}}}",
       "--jq", ".data.repository.pullRequest.reviewThreads.nodes[].path"],
      "threads-list", "tests/acceptance/test_x.py"),
+    # codex, PR #238 round 2: the write answers too — Haiku's seats wrote
+    # `--jq .id` / `--jq .html_url` on the POST and the PATCH.
+    ("inline comment POST, --jq .path", ["api", "repos/acme/demo/pulls/101/comments", "-f",
+                                        "body=x", "-f", "path=tests/acceptance/test_x.py",
+                                        "-F", "line=3", "--jq", ".path"],
+     "thread-post-inline", "tests/acceptance/test_x.py"),
+    ("review comment PATCH, --jq .id", ["api", "-X", "PATCH",
+                                       "repos/acme/demo/pulls/comments/9101", "-f",
+                                       "body=fixed", "--jq", ".id"],
+     "review-comment-edit", "9101"),
+    ("top-level comment PATCH, --jq .id", ["api", "-X", "PATCH",
+                                          "repos/acme/demo/issues/comments/1", "-f",
+                                          "body=e", "--jq", ".id"],
+     "comment-edit", "1"),
+    ("top-level comment POST through REST, --jq .html_url",
+     ["api", "repos/acme/demo/issues/101/comments", "-f", "body=hi", "--jq", ".html_url"],
+     "pr-comment", "https://github.com/x/y/pull/101#issuecomment-2"),
+    ("thread reply, --jq .id is a number",
+     ["api", "-X", "POST", "repos/acme/demo/pulls/101/comments/9101/replies", "-f", "body=r",
+      "--jq", ".in_reply_to_id"],
+     "thread-reply", "9101"),
 ]
 
 # #237 ruling 1 — a target gh itself refuses answers as gh does (exit 1, the
@@ -986,7 +1007,7 @@ def main():
     print("%s route: a malformed --jq with jq present -> UNKNOWN (jq rejected it)"
           % ("PASS" if ok else "FAIL"), "" if ok else "(got rc=%d routes=%s)" % (rc, routes))
     passed, failed = passed + ok, failed + (not ok)
-    for name, argv, route, want in GRAPHQL_JQ:
+    for name, argv, route, want in JQ_EXACT:
         rc, out, routes = run_route(argv)
         ok = rc == 0 and routes == [route] and out.strip() == want
         print("%s route: %s -> %s" % ("PASS" if ok else "FAIL", name, route),
