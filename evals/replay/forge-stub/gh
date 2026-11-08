@@ -1036,7 +1036,8 @@ def main():
             # #237 — `repository(owner:…,name:…){ id }` alone: the node id.
             if re.search(r"repository\([^)]*\)\s*\{\s*id\s*\}", q):
                 journal("graphql-repo-id")
-                out({"data": {"repository": {"id": "R_kgDOTqtK8g"}}})
+                jq_project({"data": {"repository": {"id": "R_kgDOTqtK8g"}}},
+                           flag_val(argv, "--jq", "-q"))
                 return
             if "reviewThreads" in q:
                 # The number is whatever the query says it is: a literal, or
@@ -1061,8 +1062,9 @@ def main():
                                "createdAt": c.get("createdAt", "")}
                               for c in t.get("comments", [])]}}
                          for t in prd.get("threads", [])]
-                out({"data": {"repository": {"pullRequest":
-                    {"reviewThreads": {"nodes": nodes}}}}})
+                jq_project({"data": {"repository": {"pullRequest":
+                            {"reviewThreads": {"nodes": nodes}}}}},
+                           flag_val(argv, "--jq", "-q"))   # codex, PR #238: --jq honoured
                 return
             if "resolveReviewThread" in q:
                 tid = fields.get("t") or fields.get("threadId")
@@ -1072,8 +1074,9 @@ def main():
                             t["isResolved"] = True
                             journal("thread-resolve", write=True, thread=tid)
                             save(st)
-                            out({"data": {"resolveReviewThread":
-                                {"thread": {"isResolved": True}}}})
+                            jq_project({"data": {"resolveReviewThread":
+                                        {"thread": {"isResolved": True}}}},
+                                       flag_val(argv, "--jq", "-q"))
                             return
                 unknown("resolve: thread %s not in fixture" % tid)
             unknown("graphql query not routed")

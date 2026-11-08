@@ -183,6 +183,22 @@ ROUTES = [
     ("pr ready --undo: back to draft", ["pr", "ready", "101", "--undo"], "pr-draft", ""),
 ]
 
+# codex, PR #238: a graphql answer honours --jq like every REST read — the
+# exact stdout, since the envelope would also *contain* the needle:
+# (name, argv, expected route, exact stdout)
+GRAPHQL_JQ = [
+    ("graphql repo id, --jq to the scalar",
+     ["api", "graphql", "-f", "query=query{repository(owner:\"acme\",name:\"demo\"){ id }}",
+      "--jq", ".data.repository.id"],
+     "graphql-repo-id", "R_kgDOTqtK8g"),
+    ("graphql threads, --jq to the thread paths",
+     ["api", "graphql", "-f",
+      "query=query{repository(owner:\"acme\",name:\"demo\")"
+      "{pullRequest(number:101){reviewThreads(first:100){nodes{path}}}}}",
+      "--jq", ".data.repository.pullRequest.reviewThreads.nodes[].path"],
+     "threads-list", "tests/acceptance/test_x.py"),
+]
+
 # #237 ruling 1 — a target gh itself refuses answers as gh does (exit 1, the
 # journal names the HTTP error), not UNKNOWN: (name, argv, expected route)
 GH_ERRORS = [
@@ -970,6 +986,12 @@ def main():
     print("%s route: a malformed --jq with jq present -> UNKNOWN (jq rejected it)"
           % ("PASS" if ok else "FAIL"), "" if ok else "(got rc=%d routes=%s)" % (rc, routes))
     passed, failed = passed + ok, failed + (not ok)
+    for name, argv, route, want in GRAPHQL_JQ:
+        rc, out, routes = run_route(argv)
+        ok = rc == 0 and routes == [route] and out.strip() == want
+        print("%s route: %s -> %s" % ("PASS" if ok else "FAIL", name, route),
+              "" if ok else "(got rc=%d routes=%s out=%r)" % (rc, routes, out[:120]))
+        passed, failed = passed + ok, failed + (not ok)
     for name, argv, route in GH_ERRORS:
         rc, out, routes = run_route(argv)
         ok = rc == 1 and routes == [route]
