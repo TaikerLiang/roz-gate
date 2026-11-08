@@ -144,6 +144,62 @@ ROUTES = [
     ("pr edit: --add-label beside a body → UNKNOWN",
      ["pr", "edit", "101", "--body", "x", "--add-label", "bug"], "UNKNOWN", ""),
     ("pr edit: nothing to edit → UNKNOWN", ["pr", "edit", "101"], "UNKNOWN", ""),
+    # #237 — the forms Haiku's seats wrote in the k=3 top-up (19 of 44
+    # iterations INVALID on them); every one is a call gh performs.
+    ("implied POST: inline comment with -f fields and no -X (gh's rule)",
+     ["api", "repos/acme/demo/pulls/101/comments", "-f", "body=**[qa] x", "-f",
+      "path=tests/acceptance/test_x.py", "-F", "line=3", "-f", "side=RIGHT", "-f",
+      "commit_id=abc", "--jq", ".id"],
+     "thread-post-inline", ""),
+    ("--method POST, the long form", ["api", "--method", "POST",
+                                      "repos/acme/demo/pulls/101/comments", "-f", "body=y",
+                                      "-f", "path=p", "-F", "line=1"],
+     "thread-post-inline", '"id"'),
+    ("implied POST: a top-level comment through REST with no -X",
+     ["api", "repos/acme/demo/issues/101/comments", "-f", "body=hi"], "pr-comment", '"id"'),
+    ("--method PATCH on a top-level comment",
+     ["api", "--method", "PATCH", "repos/acme/demo/issues/comments/1", "-f", "body=edited"],
+     "comment-edit", '"id": 1'),
+    ("review comment by id (no PR number), GET",
+     ["api", "repos/acme/demo/pulls/comments/9101", "--jq", "{id, path, line}"],
+     "review-comment-view", '"id": 9101'),
+    ("review comment by id, PATCH",
+     ["api", "-X", "PATCH", "repos/acme/demo/pulls/comments/9101", "-F", "body=fixed"],
+     "review-comment-edit", '"body": "fixed"'),
+    ("review comment by id, DELETE",
+     ["api", "-X", "DELETE", "repos/acme/demo/pulls/comments/9101"], "review-comment-delete", ""),
+    ("review comment by id, absent -> UNKNOWN",
+     ["api", "repos/acme/demo/pulls/comments/4242"], "UNKNOWN", ""),
+    ("top-level comment DELETE", ["api", "-X", "DELETE", "repos/acme/demo/issues/comments/1"],
+     "comment-delete", ""),
+    ("issue labels through REST, {owner}/{repo} placeholders",
+     ["api", "repos/{owner}/{repo}/issues/6/labels", "--jq", ".[].name"],
+     "issue-labels", "track: spec"),
+    ("issue labels through REST, :owner/:repo placeholders",
+     ["api", "repos/:owner/:repo/issues/5/labels"], "issue-labels", "[]"),
+    ("graphql: the repository's node id alone",
+     ["api", "graphql", "-f", "query=query{repository(owner:\"acme\",name:\"demo\"){ id }}"],
+     "graphql-repo-id", '"id"'),
+    ("pr ready --undo: back to draft", ["pr", "ready", "101", "--undo"], "pr-draft", ""),
+]
+
+# #237 ruling 1 — a target gh itself refuses answers as gh does (exit 1, the
+# journal names the HTTP error), not UNKNOWN: (name, argv, expected route)
+GH_ERRORS = [
+    ("a JSON fragment pasted as owner/repo, `//` in the path",
+     ["api", 'repos/{"owner": {"login": "acme"}, "name": "demo"}//issues/1', "--jq", ".[]"],
+     "http-404"),
+    ("a JSON fragment as owner, one slash",
+     ["api", 'repos/{"owner": {"login": "acme"}, "name": "demo"}/pulls/101/comments'],
+     "http-404"),
+    ("graphql with a placeholder left in owner",
+     ["api", "graphql", "-f", 'query=query{repository(owner:"{o}",name:"x"){id}}'],
+     "graphql-error"),
+    ("graphql with a JSON fragment as owner",
+     ["api", "graphql", "-f",
+      'query=query{repository(owner:"{"owner": {"login": "acme"}}",name:"demo")'
+      '{pullRequest(number:101){reviewThreads(first:100){nodes{id}}}}}'],
+     "graphql-error"),
 ]
 
 # (name, result.json content or None for absent, iteration_done)
@@ -914,6 +970,12 @@ def main():
     print("%s route: a malformed --jq with jq present -> UNKNOWN (jq rejected it)"
           % ("PASS" if ok else "FAIL"), "" if ok else "(got rc=%d routes=%s)" % (rc, routes))
     passed, failed = passed + ok, failed + (not ok)
+    for name, argv, route in GH_ERRORS:
+        rc, out, routes = run_route(argv)
+        ok = rc == 1 and routes == [route]
+        print("%s route: %s -> %s, exit 1" % ("PASS" if ok else "FAIL", name, route),
+              "" if ok else "(got rc=%d routes=%s)" % (rc, routes))
+        passed, failed = passed + ok, failed + (not ok)
     for name, argv, route, needle in ROUTES:
         rc, out, routes = run_route(argv)
         ok = routes == [route] and (rc == 64) == (route == "UNKNOWN")
