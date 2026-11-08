@@ -1,0 +1,8 @@
+{
+  "ledger": "C30 · An unreached actionable row is queued — integrate needs no label",
+  "tier": "lint + replay (#207)",
+  "ledger_text": "\"N=1 seeded with two `actionable: integrate` rows: one is acted on, the other is as seeded — labels, no comment, no write, its `spec/<n>` tip — with `queued: integrate` and `needs you: —` in the report.\" (ConsoleAPI #27: nothing in the report said patrol had integration queued, so the holder re-applied `ready-for-dev` and made an illegal state — #207, split from #204)",
+  "prompt": "/roz-gate:patrol",
+  "k": 5,
+  "timeout": 1800
+}

@@ -427,6 +427,7 @@ not, is the authorization.
 | `in-spec-review` → `ready-for-dev` (all threads resolved) | **you** |
 | in flight → `in-spec-review` (backward; QA ambiguity, or QA's contract-review findings) | main agent |
 | review-clean implementation CR → merged into `spec/{n}`, (4) launched | `next-stage` (patrol's `next-stage (qa)` row) — no gate label |
+| QA CR audited and thread-clean → the (6) verdict run | `integrate` (patrol's `integrate` row) — no gate label: there is no "go integrate" signal; a pass that does not reach it reports `queued: integrate` (#207) |
 | `in-user-review` → `in-spec-review` (backward; a (7) comment changes what a rule means) | main agent |
 | → `in-user-review` (both tracks; and back from (2a) after a (7) amendment) | main agent |
 | (7) → the inbox (`track:` + `status:` stripped — start over) | **you** |
@@ -446,7 +447,8 @@ a schedule) sends one **read-only scanner sub-agent** to classify every open
 issue into a table (`references/patrol-scan.md` — the single home of the
 classification rules; the forge reads stay in the scanner's context, not the
 main agent's) and invokes the right command per that table; it acts on up to `patrol_issues_per_pass` in-loop issues per pass (closest
-to done first; default one) and then triages the **whole inbox** (intake is comment-only, so
+to done first; default one) — what it does not reach is `queued: <action>` in
+its report — and then triages the **whole inbox** (intake is comment-only, so
 every batch of questions lands in a single pass), treats `processing` as a
 lock, never applies a gate label — and never acts on one a bot identity
 applied — and stops to report anything unexpected.

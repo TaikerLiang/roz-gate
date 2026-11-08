@@ -322,11 +322,20 @@ in the scanner's order, nothing else in it:
   `illegal: <why>` · `shipped` · `in progress`. Never a list, never a commit
   log — that is Details material. The scanner's gate-label audit reads
   `illegal: gate label applied by <login>`. A gate label on a stage that
-  passed reads `illegal: ready-for-dev on a passed stage (<feat-branch> merged)`. A gated row the pass did not
+  passed reads `illegal: ready-for-dev on a passed stage (<feat-branch> merged)`. **Every** `actionable:` row
+  the pass did not reach — the N exhausted above it — is `queued: <action>`,
+  never `in progress`: the row says patrol has it. A gated row the pass did not
   reach (#204) carries its wait: the gate label and how long it has been
   worn — `queued: next-stage · ready-for-dev 4h` — the age from the gate
   label's `labeled` event the scanner put in `evidence` (no new forge read),
-  as `<n>h` under a day, else `<n>d`. A queued row is `needs you: —`.
+  as `<n>h` under a day, else `<n>d`. An in-flight row has no tail —
+  `queued: integrate`, `queued: address-review` — there is no label event to
+  read an age from. A queued row is `needs you: —`. An in-flight
+  `track: spec` row never needs a label from the holder: there is no label for
+  (6) — its road is the action its row names (`code-review`, `next-stage
+  (qa)`, `fidelity-audit`, `address-review`), then `integrate`, each patrol's
+  own move from the CRs' state (#207: a holder who saw no `queued: integrate`
+  re-applied `ready-for-dev` and made the illegal state above).
 - `needs you` — `yes` or `—`; `yes` whenever the next move is a human's: a
   wait, a `blocked`, an illegal row, a stale lock, an intake batch, an
   intake reply or a `· question` posted this pass, a review to merge.
