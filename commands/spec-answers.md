@@ -140,7 +140,12 @@ half-done:
    rule/scenario/contract text — it points at IDs** (a second prose copy is
    a copy that can drift). The verbatim answer and the interpretation gap
    already live in the gate kit's decision ledger.
-   **A fold may ask once** (#206). The re-spawned agent returns any
+   **A fold may ask once** (#206) — on the first pass and on a mid-flight
+   re-entry; **a post-integration re-entry keeps the rule above**: whatever
+   the depth, a question its fold surfaces is the one top-level
+   `**[review] · question**` CR-COMMENT, posted in step 6 after the push —
+   never a thread, never deferred (the resumed (7) conversation is the
+   gate that hears it). The re-spawned agent returns any
    **new-question batch** in its report, in A3's shape — it never writes
    `## Open Questions` itself (em owns the section). Read the **depth of
    the question being folded** from its `## Open Questions` item: it either
@@ -201,8 +206,9 @@ so; `failed:` → STOP with the excerpt). **Then post what the folds raised**
 (step 5): THREAD-POST-INLINE every depth-0 item collected, anchored to its
 new line on the pushed head (A6's shape), and the one
 `**[spec-answers] · deferred**` CR-COMMENT when any item was deferred —
-after the push, never before. **Keep the worktree** through
-step 7 — the post-integration re-entry runs the hand-back suites in it —
+after the push, never before; on a post-integration re-entry the one
+`**[review] · question**` CR-COMMENT instead (step 5), no thread.
+**Keep the worktree** through step 7 — the post-integration re-entry runs the hand-back suites in it —
 and remove it at step 7's end.
 
 ## 6b. Update the spec-gate kit

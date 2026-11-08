@@ -16,6 +16,12 @@ META = {
 
 src("E11: spec-answers states the rule", "commands/spec-answers.md",
     "**A fold may ask once** (#206)")
+src("E11: the post-integration re-entry keeps its own route (codex, PR #230)",
+    "commands/spec-answers.md",
+    "**a post-integration re-entry keeps the rule above**")
+src("E11: § 6 posts the (7) question instead of a thread after integration",
+    "commands/spec-answers.md",
+    "on a post-integration re-entry the one\n`**[review] · question**` CR-COMMENT instead")
 src("E11: the seat returns the batch, never writes the section", "commands/spec-answers.md",
     "it never writes\n   `## Open Questions` itself")
 src("E11: depth is read from the provenance line", "commands/spec-answers.md",
