@@ -57,7 +57,7 @@ def touches(e):
 # ---- the reads, and nothing written on a waiting row ---------------------
 for n in ("10", "11", "12", "13"):
     c.expect("patrol-scan.md § Scan (the blocker read on every gated row)",
-             "the blockers of #%s were read (ISSUE-BLOCKED-BY)" % n, read_blockers(n))
+             "the blockers of #%s were read (ISSUE-BLOCKERS)" % n, read_blockers(n))
 c.expect("patrol-scan.md § Scan (a waiting row is not actionable)",
          "no forge write touched #10, #11, #13 or the blockers #8/#9",
          not any(e.get("write") and touches(e) for e in journal))

@@ -202,7 +202,11 @@ as a lock, never applies a gate label, and reports one a bot identity applied
 (the scanner audits the forge's label events) as an illegal state it never
 acts on. A `ready-for-dev` applied again on a stage that passed — its
 implementation CR merged — is reported the same way: remove it, and
-patrol resumes from the CRs.
+patrol resumes from the CRs. A gated issue with an open blocker on the forge
+(GitHub's `blocked by`, GitLab's `is_blocked_by` link) reads
+`waits on #n` and is not started until the blocker closes; a lookup the
+forge refuses reads `blockers unknown` and lands in your queue. Patrol only
+reads those relationships — it never writes one.
 
 ## The inbox: filing ideas from your phone
 

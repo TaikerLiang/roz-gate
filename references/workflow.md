@@ -416,6 +416,13 @@ a bot identity is an **illegal state** — reported in the pass and the
 queue, never acted on, never repaired. A human's application, holder or
 not, is the authorization.
 
+A gate label authorizes; it does not make the issue ready. A gated issue
+with an **open blocker** on the forge (ISSUE-BLOCKERS — GitHub's
+`blocked by`, GitLab's `is_blocked_by` link) **waits**: patrol
+reports `waits on #<n>` and starts nothing until the blocker closes. The
+relationship is the forge's alone — the loop reads it, never writes it,
+and a read the forge refuses is `blockers unknown`, never "none" (#205).
+
 | Transition | Owner |
 |---|---|
 | `track:` label at intake | `/roz-gate:to-issues` (interactive) or the (1b) proposal comment (async) proposes — **you** confirm either way |
