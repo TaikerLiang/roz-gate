@@ -141,9 +141,13 @@ ROUTES = [
     # codex, PR #223: a flag the stub does not perform must not journal a write
     ("pr edit: --base is not performed → UNKNOWN", ["pr", "edit", "101", "--base", "other"],
      "UNKNOWN", ""),
-    ("pr edit: --add-label beside a body → UNKNOWN",
-     ["pr", "edit", "101", "--body", "x", "--add-label", "bug"], "UNKNOWN", ""),
     ("pr edit: nothing to edit → UNKNOWN", ["pr", "edit", "101"], "UNKNOWN", ""),
+    # haiku55 k=3 (#199): labels on a PR are performed
+    ("pr edit: --add-label of a repo label", ["pr", "edit", "101", "--add-label",
+                                              "status: blocked"], "pr-edit", ""),
+    ("pr edit: --remove-label beside a body", ["pr", "edit", "101", "--body", "x",
+                                               "--remove-label", "track: spec"],
+     "pr-edit", ""),
     # #237 — the forms Haiku's seats wrote in the k=3 top-up (19 of 44
     # iterations INVALID on them); every one is a call gh performs.
     ("implied POST: inline comment with -f fields and no -X (gh's rule)",
@@ -249,6 +253,8 @@ GH_ERRORS = [
      ["pr", "ready", "--undo"], "gh-error"),
     ("pr ready with a JSON fragment as the selector (gh reads it as a branch)",
      ["pr", "ready", '[{"number": 103}]'], "gh-error"),
+    ("pr edit --add-label of a label the repo does not have (gh: 'x' not found)",
+     ["pr", "edit", "101", "--add-label", "x"], "gh-error"),
     ("a JSON fragment pasted as owner/repo, `//` in the path",
      ["api", 'repos/{"owner": {"login": "acme"}, "name": "demo"}//issues/1', "--jq", ".[]"],
      "http-404"),

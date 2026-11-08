@@ -365,8 +365,19 @@ def pr_shape(pr, want):
         "headRefName": pr.get("headRefName", ""),
         "baseRefName": pr.get("baseRefName", ""),
         "body": pr.get("body", ""),
+        "labels": [{"name": l} for l in pr.get("labels", [])],
     }
     return {k: v for k, v in full.items() if not want or k in want}
+
+
+def repo_labels(st):
+    """The fixture repo's label set: the plugin's scheme (state may
+    override via "labels")."""
+    return st.get("labels") or [
+        "track: spec", "track: fast", "status: ready-for-spec",
+        "status: ready-for-dev", "status: in-spec-review",
+        "status: in-user-review", "status: processing",
+        "status: blocked"]
 
 
 def api_method(argv):
@@ -739,10 +750,11 @@ def main():
         n, pr = pr_lookup(st, argv[2] if len(argv) > 2 else "")
         if n is None:
             unknown("pr %s not in fixture" % (argv[2] if len(argv) > 2 else ""))
-        # A flag the stub does not perform (--base, --add-label, --milestone,
+        # A flag the stub does not perform (--base, --milestone,
         # --add-reviewer …) would journal a write that changed nothing: an
         # unsupported mutation stays UNKNOWN (codex review, PR #223).
-        edits = ("--title", "-t", "--body", "-b", "--body-file", "-F")
+        edits = ("--title", "-t", "--body", "-b", "--body-file", "-F",
+                 "--add-label", "--remove-label")
         rest = argv[3:]
         i = 0
         while i < len(rest):
@@ -752,14 +764,27 @@ def main():
             i += 2 if a in edits else 1   # a flag's value is never a flag
         title = flag_val(argv, "--title", "-t")
         body = body_arg(argv)
-        if title is None and body is None:
-            unknown("pr edit without --title or --body")
+        added = flag_vals(argv, "--add-label")
+        removed = flag_vals(argv, "--remove-label")
+        if title is None and body is None and not added and not removed:
+            unknown("pr edit without --title, --body or a label")
+        # haiku55 k=3 (#199): gh refuses a label the repository does not have
+        # and edits nothing
+        for l in added + removed:
+            if l not in repo_labels(st):
+                journal("gh-error", pr=n, label=l)
+                flush_journal()
+                sys.stderr.write("could not add label: '%s' not found\n" % l)
+                sys.exit(1)
         if title is not None:
             pr["title"] = title
         if body is not None:
             pr["body"] = body
+        labels = pr.setdefault("labels", [])
+        labels[:] = [l for l in labels if l not in removed] + \
+            [l for l in added if l not in labels]
         journal("pr-edit", write=True, pr=n, title_edit=title is not None,
-                body_edit=body is not None)
+                body_edit=body is not None, add=added, remove=removed)
         save(st)
         print("https://github.com/x/y/pull/%s" % n)
         return
@@ -1477,11 +1502,7 @@ def main():
     # plugin's label scheme installed (state may override via "labels")
     if argv[:2] == ["label", "list"]:
         journal("label-list")
-        names = st.get("labels") or [
-            "track: spec", "track: fast", "status: ready-for-spec",
-            "status: ready-for-dev", "status: in-spec-review",
-            "status: in-user-review", "status: processing",
-            "status: blocked"]
+        names = repo_labels(st)
         if flag_val(argv, "--jq"):
             for nm in names:
                 print(nm)
