@@ -213,7 +213,7 @@ JQ_EXACT = [
      "comment-edit", "1"),
     ("top-level comment POST through REST, --jq .html_url",
      ["api", "repos/acme/demo/issues/101/comments", "-f", "body=hi", "--jq", ".html_url"],
-     "pr-comment", "https://github.com/x/y/pull/101#issuecomment-2"),
+     "pr-comment", "https://github.com/x/y/pull/101#issuecomment-1001"),   # next_id
     ("thread reply, --jq .id is a number",
      ["api", "-X", "POST", "repos/acme/demo/pulls/101/comments/9101/replies", "-f", "body=r",
       "--jq", ".in_reply_to_id"],
