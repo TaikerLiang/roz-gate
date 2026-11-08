@@ -2,6 +2,21 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.14.1 — The blockers-unknown item links the issue — 2026-11-08
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.14.1>
+
+**Behavior:** patrol's `blockers unknown` queue item now carries the issue's link.
+
+### Behavior
+- **The blockers-unknown queue item links the issue** (#205 follow-up): the item for a row whose blocker read failed links the issue itself, where the forge shows and edits its relationships. A waiting row reads `waits on #<n>` alone, never `queued:`.
+
+### Evals
+- **Lint F15** +3 statements.
+
+### Checks
+Hook tests 642/642 · lint 1161/1161 · red-proofs 46/46 · ruff · ledger `--check` current
+
 ## v2.14.0 — Patrol reads forge-native blockers — 2026-11-08
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.14.0>
