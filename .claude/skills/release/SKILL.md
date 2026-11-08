@@ -22,11 +22,17 @@ Commit trailer: `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`
 runs this skill). PR bodies end with
 `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
 
-Pushing: `.githooks/pre-push` runs the full gate for minutes and GitHub
-closes the SSH connection first ("Connection to github.com closed by
-remote host" with nothing pushed). The pre-commit hook already ran the
-same gate on the commit, so push with `git push --no-verify` and confirm
-with `git ls-remote --heads origin <branch>` before `gh pr create`.
+The gate and the push: `.githooks/pre-push` runs the full gate (hook
+tests, lint, ledger `--check`, red-proofs) and GitHub closes the SSH
+connection before it finishes ("Connection to github.com closed by remote
+host", nothing pushed). The pre-commit hook runs only naming + ruff. So
+run the gate yourself, in the worktree, on the commit you are about to
+push — and only when all four are green push with `git push --no-verify`:
+```sh
+python3 hooks/tests/run_tests.py && python3 evals/lint/run_lint.py && python3 tools/ledger.py --check && python3 evals/replay/run_redproofs.py
+```
+Confirm with `git ls-remote --heads origin <branch>` before `gh pr create`.
+CI re-runs the same suites; a red there is a stop, never a merge.
 
 ## prepare <x.y.z>
 
@@ -39,7 +45,13 @@ with `git ls-remote --heads origin <branch>` before `gh pr create`.
    git show origin/main:.claude-plugin/plugin.json | grep '"version"'   # must equal $PREV without the v
    ```
    If the version on `origin/main` is not `$PREV`, stop and report: a
-   release PR is already open or something is off.
+   release PR is already open or something is off. Then the worktree —
+   every command from here on runs inside it, so the checks and the
+   commit describe the released commit, never the main checkout:
+   ```sh
+   git worktree add -q -b release/<x.y.z> <scratchpad>/wt-rel-<x.y.z> origin/main
+   cd <scratchpad>/wt-rel-<x.y.z>
+   ```
 
 2. **Minor or patch** — by `docs/releasing.md` § Minor or patch. A
    hook rule, a new command, or a target repo's behaviour changing is
@@ -58,14 +70,18 @@ with `git ls-remote --heads origin <branch>` before `gh pr create`.
    - then `### Behavior`, `### Evals`, `### Hooks`, `### Tooling`,
      `### Docs` — merge the PRs' bullets under their sections, keep each
      bullet's bold subject and issue/PR references, drop empty sections;
-   - `### Checks` is one line with the counts on `origin/main`:
+   - `### Checks` is one line with the counts from the gate run in the
+     release worktree (step 1's `origin/main`, which is the released
+     tree minus the bump):
      ```sh
      python3 hooks/tests/run_tests.py 2>&1 | tail -1
      python3 evals/lint/run_lint.py 2>&1 | tail -1
+     python3 tools/ledger.py --check
      python3 evals/replay/run_redproofs.py 2>&1 | tail -1
      ```
      written as `Hook tests N/N · lint N/N · red-proofs N/N · ruff ·
-     judgment `--check` · ledger `--check` current`.
+     judgment `--check` · ledger `--check` current`. A red here stops the
+     release: report it, open no PR.
    A PR that changed a behaviour path and has no `## Release note` section
    is a defect: stop and report it, do not invent the note.
    Write the note to `<scratchpad>/notes-<x.y.z>.md`. Title:
@@ -74,16 +90,13 @@ with `git ls-remote --heads origin <branch>` before `gh pr create`.
 
 4. **Bump + pending changelog, one commit.**
    ```sh
-   set -e; cd /Users/taiker/dev/roz-gate
-   git worktree add -q -b release/<x.y.z> <scratchpad>/wt-rel-<x.y.z> origin/main
-   cd <scratchpad>/wt-rel-<x.y.z>
+   set -e; cd <scratchpad>/wt-rel-<x.y.z>
    sed -i '' 's/"version": "<prev>"/"version": "<x.y.z>"/' .claude-plugin/plugin.json
    python3 tools/changelog.py --pending v<x.y.z> <scratchpad>/notes-<x.y.z>.md "<title>"
    git add .claude-plugin/plugin.json CHANGELOG.md
    git commit -q -F <scratchpad>/rel-commit.txt      # "release: <x.y.z>", blank line, one paragraph why minor/patch, blank line, the trailer
    ```
-   The pre-commit hook runs the full gate (about three minutes) — run the
-   commit in the background and wait for it. Then
+   Run the gate (the four commands at the top) on this commit; all green →
    `git push --no-verify -u origin release/<x.y.z>`, confirm with
    `ls-remote`, and open the PR from inside the worktree:
    ```sh
