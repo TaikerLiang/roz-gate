@@ -574,7 +574,8 @@ options are `- (a)` / `- (b)` bullets — rule F). LABEL-ADD
 `status: in-spec-review`: the backward transition. The answers fold through
 `/roz-gate:spec-answers`, whose mid-flight re-entry re-dispatches `qa` with
 the amended contract. QA did not stop — every scenario the contract can drive
-is already written, one a finding touches included — so B2.6 still opens
+is already written, a questioned one included (only an undrivable scenario
+waits) — so B2.6 still opens
 its CR. An empty batch
 writes nothing here.
 
