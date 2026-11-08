@@ -538,12 +538,26 @@ def violation(tool, inp, ref=None, suite=None, top=None, tops=None):
 
 
 def toplevel():
+    """The working tree the hook fired in. A cwd inside the git dir has none
+    — a session that `cd`'d into the common dir to write the marker leaves
+    its sub-agents there — so it is the repository's main worktree, the first
+    `git worktree list` names (#245: with no toplevel the port's `read=`
+    exemption resolved nothing and a Read of the port was denied)."""
     try:
         out = subprocess.run(["git", "rev-parse", "--show-toplevel"],
                              capture_output=True, text=True, timeout=5)
+        if out.returncode == 0:
+            return out.stdout.strip()
+        out = subprocess.run(["git", "worktree", "list", "--porcelain"],
+                             capture_output=True, text=True, timeout=5)
     except (OSError, subprocess.TimeoutExpired):
         return None
-    return out.stdout.strip() if out.returncode == 0 else None
+    if out.returncode != 0:
+        return None
+    first = out.stdout.split("\n\n", 1)[0].splitlines()
+    if "bare" in first or not first or not first[0].startswith("worktree "):
+        return None
+    return first[0][len("worktree "):]
 
 
 def main():
