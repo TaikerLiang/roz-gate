@@ -73,6 +73,19 @@ suffix stripped); both non-empty, both must hold; an empty list is no
   Open → classify normally: the STOP exit's resume line re-applies the
   label over an open CR, and Path B reuses the branch. Closed unmerged, or
   no CR → classify normally (a re-implementation, #209).
+- **Blockers on a gated row** (#205). For every loop issue at `status:
+  ready-for-spec` / `ready-for-dev` the audits above left legal,
+  ISSUE-BLOCKERS — the forge's own relationship, never a `Blocked by`
+  line in a body or a spec. Any blocker still **open** → verdict
+  `waiting on: #<n>` (several: `waiting on: #<n>, #<m>`, open ones only),
+  skip classification: not actionable, not illegal — and never the word
+  `blocked`, which is `status: blocked`'s. A **closed** blocker releases
+  it (the loop closes an issue at its merge); every blocker closed, or
+  none → classify normally. The read **fails** (a non-zero exit) → verdict
+  `waiting on: blockers unknown (<the error>)`, skip classification: an
+  unreadable relationship is not an absent one. Put each blocker with its
+  state, or the error, in `evidence`. Rows in flight, inbox rows and every
+  other status are not read. You never write a relationship.
 - **Close-out scan.** For every issue wearing a `track:` label — the open
   ones above, plus ISSUE-LIST-CLOSED per track label (the forge closes an
   issue on merge where its own rule fires, and leaves the loop labels on) —
@@ -132,7 +145,7 @@ then one line for the filtered-out count. Columns, in this order:
 | `holder` | the gate holder — the issue's assignees minus the bot logins the main agent handed you and any login with the forge's bot shape (the human-comment test's, below), else its `author` when that is not a bot by either test, **humans only** (`none` when no human — a bot-authored, unassigned issue has no holder) — what intake and the user's queue need, so the main agent never re-lists for assignees |
 | `cr` | the loop CR: number, state (`open` / `draft` / `merged` / `closed` / `none`), url |
 | `unheard` | count of unheard items, each with its url (0 when none) |
-| `verdict` | one of: `actionable: review-answers` · `actionable: integrate` · `actionable: address-review` · `actionable: fidelity-audit` · `actionable: code-review` · `actionable: next-stage (qa)` · `actionable: spec-answers` · `actionable: next-stage (ready-for-dev)` · `actionable: next-stage (ready-for-spec)` · `close-out` · `hand-off: in-user-review` · `intake: questions` · `intake: summary` · `intake: reply` · `intake: finalize` · `waiting on user: <which wait>` · `in progress` · `illegal state: <why>` · `locked: <phase> · <age>` · `blocked` |
+| `verdict` | one of: `actionable: review-answers` · `actionable: integrate` · `actionable: address-review` · `actionable: fidelity-audit` · `actionable: code-review` · `actionable: next-stage (qa)` · `actionable: spec-answers` · `actionable: next-stage (ready-for-dev)` · `actionable: next-stage (ready-for-spec)` · `close-out` · `hand-off: in-user-review` · `intake: questions` · `intake: summary` · `intake: reply` · `intake: finalize` · `waiting on user: <which wait>` · `waiting on: #<n>[, #<m>]` · `waiting on: blockers unknown (<error>)` · `in progress` · `illegal state: <why>` · `locked: <phase> · <age>` · `blocked` |
 | `evidence` | what decided the verdict — thread/comment urls, the last agent marker, the gate label's latest `labeled` event (label · actor · time) on every gated row, the fidelity record's url or its absence, the code-review record's url and its `reviewed-sha` against the head (or its absence), the missing CR — enough for the report to cite without another forge read |
 
 Then: `inbox filter: <label list> / <assignee list> · N track-less

@@ -317,7 +317,7 @@ in the scanner's order, nothing else in it:
   `inbox`.
 - `this pass` — **one clause, at most 12 words**, from this vocabulary:
   `acted: <action> — <outcome>` · `queued: <action> · <gate label> <age>` ·
-  `waits on you: <what>`
+  `waits on you: <what>` · `waits on #<n>[, #<m>]` · `waits on: blockers unknown`
   · `blocked: <the STOP comment's title>` · `locked: <phase> · <age>` ·
   `illegal: <why>` · `shipped` · `in progress`. Never a list, never a commit
   log — that is Details material. The scanner's gate-label audit reads
@@ -336,6 +336,13 @@ in the scanner's order, nothing else in it:
   (qa)`, `fidelity-audit`, `address-review`), then `integrate`, each patrol's
   own move from the CRs' state (#207: a holder who saw no `queued: integrate`
   re-applied `ready-for-dev` and made the illegal state above).
+  A gated row the scanner holds on an open forge blocker (`waiting on: #<n>`,
+  #205) is `waits on #<n>` — the open blockers only, `needs you: —`: the
+  dependency clears itself when the blocker closes, so it is neither acted
+  on nor queued, and never `blocked:`. One whose blocker read failed
+  (`waiting on: blockers unknown (<error>)`) is `waits on: blockers
+  unknown` with `needs you: yes`: an unreadable relationship is not an
+  absent one, and someone must fix the read.
 - `needs you` — `yes` or `—`; `yes` whenever the next move is a human's: a
   wait, a `blocked`, an illegal row, a stale lock, an intake batch, an
   intake reply or a `· question` posted this pass, a review to merge.
@@ -348,7 +355,8 @@ inbox is never a mystery.
 order, one line each, `- #n — <verb phrase> — <link>` (answer the threads,
 answer the intake questions, read the intake reply, say `summary`, apply
 the gate label, decide the STOP, review & merge, needs an assignee, clear
-a stale lock, remove `status: ready-for-dev` from a stage that passed —
+a stale lock, fix the dependency lookup — `<error>` (a row whose blockers
+are unknown), remove `status: ready-for-dev` from a stage that passed —
 nothing else: patrol resumes from the CRs, remove
 the gate label `<login>` applied — then reapply it yourself to authorize:
 re-adding a label already worn records no new event, so the bot's stays

@@ -1,0 +1,8 @@
+{
+  "ledger": "F15 · A gated row with an open blocker waits",
+  "tier": "replay + lint (#205)",
+  "ledger_text": "\"#10 and #11 (`ready-for-dev`, each blocked by open #9; #11 also by closed #8) read `waits on #9` — #11's clause never names #8 — with `needs you: —` and no write on either; #12 (`ready-for-spec`, its one blocker #8 closed) is the pass's actionable row; #13 (its blocker lookup refused, HTTP 403) reads `blockers unknown` with `needs you: yes` and a queue item with its link, no write on it; the blockers of all four were read; no relationship written.\" (ConsoleAPI #28 waited on #27's C10 and still read `actionable: next-stage` at `ready-for-dev`; with `patrol_issues_per_pass` > 1 (#204) patrol would start it on a tree without its prerequisite)",
+  "prompt": "/roz-gate:patrol",
+  "k": 5,
+  "timeout": 2400
+}
