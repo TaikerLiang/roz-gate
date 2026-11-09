@@ -98,9 +98,13 @@ matched against the template — `references/branch-names.md`). A match →
 CR-FIND (all-states form) its CR: **open** → illegal state, **STOP** (someone
 is still reviewing it; the gate label is wrong, not the branch); **closed
 unmerged, or no CR** → this is a **re-spec**, and the route is the
-template's. It carries **`{seq}`** → `<spec-branch>` is the **next sequence**
-(Expand); the previous attempt stays on the remote, readable in its closed
-CR — cite it in the report — and the cut below proceeds. It carries **no
+template's. It carries **`{seq}`** → `<spec-branch>` is **1 + max(`{seq}`)**
+over Lookup's matches (Expand — never 1 + the count: a gap in the sequences
+makes the count an existing ref, #135); **check the expanded name against
+the same `ls-remote` output before the cut** — already present → a
+collision, **STOP** naming it, never a silent bump. The previous attempts
+stay on the remote, readable in their closed CRs — cite them in the report —
+and the cut below proceeds. It carries **no
 `{seq}`** → the stale branch is the
 human's to remove: **STOP**, and the `blocked` comment and the report carry
 the remedy verbatim — `git push origin --delete <spec-branch>` (and `<feat-branch>` / `<qa-branch>` if present) — *the human
@@ -680,9 +684,13 @@ matched against the template — `references/branch-names.md`). A match →
 CR-FIND (all-states form) its CR: **open** → illegal state, **STOP** (someone
 is still reviewing it; the gate label is wrong, not the branch); **closed
 unmerged, or no CR** → this is a **re-spec**, and the route is the
-template's. It carries **`{seq}`** → `<fast-branch>` is the **next sequence**
-(Expand); the previous attempt stays on the remote, readable in its closed
-CR — cite it in the report — and the cut below proceeds. It carries **no
+template's. It carries **`{seq}`** → `<fast-branch>` is **1 + max(`{seq}`)**
+over Lookup's matches (Expand — never 1 + the count: a gap in the sequences
+makes the count an existing ref, #135); **check the expanded name against
+the same `ls-remote` output before the cut** — already present → a
+collision, **STOP** naming it, never a silent bump. The previous attempts
+stay on the remote, readable in their closed CRs — cite them in the report —
+and the cut below proceeds. It carries **no
 `{seq}`** → the stale branch is the
 human's to remove: **STOP**, and the `blocked` comment and the report carry
 the remedy verbatim — `git push origin --delete <fast-branch>` — *the human

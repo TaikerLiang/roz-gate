@@ -57,8 +57,8 @@ src("C22: address-review re-stamps the record on the last resolve", "commands/pa
 src("C22: patrol ranks code-review after fidelity-audit", "commands/patrol.md",
     "fidelity-audit > code-review >")
 src("C22: tip reads the record", "commands/tip.md",
-    "CR-COMMENTS-LIST for a `%s` comment and whether\n  its `reviewed-sha:` is the branch's head"
-    % _MARK)
+    "CR-COMMENTS-LIST for a `%s` comment and whether\n  its `reviewed-sha:` is the branch's `sha`"
+    % _MARK)   # #135: the head's commit comes from the lookup JSON
 src("C22: README's (5) row names the record", "README.md",
     "plus the `%s` record (`reviewed-sha`); review-clean = record current + zero threads" % _MARK)
 src("C22: the index's (5) card names the record", "docs/index.html",

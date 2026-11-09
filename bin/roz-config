@@ -48,6 +48,9 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "hooks"))
+from branch_names import validate as template_problem  # noqa: E402,F401 — one implementation (#135)
+
 KEYS = ("default_branch", "inbox_label", "inbox_assignee", "helper_model", "branch_user",
         "branch_template", "worktree_copy", "patrol_issues_per_pass")
 PER_PASS_DEFAULT = "1"           # patrol_issues_per_pass absent: one in-loop issue per pass
@@ -56,7 +59,6 @@ EMPTY_DEFAULT = ("helper_model", "branch_user", "branch_template")  # absent = "
 # Keys that joined after the local file was born: a block line seeds them once
 # into an existing file, and removing one stores "" so it cannot seed again.
 LATE_KEYS = ("helper_model", "branch_template", "patrol_issues_per_pass")
-PLACEHOLDERS = ("{kind}", "{type}", "{user}", "{n}", "{seq}")
 RENAMED = {"patrol_model": "helper_model"}   # pre-1.28 block line → local key
 LIST_KEYS = ("inbox_label", "inbox_assignee", "worktree_copy")
 COPY_DEFAULT = [".env"]  # worktree_copy absent; stored "" (or []) = copy nothing (#122)
@@ -245,17 +247,9 @@ def copy_problem(paths, root):
     return None
 
 
-def template_problem(t):
-    """Why `t` is not a valid branch template, or None (references/branch-names.md
-    § The template): `{n}`, one of `{kind}` / `{type}`, no other placeholder."""
-    unknown = [p for p in re.findall(r"\{[^{}]*\}", t) if p not in PLACEHOLDERS]
-    if unknown:
-        return "unknown placeholder %s — the five are %s" % (", ".join(unknown), " ".join(PLACEHOLDERS))
-    if "{n}" not in t:
-        return "it has no {n}, so two issues would share a branch"
-    if "{kind}" not in t and "{type}" not in t:
-        return "it has neither {kind} nor {type}, so an issue's spec and qa branches would collide"
-    return None
+# template_problem: hooks/branch_names.validate — the one implementation of
+# references/branch-names.md § The template (#135): `{n}`, one of `{kind}` /
+# `{type}`, no other placeholder, each at most once.
 
 
 def main(argv):

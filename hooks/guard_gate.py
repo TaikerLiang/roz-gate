@@ -147,6 +147,8 @@ import sys
 # this dir already); the lint tier and the D5 checker load it by
 # spec_from_file_location, from elsewhere — the reader must still import.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from branch_names import DEFAULT as DEFAULT_TEMPLATE  # noqa: E402
+from branch_names import local_key, parse_branch
 from config_block import find_block, main_checkout  # noqa: E402
 
 GATE = re.compile(r"ready-for-(spec|dev)")
@@ -1149,51 +1151,11 @@ RULE_K_MSG = (
     "`status: blocked`) and stop. (ref: %(ref)s · issue: %(n)s · base: %(base)s"
     " · allowed: origin/%(base)s and this issue's `%(template)s` branches)"
 )
-LOCAL_FILE = os.path.join(".claude", "roz-gate.local.json")
-DEFAULT_TEMPLATE = "{kind}/{n}"
-# references/branch-names.md § The hooks: one segment per `{user}` / `{type}`,
-# digits for `{n}` / `{seq}`, the four kinds for `{kind}`. An unknown
-# placeholder renders to a pattern that matches nothing — an invalid template
-# then allows only the base, never everything.
-TEMPLATE_SLOTS = {"{kind}": r"(?:spec|feat|qa|fast)", "{type}": r"[^/]+", "{user}": r"[^/]+",
-                  "{n}": r"(?P<n>[0-9]+)", "{seq}": r"[0-9]+"}
-# `git merge` options that take a value as the NEXT token. `--log[=<n>]`,
-# `--gpg-sign[=<key>]` / `-S[<key>]` take an optional value attached only, so
-# the token after them is a ref (codex review, PR #214).
 MERGE_VALUE_FLAGS = {"-m", "-F", "-s", "-X", "--strategy", "--strategy-option",
                      "--into-name", "--cleanup"}
 GIT_VALUE_OPTS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path",
                   "--super-prefix", "--config-env"}
 SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
-
-
-def local_key(tops, key):
-    """A local key from bin/roz-config's file — the worktree's own, else the
-    main checkout's (guard_acceptance.py's lookup order)."""
-    for top in tops:
-        if not top:
-            continue
-        try:
-            with open(os.path.join(top, LOCAL_FILE), encoding="utf-8") as f:
-                data = json.load(f)
-        except (OSError, ValueError):
-            continue
-        if isinstance(data, dict) and key in data:
-            v = data[key]
-            return v.strip() if isinstance(v, str) and v.strip() else None
-    return None
-
-
-def template_re(template):
-    out = ""
-    for piece in re.split(r"(\{[a-z]+\})", template):
-        if piece.startswith("{"):
-            if piece not in TEMPLATE_SLOTS:
-                return re.compile(r"(?!)")
-            out += TEMPLATE_SLOTS[piece]
-        else:
-            out += re.escape(piece)
-    return re.compile(out + r"\Z")
 
 
 def loop_worktree_of(path):
@@ -1322,9 +1284,8 @@ def check_loop_merge(cmd, cwd):
                 main_checkout_from(where)]
         base = base_branch(tops, where)
         template = local_key(tops, "branch_template") or DEFAULT_TEMPLATE
-        pat = template_re(template)
-        m = pat.match(branch)
-        n = m.group("n") if m and "n" in m.groupdict() else None
+        own = parse_branch(branch, template)         # hooks/branch_names (#135)
+        n = own["n"] if own else None
         for ref in refs:
             if " " in ref:          # `git pull <other-remote> <branch>`: never origin's
                 deny(RULE_K_MSG % {"ref": ref, "n": n or "?", "base": base,
@@ -1336,8 +1297,8 @@ def check_loop_merge(cmd, cwd):
                     break
             if name == base and not SHA_RE.match(ref):
                 continue
-            mm = pat.match(name)
-            if mm and n and mm.group("n") == n and not SHA_RE.match(ref):
+            other = parse_branch(name, template)
+            if other and n and other["n"] == n and not SHA_RE.match(ref):
                 continue
             deny(RULE_K_MSG % {"ref": ref, "n": n or "?", "base": base, "template": template})
 

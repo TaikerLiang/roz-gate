@@ -15,11 +15,21 @@ in your dispatch (`references/forge-<forge>.md`). The inbox filter's two
 lists and `default_branch` are the values the main agent handed you from
 `bin/roz-config --json`; never re-derive them. **Branch names**: the main
 agent handed you `branch_template` (from `bin/roz-config --json`; `""` →
-`{kind}/{n}`) and **the remote's heads** (its one
-`git ls-remote --heads origin`); every `<spec-branch>` / `<feat-branch>` /
-`<qa-branch>` / `<fast-branch>` below is bound by **Lookup** over that
-list — the template rendered for the kind and issue with `{user}` and
-`{seq}` as patterns, the highest `{seq}` winning
+`{kind}/{n}`) and **the remote's snapshot file** (its one
+`bin/roz-branch snapshot`); after **both** listings — ISSUE-LIST and the
+close-out scan's ISSUE-LIST-CLOSED per track label (below: a closed issue
+whose close-out was interrupted still needs its branch) — run **one**
+`bin/roz-branch match --snapshot <file> --issues <every issue number from both>
+--tracks <n>=spec|fast,… --types <n>=<type label>,… --json` (no `type:`
+label → `feat`, the rendering `branch-names.md` gives it) — a pure read
+of that file, no network, no git — and bind every `<spec-branch>` /
+`<feat-branch>` / `<qa-branch>` / `<fast-branch>` below from its JSON
+(#135, `references/branch-names.md` § The resolver): `ONE` → that branch;
+`MULTIPLE_SEQ` → the highest `{seq}` among its matches; `NO_MATCH` → the
+branch does not exist; `MULTIPLE_SAME_SEQ` → verdict `illegal state:
+ambiguous branch (<the matches>)`, skip classification, report it;
+`UNKNOWN` cannot reach you — the agent stops the pass on an unknown
+snapshot. Never render the template yourself
 (`references/branch-names.md`) — never by a git call of your own, never by
 guessing. A CR-FIND takes the bound name.
 
@@ -89,8 +99,9 @@ suffix stripped); both non-empty, both must hold; an empty list is no
 - **Close-out scan.** For every issue wearing a `track:` label — the open
   ones above, plus ISSUE-LIST-CLOSED per track label (the forge closes an
   issue on merge where its own rule fires, and leaves the loop labels on) —
-  CR-FIND its CR (`<spec-branch>` / `<fast-branch>`, bound by Lookup —
-  `references/branch-names.md`) with the all-states form. CR
+  CR-FIND its CR (`<spec-branch>` / `<fast-branch>`, bound from the same match
+  JSON as every other row — the closed issues were in its `--issues`) with
+  the all-states form. CR
   **merged** → a close-out candidate: **legal** when the issue is at
   `status: in-user-review` or already carries a `**[patrol] · shipped**`
   comment (a close-out interrupted part-way — finish it); any other status
@@ -108,7 +119,7 @@ suffix stripped); both non-empty, both must hold; an empty list is no
 |---|---|
 | `status: ready-for-spec` / `ready-for-dev` | actionable → `/roz-gate:next-stage <n>` |
 | `status: in-spec-review` | THREADS-LIST on its spec CR. Any unresolved thread whose last comment is a human answer (does not start with `**[` / `✅ [`) → actionable → `/roz-gate:spec-answers <n>`. Otherwise → waiting on the user |
-| no `status:`, `track: spec` | in flight: CR-FIND for `<feat-branch>` and `<qa-branch>` **in its all-states form** — a CR the forge shows as **merged** exists for this row (its content is already in the spec branch; integrate merges nothing it finds merged and re-verdicts the tip); a closed-unmerged CR counts as absent. **The implementation CR's record** (CR-COMMENTS-LIST on it): review-clean is the `**[reviewer] · code-review**` comment present with its `reviewed-sha:` equal to the CR head (the remote's head for `<feat-branch>`) **and** zero open review threads — never zero threads alone (#95; #140). Implementation CR open, **no record or a stale one** (`reviewed-sha` ≠ head) → actionable → **code-review** (below), whatever its threads say: the review never ran, or never re-checked the head. Implementation CR **review-clean or merged**, and **no QA CR** → actionable → `/roz-gate:next-stage <n>` — the row's verdict is `actionable: next-stage (qa)`: Path B2 lands the implementation and launches (4). QA CR exists, is not a draft and carries **no** `**[reviewer] · fidelity**` comment (CR-COMMENTS-LIST on it — the record that the fidelity audit ran) → actionable → **fidelity-audit** (below), whatever its threads say: the audit never ran. Implementation CR review-clean or merged AND QA CR exists, **is not a draft, carries the `**[reviewer] · fidelity**` record and has zero open fidelity threads** → actionable → `/roz-gate:integrate <n>` — both merged, or merged + open-ready, included: that is the re-verdict after the human cleared a `blocked`, or moved the spec branch. Either CR has **open review threads** → actionable → **address-review** (below). Otherwise → in progress, not actionable |
+| no `status:`, `track: spec` | in flight: CR-FIND for `<feat-branch>` and `<qa-branch>` **in its all-states form** — a CR the forge shows as **merged** exists for this row (its content is already in the spec branch; integrate merges nothing it finds merged and re-verdicts the tip); a closed-unmerged CR counts as absent. **The implementation CR's record** (CR-COMMENTS-LIST on it): review-clean is the `**[reviewer] · code-review**` comment present with its `reviewed-sha:` equal to the CR head (the `sha` of `<feat-branch>`'s match in the resolver's JSON — the snapshot keeps every head's commit) **and** zero open review threads — never zero threads alone (#95; #140). Implementation CR open, **no record or a stale one** (`reviewed-sha` ≠ head) → actionable → **code-review** (below), whatever its threads say: the review never ran, or never re-checked the head. Implementation CR **review-clean or merged**, and **no QA CR** → actionable → `/roz-gate:next-stage <n>` — the row's verdict is `actionable: next-stage (qa)`: Path B2 lands the implementation and launches (4). QA CR exists, is not a draft and carries **no** `**[reviewer] · fidelity**` comment (CR-COMMENTS-LIST on it — the record that the fidelity audit ran) → actionable → **fidelity-audit** (below), whatever its threads say: the audit never ran. Implementation CR review-clean or merged AND QA CR exists, **is not a draft, carries the `**[reviewer] · fidelity**` record and has zero open fidelity threads** → actionable → `/roz-gate:integrate <n>` — both merged, or merged + open-ready, included: that is the re-verdict after the human cleared a `blocked`, or moved the spec branch. Either CR has **open review threads** → actionable → **address-review** (below). Otherwise → in progress, not actionable |
 | no `status:`, `track: fast` | in flight: its CR has **open review threads** → actionable → **address-review**; its CR carries **no `**[reviewer] · code-review**` record, or a stale one** (`reviewed-sha` ≠ head) → actionable → **code-review**; review-clean (record current, zero threads) → verdict `hand-off: in-user-review` (the main agent applies the label — you write nothing) |
 | `status: in-user-review` | its CR (`<spec-branch>` for `track: spec`, `<fast-branch>` for `track: fast`) was found **merged** by the close-out scan → actionable → **close-out** (below): the human signed, the loop finishes the paperwork. Otherwise the user is reviewing — and reviewing produces comments. Its open CR (missing or closed-unmerged → report, act on nothing) is read on **all three channels**: THREADS-LIST, REVIEWS-LIST, CR-COMMENTS-LIST. Any item whose latest entry does **not** start with `**[` or `✅ [` is **unheard** → actionable → `/roz-gate:review-answers <n>`; the gate-kit comment is the loop's own, never an item (it opens with the kit's blind-spot header, not a `**[` marker). Otherwise → waiting on the user: say which wait, from the last agent marker — `· question` (your answer) / `· addressed` (your re-review) / none since the verdict (idle, N days) |
 | `status: blocked` | waiting on the user — never re-invoke anything on it |

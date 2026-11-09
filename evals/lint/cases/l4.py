@@ -6,6 +6,9 @@ rename — exactly the hardcode this replaces (62 of them in next-stage
 alone). Lookup over Expand: another person's {user} and the attempt's
 {seq} are not computable from the config, so an existing branch is
 found on the remote, never guessed. The hooks read the same template.
+2.15.0 (#135): one implementation — hooks/branch_names.py — behind
+bin/roz-branch and the hooks; patrol hands the scanner the resolver's
+snapshot and the scanner matches through `roz-branch match`, never by hand.
 """
 
 import os
@@ -19,7 +22,8 @@ META = {
         'branch names are bound once, never spelled — every command resolves `<spec-branch>` / '
         '`<feat-branch>` / `<qa-branch>` / `<fast-branch>` through '
         '`references/branch-names.md`; no literal `spec/<n>` outside it; `init` creates the '
-        '`type:` labels; both adapters carry WHOAMI; the hooks read the template',
+        '`type:` labels; both adapters carry WHOAMI; the hooks and `bin/roz-branch` share '
+        '`hooks/branch_names.py`; the scanner matches through the resolver',
     "tier": 'lint (preventive, #75)',
     "ledger": None,
 }
@@ -49,8 +53,8 @@ for _nm, _s, _e in (("A2", r"^### A2\. Branch", r"^### A3\. "),
                     ("C2", r"^### C2\. Branch", r"^### C3\. ")):
     _blk = section(_ns4, _s, _e)
     c.expect("pattern",
-             "L4: %s re-enters by the next sequence when the template carries {seq}" % _nm,
-             "It carries **`{seq}`**" in _blk and "next sequence" in _blk)
+             "L4: %s re-enters by one past the highest {seq} when the template carries it" % _nm,
+             "It carries **`{seq}`**" in _blk and "1 + max" in _blk)   # #135: not a count
     c.expect("pattern", "L4: %s STOPs with the delete remedy only without {seq}" % _nm,
              "It carries **no\n`{seq}`**" in _blk and "git push origin --delete" in _blk)
 src("L4: B2 binds feat and qa by Lookup, else Expand", "commands/next-stage.md",
@@ -59,8 +63,8 @@ src("L4: the dispatch marker carries the bound implementation branch", "commands
     "printf 'issue=<n>\\nfeat=<feat-branch>\\nread=<path>\\nseat=<seat>\\n'")
 src("L4: patrol's fidelity dispatch names the same marker line", "commands/patrol.md",
     "feat=<feat-branch>")
-src("L4: patrol hands the scanner the remote's heads (the scanner may not run git — codex, PR #82)",
-    "commands/patrol.md", "`git ls-remote --heads origin`, run by you")
+src("L4: patrol hands the scanner the resolver's snapshot (the scanner may not run git — codex, "
+    "PR #82; #135)", "commands/patrol.md", "bin/roz-branch snapshot")
 src("L4: the scanner binds names by Lookup over the handed list, never a git call",
     "references/patrol-scan.md", "never by a git call of your own")
 src("L4: Lookup is one ls-remote, no fetch", "references/branch-names.md",
@@ -75,12 +79,19 @@ for _f in ("references/forge-github.md", "references/forge-gitlab.md"):
     src("L4: %s carries WHOAMI" % _f, _f, "| WHOAMI |")
 src("L4: guard-blind reads the marker's feat= line", "hooks/guard_blind.py",
     'line.startswith("feat=")')
-src("L4: guard-acceptance renders the template for the spec kind", "hooks/guard_acceptance.py",
-    "def spec_branch_re(template):")
+src("L4: guard-acceptance matches the spec kind through the shared module (#135)",
+    "hooks/guard_acceptance.py", "pattern_for_kind(")
+src("L4: guard-gate rule K parses issue numbers through the shared module (#135)",
+    "hooks/guard_gate.py", "parse_branch(")
+src("L4: roz-config validates the template through the shared module (#135)", "bin/roz-config",
+    "from branch_names import")
+c.expect("pattern", "L4: guard-blind keeps its exact-ref semantics — it does not import the "
+         "module (#135)", "from branch_names import" not in read("hooks/guard_blind.py")
+         and 'line.startswith("feat=")' in read("hooks/guard_blind.py"))
 src("L4: guard-acceptance's prefilter escalates every branch under a local template",
     "hooks/guard-acceptance.sh", "grep -qs '\"branch_template\" *: *\"[^\"]'")
-src("L4: guard-acceptance reads the template from the local file, here or in the main "
-    "checkout (#165)", "hooks/guard_acceptance.py", "for root in (top, main_checkout()):")
+src("L4: the module reads the template from the local file, here or in the main checkout "
+    "(#165, #135)", "hooks/branch_names.py", "for top in tops:")
 src("L4: hooks/README's rule E names the marker's ref", "hooks/README.md", "marker's `feat=` line")
 src("L4: README sets the template with /roz-gate:config", "README.md",
     "/roz-gate:config branch_template ")

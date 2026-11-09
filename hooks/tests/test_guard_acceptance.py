@@ -93,6 +93,20 @@ class AcceptanceSuiteIsNotEditableOnSpecBranch(HookTest):
             commit=True, branch="spec/paul/7")
         with self.case("template: {kind}/{user}/{n} spec branch denied"):
             self.assertDenied(self.edit(kind_first, "Edit", ACCEPTANCE_FILE), "acceptance suite")
+        # #135 parity, after the hooks share hooks/branch_names: a template with
+        # no {kind} tells spec from the rest by {type}; any issue number.
+        typed = self.new_repo(
+            {"CLAUDE.md": config_block(forge="github", acceptance_dir="tests/acceptance"),
+             LOCAL: local_template("{type}/{n}")},
+            commit=True, branch="spec/123456")
+        with self.case("template (#135): {type}/{n} — spec/123456 is the spec branch, denied"):
+            self.assertDenied(self.edit(typed, "Edit", ACCEPTANCE_FILE), "acceptance suite")
+        self.git(typed, "checkout", "-q", "-b", "test/123456")
+        with self.case("template (#135): {type}/{n} — test/123456 is the qa branch, allowed"):
+            self.assertAllowed(self.edit(typed, "Edit", ACCEPTANCE_FILE))
+        self.git(typed, "checkout", "-q", "-b", "chore/123456")
+        with self.case("template (#135): {type}/{n} — chore/123456 (fast) allowed"):
+            self.assertAllowed(self.edit(typed, "Edit", ACCEPTANCE_FILE))
         # An invalid template (unknown placeholder) enforces nothing rather than everything.
         bad = self.new_repo(
             {"CLAUDE.md": config_block(forge="github", acceptance_dir="tests/acceptance"),

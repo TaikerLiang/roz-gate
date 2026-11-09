@@ -39,4 +39,7 @@ c.expect("workflow.md (never force-pushed)", "spec/5 still points at the first a
              "# Spec #5 — first attempt"))
 c.expect("ledger C10 (refs unchanged)", "exactly the two seeded refs on the remote",
          r.remote_ref_count() == 2)
+# #135 shadow: the name A2's re-entry check looked up (CR-FIND's head) against
+# Lookup over the remote's final heads. A signal, never a fail.
+r.shadow_branch([("spec", "5")], acts=("find",))
 c.finish()

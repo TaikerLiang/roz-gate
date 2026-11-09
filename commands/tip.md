@@ -26,12 +26,19 @@ the user to run `/roz-gate:init`. **Local keys** — `default_branch`,
 `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-config --json`; the block's `bot_login`
 list (normalized as patrol does: `app/` prefix and `[bot]` suffix stripped)
 tells a human holder from a bot.
-**Branch names**: run one `git ls-remote --heads origin` (a query of the
-remote; it touches no checkout and no local ref) and bind `<spec-branch>`,
-`<feat-branch>`, `<qa-branch>`, `<fast-branch>` by **Lookup** over it per
-`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md` (the local key
-`branch_template`, `""` → `{kind}/{n}`; several attempts → the highest
-`{seq}` is the live one, the others are earlier attempts). Nothing below
+**Branch names**: after ISSUE-VIEW #<n> (§1 below — its `track:` and
+`type:` labels), run one `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-branch
+lookup --issues <n> --tracks <n>=<track> --types <n>=<type> --json`
+(`<type>` is the issue's `type:` label; no `type:` label → `feat`, as
+`branch-names.md` renders it — an untyped lookup would match every type's
+branch and bind the wrong one under a `{type}` template; read-only: the one
+`git ls-remote --heads origin`, then Lookup per
+`${CLAUDE_PLUGIN_ROOT}/references/branch-names.md` over the local key
+`branch_template`, `""` → `{kind}/{n}`) and bind
+`<spec-branch>`, `<feat-branch>`, `<qa-branch>`, `<fast-branch>` from its
+JSON — `ONE` → that branch; `MULTIPLE_SEQ` → the highest `{seq}` is the
+live one, the others are earlier attempts; `UNKNOWN` → say the remote could
+not be read, bind nothing. Nothing below
 spells a branch name.
 
 This command takes no `processing` lock: the lock belongs to state-mutating
@@ -62,7 +69,8 @@ it waits on or clears.
   `**[reviewer] · fidelity**` comment — stage (6) requires it. The
   code-review record: on the implementation CR (or the fast CR),
   CR-COMMENTS-LIST for a `**[reviewer] · code-review**` comment and whether
-  its `reviewed-sha:` is the branch's head in the `ls-remote` output —
+  its `reviewed-sha:` is the branch's `sha` in the lookup JSON (each match
+  carries its remote head's commit) —
   review-clean is that record current **and** zero open threads
   (`workflow.md` (5)), never zero threads alone.
 

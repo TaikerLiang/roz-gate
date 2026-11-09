@@ -325,6 +325,101 @@ class Run:
                              capture_output=True, text=True)
         return out.returncode, out.stdout
 
+    def remote_heads(self):
+        """Every branch on the sandbox's bare remote, by short name."""
+        rc, out = self.git("for-each-ref", "--format=%(refname:short)", "refs/heads/")
+        return [ln.strip() for ln in out.splitlines() if ln.strip()] if rc == 0 else None
+
+    def signal(self, **values):
+        """Add to attempts.json — the report's extra columns (D2's pattern):
+        informational, never a verdict."""
+        path = os.path.join(self.dir, "attempts.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                cur = json.load(f)
+        except (OSError, ValueError):
+            cur = {}
+        if not isinstance(cur, dict):
+            cur = {}
+        cur.update(values)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(cur, f)
+
+    # The acts by which a command binds a branch name, read from what it did
+    # (codex review, PR #254 — never a fixture constant):
+    #   create — CR-OPEN's head, a `git push` refspec's destination, the
+    #            `git worktree add` path under roz-gate/wt/, `checkout -b`.
+    #   find   — CR-FIND's head (`--head X`, or `head=` in an API query).
+    _PUSH = re.compile(r"\bgit\b[^|;&\n]*\bpush\b([^|;&\n]*)")
+    _WT = re.compile(r"roz-gate/wt/(\S+)")
+    _CO = re.compile(r"\bgit\b[^|;&\n]*\b(?:checkout|switch)\s+-[bBcC]\s+(\S+)")
+
+    @staticmethod
+    def _ref(tok):
+        tok = tok.strip("'\"`")
+        for pre in ("refs/remotes/origin/", "refs/heads/", "origin/"):
+            if tok.startswith(pre):
+                tok = tok[len(pre):]
+        return tok.split(":")[-1] if ":" in tok else tok
+
+    def observed_bindings(self, acts=("create", "find")):
+        """Every branch name the run bound by one of `acts`."""
+        names = set()
+        for e in self.journal():
+            argv = [str(a) for a in e.get("argv") or []]
+            if "create" in acts and e.get("route") == "pr-create" and e.get("head"):
+                names.add(self._ref(e["head"]))
+            if "find" in acts:
+                for k, a in enumerate(argv):
+                    if a == "--head" and k + 1 < len(argv):
+                        names.add(self._ref(argv[k + 1]))
+                    for m in re.finditer(r"[?&]head=([^&\s]+)", a):
+                        names.add(self._ref(m.group(1).split(":")[-1]))
+        if "create" in acts:
+            for u in self.tool_uses(("Bash",)):
+                cmd = (u.get("input") or {}).get("command", "")
+                for m in self._PUSH.finditer(cmd):
+                    toks = [t for t in m.group(1).split() if not t.startswith("-")]
+                    names.update(self._ref(t) for t in toks[1:])     # toks[0]: the remote
+                names.update(self._ref(m.group(1)) for m in self._WT.finditer(cmd))
+                names.update(self._ref(m.group(1)) for m in self._CO.finditer(cmd))
+        return names
+
+    def shadow_branch(self, keys, template=None, acts=("create", "find")):
+        """#135 shadow comparison: for each (kind, issue) in `keys`, the names
+        the run itself bound (observed_bindings, filtered to that kind and
+        issue under `template`) against what hooks/branch_names' Lookup over
+        the remote's final heads would bind (ONE → it; MULTIPLE_SEQ → the
+        highest {seq}; NO_MATCH → nothing). Agreement: the observed set is
+        exactly the resolver's choice, or both are empty. Writes
+        `shadow_branch_mismatch` (a count) and `shadow_branch_detail`; a
+        signal, never a fail — evals/CONTRIBUTING.md § 7."""
+        sys.path.insert(0, os.path.join(ROOT, "hooks"))
+        import branch_names as bn  # noqa: E402
+        heads = self.remote_heads()
+        snap = (bn.snapshot_from_heads(heads) if heads is not None
+                else {"status": "unknown", "reason": "no remote", "heads": []})
+        seen = self.observed_bindings(acts)
+        detail, mismatches = {}, 0
+        for kind, n in keys:
+            pat = bn.pattern_for_kind(template, kind, n=n)
+            bound = sorted(x for x in seen if pat.match(x))
+            m = bn.match_heads(snap, template, kind=kind, n=n)
+            if m["outcome"] == "ONE":
+                choice = [m["matches"][0]["branch"]]
+            elif m["outcome"] == "MULTIPLE_SEQ":
+                choice = [max(m["matches"], key=lambda x: x["seq"] or 0)["branch"]]
+            elif m["outcome"] == "NO_MATCH":
+                choice = []
+            else:
+                choice = None                       # ambiguous or unknown: never agrees
+            agree = choice is not None and bound == choice
+            detail["%s/%s" % (kind, n)] = {"bound": bound, "outcome": m["outcome"],
+                                           "resolver": choice, "agree": agree}
+            mismatches += 0 if agree else 1
+        self.signal(shadow_branch_mismatch=mismatches, shadow_branch_detail=detail)
+        return mismatches
+
     def remote_ref_count(self):
         rc, out = self.git("for-each-ref")
         return len([line for line in out.splitlines() if line.strip()])

@@ -230,6 +230,39 @@ before "the model violated the rule": instrument defect → fixture defect
 was roughly ten instrument/fixture findings to three model findings — the
 instrument lies first.
 
+## 7. Shadow signals
+
+A deterministic re-implementation of something the prose does — the branch
+resolver (#135), later `roz-state` (#133) — runs **beside** the commands
+before it replaces them. The comparison is a **signal**, never a verdict:
+`Run.signal(...)` writes extra keys into the run's `attempts.json` and the
+report sums them in their own columns (D2's `attempts_denied` pattern);
+`c.expect` is not involved. `Run.shadow_branch([(kind, n), …], template,
+acts)` is the first: the names the run **itself** bound — `Run.observed_bindings`
+reads them from what it did, never from a fixture constant (`create`:
+CR-OPEN's head, a push destination, a `roz-gate/wt/` worktree path,
+`checkout -b`; `find`: CR-FIND's head) — against Lookup over the remote's
+final heads; agreement is the observed set equal to the resolver's choice,
+or both empty (an absent binding against a found branch is a mismatch).
+C11's red-proof proves the signal discriminates. It writes
+`shadow_branch_mismatch` (a count) and `shadow_branch_detail`. C10, C11,
+C12, C20 and F9 carry it.
+
+**Exit from shadow mode** — the commands switch to the resolver and the
+prose Lookup is deleted — when all three hold (#239 § coverage + stability):
+
+1. every cell of the scenario matrix has been observed in a recorded run:
+   default template · custom template · foreign `{user}` · contiguous `{seq}`
+   · gapped `{seq}` · `MULTIPLE_SAME_SEQ` · unreachable remote;
+2. zero unexplained mismatches — every `shadow_branch_mismatch > 0` has an
+   autopsy (collector defect, fixture defect, prose defect, or a genuinely
+   ambiguous rule, each fixed or filed);
+3. no mismatch across N consecutive recorded runs — N is set in the plan
+   that performs the switch; it is a stability guard, not the definition of
+   correctness.
+
+Until then a mismatch is information, and the prose stays authoritative.
+
 ## Instruments that lied — check yours against each
 
 | case | what the instrument missed | the class |

@@ -56,4 +56,7 @@ def claim_ok():
 c.expect("integrate.md step 5 (the licensed claim, verbatim)",
          "report claims 'green against the pre-rework spec', never 'verified'",
          claim_ok)
+# #135 shadow: the names integrate looked up (CR-FIND heads) against Lookup
+# over the final heads (a signal, never a fail).
+r.shadow_branch([("spec", "5"), ("feat", "5"), ("qa", "5")], acts=("find",))
 c.finish()

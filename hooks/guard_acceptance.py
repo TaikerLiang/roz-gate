@@ -44,6 +44,7 @@ import sys
 # this dir already); the lint tier and the D5 checker load it by
 # spec_from_file_location, from elsewhere — the reader must still import.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from branch_names import local_key, pattern_for_kind  # noqa: E402
 from config_block import find_block, main_checkout  # noqa: E402
 
 DEFAULT_ACCEPTANCE_DIR = "tests/acceptance"
@@ -80,27 +81,11 @@ LOCAL_FILE = os.path.join(".claude", "roz-gate.local.json")
 
 def local_template(top):
     """`branch_template` from bin/roz-config's local file — this toplevel's,
-    else the main checkout's: an edit in a linked worktree (the loop's
-    `.git/roz-gate/wt/<branch>`) reads the clone's file, as the block is
-    read. The first file that holds the key wins: a stored "" is a chosen
-    default (→ None); a file without the key — a worktree's own, holding
-    only another key — passes to the next (codex review, PR #169). The
+    else the main checkout's (hooks/branch_names.local_key: the first file
+    that holds the key wins; a stored "" is a chosen default → None). The
     block's old `- branch_template:` line is never read here: roz-config
-    moves it into the file once (#165).
-    """
-    for root in (top, main_checkout()):
-        if not root:
-            continue
-        try:
-            with open(os.path.join(root, LOCAL_FILE), encoding="utf-8") as f:
-                data = json.load(f)
-        except (OSError, ValueError):
-            continue
-        if not isinstance(data, dict) or "branch_template" not in data:
-            continue
-        t = data["branch_template"]
-        return t.strip() if isinstance(t, str) and t.strip() else None
-    return None
+    moves it into the file once (#165)."""
+    return local_key((top, main_checkout()), "branch_template")
 
 
 def load_config(top):
@@ -122,32 +107,15 @@ def load_config(top):
             local_template(top))
 
 
-# The placeholders as patterns, for the spec kind (references/branch-names.md
-# § The hooks): `{user}` is one path segment, `{n}` and `{seq}` numbers,
-# `{kind}` and `{type}` the literal `spec`. Any other `{…}` makes the
-# template invalid — the commands STOP on it; here it renders to a pattern
-# that matches nothing, so an invalid template enforces nothing rather
-# than everything.
-SPEC_SLOTS = {"{kind}": "spec", "{type}": "spec", "{user}": r"[^/]+",
-              "{n}": r"[0-9]+", "{seq}": r"[0-9]+"}
-
-
-def spec_branch_re(template):
-    out = ""
-    for piece in re.split(r"(\{[a-z]+\})", template):
-        if piece.startswith("{"):
-            if piece not in SPEC_SLOTS:
-                return re.compile(r"(?!)")
-            out += SPEC_SLOTS[piece]
-        else:
-            out += re.escape(piece)
-    return re.compile(out + r"\Z")
-
-
 def is_spec_branch(branch, template):
+    """Is HEAD a spec branch — any issue, any `{user}`, any `{seq}`:
+    hooks/branch_names.pattern_for_kind for the spec kind with `n` open
+    (#135; references/branch-names.md § The hooks). Unset → `spec/*`, as
+    before; an invalid template matches nothing, so it enforces nothing
+    rather than everything."""
     if template is None:
         return branch.startswith("spec/")
-    return spec_branch_re(template).match(branch) is not None
+    return pattern_for_kind(template, "spec").match(branch) is not None
 
 
 def under(path, directory):

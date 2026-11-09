@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """C11's red-proof: check.py scores staged end states correctly. No model —
-the sandbox is seeded with seed.sh (spec/paul/5/1 from a first attempt on
-the remote, a {seq} template in the block); each shape stages the forge
+the sandbox is seeded with seed.sh (spec/paul/5/1 and /3 from earlier
+attempts on the remote — a gap at /2 — and a {seq} template in the local
+file); each shape stages the forge
 (labels, comments, PRs) and what a session might have done to the remote;
 check.py runs.
 
@@ -24,17 +25,20 @@ GIT_ID = {"GIT_AUTHOR_NAME": "a", "GIT_AUTHOR_EMAIL": "a@a",
 CUT = ("git checkout -q -b %s main && mkdir -p docs/specs/5 "
        "&& printf '# Spec #5 — second attempt\\n' > docs/specs/5/spec.md "
        "&& git add -A && git commit -qm respec && git push -q origin %s")
-NEXT = CUT % ("spec/paul/5/2", "spec/paul/5/2")
+NEXT = CUT % ("spec/paul/5/4", "spec/paul/5/4")
+GAP = CUT % ("spec/paul/5/2", "spec/paul/5/2")          # fills the gap: not 1 + max
 FORCE = ("git checkout -q -b spec/5-new main && mkdir -p docs/specs/5 "
          "&& printf '# Spec #5 — second attempt\\n' > docs/specs/5/spec.md "
          "&& git add -A && git commit -qm respec "
          "&& git push -q --force origin spec/5-new:spec/paul/5/1")
+# 1 + count = 3: the old rule's collision, forced through the abandoned attempt
+COUNT_RULE = FORCE.replace("spec/5-new:spec/paul/5/1", "spec/5-new:spec/paul/5/3")
 DELETE_THEN_NEXT = "git push -q origin --delete spec/paul/5/1 && " + NEXT
 STOP = ("**[next-stage] · blocked** — `spec/paul/5/1` already exists on the remote from the "
         "attempt closed in #101. Delete it to restart (2): `git push origin --delete "
         "spec/paul/5/1` — then re-apply `ready-for-spec`.")
 REVIEW = ["track: spec", "status: in-spec-review"]
-PR102 = {"102": {"number": 102, "headRefName": "spec/paul/5/2", "baseRefName": "main",
+PR102 = {"102": {"number": 104, "headRefName": "spec/paul/5/4", "baseRefName": "main",
                  "state": "OPEN", "isDraft": False}}
 
 # (name, should pass, labels, comment bodies, extra PRs, shell before check)
@@ -51,6 +55,10 @@ SHAPES = [
      {"102": dict(PR102["102"], baseRefName="spec/paul/5/1")}, NEXT),
     ("the first attempt force-pushed over instead of a new sequence", False,
      REVIEW, [], {"102": dict(PR102["102"], headRefName="spec/paul/5/1")}, FORCE),
+    ("the count rule: 1 + 2 = /3, forced over the abandoned attempt (#135)", False,
+     REVIEW, [], {"102": dict(PR102["102"], headRefName="spec/paul/5/3")}, COUNT_RULE),
+    ("the gap filled: /2 cut instead of 1 + max (#135)", False,
+     REVIEW, [], {"102": dict(PR102["102"], headRefName="spec/paul/5/2")}, GAP),
     ("the agent deleted the first attempt, then cut the next", False,
      REVIEW, [], PR102, DELETE_THEN_NEXT),
     ("the default name spec/5 cut instead", False, REVIEW, [],
@@ -79,7 +87,7 @@ def sandbox():
     return tmp, work, bare
 
 
-def check(tmp, bare, labels, comments, prs):
+def check(tmp, bare, labels, comments, prs, journal=()):
     run = os.path.join(tmp, "run")
     shutil.rmtree(run, ignore_errors=True)
     os.makedirs(os.path.join(run, "forge"))
@@ -91,15 +99,51 @@ def check(tmp, bare, labels, comments, prs):
     st["prs"].update(prs)
     with open(os.path.join(run, "forge", "state.json"), "w", encoding="utf-8") as f:
         json.dump(st, f)
-    open(os.path.join(run, "forge", "journal.jsonl"), "w").close()
+    with open(os.path.join(run, "forge", "journal.jsonl"), "w", encoding="utf-8") as f:
+        for e in journal:
+            f.write(json.dumps(e) + "\n")
     open(os.path.join(run, "transcript.jsonl"), "w").close()
     env = dict(os.environ, RUN_DIR=run, BARE=bare)
     return subprocess.run([sys.executable, os.path.join(CASE, "check.py")], env=env,
                           capture_output=True, text=True)
 
 
-def main():
+# The shadow signal's own red-proof (codex review, PR #254): it reads the
+# binding from what the run did, so agreement, disagreement and absence each
+# show in attempts.json — never as a verdict.
+SHADOW = [
+    ("the run cut /4 (CR-OPEN head) — the resolver agrees", 0,
+     [{"route": "pr-create", "write": True, "head": "spec/paul/5/4", "argv": []}]),
+    ("the run cut /2 — the resolver says /4", 1,
+     [{"route": "pr-create", "write": True, "head": "spec/paul/5/2", "argv": []}]),
+    ("the run bound nothing — the resolver says /4", 1, []),
+    ("the run cut /4 and /3 — two bindings for one kind", 1,
+     [{"route": "pr-create", "write": True, "head": "spec/paul/5/4", "argv": []},
+      {"route": "pr-create", "write": True, "head": "spec/paul/5/3", "argv": []}]),
+]
+
+
+def shadow_selftest():
     passed = failed = 0
+    for name, want, journal in SHADOW:
+        tmp, work, bare = sandbox()
+        try:
+            sh(NEXT, work)
+            p = check(tmp, bare, REVIEW, [], PR102, journal)
+            with open(os.path.join(tmp, "run", "attempts.json"), encoding="utf-8") as f:
+                got = json.load(f).get("shadow_branch_mismatch")
+            ok = got == want and p.returncode == 0          # a signal: the verdict is unmoved
+            print("%s C11 shadow: %s → mismatch %s%s" % (
+                "PASS" if ok else "FAIL", name, want,
+                "" if ok else " (got %s, check rc %s)" % (got, p.returncode)))
+            passed, failed = passed + ok, failed + (not ok)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+    return passed, failed
+
+
+def main():
+    passed, failed = shadow_selftest()
     for name, want_pass, labels, comments, prs, before in SHAPES:
         tmp, work, bare = sandbox()
         try:

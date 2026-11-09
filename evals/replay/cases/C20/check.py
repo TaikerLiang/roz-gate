@@ -96,4 +96,6 @@ c.expect("next-stage.md B2.4 (the procedure's order)",
          < len(ordered) - 1 - ordered[::-1].index("off"))
 c.expect("next-stage.md B2.1 (the lock)", "processing released",
          "status: processing" not in r.status_labels("5"))
+# #135 shadow: the names the run looked up or cut, as C12.
+r.shadow_branch([("spec", "5"), ("feat", "5"), ("qa", "5")])
 c.finish()

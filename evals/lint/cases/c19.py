@@ -35,8 +35,11 @@ src("C19: patrol never invokes tip", "commands/tip.md",
     "You type this command; patrol never does.")
 src("C19: the git reads are ls-remote and worktree list", "commands/tip.md",
     "the only git calls are `git ls-remote` and `git worktree list`")
-src("C19: branch names are bound by Lookup, never spelled", "commands/tip.md",
-    "bind `<spec-branch>`,\n`<feat-branch>`, `<qa-branch>`, `<fast-branch>` by **Lookup**")
+src("C19: branch names are bound by Lookup through the resolver, never spelled (#135)",
+    "commands/tip.md",
+    "bin/roz-branch\nlookup --issues <n> --tracks <n>=<track> --types <n>=<type> --json")
+src("C19: tip binds the four names from the resolver's JSON", "commands/tip.md",
+    "bind\n`<spec-branch>`, `<feat-branch>`, `<qa-branch>`, `<fast-branch>` from its\nJSON")
 for _op, _lit in (("ISSUE-VIEW", "ISSUE-VIEW #<n>"),
                   ("CR-FIND", "CR-FIND in its **all-states form**"),
                   ("THREADS-LIST", "THREADS-LIST (inline threads)"),
