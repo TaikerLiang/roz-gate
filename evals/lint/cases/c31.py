@@ -70,6 +70,12 @@ c.expect("pattern", "C31: patrol-scan — review-clean compares reviewed-sha wit
 c.expect("pattern", "C31: tip — reviewed-sha against the lookup JSON's `sha`, not raw ls-remote",
          re.search(r"reviewed-sha.{0,120}`sha`", flat("commands/tip.md")) is not None
          and "in the `ls-remote` output" not in _tip)
+c.expect("pattern", "C31: tip passes the issue's type and track into lookup (codex review, "
+         "PR #254) — an untyped lookup binds any type's branch",
+         "--types <n>=<type>" in _tip and "--tracks <n>=<track>" in _tip
+         and "no `type:` label → `feat`" in flat("commands/tip.md"))
+c.expect("pattern", "C31: patrol-scan states the type default for its match",
+         "no `type:` label → `feat`" in flat("references/patrol-scan.md"))
 c.expect("pattern", "C31: tip names the resolver as the read-only way to answer a branch question",
          "bin/roz-branch" in _tip)
 _retired = ("1 + the number of branches", "1 + the lookup count", "matches the same way")

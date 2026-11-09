@@ -177,6 +177,20 @@ class Match(unittest.TestCase):
             m = bn.match_heads(snap("specs-5", "testing-5"), "{type}-{n}", kind="feat", n=5)
             self.assertEqual(len(m["matches"]), 2)
 
+    def test_typed_lookup_binds_the_issues_type_only(self):
+        """codex review, PR #254: issue #5 is `type: fix`; the remote keeps
+        fix/alice/5/1 and feat/bob/5/2. Typed, only the fix branch matches;
+        untyped, both do — which is why tip must pass --types."""
+        s = snap("fix/alice/5/1", "feat/bob/5/2", "spec/alice/5/1")
+        with self.subTest("branch_names: --types 5=fix binds fix/alice/5/1 alone"):
+            m = bn.match_heads(s, T, kind="feat", n=5, type="fix")
+            self.assertEqual((m["outcome"], [x["branch"] for x in m["matches"]]),
+                             ("ONE", ["fix/alice/5/1"]))
+        with self.subTest("branch_names: untyped, both implementation branches match"):
+            m = bn.match_heads(s, T, kind="feat", n=5)
+            self.assertEqual([x["branch"] for x in m["matches"]],
+                             ["fix/alice/5/1", "feat/bob/5/2"])
+
     def test_snapshot_keeps_each_heads_sha(self):
         """codex review, PR #254: the scanner and tip compare `reviewed-sha:`
         against the implementation branch's remote head; the snapshot is

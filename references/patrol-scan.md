@@ -20,7 +20,8 @@ agent handed you `branch_template` (from `bin/roz-config --json`; `""` →
 close-out scan's ISSUE-LIST-CLOSED per track label (below: a closed issue
 whose close-out was interrupted still needs its branch) — run **one**
 `bin/roz-branch match --snapshot <file> --issues <every issue number from both>
---tracks <n>=spec|fast,… --types <n>=<type label>,… --json` — a pure read
+--tracks <n>=spec|fast,… --types <n>=<type label>,… --json` (no `type:`
+label → `feat`, the rendering `branch-names.md` gives it) — a pure read
 of that file, no network, no git — and bind every `<spec-branch>` /
 `<feat-branch>` / `<qa-branch>` / `<fast-branch>` below from its JSON
 (#135, `references/branch-names.md` § The resolver): `ONE` → that branch;
