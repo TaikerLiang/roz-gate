@@ -1248,6 +1248,13 @@ class RuleK_LoopMergesOnlyBaseOrOwn(HookTest):
             self.write(self.local, '{"branch_template": "{type}/{user}/{n}/{seq}"}\n')
             self.assertDenied(self.bash("git merge --no-edit origin/fix/pwl/6/1",
                                         self.wt("fix/pwl/5/1")), "rule K")
+        with self.case("rule K (#135 parity): no {kind} in the template — the sibling's {n} "
+                       "still parses; another issue is still denied"):
+            self.write(self.local, '{"branch_template": "{type}/{user}/{n}/{seq}"}\n')
+            self.assertAllowed(self.bash("git merge --no-edit origin/spec/pwl/5/1",
+                                         self.wt("fix/pwl/5/1")))
+            self.assertDenied(self.bash("git merge --no-edit origin/spec/pwl/6/1",
+                                        self.wt("fix/pwl/5/1")), "rule K")
         self.local.unlink()
 
     def test_silent_outside_the_loop(self):
