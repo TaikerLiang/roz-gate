@@ -121,8 +121,6 @@ def _slot_re(slot, *, kind=None, n=None, type=None):
             return re.escape(FIXED_TYPE[kind])
         if type:
             return re.escape(type)
-        if kind:                       # feat / fast with no label: any type but the fixed two
-            return r"(?P<type>(?!(?:spec|test)(?:/|\Z))[^/]+)"
         return "(?P<type>[^/]+)"
     if slot == "{user}":
         return "(?P<user>[^/]+)"
@@ -141,13 +139,17 @@ def pattern_for_kind(template, kind, *, n=None, type=None):
     t = effective(template)
     if validate(t) or kind not in KINDS:
         return re.compile(r"(?!)")
-    out = ""
-    for p in pieces(t):
-        if p.startswith("{"):
-            out += _slot_re(p, kind=kind, n=n, type=type)
-        else:
-            out += re.escape(p)
-    return re.compile(out + r"\Z")
+    parts = [_slot_re(p, kind=kind, n=n, type=type) if p.startswith("{") else re.escape(p)
+             for p in pieces(t)]
+    if kind not in FIXED_TYPE and not type and "{type}" in t:
+        # feat / fast with no label: any type but the fixed two. The guard is
+        # a lookahead over the *rest of the pattern*, so it holds whatever
+        # delimiter the template uses (`{type}-{n}`, `{type}.{n}`) — codex
+        # review, PR #254: `spec-5` must not bind as an implementation.
+        i = pieces(t).index("{type}")
+        rest = re.sub(r"\(\?P<\w+>", "(?:", "".join(parts[i + 1:]))
+        parts[i] = r"(?!(?:spec|test)%s\Z)" % rest + parts[i]
+    return re.compile("".join(parts) + r"\Z")
 
 
 _ANY_RE = {}

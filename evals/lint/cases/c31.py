@@ -57,6 +57,11 @@ c.expect("pattern", "C31: patrol-scan — the scanner binds through `roz-branch 
          "roz-branch match" in _sc)
 c.expect("pattern", "C31: patrol-scan — the scanner no longer matches the template by hand",
          "matches the same way" not in _sc and "highest `{seq}` winning" not in _sc)
+c.expect("pattern", "C31: patrol-scan — the one match covers ISSUE-LIST-CLOSED's close-out "
+         "candidates too (codex review, PR #254)",
+         re.search(r"ISSUE-LIST-CLOSED.{0,240}roz-branch match|roz-branch match.{0,400}"
+                   r"ISSUE-LIST-CLOSED", flat("references/patrol-scan.md")) is not None
+         and "bound from the same match" in flat("references/patrol-scan.md"))
 c.expect("pattern", "C31: patrol-scan — MULTIPLE_SAME_SEQ is illegal, UNKNOWN never reaches it",
          "MULTIPLE_SAME_SEQ" in _sc and "UNKNOWN" in _sc)
 c.expect("pattern", "C31: tip names the resolver as the read-only way to answer a branch question",

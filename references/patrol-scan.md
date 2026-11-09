@@ -16,8 +16,10 @@ lists and `default_branch` are the values the main agent handed you from
 `bin/roz-config --json`; never re-derive them. **Branch names**: the main
 agent handed you `branch_template` (from `bin/roz-config --json`; `""` →
 `{kind}/{n}`) and **the remote's snapshot file** (its one
-`bin/roz-branch snapshot`); after ISSUE-LIST, run **one**
-`bin/roz-branch match --snapshot <file> --issues <every issue number>
+`bin/roz-branch snapshot`); after **both** listings — ISSUE-LIST and the
+close-out scan's ISSUE-LIST-CLOSED per track label (below: a closed issue
+whose close-out was interrupted still needs its branch) — run **one**
+`bin/roz-branch match --snapshot <file> --issues <every issue number from both>
 --tracks <n>=spec|fast,… --types <n>=<type label>,… --json` — a pure read
 of that file, no network, no git — and bind every `<spec-branch>` /
 `<feat-branch>` / `<qa-branch>` / `<fast-branch>` below from its JSON
@@ -96,8 +98,9 @@ suffix stripped); both non-empty, both must hold; an empty list is no
 - **Close-out scan.** For every issue wearing a `track:` label — the open
   ones above, plus ISSUE-LIST-CLOSED per track label (the forge closes an
   issue on merge where its own rule fires, and leaves the loop labels on) —
-  CR-FIND its CR (`<spec-branch>` / `<fast-branch>`, bound by Lookup —
-  `references/branch-names.md`) with the all-states form. CR
+  CR-FIND its CR (`<spec-branch>` / `<fast-branch>`, bound from the same match
+  JSON as every other row — the closed issues were in its `--issues`) with
+  the all-states form. CR
   **merged** → a close-out candidate: **legal** when the issue is at
   `status: in-user-review` or already carries a `**[patrol] · shipped**`
   comment (a close-out interrupted part-way — finish it); any other status

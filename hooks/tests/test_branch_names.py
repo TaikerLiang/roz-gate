@@ -159,6 +159,24 @@ class Match(unittest.TestCase):
                 type="fix")["matches"][0]["branch"], "fix/p/5/1")
             self.assertEqual(len(bn.match_heads(s2, T, kind="feat", n=5)["matches"]), 2)
 
+    def test_fixed_types_excluded_whatever_the_delimiter(self):
+        """codex review, PR #254: a feat/fast lookup with no type label must
+        never bind a spec or qa branch — under `{type}-{n}` too, not only
+        slash-delimited templates."""
+        for tpl, heads, want in (
+                ("{type}-{n}", ("spec-5", "test-5", "fix-5"), ["fix-5"]),
+                ("{type}.{n}.{seq}", ("spec.5.1", "test.5.1", "chore.5.1"), ["chore.5.1"]),
+                ("{type}_{user}_{n}", ("spec_p_5", "test_p_5", "feat_p_5"), ["feat_p_5"]),
+                ("{type}/{n}", ("spec/5", "test/5", "fix/5"), ["fix/5"]),
+                ("{type}-{n}", ("spec-5", "test-5"), [])):
+            for kind in ("feat", "fast"):
+                with self.subTest("branch_names: %s, %s without a type → %s" % (tpl, kind, want)):
+                    m = bn.match_heads(snap(*heads), tpl, kind=kind, n=5)
+                    self.assertEqual([x["branch"] for x in m["matches"]], want)
+        with self.subTest("branch_names: a type that merely starts with spec/test is not excluded"):
+            m = bn.match_heads(snap("specs-5", "testing-5"), "{type}-{n}", kind="feat", n=5)
+            self.assertEqual(len(m["matches"]), 2)
+
     def test_unknown_is_never_absence(self):
         for s in ({"status": "unknown", "reason": "offline", "heads": []},
                   {"status": "unknown", "heads": ["spec/5"]}):
