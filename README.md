@@ -440,7 +440,7 @@ before 1.29.0. Your commands and the hooks render the same names from it:
 | `{type}` | `spec` for the spec branch, `test` for the qa branch, the issue's `type:` label (`type: feat` / `fix` / `chore`, created by `init`, applied by you; absent = `feat`) for feat and fast |
 | `{user}` | your `branch_user` (`/roz-gate:config`), default your forge login |
 | `{n}` | the issue number |
-| `{seq}` | the attempt — `1`, then `2` when a closed spec CR is re-entered: the old branch stays, nothing is deleted |
+| `{seq}` | the attempt — `1`, then **one past the highest** on the remote when a closed spec CR is re-entered (`1 + max`, not a count — a removed attempt leaves a gap, never a collision); the old branches stay, nothing is deleted |
 
 `{type}/{user}/{n}/{seq}` renders `spec/pwliangc/5/1`, `fix/pwliangc/5/1`,
 `test/pwliangc/5/1`. A template needs `{n}` and one of `{kind}` / `{type}`;
@@ -450,7 +450,11 @@ computed, a command **finds** an existing branch on the remote by pattern
 and never guesses its name — the branches your template renders; one cut
 under another developer's template is not found. Without
 `{seq}` a re-entered spec stage still stops and hands you the delete
-command, as before. Details: `references/branch-names.md`.
+command, as before. **`bin/roz-branch`** is this contract as code (2.15.0):
+`expand`, `snapshot` (the one `ls-remote`), `match` (pure, over a snapshot),
+`lookup`; patrol's scanner binds through it, the hooks share its module,
+and a remote that cannot be read is *unknown*, never "no branch". Details:
+`references/branch-names.md`.
 
 `init` also writes a `### Roz Gate personas` block — **fixed seats, swappable
 occupants**. The five role names (product, em, implementer, qa, reviewer) are

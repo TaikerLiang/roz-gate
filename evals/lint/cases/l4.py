@@ -53,8 +53,8 @@ for _nm, _s, _e in (("A2", r"^### A2\. Branch", r"^### A3\. "),
                     ("C2", r"^### C2\. Branch", r"^### C3\. ")):
     _blk = section(_ns4, _s, _e)
     c.expect("pattern",
-             "L4: %s re-enters by the next sequence when the template carries {seq}" % _nm,
-             "It carries **`{seq}`**" in _blk and "next sequence" in _blk)
+             "L4: %s re-enters by one past the highest {seq} when the template carries it" % _nm,
+             "It carries **`{seq}`**" in _blk and "1 + max" in _blk)   # #135: not a count
     c.expect("pattern", "L4: %s STOPs with the delete remedy only without {seq}" % _nm,
              "It carries **no\n`{seq}`**" in _blk and "git push origin --delete" in _blk)
 src("L4: B2 binds feat and qa by Lookup, else Expand", "commands/next-stage.md",

@@ -32,7 +32,7 @@ run; the block line is ignored from then on.
 | `{type}` | spec branch → `spec`; qa branch → `test`; feat and fast branches → the issue's `type:` label — `type: feat` / `type: fix` / `type: chore` → `feat` / `fix` / `chore`; no `type:` label → `feat` |
 | `{user}` | the local key `branch_user` (`bin/roz-config --json`); empty → WHOAMI (the adapter op: the forge login of the account running the command) in user mode, the first `bot_login` in bot mode |
 | `{n}` | the issue number |
-| `{seq}` | the attempt counter: 1 + the number of branches **Lookup** (below) finds for this kind and issue |
+| `{seq}` | the attempt counter: **1 + max(`{seq}`)** over the branches **Lookup** (below) finds for this kind and issue; `1` when none (#135 — never 1 + the count: a gap in the sequences made the count collide with an existing ref) |
 
 A template is **valid** when it contains `{n}` and at least one of `{kind}`
 / `{type}` (without one, the spec and qa branches of an issue collide), and
@@ -53,9 +53,14 @@ choice, not an error.
 ## Expand — at cut time
 
 Render every placeholder for the kind being cut. `{user}` is **this**
-command's user (the local key or WHOAMI); `{seq}` is **1 + the Lookup
-count** — the first attempt is `1`, a re-entry after a closed CR is `2`,
-and so on. The result is the bound name; the worktree is
+command's user (the local key or WHOAMI); `{seq}` is **1 + max(`{seq}`)**
+over Lookup's matches — the first attempt is `1`, a re-entry after a closed
+CR is one past the highest attempt on the remote, whatever was removed in
+between. Expand never computes the sequence itself: the caller passes it
+(`bin/roz-branch expand … --seq <1 + max>`). **Before the cut, the creator
+checks the expanded name against the same snapshot** — present → a
+**collision**, **STOP** naming the branch; never a silent bump, never a
+force-push. The result is the bound name; the worktree is
 `$(git rev-parse --git-common-dir)/roz-gate/wt/<branch>`, the name as-is
 (slashes are directories, as they always were).
 
@@ -70,21 +75,29 @@ ref touched), and match every `refs/heads/…` against the
 template rendered with `{user}` → any single path segment (`[^/]+`),
 `{seq}` → any number (`[0-9]+`), and the other placeholders expanded
 exactly for the kind and issue (the `type:` label is read from the issue
-each time). Under the default template this is an exact name.
+each time). Under the default template this is an exact name. Lookup's outcomes have
+names (`bin/roz-branch`, below — the same words in its JSON):
 
-- **Zero matches** → the branch does not exist.
-- **One match** → that is the bound name.
-- **Several, different `{seq}`** → the **highest `{seq}`** is the live
-  attempt; the others are earlier attempts, kept (an agent never deletes a
-  remote branch — `references/workflow.md`).
-- **Several at the same `{seq}`** (two people cut the same kind for the
-  same issue under a template without `{seq}`, or a `{user}`-only
-  template) → an ambiguity the command must not resolve: **STOP**, naming
-  both.
+- **`NO_MATCH`** → the branch does not exist.
+- **`ONE`** → that is the bound name.
+- **`MULTIPLE_SEQ`** (several, different `{seq}`) → the **highest `{seq}`**
+  is the live attempt; the others are earlier attempts, kept (an agent
+  never deletes a remote branch — `references/workflow.md`). Lookup
+  reports every match; choosing the highest is the command's rule.
+- **`MULTIPLE_SAME_SEQ`** (several at the same `{seq}` — two people cut the
+  same kind for the same issue under a template without `{seq}`, or a
+  `{user}`-only template) → an ambiguity the command must not resolve:
+  **STOP**, naming both.
+- **`UNKNOWN`** → the remote could not be read (offline, auth, timeout).
+  **Unknown is never absent**: nothing is cut, nothing is bound — **STOP**
+  ("the remote could not be read"), and say so in the report. A failed
+  `ls-remote` that reads as "no branch" is how a duplicate gets cut.
 
 CR-FIND and CR-OPEN take the bound name; the adapter ops do not change.
 A reader that may not run git — patrol's scanner — is handed the
-`ls-remote` output by the main agent and matches the same way.
+resolver's **snapshot file** by the main agent and binds through
+`bin/roz-branch match` (§ The resolver), never by matching the template
+itself.
 
 ## Re-entry — the branch already exists
 
@@ -96,10 +109,11 @@ its CR:
   gate label is wrong, not the branch.
 - **closed unmerged, or no CR** → a re-entry (a re-spec, or a fast attempt
   abandoned). Then, by the template:
-  - it carries **`{seq}`** → Expand renders the **next sequence** and the
-    cut proceeds; the previous attempt stays on the remote, readable in its
-    closed CR — cite it in the report. Nothing is deleted, nothing
-    force-pushed.
+  - it carries **`{seq}`** → Expand renders **1 + max(`{seq}`)** and the
+    cut proceeds — after the collision check (§ Expand): the name already
+    present on the snapshot → **STOP**; the previous attempts stay on the
+    remote, readable in their closed CRs — cite them in the report. Nothing
+    is deleted, nothing force-pushed.
   - it carries **no `{seq}`** (the default among them) → there is no slot
     to count in, and the stale branch is the human's to remove: **STOP**;
     the `blocked` comment and the report carry the remedy verbatim —
@@ -107,13 +121,36 @@ its CR:
     never does*. Re-apply the gate label after deleting; the next pass cuts
     fresh.
 
+## The resolver
+
+`bin/roz-branch` is this contract as code (#135) — `hooks/branch_names.py`,
+the one implementation the CLI, `bin/roz-config` and the hooks share. It is
+read-only: it never creates, deletes, checks out or moves a branch, and it
+never chooses the live attempt or the next sequence (facts, not policy —
+#239).
+
+| call | does |
+|---|---|
+| `roz-branch validate` | the template's validity and the local keys it read |
+| `roz-branch expand --kind K --n N [--type T] [--user U] [--seq S]` | Expand, from explicit inputs; `MISSING_REQUIRED_VALUE` / `INVALID_SEQUENCE` when the template needs what was not given |
+| `roz-branch snapshot --json > <file>` | the one `git ls-remote --heads origin`: `{remote, status: observed \| unknown, reason?, as_of, heads_sha256, heads}` |
+| `roz-branch match --snapshot <file> --issues 5,6 [--types 5=fix] [--tracks 5=spec]` | Lookup over that snapshot for every issue and kind — pure, no network, no git: the scanner's call |
+| `roz-branch lookup --issues …` | snapshot + match in one call: `tip`'s and a human's |
+
+`--json` everywhere; exit 2 with the typed failure. The commands still bind
+by the prose above (the resolver runs beside them — the shadow comparison in
+`evals/CONTRIBUTING.md` § Shadow signals decides when they switch); patrol's
+scanner binds through `match` now.
+
 ## The hooks
 
-- **guard-acceptance** decides "is HEAD a spec branch" by the template:
-  the spec kind rendered with `{user}` / `{seq}` / `{n}` as patterns, the
-  template read from the local file in the toplevel, else the main checkout
-  (an edit in a linked worktree reads the clone's file). Unset →
-  `spec/*`, as before.
+- **guard-acceptance** decides "is HEAD a spec branch" by the template
+  through `hooks/branch_names.py` (`pattern_for_kind` for the spec kind,
+  the issue number open), the template read from the local file in the
+  toplevel, else the main checkout (an edit in a linked worktree reads the
+  clone's file). Unset → `spec/*`, as before. **guard-gate** rule K parses
+  the worktree's branch and each merged ref the same way (`parse_branch`);
+  an equal `{n}` is a sibling.
 - **guard-blind** reads the forbidden implementation ref from the marker:
   the dispatching command writes `feat=<feat-branch>` into
   `roz-gate/fidelity-dispatch` (next-stage B5b, patrol's address-review);

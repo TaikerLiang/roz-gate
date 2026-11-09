@@ -15,11 +15,18 @@ in your dispatch (`references/forge-<forge>.md`). The inbox filter's two
 lists and `default_branch` are the values the main agent handed you from
 `bin/roz-config --json`; never re-derive them. **Branch names**: the main
 agent handed you `branch_template` (from `bin/roz-config --json`; `""` →
-`{kind}/{n}`) and **the remote's heads** (its one
-`git ls-remote --heads origin`); every `<spec-branch>` / `<feat-branch>` /
-`<qa-branch>` / `<fast-branch>` below is bound by **Lookup** over that
-list — the template rendered for the kind and issue with `{user}` and
-`{seq}` as patterns, the highest `{seq}` winning
+`{kind}/{n}`) and **the remote's snapshot file** (its one
+`bin/roz-branch snapshot`); after ISSUE-LIST, run **one**
+`bin/roz-branch match --snapshot <file> --issues <every issue number>
+--tracks <n>=spec|fast,… --types <n>=<type label>,… --json` — a pure read
+of that file, no network, no git — and bind every `<spec-branch>` /
+`<feat-branch>` / `<qa-branch>` / `<fast-branch>` below from its JSON
+(#135, `references/branch-names.md` § The resolver): `ONE` → that branch;
+`MULTIPLE_SEQ` → the highest `{seq}` among its matches; `NO_MATCH` → the
+branch does not exist; `MULTIPLE_SAME_SEQ` → verdict `illegal state:
+ambiguous branch (<the matches>)`, skip classification, report it;
+`UNKNOWN` cannot reach you — the agent stops the pass on an unknown
+snapshot. Never render the template yourself
 (`references/branch-names.md`) — never by a git call of your own, never by
 guessing. A CR-FIND takes the bound name.
 

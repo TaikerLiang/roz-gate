@@ -60,10 +60,15 @@ model, not a value the scanner reads), and the config block's
 `bot_login` list (normalized: `app/` prefix and `[bot]` suffix stripped;
 empty in user mode) so the scanner can tell a human holder from a bot, the
 local `branch_template` (`""` → `{kind}/{n}`), and **the remote's
-heads** — the output of one `git ls-remote --heads origin`, run by you
-here (a query of the remote; it touches no checkout and no local ref) —
-so the scanner can bind every issue's branch names by Lookup
-(`references/branch-names.md`) without running git itself. The
+snapshot** — the file written by one `bin/roz-branch snapshot --json >
+<file>`, run by you here (the one `git ls-remote --heads origin`; it
+touches no checkout and no local ref) — so the scanner can bind every
+issue's branch names through `bin/roz-branch match --snapshot <file>`
+(`references/branch-names.md` § The resolver) without running git itself
+or matching the template by hand (#135). Read the snapshot's `status`
+first: `unknown` → the remote could not be read — **STOP** the pass before
+any dispatch ("the remote could not be read: <reason>"); nothing is bound,
+nothing is acted on, the report says so. The
 scanner is **read-only**
 and returns the table the brief defines; everything it read stays in its
 context, not yours.

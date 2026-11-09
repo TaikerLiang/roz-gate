@@ -319,6 +319,18 @@ actually used. Audit every new predicate for the class, not the instance:
   Cost recorded, same class as the echo substitution: a read inside a
   script fed by heredoc (`python3 - <<EOF`) is blanked with the body.
 
+## The shared module — `hooks/branch_names.py`
+
+One implementation of `references/branch-names.md` (#135): template validity,
+Expand, the placeholder patterns, Lookup over a remote-heads snapshot.
+`guard_acceptance.py` (`pattern_for_kind` — is HEAD a spec branch, any
+issue), `guard_gate.py` rule K (`parse_branch` — the worktree's `{n}` and a
+merged ref's), `bin/roz-config` (`validate`) and `bin/roz-branch` (all of it)
+import it; `guard_blind.py` does **not** — it denies the exact `feat=<branch>`
+the marker names, not a template. `hooks/tests/test_branch_names.py` is its
+proof; the three hooks' own tests are the parity proof that consolidating
+the parsers changed no enforcement.
+
 ## The mods
 
 `hooks.json` also names one hooks module, `mods.tsx` — Claude Code reads
