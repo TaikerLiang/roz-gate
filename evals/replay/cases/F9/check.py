@@ -140,9 +140,7 @@ c.expect("patrol.md §1 (#135: `bin/roz-branch snapshot` before the scanner)",
 c.expect("patrol.md §1 / patrol-scan.md (#135: the scanner is handed the snapshot, not raw heads)",
          "the scanner's prompt names the snapshot and carries no `<sha>\\trefs/heads/` lines",
          ("snapshot" in _prompt) and re.search(r"[0-9a-f]{40}\s+refs/heads/", _prompt) is None)
-# #135 shadow: the scanner bound #5's spec branch and #6's fast branch from
-# the agent's snapshot; Lookup over the final heads must agree.
-r.shadow_branch({("spec", "5"): "spec/5",
-                 ("fast", "6"): "fast/6" if r.git("rev-parse", "--verify", "-q",
-                                                  "refs/heads/fast/6")[0] == 0 else None})
+# #135 shadow: the names the pass looked up or cut (#5's spec CR-FIND, #6's
+# fast cut if any) against Lookup over the final heads.
+r.shadow_branch([("spec", "5"), ("fast", "6")])
 c.finish()

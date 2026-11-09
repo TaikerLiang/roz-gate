@@ -133,8 +133,8 @@ never chooses the live attempt or the next sequence (facts, not policy —
 |---|---|
 | `roz-branch validate` | the template's validity and the local keys it read |
 | `roz-branch expand --kind K --n N [--type T] [--user U] [--seq S]` | Expand, from explicit inputs; `MISSING_REQUIRED_VALUE` / `INVALID_SEQUENCE` when the template needs what was not given |
-| `roz-branch snapshot --json > <file>` | the one `git ls-remote --heads origin`: `{remote, status: observed \| unknown, reason?, as_of, heads_sha256, heads}` |
-| `roz-branch match --snapshot <file> --issues 5,6 [--types 5=fix] [--tracks 5=spec]` | Lookup over that snapshot for every issue and kind — pure, no network, no git: the scanner's call |
+| `roz-branch snapshot --json > <file>` | the one `git ls-remote --heads origin`: `{remote, status: observed \| unknown, reason?, as_of, heads_sha256, heads, shas}` — `shas` maps each head to its commit |
+| `roz-branch match --snapshot <file> --issues 5,6 [--types 5=fix] [--tracks 5=spec]` | Lookup over that snapshot for every issue and kind — pure, no network, no git: the scanner's call. Each match carries `{branch, user, seq, sha}`; a `reviewed-sha:` is compared against that `sha` |
 | `roz-branch lookup --issues …` | snapshot + match in one call: `tip`'s and a human's |
 
 `--json` everywhere; exit 2 with the typed failure. The commands still bind

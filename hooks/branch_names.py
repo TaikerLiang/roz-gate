@@ -188,32 +188,42 @@ def parse_branch(name, template):
 
 def collect_remote_heads(remote="origin", cwd=None, timeout=60):
     """One `git ls-remote --heads <remote>`: the fallible read. status is
-    `observed` with the heads, or `unknown` with the reason and no heads —
-    never an empty observed list standing in for a failure."""
+    `observed` with the heads and each head's commit (`shas`: branch -> sha;
+    a `reviewed-sha:` is compared against it — codex review, PR #254), or
+    `unknown` with the reason and no heads — never an empty observed list
+    standing in for a failure."""
     base = {"remote": remote, "as_of": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
     try:
         p = subprocess.run(["git", "ls-remote", "--heads", remote], cwd=cwd,
                            capture_output=True, text=True, timeout=timeout)
     except (OSError, subprocess.TimeoutExpired) as e:
         return {**base, "status": "unknown", "reason": type(e).__name__, "heads": [],
-                "heads_sha256": None}
+                "shas": {}, "heads_sha256": None}
     if p.returncode != 0:
         return {**base, "status": "unknown",
                 "reason": (p.stderr.strip().splitlines() or ["git ls-remote failed"])[-1][:200],
-                "heads": [], "heads_sha256": None}
-    heads = sorted(line.split("\t", 1)[1][len("refs/heads/"):]
-                   for line in p.stdout.splitlines()
-                   if "\trefs/heads/" in line)
-    digest = hashlib.sha256("\n".join(heads).encode("utf-8")).hexdigest()
-    return {**base, "status": "observed", "heads": heads, "heads_sha256": digest}
+                "heads": [], "shas": {}, "heads_sha256": None}
+    shas = {}
+    for line in p.stdout.splitlines():
+        sha, _, ref = line.partition("\t")
+        if ref.startswith("refs/heads/"):
+            shas[ref[len("refs/heads/"):]] = sha.strip()
+    return {**base, **_heads_fields(shas)}
+
+
+def _heads_fields(shas):
+    heads = sorted(shas)
+    lines = "\n".join("%s %s" % (shas[h] or "", h) for h in heads)
+    return {"status": "observed", "heads": heads, "shas": dict(sorted(shas.items())),
+            "heads_sha256": hashlib.sha256(lines.encode("utf-8")).hexdigest()}
 
 
 def snapshot_from_heads(heads, remote="origin"):
-    """A snapshot from a list already in hand (the scanner's file, a test)."""
-    heads = sorted(heads)
+    """A snapshot from heads already in hand — a branch -> sha mapping, or a
+    bare list of names (sha unknown: None)."""
+    shas = dict(heads) if isinstance(heads, dict) else {h: None for h in heads}
     return {"remote": remote, "as_of": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "status": "observed", "heads": heads,
-            "heads_sha256": hashlib.sha256("\n".join(heads).encode("utf-8")).hexdigest()}
+            **_heads_fields(shas)}
 
 
 # ---- Lookup -----------------------------------------------------------------------
@@ -231,7 +241,8 @@ def match_heads(snapshot, template, *, kind, n, type=None):
         if m:
             g = m.groupdict()
             found.append({"branch": h, "user": g.get("user"),
-                          "seq": int(g["seq"]) if g.get("seq") else None})
+                          "seq": int(g["seq"]) if g.get("seq") else None,
+                          "sha": (snapshot.get("shas") or {}).get(h)})
     found.sort(key=lambda x: (x["seq"] if x["seq"] is not None else 0, x["branch"]))
     if not found:
         outcome = "NO_MATCH"

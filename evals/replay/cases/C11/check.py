@@ -53,7 +53,7 @@ c.expect("workflow.md (never deleted by the agent)", "%s still exists on the rem
          r.git("rev-parse", "--verify", "-q", "refs/heads/%s" % OLD3)[0] == 0)
 c.expect("ledger C11 (refs: the three seeded plus the new one)",
          "exactly four refs on the remote", r.remote_ref_count() == 4)
-# #135 shadow: the command bound <spec-branch> = the new sequence; Lookup
-# over the final heads sees /1, /3, /4 → MULTIPLE_SEQ with /4 the highest.
-r.shadow_branch({("spec", "5"): NEW}, template="{type}/{user}/{n}/{seq}")
+# #135 shadow: the name the command cut (CR-OPEN head, push, worktree) against
+# Lookup over the final heads (/1, /3, /4 → MULTIPLE_SEQ, /4 the highest).
+r.shadow_branch([("spec", "5")], template="{type}/{user}/{n}/{seq}", acts=("create",))
 c.finish()

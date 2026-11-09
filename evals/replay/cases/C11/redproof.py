@@ -87,7 +87,7 @@ def sandbox():
     return tmp, work, bare
 
 
-def check(tmp, bare, labels, comments, prs):
+def check(tmp, bare, labels, comments, prs, journal=()):
     run = os.path.join(tmp, "run")
     shutil.rmtree(run, ignore_errors=True)
     os.makedirs(os.path.join(run, "forge"))
@@ -99,15 +99,51 @@ def check(tmp, bare, labels, comments, prs):
     st["prs"].update(prs)
     with open(os.path.join(run, "forge", "state.json"), "w", encoding="utf-8") as f:
         json.dump(st, f)
-    open(os.path.join(run, "forge", "journal.jsonl"), "w").close()
+    with open(os.path.join(run, "forge", "journal.jsonl"), "w", encoding="utf-8") as f:
+        for e in journal:
+            f.write(json.dumps(e) + "\n")
     open(os.path.join(run, "transcript.jsonl"), "w").close()
     env = dict(os.environ, RUN_DIR=run, BARE=bare)
     return subprocess.run([sys.executable, os.path.join(CASE, "check.py")], env=env,
                           capture_output=True, text=True)
 
 
-def main():
+# The shadow signal's own red-proof (codex review, PR #254): it reads the
+# binding from what the run did, so agreement, disagreement and absence each
+# show in attempts.json — never as a verdict.
+SHADOW = [
+    ("the run cut /4 (CR-OPEN head) — the resolver agrees", 0,
+     [{"route": "pr-create", "write": True, "head": "spec/paul/5/4", "argv": []}]),
+    ("the run cut /2 — the resolver says /4", 1,
+     [{"route": "pr-create", "write": True, "head": "spec/paul/5/2", "argv": []}]),
+    ("the run bound nothing — the resolver says /4", 1, []),
+    ("the run cut /4 and /3 — two bindings for one kind", 1,
+     [{"route": "pr-create", "write": True, "head": "spec/paul/5/4", "argv": []},
+      {"route": "pr-create", "write": True, "head": "spec/paul/5/3", "argv": []}]),
+]
+
+
+def shadow_selftest():
     passed = failed = 0
+    for name, want, journal in SHADOW:
+        tmp, work, bare = sandbox()
+        try:
+            sh(NEXT, work)
+            p = check(tmp, bare, REVIEW, [], PR102, journal)
+            with open(os.path.join(tmp, "run", "attempts.json"), encoding="utf-8") as f:
+                got = json.load(f).get("shadow_branch_mismatch")
+            ok = got == want and p.returncode == 0          # a signal: the verdict is unmoved
+            print("%s C11 shadow: %s → mismatch %s%s" % (
+                "PASS" if ok else "FAIL", name, want,
+                "" if ok else " (got %s, check rc %s)" % (got, p.returncode)))
+            passed, failed = passed + ok, failed + (not ok)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+    return passed, failed
+
+
+def main():
+    passed, failed = shadow_selftest()
     for name, want_pass, labels, comments, prs, before in SHAPES:
         tmp, work, bare = sandbox()
         try:

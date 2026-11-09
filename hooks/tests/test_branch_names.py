@@ -177,6 +177,25 @@ class Match(unittest.TestCase):
             m = bn.match_heads(snap("specs-5", "testing-5"), "{type}-{n}", kind="feat", n=5)
             self.assertEqual(len(m["matches"]), 2)
 
+    def test_snapshot_keeps_each_heads_sha(self):
+        """codex review, PR #254: the scanner and tip compare `reviewed-sha:`
+        against the implementation branch's remote head; the snapshot is
+        all they are handed, so it must keep every head's SHA."""
+        a, b = "a" * 40, "b" * 40
+        s = bn.snapshot_from_heads({"feat/5": a, "spec/5": b})
+        with self.subTest("branch_names: snapshot_from_heads keeps a branch → sha map"):
+            self.assertEqual(s["shas"], {"feat/5": a, "spec/5": b})
+            self.assertEqual(s["heads"], ["feat/5", "spec/5"])
+        with self.subTest("branch_names: every match carries its sha"):
+            m = bn.match_heads(s, None, kind="feat", n=5)
+            self.assertEqual(m["matches"][0]["sha"], a)
+        with self.subTest("branch_names: a moved head changes heads_sha256"):
+            moved = bn.snapshot_from_heads({"feat/5": "c" * 40, "spec/5": b})
+            self.assertNotEqual(s["heads_sha256"], moved["heads_sha256"])
+        with self.subTest("branch_names: a bare name list still works (sha None)"):
+            m = bn.match_heads(snap("feat/5"), None, kind="feat", n=5)
+            self.assertIsNone(m["matches"][0]["sha"])
+
     def test_unknown_is_never_absence(self):
         for s in ({"status": "unknown", "reason": "offline", "heads": []},
                   {"status": "unknown", "heads": ["spec/5"]}):
@@ -237,6 +256,7 @@ class CollectAndCli(unittest.TestCase):
             self.assertEqual(a["status"], "observed")
             self.assertIn("spec/paul/73/3", a["heads"])
             self.assertEqual(a["heads_sha256"], b["heads_sha256"])
+            self.assertRegex(a["shas"]["spec/paul/73/3"], r"\A[0-9a-f]{40}\Z")
         with self.subTest("branch_names: an unreadable remote → unknown with a reason, no heads"):
             u = bn.collect_remote_heads("nowhere", cwd=str(self.repo))
             self.assertEqual((u["status"], u["heads"], u["heads_sha256"]), ("unknown", [], None))
@@ -252,6 +272,8 @@ class CollectAndCli(unittest.TestCase):
             self.assertEqual(out["issues"]["73"]["spec"]["outcome"], "MULTIPLE_SEQ")
             self.assertEqual([m["seq"] for m in out["issues"]["73"]["spec"]["matches"]], [1, 3])
             self.assertEqual(out["issues"]["73"]["feat"]["outcome"], "ONE")
+            self.assertEqual(out["issues"]["73"]["feat"]["matches"][0]["sha"],
+                             self.git("rev-parse", "feat/paul/73/1").strip())
             self.assertEqual(out["issues"]["73"]["qa"]["outcome"], "NO_MATCH")
             self.assertEqual(out["issues"]["74"]["spec"]["outcome"], "ONE")
         with self.subTest("roz-branch snapshot + match: match is pure — no git on PATH"):

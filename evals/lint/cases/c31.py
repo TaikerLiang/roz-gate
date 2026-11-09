@@ -64,6 +64,12 @@ c.expect("pattern", "C31: patrol-scan — the one match covers ISSUE-LIST-CLOSED
          and "bound from the same match" in flat("references/patrol-scan.md"))
 c.expect("pattern", "C31: patrol-scan — MULTIPLE_SAME_SEQ is illegal, UNKNOWN never reaches it",
          "MULTIPLE_SAME_SEQ" in _sc and "UNKNOWN" in _sc)
+c.expect("pattern", "C31: patrol-scan — review-clean compares reviewed-sha with the match's sha "
+         "(codex review, PR #254)", "`sha`" in _sc and "reviewed-sha" in _sc
+         and re.search(r"reviewed-sha.{0,160}`sha`", flat("references/patrol-scan.md")) is not None)
+c.expect("pattern", "C31: tip — reviewed-sha against the lookup JSON's `sha`, not raw ls-remote",
+         re.search(r"reviewed-sha.{0,120}`sha`", flat("commands/tip.md")) is not None
+         and "in the `ls-remote` output" not in _tip)
 c.expect("pattern", "C31: tip names the resolver as the read-only way to answer a branch question",
          "bin/roz-branch" in _tip)
 _retired = ("1 + the number of branches", "1 + the lookup count", "matches the same way")

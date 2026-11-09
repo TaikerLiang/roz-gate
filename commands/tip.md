@@ -64,7 +64,8 @@ it waits on or clears.
   `**[reviewer] · fidelity**` comment — stage (6) requires it. The
   code-review record: on the implementation CR (or the fast CR),
   CR-COMMENTS-LIST for a `**[reviewer] · code-review**` comment and whether
-  its `reviewed-sha:` is the branch's head in the `ls-remote` output —
+  its `reviewed-sha:` is the branch's `sha` in the lookup JSON (each match
+  carries its remote head's commit) —
   review-clean is that record current **and** zero open threads
   (`workflow.md` (5)), never zero threads alone.
 

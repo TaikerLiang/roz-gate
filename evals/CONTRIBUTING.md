@@ -237,9 +237,14 @@ resolver (#135), later `roz-state` (#133) — runs **beside** the commands
 before it replaces them. The comparison is a **signal**, never a verdict:
 `Run.signal(...)` writes extra keys into the run's `attempts.json` and the
 report sums them in their own columns (D2's `attempts_denied` pattern);
-`c.expect` is not involved. `Run.shadow_branch({(kind, n): bound}, template)`
-is the first: the name a command bound (from the journal — CR-OPEN head,
-worktree path) against Lookup over the remote's final heads; it writes
+`c.expect` is not involved. `Run.shadow_branch([(kind, n), …], template,
+acts)` is the first: the names the run **itself** bound — `Run.observed_bindings`
+reads them from what it did, never from a fixture constant (`create`:
+CR-OPEN's head, a push destination, a `roz-gate/wt/` worktree path,
+`checkout -b`; `find`: CR-FIND's head) — against Lookup over the remote's
+final heads; agreement is the observed set equal to the resolver's choice,
+or both empty (an absent binding against a found branch is a mismatch).
+C11's red-proof proves the signal discriminates. It writes
 `shadow_branch_mismatch` (a count) and `shadow_branch_detail`. C10, C11,
 C12, C20 and F9 carry it.
 

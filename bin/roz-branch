@@ -153,7 +153,7 @@ def do_match(snapshot, o, cfg):
             return None, fail("BAD_ARGUMENT", "issue %r is not a number" % n, o["json"])
         issues[n] = match_issue(snapshot, cfg["branch_template"], n, track=tracks.get(n),
                                 type=types.get(n))
-    meta = {k: v for k, v in snapshot.items() if k != "heads"}
+    meta = {k: v for k, v in snapshot.items() if k not in ("heads", "shas")}  # per match instead
     return {"snapshot": meta, "branch_template": cfg["branch_template"], "issues": issues}, 0
 
 
