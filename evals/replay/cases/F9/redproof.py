@@ -68,12 +68,33 @@ def tool_result(uid, text, parent=None):
     return ev
 
 
+RAW_HEADS = ("0123456789abcdef0123456789abcdef01234567\trefs/heads/main\n"
+             "89abcdef0123456789abcdef0123456789abcdef\trefs/heads/spec/5\n")
+
+
 def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_mutation=False,
-               background=False):
+               background=False, handoff="snapshot"):
+    """handoff: "snapshot" — the agent ran `bin/roz-branch snapshot` and the
+    scanner's prompt names the file (#135); "raw" — the pre-#135 handoff,
+    `git ls-remote` output pasted into the prompt; "none" — neither."""
     ev = []
+    if handoff == "snapshot":
+        ev.append(tool_use("Bash", {"command": "python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-branch "
+                                               "snapshot --json > /tmp/roz-snapshot.json"},
+                           "t_snap"))
+        ev.append(tool_result("t_snap", ""))
+    elif handoff == "raw":
+        ev.append(tool_use("Bash", {"command": "git ls-remote --heads origin"}, "t_raw"))
+        ev.append(tool_result("t_raw", RAW_HEADS))
     if scanner:
-        ev.append(tool_use("Task", {"prompt": "…${CLAUDE_PLUGIN_ROOT}/references/patrol-scan.md…",
-                                    "subagent_type": "general-purpose"}, "t_scan"))
+        prompt = "…${CLAUDE_PLUGIN_ROOT}/references/patrol-scan.md…"
+        if handoff == "snapshot":
+            prompt += " The remote snapshot: /tmp/roz-snapshot.json — bind every branch with " \
+                      "`bin/roz-branch match --snapshot /tmp/roz-snapshot.json --issues …`."
+        elif handoff == "raw":
+            prompt += " The remote's heads:\n" + RAW_HEADS
+        ev.append(tool_use("Task", {"prompt": prompt, "subagent_type": "general-purpose"},
+                           "t_scan"))
         ev.append(tool_use("Bash", {"command": "gh issue list --state open "
                                                "--json number,title,labels,assignees,createdAt"},
                            "t_s1", parent="t_scan"))
@@ -123,7 +144,7 @@ def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_m
 
 def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=True,
               lock6=False, intake7=True, scanner_mutation=False, block6=False,
-              background=False):
+              background=False, handoff="snapshot"):
     run = os.path.join(tmp, "run")
     shutil.rmtree(run, ignore_errors=True)
     os.makedirs(os.path.join(run, "forge"))
@@ -150,7 +171,8 @@ def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=Tr
         for e in journal:
             f.write(json.dumps(e) + "\n")
     with open(os.path.join(run, "transcript.jsonl"), "w", encoding="utf-8") as f:
-        for e in transcript(table, scanner_write, relist, scanner, scanner_mutation, background):
+        for e in transcript(table, scanner_write, relist, scanner, scanner_mutation, background,
+                            handoff):
             f.write(json.dumps(e, ensure_ascii=False) + "\n")
     env = dict(os.environ, RUN_DIR=run, BARE=bare)
     return subprocess.run([sys.executable, os.path.join(CASE, "check.py")], env=env,
@@ -160,6 +182,9 @@ def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=Tr
 SHAPES = [
     ("the good pass: table, act on #5, #6 untouched, #7 asked", True, {}),
     ("the good pass, scanner dispatched in the background", True, {"background": True}),
+    ("raw ls-remote output pasted into the scanner's prompt (pre-#135 handoff)", False,
+     {"handoff": "raw"}),
+    ("no snapshot taken, nothing handed over", False, {"handoff": "none"}),
     ("a row with the wrong verdict (#5 waiting on user)", False, {"table": BAD_TABLE}),
     ("the good pass, #7 unassigned — holder is its author", True,
      {"table": GOOD_TABLE.replace("| #7 Gift cards | — | — | paul |",

@@ -39,6 +39,17 @@
       "threads": [],
       "reviews": [],
       "comments": []
+    },
+    "103": {
+      "number": 103,
+      "title": "Spec: #5 Offer expiry enforcement (re-spec)",
+      "state": "CLOSED",
+      "isDraft": false,
+      "headRefName": "spec/paul/5/3",
+      "baseRefName": "main",
+      "threads": [],
+      "reviews": [],
+      "comments": []
     }
   }
 }

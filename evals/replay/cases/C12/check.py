@@ -56,4 +56,7 @@ def claim_ok():
 c.expect("integrate.md step 5 (the licensed claim, verbatim)",
          "report claims 'green against the pre-rework spec', never 'verified'",
          claim_ok)
+# #135 shadow: integrate bound the three default names; Lookup agrees or the
+# report shows a mismatch (a signal, never a fail).
+r.shadow_branch({("spec", "5"): "spec/5", ("feat", "5"): "feat/5", ("qa", "5"): "qa/5"})
 c.finish()

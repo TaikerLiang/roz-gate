@@ -125,4 +125,24 @@ c.expect("patrol.md §3 (one loop issue per pass)", "#6 was not touched at all",
          and r.git("rev-parse", "--verify", "-q", "refs/heads/fast/6")[0] != 0)
 c.expect("patrol.md §3 (the whole inbox)", "#7 got its **[intake]** questions batch",
          any(b.startswith("**[intake]**") for b in r.issue_comment_bodies("7")))
+# #135: the agent takes the resolver's snapshot before the scanner runs and
+# hands the file over; raw `ls-remote` output in the prompt is the old,
+# hand-matching handoff and fails.
+_uses = list(r.tool_uses())
+_snap_at = next((i for i, u in enumerate(_uses) if u.get("name") == "Bash"
+                 and "roz-branch snapshot" in (u.get("input") or {}).get("command", "")), None)
+_scan_at = next((i for i, u in enumerate(_uses) if u.get("name") in ("Task", "Agent")
+                 and "patrol-scan" in (u.get("input") or {}).get("prompt", "")), None)
+_prompt = (_uses[_scan_at].get("input") or {}).get("prompt", "") if _scan_at is not None else ""
+c.expect("patrol.md §1 (#135: `bin/roz-branch snapshot` before the scanner)",
+         "the snapshot was taken, and before the scanner's dispatch",
+         _snap_at is not None and _scan_at is not None and _snap_at < _scan_at)
+c.expect("patrol.md §1 / patrol-scan.md (#135: the scanner is handed the snapshot, not raw heads)",
+         "the scanner's prompt names the snapshot and carries no `<sha>\\trefs/heads/` lines",
+         ("snapshot" in _prompt) and re.search(r"[0-9a-f]{40}\s+refs/heads/", _prompt) is None)
+# #135 shadow: the scanner bound #5's spec branch and #6's fast branch from
+# the agent's snapshot; Lookup over the final heads must agree.
+r.shadow_branch({("spec", "5"): "spec/5",
+                 ("fast", "6"): "fast/6" if r.git("rev-parse", "--verify", "-q",
+                                                  "refs/heads/fast/6")[0] == 0 else None})
 c.finish()

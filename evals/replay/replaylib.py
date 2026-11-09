@@ -325,6 +325,58 @@ class Run:
                              capture_output=True, text=True)
         return out.returncode, out.stdout
 
+    def remote_heads(self):
+        """Every branch on the sandbox's bare remote, by short name."""
+        rc, out = self.git("for-each-ref", "--format=%(refname:short)", "refs/heads/")
+        return [ln.strip() for ln in out.splitlines() if ln.strip()] if rc == 0 else None
+
+    def signal(self, **values):
+        """Add to attempts.json — the report's extra columns (D2's pattern):
+        informational, never a verdict."""
+        path = os.path.join(self.dir, "attempts.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                cur = json.load(f)
+        except (OSError, ValueError):
+            cur = {}
+        if not isinstance(cur, dict):
+            cur = {}
+        cur.update(values)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(cur, f)
+
+    def shadow_branch(self, bindings, template=None):
+        """#135 shadow comparison: for each (kind, issue) → the name the
+        command bound (None when it bound nothing), ask hooks/branch_names
+        what Lookup over the remote's final heads says. Agreement: ONE match
+        equal to the bound name, or NO_MATCH when nothing was bound;
+        MULTIPLE_SEQ agrees when the bound name is the highest {seq}.
+        Writes `shadow_branch_mismatch` (a count) and
+        `shadow_branch_detail`; a signal, never a fail — the exit from
+        shadow mode is evals/CONTRIBUTING.md § Shadow signals."""
+        sys.path.insert(0, os.path.join(ROOT, "hooks"))
+        import branch_names as bn  # noqa: E402
+        heads = self.remote_heads()
+        snap = (bn.snapshot_from_heads(heads) if heads is not None
+                else {"status": "unknown", "reason": "no remote", "heads": []})
+        detail, mismatches = {}, 0
+        for (kind, n), bound in bindings.items():
+            m = bn.match_heads(snap, template, kind=kind, n=n)
+            names = [x["branch"] for x in m["matches"]]
+            if m["outcome"] == "ONE":
+                agree = bound == names[0]
+            elif m["outcome"] == "NO_MATCH":
+                agree = bound is None
+            elif m["outcome"] == "MULTIPLE_SEQ":
+                agree = bound == max(m["matches"], key=lambda x: x["seq"] or 0)["branch"]
+            else:
+                agree = False
+            detail["%s/%s" % (kind, n)] = {"bound": bound, "outcome": m["outcome"],
+                                           "matches": names, "agree": agree}
+            mismatches += 0 if agree else 1
+        self.signal(shadow_branch_mismatch=mismatches, shadow_branch_detail=detail)
+        return mismatches
+
     def remote_ref_count(self):
         rc, out = self.git("for-each-ref")
         return len([line for line in out.splitlines() if line.strip()])
