@@ -109,6 +109,65 @@ drivable → undrivable → wait chain, the paragraph whose first half Haiku
 obeyed and whose second it violated in #199 (lint E13; replay D18/D19,
 D10/D11 under `--variant A1` vs `A2`).
 
+## Kernel
+
+A **kernel rule** is a semantic invariant that several executable files
+need, defined in exactly one of them (#263). The **owner** defines it: the
+predicate, the consequence and the scope, under a bold ID label (`**QA-4**`)
+that appears once. Every other file is a **consumer** and applies it: its
+local trigger, what this procedure does next, and the pointer `(QA-4`. A
+consumer never restates the predicate, the rationale or the exceptions in
+its own words. The ID is provenance for maintainers, not an import, so a
+consumer's text stays executable without looking the ID up.
+
+**Entry.** A rule enters the kernel only when all of these hold:
+
+- its semantics are stable;
+- its semantic half is already separated from any operational constraint
+  (the operational half belongs to a hook or code, never here);
+- it answers one decision question, or it is a clearly bounded invariant;
+- behavioural evidence exists (named replay cases);
+- it has at least two real consumers.
+
+**Change rule.** A change to a kernel rule's definition names, in its PR
+body, every case in its row. Re-running them is the maintainer's spend call.
+A consumer-only edit keeps its pointer.
+
+L14 checks the tables below: the owner carries its label once and its
+definition anchor, every consumer carries its pointer and its anchor, no
+consumer-side file carries a retired definition, and every case is a ledger
+ID.
+
+| id | owner | definition anchor | cases |
+|---|---|---|---|
+| QA-4 | references/qa-brief.md | a red is never resolved by editing an assertion to match observed behaviour | B8, D4, D9, D13, D19, E12, L14 |
+
+### QA-4 consumers
+
+| consumer | anchor |
+|---|---|
+| agents/qa.md | never an edited assertion (QA-4, the QA brief) |
+| references/workflow.md | (QA-4: never an edited assertion) |
+| references/workflow.md | never an assertion edit (QA-4, `references/qa-brief.md` § Run the suite) |
+| references/workflow.md | observed (QA-4, audited at (5q)) |
+| commands/next-stage.md | edited assertion (QA-4; the fidelity audit checks it) |
+| commands/integrate.md | **Apply QA-4 to an integration RED** |
+| commands/spec-answers.md | never an assertion edited to match (QA-4) |
+
+### QA-4 retired wording
+
+Definitions and rationale the consumers used to carry. None of them may
+come back in `agents/`, `commands/`, `references/` or `templates/`.
+
+| retired literal |
+|---|
+| is integrate's rule |
+| binds you first |
+| rewrites the verdict into an echo of the implementation |
+| An integration RED is never resolved by editing a QA assertion |
+| the expected value comes from the requirement, never from a run of the code |
+| exactly two dispositions: a **harness issue** QA fixes |
+
 ## Mechanical rules
 
 | id | source | anchor | question | class | owner | dependency | inputs | on_unknown | oracle | shadow | status |
@@ -212,7 +271,7 @@ a single rule and has its own row above.
 | J1 | the judgment tier's own instrument |
 | L1, L7, L9, L10, L11, L12 | human-facing pages, not executable prose |
 | L8 | the `/roz-gate:config` mod's implementation, not a question the loop answers |
-| L13 | this page's own lint |
+| L13, L14 | this page's own lints (the inventory; § Kernel) |
 
 ## Duplicated mechanical interpretation
 

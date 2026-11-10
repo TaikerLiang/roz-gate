@@ -566,7 +566,7 @@ and it is why the next step's blindness is the hook's, not the topology's.
   gaps — or `none`), the suite, `test-spec.md`, the result of its last run,
   and whether the suite is **complete**. A red it classified as an assertion
   that disagrees with observed behaviour arrives as a finding, never as an
-  edited assertion (the brief's rule; the fidelity audit checks it).
+  edited assertion (QA-4; the fidelity audit checks it).
 
 ### B2.5 QA's findings → threads on the spec CR
 For a non-empty batch: append each item to `spec.md`'s `## Open Questions`

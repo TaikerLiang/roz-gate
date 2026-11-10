@@ -32,8 +32,8 @@ src("E12: only an undrivable scenario waits, and the report says why", "referenc
     "and why each is\nundrivable")
 src("E12: an approved answer changes the test; observed behaviour never does",
     "references/qa-brief.md",
-    "update the test\nto the newly approved contract; never edit an assertion to match what the\n"
-    "implementation returned")
+    "update the test\nto the newly approved contract, never to what the implementation returned\n"
+    "(QA-4)")
 src("E12: the deliverable names why a scenario waits", "references/qa-brief.md",
     "(each with why it is undrivable)")
 src("E12: B2.5 — every drivable scenario is already written", "commands/next-stage.md",

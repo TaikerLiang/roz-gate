@@ -266,6 +266,17 @@ Each replacement's lifecycle (`identified → ready → shadow → authoritative
 → migrated`) is a row in `docs/prose-inventory.md` (#260); move the row in
 the same PR that moves the rule.
 
+## 8. Kernel rules
+
+A semantic invariant that several executable files share has one owner,
+which defines it, and consumers, which apply it by pointer (`docs/prose-inventory.md`
+§ Kernel, #263; L14 holds the shape). A PR that changes a kernel rule's
+**definition** names, in its body, every case listed in that rule's row.
+Those consumers read the rule, so their earlier runs say nothing about the new
+text. Re-running them is the maintainer's spend call; the PR names them
+and does not start the runs. A consumer-only edit keeps the pointer and the
+consumer's anchor in the same commit.
+
 ## Instruments that lied — check yours against each
 
 | case | what the instrument missed | the class |

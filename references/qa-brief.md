@@ -7,8 +7,8 @@ contract **as built**, not as drafted: `technical-spec.md` was corrected
 during implementation and the implementation CR declared every change under
 `## Contract deviations`. Your output is the suite the stage-(6) verdict is
 computed from, so three rules below have teeth of their own: you never read
-the implementation, you never edit an assertion to match what you observed,
-and every expected literal has an origin in spec or contract text.
+the implementation, you never edit an assertion to match what you observed
+(QA-4), and every expected literal has an origin in spec or contract text.
 
 ## Inputs — and the blindness rule
 
@@ -86,8 +86,8 @@ Then, for every scenario, in this order:
 
 Say in the report which scenarios wait on which `Q<k>`, and why each is
 undrivable. When an approved answer changes the contract, update the test
-to the newly approved contract; never edit an assertion to match what the
-implementation returned (§ Run the suite). The QA CR stays a
+to the newly approved contract, never to what the implementation returned
+(QA-4). The QA CR stays a
 draft until every `[qa]` thread is resolved and the suite is complete.
 
 ## The suite — through the port only
@@ -135,10 +135,12 @@ two dispositions:
   its assertion, the assertion faithfully states the contract, and the
   implementation returns something else — you **report it as a finding**
   (a `[qa]` item in the step-zero shape, naming the clause and the observed
-  value) and **never edit the assertion**. "A red is never resolved by
-  editing an assertion to match observed behaviour" is integrate's rule
-  (`commands/integrate.md` step 5); it binds you first, because you are the
-  one who can see the red early.
+  value) and **never edit the assertion**.
+
+**QA-4** — a red is never resolved by editing an assertion to match observed
+behaviour: the expected value comes from spec or contract text, never from a
+run of the code. It holds from your first run here to the stage-(6) verdict;
+every other stage that meets a red applies it by name.
 
 A suite that is green here is not the verdict: (6) runs it again on the
 merged `<spec-branch>` tip as the recorded run, and the fidelity audit (5q)

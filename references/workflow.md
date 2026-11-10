@@ -22,7 +22,7 @@ stays in the loop at every transition.
 | **product** | actors, scenarios (Given/When/Then: happy/edge/failure), consistency, user-facing gaps | architecture, code, impl tests |
 | **em** | problem statement, success metrics, architecture / domain boundaries, business rules, out-of-scope; resolves conflicts; owns `spec.md` | code, deep implementation |
 | **implementer** | `technical-spec.md` (the contract) — and its **as-built** corrections on `<feat-branch>`, each declared under the implementation CR's `## Contract deviations`; implementation code + **unit** tests; the QA test **port** for non-API features, **including the Given-state control points** (§5) every scenario's setup needs | spec scenarios, black-box tests, reviewing its own code |
-| **qa** | a **contract review** of `spec.md` + the as-built `technical-spec.md` first — findings as one batch, posted by the main agent as `[qa]` threads on the spec CR; black-box acceptance tests from `spec.md`'s scenarios + the contract **only — never the implementation**; **runs its suite** at (4) — a red is a harness issue it fixes or a finding it reports, **never an assertion edited to observed behaviour**; `test-spec.md`; the integration verdict — reports **only to the main agent** | reading the implementation, unit tests, architecture, the persistence layer (Given-state goes through the port's control points) |
+| **qa** | a **contract review** of `spec.md` + the as-built `technical-spec.md` first — findings as one batch, posted by the main agent as `[qa]` threads on the spec CR; black-box acceptance tests from `spec.md`'s scenarios + the contract **only — never the implementation**; **runs its suite** at (4) — a red is a harness issue it fixes or a finding it reports (QA-4: never an edited assertion); `test-spec.md`; the integration verdict — reports **only to the main agent** | reading the implementation, unit tests, architecture, the persistence layer (Given-state goes through the port's control points) |
 | **reviewer** | independent review of the **implementation code** (correctness / security / performance / maintainability); **fidelity audit of the QA suite** (assertions vs scenarios — cited evidence, never a verdict); severity-graded inline comments | architecture (em's), re-testing behaviour (qa's), writing code; **reading the implementation when auditing QA's tests** (separate blind dispatch) |
 
 **Seats and personas.** The role names above are fixed **seats** — the
@@ -180,10 +180,9 @@ real thing only at (6), and the time saved by starting early was spent there).
   otherwise the documented port, process-level where the feature is),
   never through the persistence layer or an implementation import beyond
   the port's declared types; no unit tests. QA **runs its suite** in its
-  worktree (`acceptance_test`) and gets the harness green there — a red has
-  exactly two dispositions: a **harness issue** QA fixes, or an **assertion
-  that disagrees with observed behaviour**, which is a finding (a `[qa]`
-  thread) and **never an assertion edit**. Tests are a **living
+  worktree (`acceptance_test`) and gets the harness green there — a red is
+  a harness issue QA fixes or a `[qa]` finding, never an assertion edit
+  (QA-4, `references/qa-brief.md` § Run the suite). Tests are a **living
   suite** — maintained and evolving, never write-once per-issue snapshots.
   Suite layout is the project's call, like its test runner: optional config
   `acceptance_layout` declares it (absent → feature-organized, the
@@ -550,8 +549,7 @@ denies the merge itself in a loop worktree (`hooks/README.md`).
   after (3) has landed, and the verdict stays honest for three reasons that
   do not depend on timing: QA never reads the implementation (guard-blind
   rule E, on for its dispatch), never edits an assertion to match what it
-  observed (a red is a harness fix or a finding — audited at (5q), where
-  every expected literal must have an origin in spec or contract text), and
+  observed (QA-4, audited at (5q)), and
   the recorded run is (6)'s under the hand-back rule. **QA's level is
   pinned**: through the port only, in `<acceptance_dir>` under the project's
   `acceptance_layout`, no unit tests, no implementation imports beyond the

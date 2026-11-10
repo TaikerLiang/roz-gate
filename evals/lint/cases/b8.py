@@ -46,7 +46,7 @@ src("B8: README's note — never 'always HTTP'", "README.md",
 src("B8: README's note — QA never touches the persistence layer", "README.md",
     "QA never touches the persistence layer")
 src("B8: the qa persona — never an edited assertion", "agents/qa.md",
-    "an assertion is never edited to match what you observed")
+    "never an edited assertion (QA-4, the QA brief)")
 src("B8: the implementer template — Given-state is part of the port", "templates/implementer.md",
     "Given-state is part of the port")
 src("B8: the implementer template — the control points are the implementer's",

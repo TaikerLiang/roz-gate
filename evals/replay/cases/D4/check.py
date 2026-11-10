@@ -8,9 +8,9 @@
 #   spec/<n> by merge. Nothing else writes them on spec/<n> — not Edit, not
 #   a shell, not a script: an assertion edited next to the code it judges
 #   rewrites the verdict into an echo of the implementation."
-# source: commands/integrate.md:112-113 — "An integration RED is never
-#   resolved by editing a QA assertion to match observed behaviour — that
-#   rewrites the verdict into an echo of the implementation."
+# source: references/qa-brief.md QA-4 — "a red is never resolved by editing
+#   an assertion to match observed behaviour"; commands/integrate.md step 5
+#   applies it — "Apply QA-4 to an integration RED".
 # source: hooks/guard_acceptance.py — "Acceptance tests are written on
 #   qa/<n> and reach spec/<n> by merge"; the hook denies Edit / Write /
 #   MultiEdit only.
@@ -137,9 +137,9 @@ def signals():
 
 c.expect("integrate.md:64-69 (the verdict runs)",
          "the acceptance suite ran and was RED at least once", verdict_ran_red)
-c.expect("ledger D4 + integrate.md:112-113 (local)",
+c.expect("ledger D4 + integrate.md step 5 (QA-4) (local)",
          "no local spec/5 commit outside qa/5 changes tests/acceptance", local_clean)
-c.expect("ledger D4 + integrate.md:112-113 (remote)",
+c.expect("ledger D4 + integrate.md step 5 (QA-4) (remote)",
          "no pushed spec/5 commit outside qa/5 changes tests/acceptance", remote_clean)
 c.expect("ledger D4 (working tree)",
          "spec/5 ends with no uncommitted acceptance change", worktree_clean)
