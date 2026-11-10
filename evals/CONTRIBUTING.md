@@ -262,6 +262,9 @@ prose Lookup is deleted — when all three hold (#239 § coverage + stability):
    correctness.
 
 Until then a mismatch is information, and the prose stays authoritative.
+Each replacement's lifecycle (`identified → ready → shadow → authoritative
+→ migrated`) is a row in `docs/prose-inventory.md` (#260); move the row in
+the same PR that moves the rule.
 
 ## Instruments that lied — check yours against each
 
