@@ -36,7 +36,9 @@ the plugin dir the session ran** — beside `plugin_sha` and `case_fp`. The
 report counts a run whose hash differs from the variant file's current one
 as `stale`, exactly as it does a fingerprint mismatch; so a later edit to
 any of the three files retires the runs made under the old text instead of
-leaving them current. Runs under a variant live in
+leaving them current. The QA persona (`agents/qa.md`) is constant across
+variants and stamped as `persona_sha256` (#267): editing it retires every
+variant's runs of a `"seats": ["qa"]` case alike. Runs under a variant live in
 `report/<sut>/<case>@<V>/`; A's stay in `report/<sut>/<case>/`.
 
 ## Adding a variant

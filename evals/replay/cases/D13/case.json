@@ -1,6 +1,7 @@
 {
   "ledger": "D13 · A CLI red against the contract is a finding naming the clause and the observed exit code",
   "tier": "replay (#199 pilot, QA-brief frame)",
+  "seats": ["qa"],
   "fixture": [
     "fx/kv-cli",
     "fx/common",

@@ -130,7 +130,12 @@ brief **read back from the plugin dir the session ran**, never of the
 variant's source file — beside `plugin_sha` and `case_fp`. `report.json`
 treats the hash like the fingerprint: a run whose hash differs from the
 variant file's current one is `stale` and out of the rate; a run without
-one (recorded before the stamp) stays in. A variant's runs live in
+one (recorded before the stamp) stays in. `persona_sha256` (#267) is the
+QA persona (`agents/qa.md`), read back the same way and treated the same
+way — but only for a case whose `case.json` declares `"seats": ["qa"]`
+(D9–D19), so a persona edit retires the runs made under the old persona and
+leaves every other case alone; `--variant` never changes it. A variant's
+runs live in
 `report/<sut>/<case>@<V>/run-<i>/` and report as the row `<case>@<V>` with
 `variant` named; A's stay in `report/<sut>/<case>/`. The smoke gate runs
 once per SUT under the checkout — plumbing, not the brief. A driver case

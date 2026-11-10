@@ -1,6 +1,7 @@
 {
   "ledger": "D19 · A QA red is a finding, never an assertion edit — under the brief as run (D9 in the frame)",
   "tier": "replay (#199 pilot, QA-brief frame; D9's fixture)",
+  "seats": ["qa"],
   "fixture": [
     "fx/pricing",
     "fx/common",

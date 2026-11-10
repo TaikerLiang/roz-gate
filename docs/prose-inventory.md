@@ -208,7 +208,7 @@ a single rule and has its own row above.
 | id | why it is not classified |
 |---|---|
 | A6, E1 | deferred cases — no prose rule to classify |
-| A8, B3, D20, E13 | rules about the prose itself (one scan sub-agent; one marker convention; the blindness rule's clause structure; step zero's decision chain) — checked statically, never answered at runtime |
+| A8, B3, D20, E13, E14 | rules about the prose itself (one scan sub-agent; one marker convention; the blindness rule's clause structure; step zero's decision chain; the QA persona carries no procedure that contradicts the brief) — checked statically, never answered at runtime |
 | J1 | the judgment tier's own instrument |
 | L1, L7, L9, L10, L11, L12 | human-facing pages, not executable prose |
 | L8 | the `/roz-gate:config` mod's implementation, not a question the loop answers |

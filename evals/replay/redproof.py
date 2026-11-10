@@ -903,6 +903,50 @@ def export_checks():
     ]
 
 
+def persona_checks():
+    """#267: the QA persona is the seat's system prompt; a run under another
+    persona is a measurement of another seat — stale, exactly like a run
+    under another brief, but only for a case that declares it dispatches the
+    QA seat (`"seats": ["qa"]`), so a persona edit leaves other cases alone."""
+    persona_rel = getattr(rr, "PERSONA_REL", "agents/qa.md")
+    now = rl.brief_sha256(os.path.join(rr.ROOT, persona_rel))
+    old = "0" * 64
+    seat, other = os.path.join(HERE, "cases", "D18"), os.path.join(HERE, "cases", "C5")
+    seat_ok = {"valid": True, "pass": True, "tokens": {"in": 1, "out": 1},
+               "case_fp": rl.case_fingerprint(seat)}
+    other_ok = {**seat_ok, "case_fp": rl.case_fingerprint(other)}
+    row_seat = _aggregate([{**seat_ok, "persona_sha256": now},
+                           {**seat_ok, "pass": False, "persona_sha256": old},
+                           {**seat_ok}], key="D18")
+    row_other = _aggregate([{**other_ok, "persona_sha256": old}], key="C5")
+    # a plugin dir whose persona differs from the checkout's: the stamp must
+    # read the dir the session ran, never the checkout
+    plugin = tempfile.mkdtemp()
+    try:
+        for rel, body in ((rr.BRIEF_REL, b"brief\n"), (persona_rel, b"another persona\n")):
+            os.makedirs(os.path.dirname(os.path.join(plugin, rel)), exist_ok=True)
+            with open(os.path.join(plugin, rel), "wb") as f:
+                f.write(body)
+        stamp_b, stamp_a = rr.case_stamp(other, "B", plugin), rr.case_stamp(other)
+        theirs = rl.brief_sha256(os.path.join(plugin, persona_rel))
+    finally:
+        shutil.rmtree(plugin, ignore_errors=True)
+    seats = json.load(open(os.path.join(seat, "case.json"))).get("seats")
+    return [
+        ("a QA-seat case declares it: D18's case.json carries \"seats\": [\"qa\"]",
+         seats == ["qa"]),
+        ("a seat case's run under another persona hash is stale and out of the rate; the current "
+         "hash scores; a run without the field stays in (the case_fp precedent, #190)",
+         row_seat is not None and row_seat["runs"] == 2 and row_seat["passes"] == 2
+         and row_seat.get("stale") == 1),
+        ("a case that never dispatches the QA seat scores a run under another persona",
+         row_other is not None and row_other["runs"] == 1 and not row_other.get("stale")),
+        ("the stamp carries the persona hash read back from the plugin dir the session ran",
+         stamp_b.get("persona_sha256") == theirs != now
+         and stamp_a.get("persona_sha256") == now),
+    ]
+
+
 def main():
     passed = failed = 0
     for name, ok in export_checks():
@@ -913,6 +957,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in variant_checks():
         print("%s variant: %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in persona_checks():
+        print("%s persona: %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     tmp, work = git_sandbox()
     try:

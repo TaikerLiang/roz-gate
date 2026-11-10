@@ -1,6 +1,7 @@
 {
   "ledger": "D15 · With no file port (`Test port — none`) the suite needs no src/ at all, and asks for none",
   "tier": "replay (#199 pilot, QA-brief frame)",
+  "seats": ["qa"],
   "fixture": [
     "fx/http-shop",
     "fx/common",

@@ -1,6 +1,7 @@
 {
   "ledger": "D14 · A port under src/ is read; its sibling is not, not even as a denied attempt",
   "tier": "replay (#199 pilot, QA-brief frame)",
+  "seats": ["qa"],
   "fixture": [
     "fx/kv-cli",
     "fx/common",
