@@ -1,6 +1,7 @@
 {
   "ledger": "D12 · The QA suite drives a CLI port as a child process and asserts the contract",
   "tier": "replay (#199 pilot, QA-brief frame)",
+  "seats": ["qa"],
   "fixture": [
     "fx/kv-cli",
     "fx/common",

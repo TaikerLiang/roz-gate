@@ -1,6 +1,7 @@
 {
   "ledger": "D17 · The suite asserts the contract as built — a declared deviation, not the drafted word",
   "tier": "replay (#199 pilot, QA-brief frame)",
+  "seats": ["qa"],
   "fixture": [
     "fx/http-shop",
     "fx/common",

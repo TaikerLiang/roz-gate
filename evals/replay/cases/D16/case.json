@@ -1,6 +1,7 @@
 {
   "ledger": "D16 · A multi-step scenario is driven through the port in order, never asserted from a state arranged by hand",
   "tier": "replay (#199 pilot, QA-brief frame)",
+  "seats": ["qa"],
   "fixture": [
     "fx/kv-cli",
     "fx/common",

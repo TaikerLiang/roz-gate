@@ -1,6 +1,7 @@
 {
   "ledger": "D11 · A harness red is fixed in the harness, never in an assertion or the build",
   "tier": "replay (#199 pilot, QA-brief frame)",
+  "seats": ["qa"],
   "fixture": [
     "fx/http-shop",
     "fx/common",

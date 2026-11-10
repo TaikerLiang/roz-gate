@@ -1,6 +1,7 @@
 {
   "ledger": "D10 · The QA suite drives an HTTP port and asserts the contract, not the build",
   "tier": "replay (#199 pilot, QA-brief frame)",
+  "seats": ["qa"],
   "fixture": [
     "fx/http-shop",
     "fx/common",

@@ -16,8 +16,11 @@ replaces ONLY references/qa-brief.md there and passes that dir as
 `variant` and `brief_sha256` — the hash of the brief file READ BACK from the
 plugin dir the session ran — beside `plugin_sha` and `case_fp`; a run whose
 brief hash differs from the variant file's current one is STALE exactly like
-a fingerprint mismatch. A variant's runs live in report/<sut>/<case>@<V>/;
-A's stay in report/<sut>/<case>/ (one A, never two copies).
+a fingerprint mismatch. `persona_sha256` (#267) is the QA persona
+(agents/qa.md) read back the same way; for a case whose case.json declares
+"seats": ["qa"] a run under another persona is STALE too. A variant's runs
+live in report/<sut>/<case>@<V>/; A's stay in report/<sut>/<case>/ (one A,
+never two copies).
 
 Multi-model: --sut resolves through models.yaml (mode, model, base_url,
 key_env). Claude Code is the runtime for every row; only the model swaps,
@@ -63,6 +66,9 @@ ROOT = os.path.dirname(os.path.dirname(S))
 
 # ---- brief variants (#199) ---------------------------------------------------
 BRIEF_REL = "references/qa-brief.md"
+# the QA seat's system prompt (#267) — stamped like the brief; a run under
+# another persona is stale for a case that declares "seats": ["qa"]
+PERSONA_REL = "agents/qa.md"
 VARIANTS = os.path.join(S, "variants", "qa-brief")
 # What the temp plugin copy leaves out: nothing the runtime loads. The
 # variant copy must differ from the checkout in exactly one file
@@ -241,7 +247,8 @@ def case_stamp(cdir, variant="A", plugin_dir=ROOT):
     never from the variant's source — the stamp says what ran."""
     return {"case_fp": rl.case_fingerprint(cdir), "plugin_sha": rl.plugin_sha(),
             "variant": variant,
-            "brief_sha256": rl.brief_sha256(os.path.join(plugin_dir, BRIEF_REL))}
+            "brief_sha256": rl.brief_sha256(os.path.join(plugin_dir, BRIEF_REL)),
+            "persona_sha256": rl.brief_sha256(os.path.join(plugin_dir, PERSONA_REL))}
 
 
 def stamp_result(rdir, stamp):
@@ -420,6 +427,11 @@ def aggregate(sut, report):
         # stamped with another is a measurement of another brief.
         vfile = variant_file(variant)
         brief_now = rl.brief_sha256(vfile) if vfile else None
+        # The QA persona as scored (#267): only for a case that dispatches
+        # the seat — a persona edit is no measurement change for the rest.
+        cjson = load_json(os.path.join(cdir, "case.json")) or {}
+        persona_now = (rl.brief_sha256(os.path.join(ROOT, PERSONA_REL))
+                       if "qa" in (cjson.get("seats") or []) else None)
         for run in sorted(os.listdir(d)):
             r = load_json(os.path.join(d, run, "result.json"))
             if r is None:
@@ -436,6 +448,10 @@ def aggregate(sut, report):
                 continue
             if (r.get("brief_sha256") is not None and brief_now is not None
                     and r["brief_sha256"] != brief_now):
+                stale += 1
+                continue
+            if (r.get("persona_sha256") is not None and persona_now is not None
+                    and r["persona_sha256"] != persona_now):
                 stale += 1
                 continue
             if not r.get("valid"):
