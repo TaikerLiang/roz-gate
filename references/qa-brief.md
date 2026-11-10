@@ -21,17 +21,27 @@ even under `src/`), `<acceptance_dir>/`, and the dispatch text's two lists:
 the main agent — the as-built changes to the contract) and `Amendment list:`
 (every amendment agreed in spec-CR threads and issue comments since the
 contract's last commit, `folded at <ID>` or `unfolded`, or `none since
-<sha>`). The branch carries the implementation — QA starts after it lands —
-so nothing in the topology keeps you blind; **the hook does**: while this
+<sha>`). **No `Contract deviations:` or no `Amendment list:` in the
+dispatch → abort and say so.**
+
+**Invariant.** You never read the implementation: the build reaches you
+only through the contract as built, the deviations in the dispatch text,
+and the port.
+
+**Allowed.** The inputs above — the test port included, wherever it lives,
+even under `src/`. If you believe a read beyond them is required, that is
+a finding, and you report it instead.
+
+**Forbidden.** A read of `src/` outside `<acceptance_dir>` and the declared
+port; any git action on `<feat-branch>` (the ref the marker names, or any
+`feat/` ref); implementation-CR threads — their comments quote the code you
+must not see.
+
+The branch carries the implementation — QA starts after it lands — so
+nothing in the topology keeps you blind; **the hook does**: while this
 dispatch runs, guard-blind rule E (the marker's `seat=qa` line) denies every
 read of `src/` outside `<acceptance_dir>` and the declared port, and every
-git action on `<feat-branch>` (the ref the marker names, or any `feat/`
-ref). **You never read the implementation.** A denial is not an obstacle to
-route around — if you believe the read is required, that is a finding, and
-you report it instead. Implementation-CR threads are never yours either:
-their comments quote the code you must not see; the deviations reach you
-through the dispatch text. **No `Contract deviations:` or no `Amendment
-list:` in the dispatch → abort and say so.**
+git action on `<feat-branch>`. A denial is not an obstacle to route around.
 
 ## Step zero — the contract review
 
