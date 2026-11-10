@@ -158,6 +158,7 @@ refuses a rule that lands unindexed (#189).
 | E10 | the implementation CR declares its contract deviations | hook (guard-gate rule H) + lint (#140, 2.0.0) | — |
 | E11 | A fold may ask once — the second-order question is deferred | replay + lint (#206) | "The depth-1 thread (Q6, itself raised by the fold of Q3) is folded and resolved; the question its answer forces — the cart line has no timestamp — lands in `spec.md`'s `## Open Questions` as `Q7 … · deferred` naming the fold of Q6, with no thread posted; one `**[spec-answers] · deferred**` CR comment names it; labels end `in-spec-review` alone." (ConsoleAPI #1: folding Q6/Q7 raised Q8/Q9 — every fold could send the issue back behind the human gate for another pass; ruling (c): a fold may ask once, the chain is bounded at depth 1) |
 | E12 | A `[qa]` finding does not stop a scenario's test | lint (defect 2.12.0-, #243) | — |
+| E13 | Step zero's questioned → drivable → undrivable → wait chain is four numbered decisions, in order | lint (#262) | `references/qa-brief.md` § Step zero carries a numbered list of four items, in order, led by **A finding does not stop you**, **Can the contract as built and the declared port drive it?**, **Undrivable**, **Only an undrivable scenario waits** — structure pinned, wording free (#262: each decision fails on its own, so each is its own item). |
 
 ### F · the loop end to end
 
