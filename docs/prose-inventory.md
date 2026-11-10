@@ -61,6 +61,31 @@ status.
 when the literal is gone and the row is not `migrated`. When prose is
 rewritten, update the anchor in the same commit.
 
+## Semantic invariants and operational constraints
+
+Inside one kept or mechanical rule, two contracts can hide in one paragraph
+(#261):
+
+- a **semantic invariant** — what the agent must understand or preserve
+  ("test the contract, not the implementation"); it needs a reader, so it
+  stays prose;
+- an **operational constraint** — what the agent may or may not do while
+  doing it (which paths, refs, threads); it is the part a hook can enforce.
+
+Where a load-bearing rule carries both, write them apart as run-in
+paragraphs, in this order: **Invariant.** — the semantic requirement;
+**Allowed.** — what is permitted where a reader could doubt it;
+**Forbidden.** — the boundary; **Exception.** — only when a real one
+exists. Then, if a hook enforces the boundary, one sentence naming it. Not
+every rule needs every clause, and one sentence that is already one
+contract needs none. A split restructures; it never adds, removes or
+broadens an allowed or forbidden action — a change of meaning is its own
+issue.
+
+Applied so far: `references/qa-brief.md` § Inputs (the blindness rule;
+lint D20 pins the structure, never the wording; replay D10–D19 under
+`--variant A0` vs A measure the split alone).
+
 ## Mechanical rules
 
 | id | source | anchor | question | class | owner | dependency | inputs | on_unknown | oracle | shadow | status |
@@ -160,7 +185,7 @@ a single rule and has its own row above.
 | id | why it is not classified |
 |---|---|
 | A6, E1 | deferred cases — no prose rule to classify |
-| A8, B3 | rules about the prose itself (one scan sub-agent; one marker convention) — checked statically, never answered at runtime |
+| A8, B3, D20 | rules about the prose itself (one scan sub-agent; one marker convention; the blindness rule's clause structure) — checked statically, never answered at runtime |
 | J1 | the judgment tier's own instrument |
 | L1, L7, L9, L10, L11, L12 | human-facing pages, not executable prose |
 | L8 | the `/roz-gate:config` mod's implementation, not a question the loop answers |
