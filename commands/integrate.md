@@ -189,9 +189,8 @@ label.
     behaviour that measurably does not hold) → **STOP exit**: the contract
     is amended through the existing backward transition, then QA re-derives
     the test from the amended contract.
-  **An integration RED is never resolved by editing a QA assertion to match
-  observed behaviour** — that rewrites the verdict into an echo of the
-  implementation. Push the fix, re-run from step 3. Cap: config
+  **Apply QA-4 to an integration RED**: the fix goes to the implementation,
+  the harness or the contract, never to a QA assertion. Push the fix, re-run from step 3. Cap: config
   **`fix_rounds`** fix-and-rerun rounds (absent → 3; `0` → every RED is a
   STOP at once, the human routes each fix; §0 already refused anything
   else), counted **per run** — a run cleared from `blocked` starts at

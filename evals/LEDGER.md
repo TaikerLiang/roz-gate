@@ -205,6 +205,7 @@ text follows the experiment; the driver's citation was updated to match.
 | L11 | the seat pane is a mod that only watches: the entry module registers `seat-pane.tsx`; `seat-sprites.ts` draws exactly the five seats the personas template names, no more; the mod never writes, runs a process or denies a spawn; README says every other agent is shown as a plain Roz under its agent type | lint (#172, 2.7.0; #202) |
 | L12 | every page's script parses | lint (#215) |
 | L13 | the executable-prose inventory stays honest | lint (#260) |
+| L14 | a kernel rule has one definition | lint (#263) |
 
 ## The judgment corpus
 

@@ -22,8 +22,8 @@
 # source: references/qa-brief.md § Run the suite — "an assertion that
 #   disagrees with observed behaviour … report it as a finding … never edit
 #   the assertion"
-# source: commands/integrate.md step 5 — "An integration RED is never resolved
-#   by editing a QA assertion to match observed behaviour"
+# source: references/qa-brief.md QA-4 — "a red is never resolved by editing
+#   an assertion to match observed behaviour" (integrate step 5 applies it)
 #
 # OUTCOME-bound (D9's method, in the frame): RED against the build, GREEN
 # against the build with expiry restored; the finding names the red in the

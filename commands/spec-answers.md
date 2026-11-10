@@ -281,7 +281,7 @@ depends on where the issue is — decided by CR-FIND for `<feat-branch>` /
     and config `test` on `<spec-branch>`, capture the output, regenerate the
     gate kit's evidence cards wholesale and re-stamp `cards-sha`. A red here
     is the stage-(6) taxonomy (`commands/integrate.md` step 5), never an
-    assertion edited to match.
+    assertion edited to match (QA-4).
   - **The fold changed behaviour**: the implementation and the suite at
     `<spec-branch>`'s head still implement the previous text, so a run there
     is green against the previous contract and licenses nothing about the

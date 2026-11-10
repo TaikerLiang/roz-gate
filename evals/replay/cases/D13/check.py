@@ -19,8 +19,8 @@
 #   disagrees with observed behaviour — … you report it as a finding (a `[qa]`
 #   item in the step-zero shape, naming the clause and the observed value) and
 #   never edit the assertion"
-# source: commands/integrate.md step 5 — "An integration RED is never resolved
-#   by editing a QA assertion to match observed behaviour"
+# source: references/qa-brief.md QA-4 — "a red is never resolved by editing
+#   an assertion to match observed behaviour" (integrate step 5 applies it)
 # source: commands/next-stage.md B2.6 — CR-READY only if qa reported its suite
 #   complete and no [qa] thread is open
 #
