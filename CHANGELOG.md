@@ -2,6 +2,48 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.15.0 — one branch-name resolver — 2026-11-10
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.15.0>
+
+**Behavior:** branch names have one resolver, `bin/roz-branch`. The hooks share it and patrol's scanner is handed its output. A re-entry's next sequence is one past the highest attempt, and a remote that cannot be read counts as unknown, never as "no branch". The QA brief's blindness rule and step-zero chain are restated as separate clauses and numbered decisions, with the same outcomes. The QA persona no longer contradicts step zero.
+
+### Behavior
+- **`1 + max({seq})`** (#135): under a `{seq}` template, a re-entry renders one past the highest existing attempt, not one past the count. `spec/paul/73/1` + `/3` no longer collides on `/3`. Before the cut, `next-stage` checks the expanded name against the remote; a collision is a STOP.
+- **Patrol's scanner is handed the resolver's snapshot** instead of raw `ls-remote` output, and binds through `bin/roz-branch match`; it no longer matches templates by hand. A snapshot whose status is unknown stops the pass before any dispatch.
+- **The blindness rule is split** (#261): `references/qa-brief.md` § Inputs now reads **Invariant.** (you never read the implementation), **Allowed.** (the inputs and the test port, even under `src/`; a required read beyond them is a finding) and **Forbidden.** (a read of `src/` outside `<acceptance_dir>` and the port, git on `<feat-branch>`, implementation-CR threads), followed by the rule-E sentence. No permission is added, removed or broadened, and hook E is unchanged.
+- **Step zero's chain is four decisions** (#262): `references/qa-brief.md` lists, for every scenario and in order: 1. a finding does not stop you; 2. a scenario that the contract as built and the declared port can drive gets its test now; 3. what makes a scenario undrivable; 4. only an undrivable scenario waits on its `Q<k>`. The words and outcomes are the same, and the question shape and the report are unchanged.
+- **QA persona aligned with step zero** (#267): `agents/qa.md` drops "stop and flag it … before writing any test" and "ask one sharp question at a time". Its `grill-me` row now returns each ambiguity as an either/or question with a recommendation, in one batch with the other findings.
+
+### Evals
+- **C31** (lint) anchors the sequence rule, the outcomes, the scanner's handoff and the retired vocabulary. **C11** seeds a gapped `{seq}` pair, and **F9** asserts the snapshot handoff. `Run.shadow_branch` compares command-bound names with the resolver in C10/C11/C12/C20/F9; this is informational until the exit criterion in `evals/CONTRIBUTING.md` § 7 is met.
+- **L13**: every ledger ID and hook rule A–K is in the prose inventory, every anchor is still a literal of its source, and every status agrees with its readiness fields.
+- **D20**: the blindness rule keeps its three clauses, in order, plus rule E's enforcement sentence. It pins the structure, not the wording.
+- **E13**: step zero's chain stays four numbered decisions, in order.
+- **E14**: the QA persona carries no stop-before-testing or one-question-at-a-time instruction.
+- **Variants `A0` / `A1` / `A2`**: the QA brief before #261, and before and after #262, frozen as controls (`evals/replay/variants/qa-brief/`).
+- **Persona stamp**: every replay result carries `persona_sha256`. A case whose `case.json` declares `"seats": ["qa"]` counts a run under another persona as stale. D9–D19 declare it, so their earlier runs are stale.
+
+### Hooks
+- **One template implementation** (`hooks/branch_names.py`): `guard-acceptance`, `guard-gate` rule K and `bin/roz-config` import it; `guard-blind` keeps its exact-ref rule. `roz-config` now also refuses a template that repeats a placeholder.
+
+### Tooling
+- **`bin/roz-branch`** has five subcommands:
+  - `expand` is pure: template + arguments → name, and it never computes `{seq}`.
+  - `snapshot` is the one `ls-remote`, recording `status`, `as_of` and `heads_sha256`.
+  - `match --snapshot FILE --issues …` is pure and runs no git.
+  - `lookup` does both.
+  - `validate`.
+
+  Its outcomes are `NO_MATCH` / `ONE` / `MULTIPLE_SEQ` / `MULTIPLE_SAME_SEQ` / `UNKNOWN`. It never chooses the live attempt and never mutates a branch.
+
+### Docs
+- **`docs/prose-inventory.md`** (#260) classifies every ledger- or hook-guarded rule as observation, mechanical policy, semantic judgment or authority. Each rule has an owner and a fixed lifecycle: `identified → ready → shadow → authoritative → migrated`. The document also covers semantic invariants vs operational constraints, and the rule that one executable rule answers one decision question.
+- **Branch resolver** (#135): `references/branch-names.md`, `commands/next-stage.md` A2/C2, `commands/patrol.md` §1, `references/patrol-scan.md`, `commands/tip.md`, `README.md`, `hooks/README.md`, `docs/onboarding.html`, `evals/CONTRIBUTING.md` § 7.
+
+### Checks
+Hook tests 719/719 · lint 1503/1503 · red-proofs 46/46 · ruff · judgment `--check` · ledger `--check` current
+
 ## v2.14.1 — The blockers-unknown item links the issue — 2026-11-08
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.14.1>
