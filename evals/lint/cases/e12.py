@@ -20,14 +20,14 @@ META = {
 }
 
 src("E12: step zero — a questioned scenario is not an undrivable one", "references/qa-brief.md",
-    "**a questioned scenario is not an undrivable\none**")
+    "a questioned scenario is not an\n   undrivable one")
 src("E12: a drivable scenario's test is written now, against the clause as it stands",
     "references/qa-brief.md",
-    "drive a scenario, write its test now, against the clause as it stands")
+    "write its test now, against the\n   clause as it stands")
 src("E12: undrivable is narrow — no usable clause, or a missing control/observation point",
     "references/qa-brief.md",
-    "**undrivable** only when no usable clause states its outcome, or the\n"
-    "declared port lacks a control or observation point it needs")
+    "**Undrivable** only when no usable clause states its outcome, or the\n"
+    "   declared port lacks a control or observation point it needs")
 src("E12: only an undrivable scenario waits, and the report says why", "references/qa-brief.md",
     "and why each is\nundrivable")
 src("E12: an approved answer changes the test; observed behaviour never does",
