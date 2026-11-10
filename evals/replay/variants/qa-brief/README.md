@@ -13,6 +13,7 @@ on the same fixture, the same command and the same model
 | **B** | `B.md` | the STE *rule* rewrite from #139 (2026-11-06): the blindness paragraph split into a list, the red's two dispositions as separate sentences | `ae6003c95d5dd57f188f8cdf73f13119465ef095b45f1855958dcd5a194464ce` |
 | **C** | `C.md` | the STE *full* rewrite from #139 (2026-11-06): B plus lexical substitution in the same two sections — with one sentence corrected before freezing: "after the implementation is merged" → "after the implementation lands on `<spec-branch>`" (QA is stage (4); the merge is after (7); the drift was not STE's and would have been a confound) | `5fd7c7faba77a132958ceb7686f703a9b94d4b165e5a220d9eb3131e478ec5f1` |
 | **A0** | `A0.md` | the shipped brief **before #261** (post-#243, `main` at aa72c3d), frozen 2026-11-10 as #261's control: A vs A0 differs only by the blindness rule's split into **Invariant.** / **Allowed.** / **Forbidden.** — the same permissions, the same semantics (#261 rulings) | `f015f592ad6646425009bd41f11f273fc9e26ef9252b9390c1a35e945cf4b026` |
+| **A1** | `A1.md` | the shipped brief **after #261, before #262** (`main` at a52dce8), frozen 2026-11-10 as #262's control: A1 vs A2 differs only by step zero's questioned → drivable → undrivable → wait chain as four numbered decisions | `2b2c46350e42419e73e591f18e0eaefe2541a1689bc42967551f4d623f825708` |
 
 Facts to keep in view when reading results: the headings and every
 backticked literal are identical across A, B and C; A→B changes 48 lines
