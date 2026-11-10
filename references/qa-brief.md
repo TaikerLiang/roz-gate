@@ -69,14 +69,21 @@ Each item uses the question shape — a title line `**[qa] · Q<k> · <2–3-wor
 label>**` (the main agent assigns `k`), the question as one sentence, the
 options as `- (a)` / `- (b)` bullets with `← ✅ recommended` on one, one
 italic line of why — so the main agent can post it verbatim as a thread on
-the spec CR (guard-gate rule F denies a question without its bullets). You
-do not stop on a finding, and **a questioned scenario is not an undrivable
-one**. When the contract as built and the declared port give you enough to
-drive a scenario, write its test now, against the clause as it stands; a
-`Q<k>` that touches the scenario coexists with its test. A scenario is
-**undrivable** only when no usable clause states its outcome, or the
-declared port lacks a control or observation point it needs (an untestable
-clause, a port gap) — and only an undrivable scenario waits on its `Q<k>`.
+the spec CR (guard-gate rule F denies a question without its bullets).
+
+Then, for every scenario, in this order:
+
+1. **A finding does not stop you** — and a questioned scenario is not an
+   undrivable one.
+2. **Can the contract as built and the declared port drive it?** If they
+   give you enough to drive a scenario, write its test now, against the
+   clause as it stands; a `Q<k>` that touches the scenario coexists with
+   its test.
+3. **Undrivable** only when no usable clause states its outcome, or the
+   declared port lacks a control or observation point it needs (an
+   untestable clause, a port gap).
+4. **Only an undrivable scenario waits** on its `Q<k>`.
+
 Say in the report which scenarios wait on which `Q<k>`, and why each is
 undrivable. When an approved answer changes the contract, update the test
 to the newly approved contract; never edit an assertion to match what the

@@ -86,6 +86,29 @@ Applied so far: `references/qa-brief.md` § Inputs (the blindness rule;
 lint D20 pins the structure, never the wording; replay D10–D19 under
 `--variant A0` vs A measure the split alone).
 
+### One executable rule answers one decision question
+
+A second axis (#262): **decision density**, not word count. A rule
+written as one sentence can still ask for several decisions — and a model
+can get one right and another wrong, which a replay then cannot attribute.
+The review test:
+
+> **A rule holds two decisions when one clause can be obeyed while another
+> is violated, and the two violations are different failures.**
+
+Not a second decision: actions that succeed or fail together (classify a
+red, then act on its class), or a list of boundaries under one
+**Forbidden.** — an `and` is not a defect by itself. Where the decisions
+run in order, write them as a numbered list, one decision per item, with a
+bold lead; the words stay, the outcomes stay (the split criterion above).
+Lint may pin the structure once it is settled; it is never behavioural
+proof — replay is.
+
+Applied so far: `references/qa-brief.md` step zero — the questioned →
+drivable → undrivable → wait chain, the paragraph whose first half Haiku
+obeyed and whose second it violated in #199 (lint E13; replay D18/D19,
+D10/D11 under `--variant A1` vs `A2`).
+
 ## Mechanical rules
 
 | id | source | anchor | question | class | owner | dependency | inputs | on_unknown | oracle | shadow | status |
@@ -185,7 +208,7 @@ a single rule and has its own row above.
 | id | why it is not classified |
 |---|---|
 | A6, E1 | deferred cases — no prose rule to classify |
-| A8, B3, D20 | rules about the prose itself (one scan sub-agent; one marker convention; the blindness rule's clause structure) — checked statically, never answered at runtime |
+| A8, B3, D20, E13 | rules about the prose itself (one scan sub-agent; one marker convention; the blindness rule's clause structure; step zero's decision chain) — checked statically, never answered at runtime |
 | J1 | the judgment tier's own instrument |
 | L1, L7, L9, L10, L11, L12 | human-facing pages, not executable prose |
 | L8 | the `/roz-gate:config` mod's implementation, not a question the loop answers |

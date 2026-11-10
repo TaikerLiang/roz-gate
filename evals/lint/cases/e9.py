@@ -18,7 +18,7 @@ src("E9: the QA brief's step zero is the contract review", "references/qa-brief.
 src("E9: the brief gives the finding the question shape", "references/qa-brief.md",
     "`**[qa] · Q<k> · <2–3-word\nlabel>**`")
 src("E9: the brief — QA does not stop on a finding", "references/qa-brief.md",
-    "You\ndo not stop on a finding")
+    "**A finding does not stop you**")
 src("E9: B2.5 appends the item to spec.md's Open Questions", "commands/next-stage.md",
     "append each item to `spec.md`'s `## Open Questions`")
 src("E9: B2.5 posts the threads on the spec CR", "commands/next-stage.md",
