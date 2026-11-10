@@ -39,8 +39,10 @@ c.expect("pattern", "E13: the brief has § Step zero — the contract review", b
 # numbered items: "N. " at line start, continuation lines indented; flattened
 _items = [" ".join(x.split()) for x in re.findall(r"^(\d+\. .*(?:\n {3}.*)*)", _sec, re.M)]
 for k, lead in enumerate(LEADS, 1):
-    hit = [i for i, it in enumerate(_items) if it.startswith("%d. %s" % (k, lead))]
-    c.expect("pattern", "E13: item %d opens with %s" % (k, lead), len(hit) == 1)
+    # by source position, not by the number written on the item (Codex, PR #266)
+    c.expect("pattern", "E13: the %s numbered item in the section is %d. %s"
+             % ("1st 2nd 3rd 4th".split()[k - 1], k, lead),
+             len(_items) >= k and _items[k - 1].startswith("%d. %s" % (k, lead)))
 c.expect("pattern", "E13: the chain is exactly four numbered items (found %d)" % len(_items),
          len(_items) == 4)
 c.expect("pattern", "E13: each lead appears once in step zero",
