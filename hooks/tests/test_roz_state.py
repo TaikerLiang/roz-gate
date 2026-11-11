@@ -81,12 +81,16 @@ class Repo:
         sh(["git", "-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-qm", msg],
            self.work)
 
-    def run(self, world, args=("27", "--json")):
+    def env(self, world):
         wf, log = os.path.join(self.dir, "world.json"), os.path.join(self.dir, "log.jsonl")
         Path(wf).write_text(json.dumps(world), encoding="utf-8")
         open(log, "w").close()
-        env = dict(os.environ, FAKE_FORGE=wf, FAKE_LOG=log,
-                   PATH=self.bin + os.pathsep + os.environ["PATH"])
+        return dict(os.environ, FAKE_FORGE=wf, FAKE_LOG=log,
+                    PATH=self.bin + os.pathsep + os.environ["PATH"])
+
+    def run(self, world, args=("27", "--json")):
+        log = os.path.join(self.dir, "log.jsonl")
+        env = self.env(world)
         p = subprocess.run([sys.executable, TOOL, *args], cwd=self.work, env=env,
                            capture_output=True, text=True)
         try:
@@ -281,6 +285,94 @@ class RozState(unittest.TestCase):
                         s, "dependencies.blocked_by", "observed", [])
         finally:
             r.close()
+
+    # ---- #272: a head the forge deleted --------------------------------
+    def test_deleted_heads(self):
+        for r, cli in ((self.gh, "gh"), (self.gl, "glab")):
+            gone = Repo("github" if cli == "gh" else "gitlab", branches=("feat/27",))
+            try:
+                def mpr(n, state, head, when=None, sha="c" * 40, base="main"):
+                    p = pr(gone, n, state, head, base=base)
+                    p["head_sha"], p["merged_at"] = sha, when
+                    return p
+                w = world(gone, prs=[mpr(40, "merged", "spec/27", "2026-08-01T00:00:00Z"),
+                                     pr(gone, 41, "open", "feat/27")])
+                s = self.snap("%s: the spec head deleted after its CR merged" % cli, gone, w)
+                self.expect("%s: a deleted head is no branch" % cli, s, "branches.spec", "absent")
+                self.expect("%s: …and its merged CR is observed, by its head name" % cli, s,
+                            "spec.cr", "observed",
+                            {"number": 40, "state": "merged", "draft": False, "base": "main",
+                             "head_sha": "c" * 40})
+                self.expect("%s: a live branch is unaffected" % cli, s, "branches.implementation",
+                            "observed", {"name": "feat/27", "sha": gone.sha["feat/27"]})
+                s = self.snap("%s: a closed-unmerged CR with a deleted head" % cli, gone,
+                              world(gone, prs=[mpr(40, "closed", "spec/27")]))
+                self.expect("%s: closed-unmerged + deleted stays absent (re-entry cleanup)" % cli,
+                            s, "branches.spec", "absent")
+                self.expect("%s: …its CR too" % cli, s, "spec.cr", "absent")
+
+                s = self.snap("%s: the merged history unreadable" % cli, gone,
+                              world(gone, fail=["merged"], prs=[pr(gone, 41, "open", "feat/27")]))
+                self.expect("%s: history failed, live branch → still observed" % cli, s,
+                            "branches.implementation", "observed",
+                            {"name": "feat/27", "sha": gone.sha["feat/27"]})
+                self.expect("%s: …and its CR" % cli, s, "implementation.cr", "observed",
+                            {"number": 41, "state": "open", "draft": False, "base": "spec/27",
+                             "head_sha": gone.sha["feat/27"]})
+                self.expect("%s: history failed, no live branch → unknown, never absent" % cli,
+                            s, "branches.spec", "unknown", reason="forge_query_failed")
+                self.expect("%s: …its CR follows" % cli, s, "spec.cr", "unknown",
+                            reason="depends_on_unknown")
+
+                many = [mpr(1000 + i, "merged", "other/%d" % i, "2026-01-01T00:00:00Z")
+                        for i in range(230)] + [mpr(40, "merged", "spec/27",
+                                                    "2025-01-01T00:00:00Z")]
+                s = self.snap("%s: the history across several pages" % cli, gone,
+                              world(gone, prs=many))
+                self.expect("%s: a deleted head on the history's last page is found" % cli, s,
+                            "spec.cr", "observed",
+                            {"number": 40, "state": "merged", "draft": False, "base": "main",
+                             "head_sha": "c" * 40})
+                s = self.snap("%s: more merged CRs than the ceiling" % cli, gone,
+                              world(gone, merged_filler=5001, prs=[]))
+                self.expect("%s: a truncated history is unknown, never absence" % cli, s,
+                            "branches.spec", "unknown", reason="unsupported")
+                self.expect("%s: …a live branch still stands" % cli, s,
+                            "branches.implementation", "observed",
+                            {"name": "feat/27", "sha": gone.sha["feat/27"]})
+
+                a = mpr(40, "merged", "spec/27", "2026-08-01T00:00:00Z", sha="a" * 40)
+                b = mpr(39, "merged", "spec/27", "2026-09-01T00:00:00Z", sha="b" * 40)
+                for order in ([a, b], [b, a]):
+                    code = subprocess.run(
+                        [sys.executable, str(ROOT / "bin" / "roz-branch"), "lookup", "--issues",
+                         "27", "--tracks", "27=spec", "--json"], cwd=gone.work,
+                        env=gone.env(world(gone, prs=order)), capture_output=True, text=True)
+                    with self.subTest("roz-state: %s — two merged CRs share a deleted head: the "
+                                      "later merged_at wins over the higher number, in any "
+                                      "input order" % cli):
+                        m = json.loads(code.stdout)["issues"]["27"]["spec"]["matches"]
+                        self.assertEqual([(x["branch"], x["cr"], x["sha"], x["deleted"])
+                                          for x in m], [("spec/27", 39, "b" * 40, True)])
+            finally:
+                gone.close()
+
+    def test_snapshot_without_a_block_asks_no_forge(self):
+        nb = Repo("github", branches=("spec/27",), block=False)
+        try:
+            env = nb.env(world(nb))
+            p = subprocess.run([sys.executable, str(ROOT / "bin" / "roz-branch"), "snapshot",
+                                "--json"], cwd=nb.work, env=env, capture_output=True, text=True)
+            snap = json.loads(p.stdout)
+            with open(os.path.join(nb.dir, "log.jsonl"), encoding="utf-8") as f:
+                calls = [x for x in f if x.strip()]
+            with self.subTest("roz-branch: no config block → the snapshot is the remote's "
+                              "heads, merged_heads not_asked, and no forge call is made"):
+                self.assertEqual((p.returncode, snap["status"], snap["heads"], calls),
+                                 (0, "observed", ["main", "spec/27"], []))
+                self.assertEqual(snap["merged_heads"], {"status": "not_asked", "heads": {}})
+        finally:
+            nb.close()
 
     # ---- evidence -------------------------------------------------------
     def test_evidence(self):

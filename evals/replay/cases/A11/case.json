@@ -1,0 +1,8 @@
+{
+  "ledger": "A11 · A merged CR closes the issue out when the forge deleted its head branch",
+  "tier": "replay",
+  "ledger_text": "A7's fixture with `fast/5` and `spec/6` gone from the remote — the forge deleted each head when its CR merged; the CRs keep their head names. Patrol still closes both out: issue closed, every `track:`/`status:` label gone, exactly one shipped comment naming the CR, exactly one close, nothing written to the CR, and neither branch recreated. (#272: every lookup was head-first, so a deleted head hid its merged CR and the issue stayed at `in-user-review` for good; `bin/roz-branch` now reads merged CRs' head names, and a head only a merged CR remembers is a match marked `deleted`.)",
+  "prompt": "/roz-gate:patrol",
+  "k": 5,
+  "timeout": 900
+}
