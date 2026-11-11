@@ -347,7 +347,10 @@ to the document.
 <issue> --json`: one issue's observable state as a snapshot the contract
 accepts, or a typed collection failure. Also not a hook. Every forge call
 goes through one read-only gate (`allowed`); branch identity is
-`branch_names.py`'s alone. `hooks/tests/test_roz_state.py` runs the real
+`branch_names.py`'s alone. It also collects the branch snapshot
+(`collect_snapshot`: the remote's heads plus the head names merged CRs
+remember, #272) that `bin/roz-branch snapshot` prints — collecting only;
+`branch_names.match_heads` decides what a name is. `hooks/tests/test_roz_state.py` runs the real
 CLI against a throwaway repository and a fake `gh` / `glab`
 (`hooks/tests/fakeforge.py`). GitLab adapter: contract-compatible against
 canned `glab` output; live compatibility not yet verified.

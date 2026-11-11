@@ -246,7 +246,10 @@ final heads; agreement is the observed set equal to the resolver's choice,
 or both empty (an absent binding against a found branch is a mismatch).
 C11's red-proof proves the signal discriminates. It writes
 `shadow_branch_mismatch` (a count) and `shadow_branch_detail`. C10, C11,
-C12, C20 and F9 carry it.
+C12, C20 and F9 carry it. One known difference until the commands switch:
+the resolver also binds a head the forge deleted after its CR merged
+(#272, `references/branch-names.md`), which the prose Lookup cannot see —
+a mismatch there is that difference, not a defect.
 
 `roz-state` (#133) has two. `Run.shadow_state(issues, template)` runs
 `bin/roz-state` on the run's **final** forge state — in a fresh clone, with

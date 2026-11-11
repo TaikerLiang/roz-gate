@@ -284,11 +284,17 @@ number — "newest" means most recently opened. Among the records of one
 kind: the top-level comment with the highest comment id (stable when the
 reviewer re-stamps the record in place).
 
-A CR is found by its bound head, as the commands find it: a branch that is
-`absent` makes its CR `absent` (source `roz-branch match`), a branch that
-is `unknown` makes it `unknown` (`depends_on_unknown`). A merged CR whose
-head branch was deleted is therefore invisible here exactly as it is to
-the commands (#272). `roz-state/0.1` binds branches for `track: spec`
+A CR is found by its bound head: no bound head makes its CR `absent`
+(source `roz-branch match`), an `unknown` one makes it `unknown`
+(`depends_on_unknown`). **A head the forge deleted after its CR merged is
+still bound** (#272): `roz-branch`'s snapshot carries the head names merged
+CRs remember, so `branches.<kind>` is `absent` — there is no branch — and
+`<kind>.cr` is `observed`, `merged`, with the forge's `head_sha`. A
+closed-unmerged CR whose branch is gone stays absent. If that history
+could not be read to its end and no live head matches, the branch is
+`unknown` — `forge_query_failed`, or `unsupported` past the resolver's
+ceiling of 5,000 merged CRs — never absent; a live head is unaffected.
+`roz-state/0.1` binds branches for `track: spec`
 only: on any other track the branch and CR facts are `unknown`
 (`unsupported`).
 

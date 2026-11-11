@@ -323,6 +323,7 @@ in the scanner's order, nothing else in it:
 - `this pass` — **one clause, at most 12 words**, from this vocabulary:
   `acted: <action> — <outcome>` · `queued: <action> · <gate label> <age>` ·
   `waits on you: <what>` · `waits on #<n>[, #<m>]` · `waits on: blockers unknown`
+  · `waits on: branches unknown`
   · `blocked: <the STOP comment's title>` · `locked: <phase> · <age>` ·
   `illegal: <why>` · `shipped` · `in progress`. Never a list, never a commit
   log — that is Details material. The scanner's gate-label audit reads
@@ -348,7 +349,11 @@ in the scanner's order, nothing else in it:
   on …` and never `blocked:`. One whose blocker read failed
   (`waiting on: blockers unknown (<error>)`) is `waits on: blockers
   unknown` with `needs you: yes`: an unreadable relationship is not an
-  absent one, and someone must fix the read. Its queue item links **the
+  absent one, and someone must fix the read. A row the scanner could not
+  bind (`waiting on: branches unknown (<reason>)`, #272 — no live head and
+  a merged-CR history that was not read to its end) is `waits on: branches
+  unknown` with `needs you: yes`, on the same ground: never acted on, never
+  read as "no branch". Its queue item links **the
   issue itself** — the page where the forge shows and edits its
   relationships — like every other item, never written without it.
 - `needs you` — `yes` or `—`; `yes` whenever the next move is a human's: a

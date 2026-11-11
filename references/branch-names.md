@@ -93,6 +93,35 @@ names (`bin/roz-branch`, below — the same words in its JSON):
   ("the remote could not be read"), and say so in the report. A failed
   `ls-remote` that reads as "no branch" is how a duplicate gets cut.
 
+**A head the forge deleted** (#272). GitHub's "automatically delete head
+branches", GitLab's "delete source branch" and the *Delete branch* button
+remove a head once its CR merges — and a lookup that reads only the
+remote's heads then finds no branch, never asks about the CR, and the
+issue waits for good. So the resolver's snapshot also carries
+`merged_heads`: the head names **merged** CRs remember (the forge keeps
+them), read to the history's last page. A name that fits the template and
+is on that list but not on the remote is a match marked **`deleted`**,
+with the CR's number and head `sha`:
+
+- it is **a CR's name, never a branch** — CR-FIND takes it and finds the
+  merged CR; nothing checks it out, reads it or cuts from it;
+- only **merged** CRs count: a closed-unmerged CR whose branch is gone
+  stays `NO_MATCH`, because removing a stale branch is how the human
+  clears a re-entry (§ Re-entry);
+- the history is **fallback evidence, never a precondition of a live
+  head**. Read → the union of both sources decides the outcome. Not read
+  to its end — the forge call failed, or the history is longer than the
+  resolver's ceiling (5,000 merged CRs: `history_truncated`) — → a live
+  match stands as observed (flagged `history: unknown`), and only a kind
+  with **no** live match is `UNKNOWN`, never `NO_MATCH`: a history that
+  was not read through proves nothing absent;
+- where merged CRs share a head name, the one **merged last** is kept
+  (`merged_at`, then the CR number as the tie-breaker).
+
+`bin/roz-branch match` reads it; the commands' own Lookup above does not
+yet (they get it when they switch to the resolver — `evals/CONTRIBUTING.md`
+§ 7), so until then a deleted head is a known `shadow_branch` difference.
+
 CR-FIND and CR-OPEN take the bound name; the adapter ops do not change.
 A reader that may not run git — patrol's scanner — is handed the
 resolver's **snapshot file** by the main agent and binds through
@@ -133,8 +162,8 @@ never chooses the live attempt or the next sequence (facts, not policy —
 |---|---|
 | `roz-branch validate` | the template's validity and the local keys it read |
 | `roz-branch expand --kind K --n N [--type T] [--user U] [--seq S]` | Expand, from explicit inputs; `MISSING_REQUIRED_VALUE` / `INVALID_SEQUENCE` when the template needs what was not given |
-| `roz-branch snapshot --json > <file>` | the one `git ls-remote --heads origin`: `{remote, status: observed \| unknown, reason?, as_of, heads_sha256, heads, shas}` — `shas` maps each head to its commit |
-| `roz-branch match --snapshot <file> --issues 5,6 [--types 5=fix] [--tracks 5=spec]` | Lookup over that snapshot for every issue and kind — pure, no network, no git: the scanner's call. Each match carries `{branch, user, seq, sha}`; a `reviewed-sha:` is compared against that `sha` |
+| `roz-branch snapshot --json > <file>` | the one `git ls-remote --heads origin`: `{remote, status: observed \| unknown, reason?, as_of, heads_sha256, heads, shas}` — `shas` maps each head to its commit — plus, in a repository with a Roz Gate config block, one read-only forge read: `merged_heads: {status: observed \| unknown \| not_asked, reason?, heads: {<name>: {cr, sha, merged_at}}}` (#272). `status` is the remote's alone; a failed history read never makes it `unknown` |
+| `roz-branch match --snapshot <file> --issues 5,6 [--types 5=fix] [--tracks 5=spec]` | Lookup over that snapshot for every issue and kind — pure, no network, no git: the scanner's call. Each match carries `{branch, user, seq, sha}`, and `deleted: true, cr` when only a merged CR remembers the head; a `reviewed-sha:` is compared against that `sha`. A result may carry `history: unknown` beside a live match |
 | `roz-branch lookup --issues …` | snapshot + match in one call: `tip`'s and a human's |
 
 `--json` everywhere; exit 2 with the typed failure. The commands still bind
