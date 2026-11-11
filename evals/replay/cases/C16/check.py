@@ -47,4 +47,8 @@ def names_the_road():
 c.expect("integrate.md step 1 (the stop's wording)",
          "the report names the missing fidelity record and patrol as the road",
          names_the_road)
+# #133 shadow: bin/roz-state on the final forge state against the stub's own
+# truth — signals, never a fail
+# (evals/CONTRIBUTING.md § 7).
+r.shadow_state(["5"])
 c.finish()

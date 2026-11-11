@@ -367,6 +367,14 @@ def pr_shape(pr, want):
         "body": pr.get("body", ""),
         "labels": [{"name": l} for l in pr.get("labels", [])],
     }
+    if want and "headRefOid" in want:
+        # #133 — the head commit, resolved in the sandbox like `pulls/<n>`'s
+        # `head.sha`; computed only when asked (one git call per row). An
+        # unresolvable head is "" — a visible fixture defect, never invented.
+        rp = subprocess.run(["git", "rev-parse", "--verify", "-q",
+                             resolve_ref(pr.get("headRefName", "")) + "^{commit}"],
+                            capture_output=True, text=True)
+        full["headRefOid"] = rp.stdout.strip() if rp.returncode == 0 else ""
     return {k: v for k, v in full.items() if not want or k in want}
 
 
@@ -1137,7 +1145,11 @@ def main():
                                    "createdAt": c.get("createdAt", "")}
                                   for c in t.get("comments", [])]}}
                              for t in prd.get("threads", [])]
-                    repo[alias or "pullRequest"] = {"reviewThreads": {"nodes": nodes}}
+                    # one page holds every fixture thread (#133: a paginating
+                    # reader asks for pageInfo and must be told there is no more)
+                    repo[alias or "pullRequest"] = {"reviewThreads": {
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                        "nodes": nodes}}
                 # one call, one journal entry (checkers count reads per call)
                 journal("threads-list", pr=prs_seen[0],
                         **({"prs": prs_seen} if len(prs_seen) > 1 else {}))
