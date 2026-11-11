@@ -248,6 +248,25 @@ C11's red-proof proves the signal discriminates. It writes
 `shadow_branch_mismatch` (a count) and `shadow_branch_detail`. C10, C11,
 C12, C20 and F9 carry it.
 
+`roz-state` (#133) has two. `Run.shadow_state(issues, template)` runs
+`bin/roz-state` on the run's **final** forge state — in a fresh clone, with
+a copy of the state, so not even the stub's journal line for a read reaches
+the run's artifacts — and compares every fact with `replaylib.state_truth`,
+the answer computed straight from the stub's `state.json` and the remote's
+heads (it shares no code with the collector). It writes
+`shadow_state_mismatch` (differing facts), `shadow_state_invalid` (an
+output the contract rejects, or exit 3) and `shadow_state_detail`.
+`Run.shadow_scan(issues, template)` compares the scanner table's **fact**
+columns — `track`, `status`, `cr` — with the snapshot, and writes
+`shadow_scan_mismatch`, `shadow_scan_rows` and `shadow_scan_detail`. It
+never reads `waiting on`, `verdict`, `unheard` or `evidence`: those are the
+scanner's interpretation, and a policy-level signal is `roz-check`'s
+(#134). `redproof.py` § state proves both discriminate, and runs the
+**seed sweep**: the collector against stub truth for every issue of every
+case's seeded state — no model call. Its matrix is
+`references/roz-state.md` § Shadow adoption; the sweep prints which seed
+hits each cell and names the cells none does.
+
 **Exit from shadow mode** — the commands switch to the resolver and the
 prose Lookup is deleted — when all three hold (#239 § coverage + stability):
 

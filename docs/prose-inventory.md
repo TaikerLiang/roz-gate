@@ -180,11 +180,11 @@ come back in `agents/`, `commands/`, `references/` or `templates/`.
 | A2 | references/patrol-scan.md | REVIEWS-LIST | Does a CR carry an unheard review whose whole content is its body? | OBSERVATION | roz-state | #133 | REVIEWS-LIST | — | A2 | — | not_ready |
 | A3 | references/patrol-scan.md | CR-COMMENTS-LIST | Is there an unheard top-level CR comment? | OBSERVATION | roz-state | #133 | CR-COMMENTS-LIST | — | A3, E8 | — | not_ready |
 | A7 | commands/patrol.md | ISSUE-COMMENT one line: `**[patrol] · shipped** | Is the issue's CR merged (a close-out candidate)? | OBSERVATION | roz-state | #133 | CR-FIND (all-states), ISSUE-LIST-CLOSED | — | A7 | — | not_ready |
-| C6, C13 | references/patrol-scan.md | all-states form | Is a CR open, merged, or closed unmerged — merged CRs included? | OBSERVATION | roz-state | #133 | CR-FIND (all-states) | — | C6, C13 | — | not_ready |
-| C22 (obs) | references/workflow.md | **Review-clean** means exactly three things, defined here and read everywhere else | What are the implementation CR's code-review marker, its `reviewed-sha`, the branch head, and its open-thread count? | OBSERVATION | roz-state | #133 | CR-COMMENTS-LIST, THREADS-LIST, `roz-branch` snapshot `sha` | — | C22, C23 | — | not_ready |
-| C16 (obs) | references/fidelity-brief.md | That comment is the record that the audit ran | Is a `**[reviewer] · fidelity**` record on the QA CR, and what head did it audit? | OBSERVATION | roz-state | #133 | CR-COMMENTS-LIST, THREADS-LIST, `roz-branch` snapshot `sha` | — | C16, C17 | — | not_ready |
+| C6, C13 | references/patrol-scan.md | all-states form | Is a CR open, merged, or closed unmerged — merged CRs included? | OBSERVATION | roz-state | #133 | CR-FIND (all-states) | the fact is `unknown` with a reason — never `0`, `[]` or absent (`references/roz-state.md` § The unknown invariant); what a consumer then does is #134's | C6, C13; `hooks/tests/test_roz_state.py`; the seed sweep (`redproof.py` § state) | `shadow_state_mismatch` | shadow |
+| C22 (obs) | references/workflow.md | **Review-clean** means exactly three things, defined here and read everywhere else | What are the implementation CR's code-review marker, its `reviewed-sha`, the branch head, and its open-thread count? | OBSERVATION | roz-state | #133 | CR-COMMENTS-LIST, THREADS-LIST, `roz-branch` snapshot `sha` | the fact is `unknown` with a reason — never `0`, `[]` or absent (`references/roz-state.md` § The unknown invariant); what a consumer then does is #134's | C22, C23; `hooks/tests/test_roz_state.py`; the seed sweep (`redproof.py` § state) | `shadow_state_mismatch` | shadow |
+| C16 (obs) | references/fidelity-brief.md | That comment is the record that the audit ran | Is a `**[reviewer] · fidelity**` record on the QA CR, and what head did it audit? | OBSERVATION | roz-state | #133 | CR-COMMENTS-LIST, THREADS-LIST, `roz-branch` snapshot `sha` | the fact is `unknown` with a reason — never `0`, `[]` or absent (`references/roz-state.md` § The unknown invariant); what a consumer then does is #134's | C16, C17; `hooks/tests/test_roz_state.py`; the seed sweep (`redproof.py` § state) | `shadow_state_mismatch` | shadow |
 | C24 (obs) | references/patrol-scan.md | illegal state: gate label applied by | Who applied each gate label the issue wears (its latest `labeled` event)? | OBSERVATION | roz-state | #133 | ISSUE-LABEL-EVENTS | — | C24, F13 | — | not_ready |
-| F15 | references/forge-github.md | is a **failed read**, never "no blockers" | Is an issue blocked by an open forge-native blocker? | OBSERVATION | roz-state | #133 (collector first used by #205) | ISSUE-BLOCKERS | a failed read → `waiting on: blockers unknown` | F15 | — | not_ready |
+| F15 | references/forge-github.md | is a **failed read**, never "no blockers" | Is an issue blocked by an open forge-native blocker? | OBSERVATION | roz-state | #133 (collector first used by #205) | ISSUE-BLOCKERS | a failed read → the fact is `unknown` (`forge_query_failed`); today's prose answer is `waiting on: blockers unknown` | F15; `hooks/tests/test_roz_state.py`; the seed sweep (`redproof.py` § state) | `shadow_state_mismatch` | shadow |
 | L2 | templates/claude-workflow.md | - specs_dir: | What are the block's keys and the clone's local keys? | OBSERVATION | code bin/roz-config | — | `bin/roz-config --json` | absent key → its documented default | L2, test_roz_config | not required: already code | authoritative |
 | L5 | commands/uninit.md | **CLAUDE.md** — or **CLAUDE.local.md**, whichever carries it | Where does the config block live? | OBSERVATION | code hooks/config_block.py | — | `find_block` (CLAUDE.md, then CLAUDE.local.md; toplevel, then main checkout) | none found → the command stops: run `/roz-gate:init` | L5 | not required: already code | authoritative |
 | C22 (policy) | commands/tip.md | review-clean is that record current **and** zero open threads | Is the implementation review-clean (`reviewed-sha` == head, marker present, zero open threads)? | MECHANICAL POLICY | roz-check | #134 ← row C22 (obs) | row C22 (obs) | — | C22, C23 | — | not_ready |
@@ -305,14 +305,17 @@ others (#95, #140 were this shape).
 
 | step | owner | what it is | status |
 |---|---|---|---|
-| observe | `roz-state` (#133) | the code-review marker's presence, its `reviewed-sha`, the branch head (`roz-branch` snapshot `sha`), the open-thread count | `not_ready` — blocker `on_unknown`: no prose says what a failed THREADS-LIST or CR-COMMENTS-LIST read means |
+| observe | `roz-state` (#133) | the code-review marker's presence, its `reviewed-sha`, the CR's head, the open-thread count | **`shadow`** — `bin/roz-state` reports each as `observed` / `absent` / `unknown`; `shadow_state_mismatch` compares it with the forge stub's truth |
 | interpret | `roz-check` (#134) | `reviewed-sha == head` ∧ marker present ∧ threads == 0 → clean | `not_ready` — blocker `shadow`: no signal compares a computed verdict with the scanner's row |
 | shadow | `replaylib` | a `review_clean_mismatch` signal in C22 / C23, as `shadow_branch` is in C11 | — |
 | delete | — | the five restatements above collapse to one call; `workflow.md` keeps the definition for humans | — |
 
-The two blockers are this page's first finding: define the failed-read
-behaviour (a `waiting on: review state unknown` verdict, as F15 does for
-blockers), and add the signal. Then both rows are `ready`.
+The observation half is in shadow since #133: a failed THREADS-LIST or
+CR-COMMENTS-LIST read is an `unknown` fact, never zero threads or a missing
+record. The policy half keeps both of its blockers, and they are #134's:
+what review-clean answers when a fact is `unknown` (a `waiting on: review
+state unknown` verdict, as F15 does for blockers), and a policy-level
+signal. Then that row is `ready`.
 
 ## Unguarded executable prose
 

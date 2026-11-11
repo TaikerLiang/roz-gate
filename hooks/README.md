@@ -338,10 +338,19 @@ The `roz-state` observation contract as code (`references/roz-state.md`,
 deny-list, `validate(snapshot)` and `validate_failure(obj)`. A shared
 contract and validation module — **not a hook rule, and not owned by the
 hook layer**; it sits here beside `branch_names.py` for layout convenience,
-and #133 may move it when a state package exists. Nothing calls it yet:
-`bin/roz-state` (#133) will check its own output against it.
+and #133 may move it when a state package exists. `bin/roz-state` (#133)
+checks its own output against it before printing.
 `hooks/tests/test_state_contract.py` is its proof; lint L15 holds it equal
 to the document.
+
+`hooks/state_collect.py` (#133) is the collector behind `bin/roz-state
+<issue> --json`: one issue's observable state as a snapshot the contract
+accepts, or a typed collection failure. Also not a hook. Every forge call
+goes through one read-only gate (`allowed`); branch identity is
+`branch_names.py`'s alone. `hooks/tests/test_roz_state.py` runs the real
+CLI against a throwaway repository and a fake `gh` / `glab`
+(`hooks/tests/fakeforge.py`). GitLab adapter: contract-compatible against
+canned `glab` output; live compatibility not yet verified.
 
 ## The mods
 

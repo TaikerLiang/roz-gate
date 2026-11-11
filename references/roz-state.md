@@ -2,7 +2,7 @@
 
 The contract for the workflow fact layer (#239). `bin/roz-state` (#133)
 implements it; `roz-check` (#134) consumes it; no command reads this page
-yet. `hooks/state_contract.py` is the same contract as code — a shared
+or runs the tool yet — it is in shadow (§ Shadow adoption). `hooks/state_contract.py` is the same contract as code — a shared
 contract and validation module, kept in `hooks/` for layout convenience,
 not a hook rule and not owned by the hook layer. Lint L15 holds the two
 equal.
@@ -258,6 +258,52 @@ Nothing here says whether the review is clean: the marker's sha equals the
 head, and the thread count is unknown — what follows from that is
 `roz-check`'s.
 
+## Running it
+
+```
+bin/roz-state <issue> --json      # from the target repository, like roz-branch
+```
+
+| exit | stdout | meaning |
+|---|---|---|
+| 0 | a snapshot | observed |
+| 2 | a typed collection failure | the issue, its base state or the config could not be established |
+| 3 | nothing — the validator's errors on stderr | **internal contract violation**: the collector built something `hooks/state_contract.py` rejects. A defect in the tool, never an observation, and never reported as `unsupported` |
+| 64 | nothing | usage |
+
+A collection failure is also what an issue wearing two `track:` labels or
+two stage `status:` labels gets (`ambiguous`): `track` and `status` are one
+value each, so no honest snapshot exists. `status: processing` and
+`status: blocked` are not stages — they are the two booleans.
+
+**Selection is the collector's, never the CLI's.** Every list is read to
+its last page and ordered in code. Among the CRs of one bound head: the one
+open CR; more than one open → `unknown` (`ambiguous`); none open → the
+merged CR with the highest CR number, else the closed CR with the highest
+number — "newest" means most recently opened. Among the records of one
+kind: the top-level comment with the highest comment id (stable when the
+reviewer re-stamps the record in place).
+
+A CR is found by its bound head, as the commands find it: a branch that is
+`absent` makes its CR `absent` (source `roz-branch match`), a branch that
+is `unknown` makes it `unknown` (`depends_on_unknown`). A merged CR whose
+head branch was deleted is therefore invisible here exactly as it is to
+the commands (#272). `roz-state/0.1` binds branches for `track: spec`
+only: on any other track the branch and CR facts are `unknown`
+(`unsupported`).
+
+Read-only by construction: every forge call passes one gate
+(`state_collect.allowed`) that refuses a mutating subcommand, an HTTP
+method, a request field, a request body and a GraphQL mutation; git is
+asked for `ls-remote` and configuration only; no file is written — the
+local config is read directly, never through `roz-config`, whose first run
+may write.
+
+**GitLab adapter: contract-compatible against canned `glab` output; live
+compatibility not yet verified.** The parity test proves that the two
+adapters normalise the same canned logical state to the same snapshot —
+nothing about the fields, pagination or errors a real GitLab emits.
+
 ## Forge neutrality and transport
 
 GitHub and GitLab differences stay below the snapshot: the same fact has
@@ -282,7 +328,15 @@ Dependencies are observations: no ordering, no graph, no scheduling.
 comparison unit (one replay run: the scanner's report against a snapshot
 of the same final forge-stub state) and the three-part exit — coverage,
 zero unexplained mismatches, N stable runs — are
-`evals/CONTRIBUTING.md` § 7's; N is set in #133's plan. The scenario
+`evals/CONTRIBUTING.md` § 7's; N is set by the first plan that makes a
+fact authoritative (#133 switches nothing). Two signals carry it:
+`shadow_state` — the snapshot against the forge stub's own state, which
+proves the collector and costs no model call (a seed sweep runs it over
+every replay case's seeded state) — and `shadow_scan` — the snapshot
+against the **fact** columns of the scanner's table (`track`, `status`,
+`cr`), which catches a prose misread. `waiting on`, the verdict, `unheard`
+and `evidence` are the scanner's interpretation and are never compared
+here; their parity is #134's. The scenario
 matrix every cell of which must be observed first:
 
 | scenario |

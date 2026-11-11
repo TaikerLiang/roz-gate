@@ -141,6 +141,13 @@ runs live in
 once per SUT under the checkout — plumbing, not the brief. A driver case
 (F6) runs the checkout's plugin and refuses `--variant` other than A.
 
+`attempts.json` signals (`evals/CONTRIBUTING.md` § 7) are summed per case in
+`report.json`, in their own columns: `shadow_branch_mismatch` (#135),
+`shadow_state_mismatch` / `shadow_state_invalid` and `shadow_scan_mismatch`
+/ `shadow_scan_rows` (#133 — `bin/roz-state` against the forge stub's truth
+and against the fact columns of the scanner's table). A signal is
+information, never a verdict.
+
 The cases built for the comparison are **D10–D19**, the pilot of #199:
 ten `/roz-gate:next-stage 5` runs on four fixture shapes (an HTTP service
 through `bin/serve`, a CLI through `src/kv/cli.py`, the port under `src/`
