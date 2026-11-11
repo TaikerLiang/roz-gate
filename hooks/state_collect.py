@@ -254,7 +254,18 @@ class GitLab:
         r = _one(run(["glab", "api", "projects/:id/issues/%d" % issue]))
         if not isinstance(r.get("labels"), list):
             raise ReadFailed("forge_query_failed", "ISSUE-VIEW returned no label list")
-        return [x for x in r["labels"] if isinstance(x, str)]
+        return [self._label(x) for x in r["labels"] if isinstance(x, str)]
+
+    @staticmethod
+    def _label(name):
+        """GitLab's scheme → the loop's names (forge-gitlab.md § Labels): the
+        scoped `track::spec` / `status::in-dev` / `type::fix` are `track: spec`
+        / `status: in-dev` / `type: fix`, and the lock is the plain, unscoped
+        label `processing` — `status: processing` everywhere else."""
+        if name == "processing":
+            return "status: processing"
+        key, sep, val = name.partition("::")
+        return "%s: %s" % (key, val) if sep and key in ("track", "status", "type") else name
 
     def crs(self, head):
         from urllib.parse import quote

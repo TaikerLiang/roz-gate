@@ -145,6 +145,15 @@ def gh():
     sys.exit(64)
 
 
+def gl_label(name):
+    """references/forge-gitlab.md § Labels: scoped `key::value`, and the lock
+    is the plain label `processing` — never `status::processing`."""
+    if name == "status: processing":
+        return "processing"
+    key, sep, val = name.partition(": ")
+    return "%s::%s" % (key, val) if sep and key in ("track", "status", "type") else name
+
+
 def glab():
     if ARGV[:1] != ["api"]:
         sys.exit(64)
@@ -156,7 +165,7 @@ def glab():
         iss = W.get("issues", {}).get(m.group(1))
         if "issue" in FAIL or iss is None:
             die("404 Not Found")
-        print(json.dumps({"iid": int(m.group(1)), "labels": iss["labels"]}))
+        print(json.dumps({"iid": int(m.group(1)), "labels": [gl_label(x) for x in iss["labels"]]}))
         return
     if path == "projects/:id/merge_requests":
         if "prs" in FAIL:

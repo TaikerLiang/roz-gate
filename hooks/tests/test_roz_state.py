@@ -444,6 +444,28 @@ class RozState(unittest.TestCase):
         finally:
             cli.collect = real
 
+    def test_gitlab_labels(self):
+        """Codex, PR #273: GitLab wears scoped labels and a plain `processing`."""
+        r = self.gl
+        s = self.snap("GitLab labels", r, world(r, labels=[
+            "track: spec", "status: in-dev", "status: processing", "type: fix"]))
+        with self.subTest("roz-state: glab — track::spec / status::in-dev / processing are "
+                          "read as the loop's labels"):
+            self.assertEqual((s["track"], s["status"], s["processing"], s["blocked"]),
+                             ("spec", "in-dev", True, False))
+        self.expect("glab — the branches of a track::spec issue are bound", s, "branches.spec",
+                    "observed", {"name": "spec/27", "sha": r.sha["spec/27"]})
+        s = self.snap("GitLab blocked", r, world(r, labels=["track: spec", "status: blocked"]))
+        with self.subTest("roz-state: glab — status::blocked is the blocked boolean"):
+            self.assertEqual((s["status"], s["blocked"]), (None, True))
+        with self.subTest("roz-state: glab — the adapter's label map, name by name"):
+            lab = state_collect.GitLab._label
+            self.assertEqual([lab(x) for x in ("track::fast", "status::ready-for-dev",
+                                               "processing", "type::chore", "discuss",
+                                               "area::billing", "status: in-dev")],
+                             ["track: fast", "status: ready-for-dev", "status: processing",
+                              "type: chore", "discuss", "area::billing", "status: in-dev"])
+
     # ---- parity ---------------------------------------------------------
     def test_parity(self):
         """The two adapters normalise the same canned logical state to the same
