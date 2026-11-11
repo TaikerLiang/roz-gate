@@ -187,6 +187,13 @@ class Contract(unittest.TestCase):
         v["value"]["approved"] = True
         self.bad("a CR value with an undeclared key", put(base(), "implementation.cr", v),
                  "implementation.cr: value")
+        self.ok("a marker whose record carries no sha: reviewed_sha null",
+                put(base(), "implementation.review_marker",
+                    obs({"reviewed_sha": None, "comment_id": 1})))
+        self.bad("a marker with an empty reviewed_sha (null, never \"\")",
+                 put(base(), "implementation.review_marker",
+                     obs({"reviewed_sha": "", "comment_id": 1})),
+                 "implementation.review_marker: value")
         self.bad("a marker without reviewed_sha",
                  put(base(), "implementation.review_marker", obs({"comment_id": 1})),
                  "implementation.review_marker: value")

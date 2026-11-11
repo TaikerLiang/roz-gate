@@ -184,12 +184,16 @@ block.
 | `spec.cr` | `{number, state, draft, base, head_sha}` | CR-FIND, all states | C6, C13 |
 | `implementation.cr` | `{number, state, draft, base, head_sha}` | CR-FIND, all states | C6, C13, A7 |
 | `implementation.open_review_threads` | integer ≥ 0 | THREADS-LIST | C22 (obs) |
-| `implementation.review_marker` | `{reviewed_sha, comment_id}` | CR-COMMENTS-LIST | C22 (obs) |
+| `implementation.review_marker` | `{reviewed_sha \| null, comment_id}` | CR-COMMENTS-LIST | C22 (obs) |
 | `qa.cr` | `{number, state, draft, base, head_sha}` | CR-FIND, all states | C6, C13 |
 | `qa.open_fidelity_threads` | integer ≥ 0 | THREADS-LIST | C16 (obs) |
-| `qa.fidelity_marker` | `{reviewed_sha, comment_id}` | CR-COMMENTS-LIST | C16 (obs) |
+| `qa.fidelity_marker` | `{reviewed_sha \| null, comment_id}` | CR-COMMENTS-LIST | C16 (obs) |
 | `dependencies.blocked_by` | list of `{issue, state, url}` | ISSUE-BLOCKERS | F15 |
 
+A marker's `reviewed_sha` is the sha on the record's `reviewed-sha:` line,
+or `null` when the record is there and carries no readable one — the
+fidelity record (`**[reviewer] · fidelity**`) never does today; only the
+code-review record is stamped. `null` is an observation, not `unknown`.
 A CR's `state` is `open`, `merged` or `closed`; a blocker's is `open` or
 `closed`. `base` is the CR's target branch: a CR's state means something
 only together with it (#209). `roz-branch` outcomes map as `NO_MATCH` →

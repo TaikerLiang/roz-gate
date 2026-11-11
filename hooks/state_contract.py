@@ -80,7 +80,9 @@ def _list_of(item):
 BRANCH = _record({"name": _str, "sha": _str})
 CR = _record({"number": _int, "state": lambda v: v in ("open", "merged", "closed"),
               "draft": lambda v: isinstance(v, bool), "base": _str, "head_sha": _str})
-MARKER = _record({"reviewed_sha": _str, "comment_id": _int})
+# reviewed_sha null: the record is there and carries no readable sha — the
+# fidelity record never does today, only the code-review record (#133)
+MARKER = _record({"reviewed_sha": _opt_str, "comment_id": _int})
 BLOCKERS = _list_of(_record({"issue": _int, "state": lambda v: v in ("open", "closed"),
                              "url": _str}))
 
