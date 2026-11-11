@@ -26,6 +26,9 @@ never a policy field: POLICY_KEYS are rejected at every depth, in every
 version.
 """
 
+import re
+from datetime import datetime
+
 SCHEMA = "roz-state/0.1"
 STATUSES = ("observed", "absent", "unknown")
 REASONS = ("forge_query_failed", "remote_unreachable", "ambiguous", "depends_on_unknown",
@@ -41,6 +44,17 @@ def _int(v):
 
 def _str(v):
     return isinstance(v, str) and v != ""
+
+
+def _utc(v):
+    """One spelling only: UTC, whole seconds, a literal Z — YYYY-MM-DDTHH:MM:SSZ."""
+    if not isinstance(v, str) or not re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", v):
+        return False
+    try:
+        datetime.strptime(v, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError:
+        return False
+    return True
 
 
 def _opt_str(v):
@@ -73,7 +87,7 @@ BLOCKERS = _list_of(_record({"issue": _int, "state": lambda v: v in ("open", "cl
 # snapshot identity: plain values — if one cannot be read there is no snapshot
 PLAIN = {
     "schema": lambda v: v == SCHEMA,
-    "observed_at": _str,
+    "observed_at": _utc,
     "issue": _int,
     "track": _opt_str,          # null: the label is not worn — an established fact
     "status": _opt_str,
@@ -193,6 +207,8 @@ def validate(snapshot):
             errs.append("%s: missing" % k)
         elif k == "schema" and not pred(snapshot[k]):
             errs.append("schema: this validator checks %s" % SCHEMA)
+        elif k == "observed_at" and not pred(snapshot[k]):
+            errs.append("observed_at: must be UTC as YYYY-MM-DDTHH:MM:SSZ")
         elif not pred(snapshot[k]):
             errs.append("%s: plain value of the wrong type" % k)
     config = snapshot.get("config")

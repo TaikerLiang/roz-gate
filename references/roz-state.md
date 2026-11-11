@@ -160,7 +160,7 @@ breaking revision.
 | path | type | from |
 |---|---|---|
 | `schema` | `roz-state/0.1` | — |
-| `observed_at` | ISO-8601 UTC | the collector's clock |
+| `observed_at` | UTC, whole seconds, exactly `YYYY-MM-DDTHH:MM:SSZ` — one spelling, no offset, no fraction | the collector's clock |
 | `issue` | integer | the argument |
 | `track` | string, or `null` when no `track:` label is worn | ISSUE-VIEW |
 | `status` | string, or `null` when no `status:` label is worn | ISSUE-VIEW |

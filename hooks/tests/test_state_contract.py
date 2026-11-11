@@ -218,6 +218,15 @@ class Contract(unittest.TestCase):
         s = base()
         del s["qa"]["fidelity_marker"]
         self.bad("a declared fact missing", s, "qa.fidelity_marker: missing")
+        for ts, why in (("not-a-timestamp", "not a timestamp"),
+                        ("2026-11-11T09:00:00+08:00", "an offset, not Z"),
+                        ("2026-11-11T01:00:00", "no zone"),
+                        ("2026-11-11 01:00:00Z", "a space, not T"),
+                        ("2026-11-11T01:00:00.123Z", "fractional seconds"),
+                        ("2026-13-41T01:00:00Z", "not a real date"),
+                        ("2026-11-11", "a date only")):
+            self.bad("observed_at %s (%s)" % (ts, why), put(base(), "observed_at", ts),
+                     "observed_at: must be UTC as YYYY-MM-DDTHH:MM:SSZ")
         self.bad("a config value of the wrong type", put(base(), "config.default_branch", 3),
                  "config.default_branch: plain value")
         self.bad("an undeclared top-level key", put(base(), "labels", ["x"]),
