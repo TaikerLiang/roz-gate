@@ -59,4 +59,8 @@ c.expect("integrate.md step 5 (the licensed claim, verbatim)",
 # #135 shadow: the names integrate looked up (CR-FIND heads) against Lookup
 # over the final heads (a signal, never a fail).
 r.shadow_branch([("spec", "5"), ("feat", "5"), ("qa", "5")], acts=("find",))
+# #133 shadow: bin/roz-state on the final forge state against the stub's own
+# truth — signals, never a fail
+# (evals/CONTRIBUTING.md § 7).
+r.shadow_state(["5"])
 c.finish()

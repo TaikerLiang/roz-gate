@@ -56,4 +56,8 @@ c.expect("ledger C11 (refs: the three seeded plus the new one)",
 # #135 shadow: the name the command cut (CR-OPEN head, push, worktree) against
 # Lookup over the final heads (/1, /3, /4 → MULTIPLE_SEQ, /4 the highest).
 r.shadow_branch([("spec", "5")], template="{type}/{user}/{n}/{seq}", acts=("create",))
+# #133 shadow: bin/roz-state on the final forge state against the stub's own
+# truth — signals, never a fail
+# (evals/CONTRIBUTING.md § 7).
+r.shadow_state(["5"], template="{type}/{user}/{n}/{seq}")
 c.finish()

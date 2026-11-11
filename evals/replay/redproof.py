@@ -947,6 +947,239 @@ def persona_checks():
     ]
 
 
+def _seed_run(cdir):
+    """(sandbox dir, Run, template) for a case's seeded state — no SUT."""
+    sbx, bare = rl.seed_sandbox(cdir)       # with a git identity: CI runners have none
+    if not sbx:
+        return None, None, None
+    work = os.path.join(sbx, "work")
+    rdir = os.path.join(sbx, "run")
+    os.makedirs(os.path.join(rdir, "forge"))
+    shutil.copy(os.path.join(cdir, "state.json"), os.path.join(rdir, "forge", "state.json"))
+    run = rl.Run(rdir)
+    run.bare = bare
+    template = None
+    try:
+        with open(os.path.join(work, ".claude", "roz-gate.local.json"), encoding="utf-8") as f:
+            template = (json.load(f).get("branch_template") or None)
+    except (OSError, ValueError):
+        pass
+    return sbx, run, template
+
+
+STATE_MATRIX = ("a missing CR", "an open CR", "a draft CR", "a merged CR", "a re-spec ({seq} > 1)",
+                "an implementation CR on the current spec branch",
+                "an implementation CR on another base", "zero review threads",
+                "no audit marker on a QA CR", "a completed clean audit", "one open dependency",
+                "several dependencies", "an unavailable forge observation")
+
+
+def _cells(truth, state, shas, n, template):
+    """The cells of references/roz-state.md's scenario matrix a truth hits."""
+    f, out = truth.get("facts") or {}, set()
+    crs = [f.get(k) for k in ("spec.cr", "implementation.cr", "qa.cr")]
+    for st, v in [c for c in crs if c]:
+        if st == "absent":
+            out.add("a missing CR")
+        elif st == "observed":
+            out.add("a draft CR" if v["state"] == "open" and v["draft"] else
+                    "an open CR" if v["state"] == "open" else
+                    "a merged CR" if v["state"] == "merged" else "a closed CR")
+    spec = f.get("branches.spec", (None, None))
+    if spec[0] == "observed":
+        import branch_names as bn
+        m = bn.match_heads(bn.snapshot_from_heads(shas), template, kind="spec", n=str(n))
+        if m["outcome"] == "MULTIPLE_SEQ":
+            out.add("a re-spec ({seq} > 1)")
+        impl = f.get("implementation.cr", (None, None))
+        if impl[0] == "observed":
+            out.add("an implementation CR on the current spec branch"
+                    if impl[1]["base"] == spec[1]["name"] else
+                    "an implementation CR on another base")
+    if f.get("implementation.open_review_threads") == ("observed", 0):
+        out.add("zero review threads")
+    if f.get("qa.cr", (None,))[0] == "observed":
+        mk, th = f["qa.fidelity_marker"], f["qa.open_fidelity_threads"]
+        if mk[0] == "absent":
+            out.add("no audit marker on a QA CR")
+        elif mk[0] == "observed" and th == ("observed", 0):
+            out.add("a completed clean audit")
+    dep = f.get("dependencies.blocked_by", (None, None))
+    if dep[0] == "unknown":
+        out.add("an unavailable forge observation")
+    elif dep[0] == "observed":
+        opens = [b for b in dep[1] if b["state"] == "open"]
+        if len(dep[1]) > 1:
+            out.add("several dependencies")
+        if len(opens) == 1:
+            out.add("one open dependency")
+    return out
+
+
+def state_checks():
+    """#133: bin/roz-state in shadow. (1) the seed sweep — for every replay
+    case's seeded forge state and every issue in it, the collector against
+    stub truth, no model call; (2) shadow_state and (3) shadow_scan
+    discriminate: they agree on a faithful snapshot and count exactly the
+    fact that was changed — and nothing in a column that is the scanner's
+    interpretation."""
+    sys.path.insert(0, os.path.join(rr.ROOT, "hooks"))
+    cases = sorted(d for d in os.listdir(os.path.join(HERE, "cases"))
+                   if os.path.exists(os.path.join(HERE, "cases", d, "state.json")))
+    issues, bad, invalid, hit, where = 0, [], [], set(), {}
+    calls, writes = 0, []
+    for cid in cases:
+        cdir = os.path.join(HERE, "cases", cid)
+        sbx, run, template = _seed_run(cdir)
+        if not sbx:
+            bad.append("%s: seed failed" % cid)
+            continue
+        try:
+            state, shas = run.state(), run.remote_shas()
+            for n in sorted(state.get("issues") or {}, key=int):
+                issues += 1
+                rc, obj = run.roz_state(n, template)
+                calls += len(run.state_journal)
+                writes += ["%s#%s %s" % (cid, n, e.get("route")) for e in run.state_journal
+                           if e.get("write") or e.get("route") == "UNKNOWN"]
+                truth = rl.state_truth(state, shas, n, template)
+                import state_contract as sc
+                errs = (sc.validate(obj) if rc == 0 else sc.validate_failure(obj) if rc == 2
+                        else ["exit %s" % rc])
+                if errs:
+                    invalid.append("%s#%s: %s" % (cid, n, errs[0]))
+                    continue
+                for d in rl.state_diff(obj, truth):
+                    bad.append("%s#%s %s" % (cid, n, d))
+                for cell in _cells(truth, state, shas, n, template):
+                    hit.add(cell)
+                    where.setdefault(cell, []).append("%s#%s" % (cid, n))
+        finally:
+            shutil.rmtree(sbx, ignore_errors=True)
+    for cell in STATE_MATRIX:
+        print("NOTE  state matrix: %-48s %s" % (cell, ", ".join(where.get(cell, [])[:6])
+                                                 or "UNCOVERED by any seed"))
+    checks = [
+        ("seed sweep: %d issues over %d case seeds — every roz-state output is a valid "
+         "snapshot or a typed failure (%s)" % (issues, len(cases), "; ".join(invalid[:3]) or "ok"),
+         issues > 0 and not invalid),
+        ("seed sweep: roz-state equals stub truth on every fact (%s)"
+         % ("; ".join(bad[:4]) or "0 mismatches"), issues > 0 and not bad),
+        ("seed sweep: the forge stub journalled %d calls from roz-state — every one a read on a "
+         "known route (%s)" % (calls, "; ".join(writes[:4]) or "no write, no UNKNOWN"),
+         calls > 0 and not writes),
+    ]
+
+    # (2) and (3) on one seed with a CR, threads and a scanner-shaped row
+    cdir = os.path.join(HERE, "cases", "F9")
+    sbx, run, template = _seed_run(cdir)
+    try:
+        real = {}
+
+        def collect(n, tpl):
+            if n not in real:
+                real[n] = run.roz_state(n, tpl)
+            return real[n][0], json.loads(json.dumps(real[n][1]))
+
+        def doctored(change):
+            def f(n, tpl):
+                rc, obj = collect(n, tpl)
+                change(obj)
+                return rc, obj
+            return f
+
+        def sig(key):
+            with open(os.path.join(run.dir, "attempts.json"), encoding="utf-8") as fh:
+                return json.load(fh).get(key)
+
+        run.shadow_state(["5"], template, _collect=collect)
+        agree = (sig("shadow_state_mismatch"), sig("shadow_state_invalid"))
+        run.shadow_state(["5"], template, _collect=doctored(
+            lambda o: o["spec"]["cr"]["value"].update(state="merged")))
+        one = (sig("shadow_state_mismatch"), sig("shadow_state_invalid"))
+        run.shadow_state(["5"], template, _collect=doctored(
+            lambda o: o["dependencies"].update(blocked_by=0)))
+        inv = (sig("shadow_state_mismatch"), sig("shadow_state_invalid"))
+        run.shadow_state(["5"], template, _collect=doctored(lambda o: o.update(status="in-dev")))
+        plain = sig("shadow_state_mismatch")
+        checks += [
+            ("shadow_state agrees on a faithful snapshot (0 mismatches, 0 invalid)",
+             agree == (0, 0)),
+            ("shadow_state counts exactly the one fact changed (a CR state)", one == (1, 0)),
+            ("shadow_state counts a contract-invalid snapshot as invalid, not as a mismatch",
+             inv == (0, 1)),
+            ("shadow_state compares the plain values too (status)", plain == 1),
+        ]
+
+        row = ("| #5 Offer expiry | spec | `status: in-user-review` | paul | #101 open %s "
+               "| 1 | %s | %s |")
+        url = "https://github.com/x/y/pull/101"
+
+        def scan(cells_row):
+            run.shadow_scan(["5"], cdir, template,
+                            table="| issue | track |\n|---|---|\n" + cells_row, _collect=collect)
+            return sig("shadow_scan_mismatch"), sig("shadow_scan_rows")
+        ok = scan(row % (url, "hand-off: in-user-review", "thread url"))
+        verdict = scan(row % (url, "waiting on: #9, #12", "blockers unknown (HTTP 404)"))
+        st = scan(row.replace("in-user-review` |", "in-dev` |", 1)
+                  % (url, "hand-off: in-user-review", "x"))
+        tr = scan(row.replace("| spec |", "| fast |") % (url, "hand-off: in-user-review", "x"))
+        crn = scan(row.replace("#101 open", "#999 open") % (url, "hand-off: in-user-review", "x"))
+        crs = scan(row.replace("#101 open", "#101 merged") % (url, "hand-off: in-user-review", "x"))
+        none = scan(row.replace("#101 open %s", "none%s") % ("", "hand-off: in-user-review", "x"))
+        gone = scan("| #7 other | — | — | paul | none | 0 | intake | x |")
+        checks += [
+            ("shadow_scan agrees on a row whose track, status and cr match the snapshot",
+             ok == (0, 1)),
+            ("shadow_scan ignores the scanner's interpretation: another verdict, a `waiting on`, "
+             "other evidence change nothing", verdict == (0, 1)),
+            ("shadow_scan counts a differing status", st == (1, 1)),
+            ("shadow_scan counts a differing track", tr == (1, 1)),
+            ("shadow_scan counts a CR number the snapshot does not have", crn == (1, 1)),
+            ("shadow_scan counts a CR state that differs", crs == (1, 1)),
+            ("shadow_scan counts `none` against an open CR", none == (1, 1)),
+            ("shadow_scan compares no row it was not given (0 rows, 0 mismatches)",
+             gone == (0, 0)),
+        ]
+
+        # the scan's moment, not the run's end (codex review, PR #273): after a
+        # faithful table the pass takes the lock on #5 — the final state says
+        # `processing`, the table (rightly) does not
+        faithful = "| issue |\n|---|\n" + row % (url, "hand-off: in-user-review", "x")
+        spath = os.path.join(run.dir, "forge", "state.json")
+        with open(spath, encoding="utf-8") as fh:
+            st = json.load(fh)
+        st["issues"]["5"]["labels"].append("status: processing")
+        with open(spath, "w", encoding="utf-8") as fh:
+            json.dump(st, fh)
+        jpath = os.path.join(run.dir, "forge", "journal.jsonl")
+
+        def journal(*routes):
+            with open(jpath, "w", encoding="utf-8") as fh:
+                for route, write in routes:
+                    fh.write(json.dumps({"route": route, "write": write}) + "\n")
+        journal(("issue-list", False), ("threads-list", False), ("label-add", True))
+        run.shadow_scan(["5"], cdir, template, table=faithful)
+        later = (sig("shadow_scan_mismatch"), sig("shadow_scan_rows"))
+        final = len(rl.scan_diff(rl.scan_row(faithful, "5"), run.roz_state("5", template)[1]))
+        journal(("label-add", True), ("issue-list", False))
+        run.shadow_scan(["5"], cdir, template, table=faithful)
+        early = (sig("shadow_scan_mismatch"), sig("shadow_scan_rows"),
+                 "premise" in (sig("shadow_scan_detail") or {}))
+        checks += [
+            ("shadow_scan compares with the SEEDED state the scanner read: a lock taken after a "
+             "faithful table is no mismatch", later == (0, 1)),
+            ("…and the same table against the run's FINAL state would have been one (the defect "
+             "this guards)", final == 1),
+            ("shadow_scan compares nothing when the journal shows a forge write before the "
+             "first listing (the seeded state is not what the scanner read)",
+             early == (0, 0, True)),
+        ]
+    finally:
+        shutil.rmtree(sbx, ignore_errors=True)
+    return checks
+
+
 def main():
     passed = failed = 0
     for name, ok in export_checks():
@@ -960,6 +1193,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in persona_checks():
         print("%s persona: %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in state_checks():
+        print("%s state: %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     tmp, work = git_sandbox()
     try:
