@@ -272,6 +272,7 @@ a single rule and has its own row above.
 | L1, L7, L9, L10, L11, L12 | human-facing pages, not executable prose |
 | L8 | the `/roz-gate:config` mod's implementation, not a question the loop answers |
 | L13, L14 | this page's own lints (the inventory; § Kernel) |
+| L15 | the `roz-state` contract's own lint — `references/roz-state.md` and `hooks/state_contract.py` carry one field table (#239) |
 
 ## Duplicated mechanical interpretation
 

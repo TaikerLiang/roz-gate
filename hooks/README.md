@@ -331,6 +331,18 @@ the marker names, not a template. `hooks/tests/test_branch_names.py` is its
 proof; the three hooks' own tests are the parity proof that consolidating
 the parsers changed no enforcement.
 
+## The contract module — `hooks/state_contract.py`
+
+The `roz-state` observation contract as code (`references/roz-state.md`,
+#239): the field table, the three statuses, the unknown reasons, the policy
+deny-list, `validate(snapshot)` and `validate_failure(obj)`. A shared
+contract and validation module — **not a hook rule, and not owned by the
+hook layer**; it sits here beside `branch_names.py` for layout convenience,
+and #133 may move it when a state package exists. Nothing calls it yet:
+`bin/roz-state` (#133) will check its own output against it.
+`hooks/tests/test_state_contract.py` is its proof; lint L15 holds it equal
+to the document.
+
 ## The mods
 
 `hooks.json` also names one hooks module, `mods.tsx` — Claude Code reads
