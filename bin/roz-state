@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+"""roz-state — one issue's observable workflow state, as one JSON snapshot (#133).
+
+    roz-state <issue> --json
+
+Answers "what is observably true right now?" under the `roz-state/0.1`
+contract (references/roz-state.md) and nothing else: no next action, no
+verdict. Read-only — no label, comment, branch or CR is written, and no
+file in the repository. Run it from the target repository, like roz-branch.
+
+Exit codes, never interchangeable:
+  0   a snapshot on stdout (state_contract.validate accepts it)
+  2   a typed collection failure on stdout — the issue, its base state or
+      the config could not be established; no partial snapshot
+  3   internal contract violation — the collector built something its own
+      validator rejects; nothing on stdout, the errors on stderr. A defect
+      in this tool, never an observation
+  64  usage
+
+GitLab adapter: contract-compatible against canned glab output; live
+compatibility not yet verified.
+"""
+
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "hooks"))
+from state_collect import collect  # noqa: E402
+from state_contract import validate, validate_failure  # noqa: E402
+
+USAGE = __doc__.split("\n\n")[1]
+
+
+def main(argv):
+    args = [a for a in argv if a != "--json"]
+    if "--json" not in argv or len(args) != 1 or not args[0].isdigit():
+        sys.stderr.write("usage:%s\n" % USAGE)
+        return 64
+    obj, rc = collect(int(args[0]))
+    errs = validate(obj) if rc == 0 else validate_failure(obj)
+    if errs:
+        sys.stderr.write("roz-state: internal contract violation — %d error(s):\n" % len(errs))
+        for e in errs:
+            sys.stderr.write("  %s\n" % e)
+        return 3
+    print(json.dumps(obj, indent=1, ensure_ascii=False))
+    return rc
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
