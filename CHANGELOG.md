@@ -2,6 +2,39 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.16.0 — QA-4 has one definition — 2026-11-11
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.16.0>
+
+**Behavior:** "never edit an assertion to match observed behaviour" now has one definition, QA-4 in the QA brief, and every other copy applies it by pointer. No outcome changes. This release also writes down `roz-state`'s observation contract and ships `bin/roz-state`, a read-only workflow-state snapshot that runs in shadow; nothing in the loop consumes it yet.
+
+### Behavior
+- **QA-4 has one definition** (#263): `references/qa-brief.md` § Run the suite defines it: the predicate, the consequence, and the scope from QA's run through stage (6). Every other copy keeps only its trigger and consequence plus `(QA-4)`: `agents/qa.md`, the `qa` R&R row, `references/workflow.md` (4) and § The verdict lives at integration, `commands/next-stage.md` B2.4, `commands/integrate.md` step 5 and `commands/spec-answers.md`. The brief no longer calls it integrate's rule. No outcome changes.
+
+### Evals
+- **L14** checks that a kernel rule has one definition: the owner carries `**QA-4**` once and its definition anchor, every consumer carries its anchor with the pointer, no retired wording is back in `agents/`, `commands/`, `references/` or `templates/`, and every case is a ledger ID.
+- **B8 / E12** anchors moved to the new wording. D4 / D9 / D13 / D19 now cite QA-4, so their earlier runs are stale.
+- **L15** checks that the `roz-state` contract's field table, statuses, reasons and policy deny-list agree between the document and the module.
+- **Shadow signals** `shadow_state` compares the snapshot with the forge stub's truth, and `shadow_scan` compares it with the `track` / `status` / `cr` columns of the scanner's table (`evals/CONTRIBUTING.md` § 7). Both are on C11, C12, C13, C16, F9 and F15, whose earlier runs are stale.
+- **Seed sweep**: the harness red-proof runs the collector against stub truth for every issue of every replay seed.
+
+### Hooks
+- **`hooks/state_contract.py`** (#239) is the contract as code: the field table, `validate(snapshot)` and `validate_failure(obj)`. It is a shared contract module, not a hook rule. A marker's `reviewed_sha` may be `null`, since the fidelity record carries none.
+- **`hooks/state_collect.py`** (#133) is the collector behind `bin/roz-state`. Every forge call it makes passes through one read-only gate. It is not a hook.
+
+### Tooling
+- **`bin/roz-state <issue> --json`** (#133) prints a read-only snapshot under the `roz-state/0.1` contract (`references/roz-state.md`). It covers labels, bound branches, the spec / implementation / QA CRs, unresolved thread counts, the code-review and fidelity records, and forge-native blockers. Every fact is `observed`, `absent` or `unknown`.
+  - It exits 2 with a typed failure when the issue or the config cannot be read.
+  - It exits 3 when its own output violates the contract.
+  - The GitLab adapter is contract-compatible against canned `glab` output; live compatibility is not yet verified.
+
+### Docs
+- **`references/roz-state.md`** (#239) states what the state snapshot may say (facts) and may never say (decisions). It also covers `observed` / `absent` / `unknown`, the typed collection failure, the v0.1 fields and the shadow-adoption matrix.
+- **`docs/prose-inventory.md` § Kernel** (#263) records the entry preconditions, the change rule, and QA-4's owner, consumers, cases and retired wording. **`evals/CONTRIBUTING.md` § 8** says a kernel definition change names its affected cases.
+
+### Checks
+Hook tests 1000/1000 · lint 1572/1572 · red-proofs 46/46 · ruff · judgment `--check` · ledger `--check` current
+
 ## v2.15.0 — one branch-name resolver — 2026-11-10
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.15.0>
