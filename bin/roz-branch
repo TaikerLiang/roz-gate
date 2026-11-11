@@ -3,15 +3,19 @@
 
     roz-branch validate [--json]
     roz-branch expand --kind spec|feat|qa|fast --n N [--type T] [--user U] [--seq S] [--json]
-    roz-branch snapshot [--remote origin] [--json]            # one `git ls-remote --heads`
+    roz-branch snapshot [--remote origin] [--json]            # one `git ls-remote --heads`,
+                                                              # + merged CRs' head names (#272)
     roz-branch match --snapshot FILE --issues 5,6,8 [--types 5=fix,8=feat] [--tracks 5=spec]
                      [--json]
     roz-branch lookup --issues 5,6,8 [--types …] [--tracks …] [--remote origin] [--json]
 
 Facts, read-only (#239): `expand` renders one name from explicit inputs and
 never computes `{seq}`; `snapshot` is the only call that touches the
-network; `match` is a pure function of a snapshot file; `lookup` is
-snapshot + match in one call. No branch is created, deleted, checked out or
+network — the remote's heads and, in a roz-gate repository, one read-only
+forge read of the merged CRs' head names, so a head the forge deleted on
+merge is still a match (marked `deleted`: a CR's name, never a branch);
+`match` is a pure function of a snapshot file; `lookup` is snapshot +
+match in one call. No branch is created, deleted, checked out or
 moved here. The template and `branch_user` come from bin/roz-config's local
 file — this toplevel's, else the main checkout's.
 
@@ -28,7 +32,6 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "hooks"))
 from branch_names import (  # noqa: E402
     BranchNameError,
-    collect_remote_heads,
     effective,
     expand,
     local_key,
@@ -36,6 +39,7 @@ from branch_names import (  # noqa: E402
     validate,
 )
 from config_block import main_checkout  # noqa: E402
+from state_collect import collect_snapshot  # noqa: E402
 
 USAGE = __doc__.split("\n\n")[1]
 
@@ -153,12 +157,15 @@ def do_match(snapshot, o, cfg):
             return None, fail("BAD_ARGUMENT", "issue %r is not a number" % n, o["json"])
         issues[n] = match_issue(snapshot, cfg["branch_template"], n, track=tracks.get(n),
                                 type=types.get(n))
-    meta = {k: v for k, v in snapshot.items() if k not in ("heads", "shas")}  # per match instead
+    meta = {k: v for k, v in snapshot.items() if k not in ("heads", "shas", "merged_heads")}
+    if "merged_heads" in snapshot:               # its status, not its list — per match instead
+        meta["merged_heads"] = {k: v for k, v in snapshot["merged_heads"].items()
+                                if k != "heads"}
     return {"snapshot": meta, "branch_template": cfg["branch_template"], "issues": issues}, 0
 
 
 def cmd_snapshot(o, cfg):
-    snap = collect_remote_heads(o.get("remote", "origin"))
+    snap = collect_snapshot(o.get("remote", "origin"))
     print(json.dumps(snap, indent=1) if o["json"] else
           "%s %s %s" % (snap["remote"], snap["status"], snap.get("reason") or "%d heads" % len(snap["heads"])))
     return 0 if snap["status"] == "observed" else 2
@@ -181,7 +188,7 @@ def cmd_match(o, cfg):
 
 
 def cmd_lookup(o, cfg):
-    snap = collect_remote_heads(o.get("remote", "origin"))
+    snap = collect_snapshot(o.get("remote", "origin"))
     out, rc = do_match(snap, o, cfg)
     if out is not None:
         print(json.dumps(out, indent=1))

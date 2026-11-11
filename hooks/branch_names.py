@@ -229,20 +229,47 @@ def snapshot_from_heads(heads, remote="origin"):
 # ---- Lookup -----------------------------------------------------------------------
 
 def match_heads(snapshot, template, *, kind, n, type=None):
-    """Every remote head of `kind` for issue `n`, sorted by (seq, name), each
-    with its parsed `{user}` / `{seq}`, and the outcome. Facts only: no
-    "live" attempt is chosen."""
+    """Every head of `kind` for issue `n`, sorted by (seq, name), each with
+    its parsed `{user}` / `{seq}`, and the outcome. Facts only: no "live"
+    attempt is chosen.
+
+    Two sources (#272). The remote's heads, as ever. And `merged_heads` —
+    the head names merged CRs remember — when the snapshot carries them: a
+    name that fits and is NOT on the remote is a match marked `deleted`,
+    with the CR's number and head sha. It is a CR's name (CR-FIND still
+    finds it), never a branch to check out, read or cut from.
+
+    The history is fallback evidence and never a precondition of a live
+    head: `observed` → the union; `unknown` (a failed or truncated read) →
+    a live match stands, flagged `history: unknown`, and only a kind with
+    no live match is UNKNOWN — never NO_MATCH, because a history that was
+    not read to its end proves nothing absent; `not_asked` or no key → the
+    remote alone, exactly as before."""
     if snapshot.get("status") != "observed":
         return {"outcome": "UNKNOWN", "matches": [], "reason": snapshot.get("reason")}
     pat = pattern_for_kind(template, kind, n=n, type=type)
     found = []
-    for h in snapshot.get("heads", []):
-        m = pat.match(h)
+
+    def add(name, sha, extra=None):
+        m = pat.match(name)
         if m:
             g = m.groupdict()
-            found.append({"branch": h, "user": g.get("user"),
+            found.append({"branch": name, "user": g.get("user"),
                           "seq": int(g["seq"]) if g.get("seq") else None,
-                          "sha": (snapshot.get("shas") or {}).get(h)})
+                          "sha": sha, **(extra or {})})
+    live = set(snapshot.get("heads", []))
+    for h in snapshot.get("heads", []):
+        add(h, (snapshot.get("shas") or {}).get(h))
+    hist = snapshot.get("merged_heads") or {}
+    flag = {}
+    if hist.get("status") == "observed":
+        for name, rec in (hist.get("heads") or {}).items():
+            if name not in live:
+                add(name, rec.get("sha"), {"deleted": True, "cr": rec.get("cr")})
+    elif hist.get("status") == "unknown":
+        if not found:
+            return {"outcome": "UNKNOWN", "matches": [], "reason": hist.get("reason")}
+        flag = {"history": "unknown", "reason": hist.get("reason")}
     found.sort(key=lambda x: (x["seq"] if x["seq"] is not None else 0, x["branch"]))
     if not found:
         outcome = "NO_MATCH"
@@ -251,7 +278,7 @@ def match_heads(snapshot, template, *, kind, n, type=None):
     else:
         seqs = [x["seq"] for x in found]
         outcome = "MULTIPLE_SAME_SEQ" if len(set(seqs)) < len(seqs) else "MULTIPLE_SEQ"
-    return {"outcome": outcome, "matches": found}
+    return {"outcome": outcome, "matches": found, **flag}
 
 
 def kinds_for(track):

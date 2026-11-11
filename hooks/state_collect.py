@@ -8,10 +8,10 @@ every forge call goes through `run()`, which refuses any argv outside the
 read allow-list, and git is asked for nothing but `ls-remote` and config.
 
 Branch identity is roz-branch's alone (hooks/branch_names.py): this module
-matches a snapshot of the remote's heads and never renders, parses or
-guesses a name. A CR is looked up by the bound head, as the commands do —
-so a head branch that is gone hides its CR here exactly as it does there
-(#272).
+matches a snapshot and never renders, parses or guesses a name. A CR is
+looked up by the bound head. `collect_snapshot` adds to the remote's heads
+the head names merged CRs remember (#272), so a head the forge deleted on
+merge still finds its CR: the branch is `absent`, the CR `observed`.
 
 Selection is ours, never the CLI's (every list is read to the end, then
 ordered here): among the CRs of one head — the one open CR; more than one
@@ -38,6 +38,9 @@ from config_block import find_block, git, main_checkout
 from state_contract import SCHEMA
 
 TIMEOUT = 60
+# The merged history is read to its last page; past this many merged CRs the
+# read stops and says `history_truncated` — unknown, never "read" (#272).
+MERGED_CEILING = 5000
 DEFAULT_ACCEPTANCE_DIR = "tests/acceptance"
 # contract name → roz-branch kind
 KINDS = (("spec", "spec"), ("implementation", "feat"), ("qa", "qa"))
@@ -205,6 +208,16 @@ class GitHub:
         return [_cr(r.get("number"), self.STATES.get(r.get("state")), r.get("isDraft"),
                     r.get("baseRefName"), r.get("headRefOid")) for r in rows]
 
+    def merged_heads(self):
+        rows = _rows(run(["gh", "pr", "list", "--state", "merged", "--limit",
+                          str(MERGED_CEILING + 1), "--json",
+                          "number,headRefName,headRefOid,mergedAt"]))
+        if len(rows) > MERGED_CEILING:
+            raise ReadFailed("history_truncated",
+                             "more than %d merged CRs" % MERGED_CEILING)
+        return [{"cr": r.get("number"), "head": r.get("headRefName"),
+                 "sha": r.get("headRefOid"), "merged_at": r.get("mergedAt")} for r in rows]
+
     def unresolved_threads(self, number):
         owner, name = self.repo()
         count, after = 0, None
@@ -274,6 +287,21 @@ class GitLab:
         return [_cr(r.get("iid"), self.STATES.get(r.get("state")),
                     r.get("draft", r.get("work_in_progress")), r.get("target_branch"),
                     r.get("sha")) for r in rows]
+
+    def merged_heads(self):
+        rows, page = [], 1
+        while True:
+            got = _rows(run(["glab", "api", "projects/:id/merge_requests?state=merged"
+                             "&per_page=100&page=%d" % page]))
+            rows.extend(got)
+            if len(got) < 100:
+                break                       # the forge's last page: the history is read
+            if len(rows) >= MERGED_CEILING:
+                raise ReadFailed("history_truncated",
+                                 "more than %d merged CRs" % MERGED_CEILING)
+            page += 1
+        return [{"cr": r.get("iid"), "head": r.get("source_branch"), "sha": r.get("sha"),
+                 "merged_at": r.get("merged_at")} for r in rows]
 
     def unresolved_threads(self, number):
         rows = _rows(self._get("projects/:id/merge_requests/%d/discussions?per_page=100"
@@ -350,6 +378,51 @@ def pick_marker(comments, marker):
     return {"reviewed_sha": m.group(1) if m else None, "comment_id": rec["id"]}
 
 
+# ---- the branch snapshot: the remote's heads + the merged history (#272) ----------
+
+def collect_snapshot(remote="origin"):
+    """branch_names.collect_remote_heads, plus `merged_heads` — the head
+    names merged CRs remember, so a head the forge deleted on merge can
+    still be bound (branch_names.match_heads decides; this only collects).
+
+        merged_heads: {"status": "observed", "heads": {name: {"cr", "sha", "merged_at"}}}
+                    | {"status": "unknown", "reason": "forge_query_failed" |
+                       "history_truncated", "detail": …, "heads": {}}
+                    | {"status": "not_asked", "heads": {}}
+
+    `not_asked`: no Roz Gate config block (not a roz-gate project — no forge
+    is named), or the remote itself is unreadable. A failed history read
+    never touches the remote's part: `status` stays the remote's. Where
+    merged CRs share a head name, the one merged last is kept —
+    max((merged_at, number)): chronology, the number only breaking a tie
+    or standing in for a missing time."""
+    snap = collect_remote_heads(remote)
+    snap["merged_heads"] = {"status": "not_asked", "heads": {}}
+    if snap.get("status") != "observed":
+        return snap
+    block = find_block(git("rev-parse", "--show-toplevel"))
+    forge = (_block_key(block, "forge") or "").lower() if block else ""
+    if forge not in ADAPTERS:
+        return snap
+    try:
+        best = {}
+        for r in ADAPTERS[forge]().merged_heads():
+            if (not isinstance(r["head"], str) or not r["head"] or not isinstance(r["sha"], str)
+                    or not r["sha"] or isinstance(r["cr"], bool) or not isinstance(r["cr"], int)):
+                raise ReadFailed("forge_query_failed", "a merged CR record the adapter "
+                                 "cannot normalise")
+            key = (r["merged_at"] or "", r["cr"])
+            if r["head"] not in best or key > best[r["head"]][0]:
+                best[r["head"]] = (key, {"cr": r["cr"], "sha": r["sha"],
+                                         "merged_at": r["merged_at"]})
+        snap["merged_heads"] = {"status": "observed",
+                                "heads": {h: v[1] for h, v in sorted(best.items())}}
+    except ReadFailed as e:
+        snap["merged_heads"] = {"status": "unknown", "reason": e.reason, "detail": e.detail,
+                                "heads": {}}
+    return snap
+
+
 # ---- config -----------------------------------------------------------------------
 
 def _block_key(block, key):
@@ -415,7 +488,7 @@ def collect(issue):
             "spec": {}, "implementation": {}, "qa": {}, "dependencies": {}}
 
     # branches — one read of the remote's heads, matched per kind
-    heads = collect_remote_heads() if track == "spec" else None
+    heads = collect_snapshot() if track == "spec" else None
     crs = {}
     for name, kind in KINDS:
         if track != "spec":
@@ -427,22 +500,29 @@ def collect(issue):
                         type=(typ or "feat") if kind == "feat" else None)
         outcome, found = m["outcome"], m["matches"]
         if outcome == "UNKNOWN":
-            snap["branches"][name] = unknown("remote_unreachable", SRC_BRANCH)
+            # the remote unreadable, or no live head and a merged history that
+            # could not be read to its end (#272) — never "no branch"
+            why = ("remote_unreachable" if heads.get("status") != "observed" else
+                   "forge_query_failed" if m.get("reason") == "forge_query_failed" else
+                   "unsupported")                    # history_truncated: past the ceiling
+            snap["branches"][name] = unknown(why, SRC_BRANCH)
             crs[name] = unknown("depends_on_unknown", "CR-FIND")
         elif outcome == "MULTIPLE_SAME_SEQ":
             snap["branches"][name] = unknown("ambiguous", SRC_BRANCH)
             crs[name] = unknown("depends_on_unknown", "CR-FIND")
         elif outcome == "NO_MATCH":
             snap["branches"][name] = absent(SRC_BRANCH)
-            crs[name] = absent(SRC_BRANCH)     # no head to ask about (#272)
+            crs[name] = absent(SRC_BRANCH)     # no head, live or remembered, to ask about
         else:
             head = found[-1] if outcome == "MULTIPLE_SEQ" else found[0]   # sorted by {seq}
             if not head.get("sha"):
                 snap["branches"][name] = unknown("remote_unreachable", SRC_BRANCH)
                 crs[name] = unknown("depends_on_unknown", "CR-FIND")
                 continue
-            snap["branches"][name] = observed({"name": head["branch"], "sha": head["sha"]},
-                                              SRC_BRANCH)
+            # a head only a merged CR remembers is no branch — but its name
+            # still finds the CR (#272)
+            snap["branches"][name] = (absent(SRC_BRANCH) if head.get("deleted") else observed(
+                {"name": head["branch"], "sha": head["sha"]}, SRC_BRANCH))
             try:
                 cr, why = pick_cr(api.crs(head["branch"]))
             except ReadFailed as e:

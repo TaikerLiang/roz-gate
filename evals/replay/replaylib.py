@@ -659,6 +659,14 @@ def state_truth(state, shas, issue, template=None):
 
     snap = (bn.snapshot_from_heads(shas) if shas is not None
             else {"status": "unknown", "heads": []})
+    # #272 — the head names merged CRs remember, straight from the fixture:
+    # per name, the CR merged last (then the higher number)
+    gone = {}
+    for p in sorted((state.get("prs") or {}).values(),
+                    key=lambda x: (x.get("mergedAt") or "", int(x["number"]))):
+        if p.get("state", "OPEN").upper() == "MERGED" and p.get("headRefName"):
+            gone[p["headRefName"]] = {"cr": int(p["number"]), "sha": p.get("headRefOid")}
+    snap["merged_heads"] = {"status": "observed", "heads": gone}
     for name, kind in (("spec", "spec"), ("implementation", "feat"), ("qa", "qa")):
         bkey, ckey = "branches.%s" % name, "%s.cr" % name
         deps = {"implementation": ("implementation.open_review_threads",
@@ -676,8 +684,11 @@ def state_truth(state, shas, issue, template=None):
             elif m["outcome"] == "NO_MATCH":
                 facts[bkey], facts[ckey] = ("absent", None), ("absent", None)
             else:
-                head = sorted(m["matches"], key=lambda x: x["seq"] or 0)[-1]["branch"]
-                facts[bkey] = ("observed", {"name": head, "sha": shas[head]})
+                top = sorted(m["matches"], key=lambda x: x["seq"] or 0)[-1]
+                head, head_sha = top["branch"], top["sha"]
+                # a head only a merged CR remembers is no branch; its CR is still found
+                facts[bkey] = (("absent", None) if top.get("deleted")
+                               else ("observed", {"name": head, "sha": head_sha}))
                 mine = [p for p in (state.get("prs") or {}).values()
                         if p.get("headRefName") == head]
                 by = {}
@@ -693,7 +704,7 @@ def state_truth(state, shas, issue, template=None):
                     facts[ckey] = ("observed", {
                         "number": int(p["number"]), "state": p.get("state", "OPEN").lower(),
                         "draft": bool(p.get("isDraft", False)),
-                        "base": p.get("baseRefName"), "head_sha": shas[head]})
+                        "base": p.get("baseRefName"), "head_sha": head_sha})
                     if deps:
                         facts[deps[0]] = ("observed", len(
                             [t for t in p.get("threads", []) if not t.get("isResolved", False)]))
