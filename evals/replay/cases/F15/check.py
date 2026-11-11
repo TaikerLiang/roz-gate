@@ -131,9 +131,9 @@ c.expect("patrol.md §4 (a queue item carries its link)",
          "#13 is a queue item with a link", i13 is not None
          and re.search(r"https?://\S+", i13) is not None)
 # #133 shadow: bin/roz-state on the final forge state against the stub's own
-# truth, and the scanner table's fact columns
-# (track, status, cr) against the snapshot — signals, never a fail
+# truth, and the scanner table's fact columns (track, status, cr) against a
+# snapshot of the SEEDED state the scanner read — signals, never a fail
 # (evals/CONTRIBUTING.md § 7).
 r.shadow_state(["10", "11", "12", "13"])
-r.shadow_scan(["10", "11", "12", "13"])
+r.shadow_scan(["10", "11", "12", "13"], os.path.dirname(os.path.abspath(__file__)))
 c.finish()

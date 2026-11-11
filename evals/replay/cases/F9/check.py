@@ -144,9 +144,9 @@ c.expect("patrol.md §1 / patrol-scan.md (#135: the scanner is handed the snapsh
 # fast cut if any) against Lookup over the final heads.
 r.shadow_branch([("spec", "5"), ("fast", "6")])
 # #133 shadow: bin/roz-state on the final forge state against the stub's own
-# truth, and the scanner table's fact columns
-# (track, status, cr) against the snapshot — signals, never a fail
+# truth, and the scanner table's fact columns (track, status, cr) against a
+# snapshot of the SEEDED state the scanner read — signals, never a fail
 # (evals/CONTRIBUTING.md § 7).
 r.shadow_state(["5", "6", "7"])
-r.shadow_scan(["5", "6", "7"])
+r.shadow_scan(["5", "6", "7"], os.path.dirname(os.path.abspath(__file__)))
 c.finish()

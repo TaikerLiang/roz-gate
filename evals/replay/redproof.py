@@ -949,9 +949,10 @@ def persona_checks():
 
 def _seed_run(cdir):
     """(sandbox dir, Run, template) for a case's seeded state — no SUT."""
-    sbx, work, bare = rr.build_sandbox(cdir)
+    sbx, bare = rl.seed_sandbox(cdir)       # with a git identity: CI runners have none
     if not sbx:
         return None, None, None
+    work = os.path.join(sbx, "work")
     rdir = os.path.join(sbx, "run")
     os.makedirs(os.path.join(rdir, "forge"))
     shutil.copy(os.path.join(cdir, "state.json"), os.path.join(rdir, "forge", "state.json"))
@@ -1115,8 +1116,8 @@ def state_checks():
         url = "https://github.com/x/y/pull/101"
 
         def scan(cells_row):
-            run.shadow_scan(["5"], template, table="| issue | track |\n|---|---|\n" + cells_row,
-                            _collect=collect)
+            run.shadow_scan(["5"], cdir, template,
+                            table="| issue | track |\n|---|---|\n" + cells_row, _collect=collect)
             return sig("shadow_scan_mismatch"), sig("shadow_scan_rows")
         ok = scan(row % (url, "hand-off: in-user-review", "thread url"))
         verdict = scan(row % (url, "waiting on: #9, #12", "blockers unknown (HTTP 404)"))
@@ -1139,6 +1140,40 @@ def state_checks():
             ("shadow_scan counts `none` against an open CR", none == (1, 1)),
             ("shadow_scan compares no row it was not given (0 rows, 0 mismatches)",
              gone == (0, 0)),
+        ]
+
+        # the scan's moment, not the run's end (codex review, PR #273): after a
+        # faithful table the pass takes the lock on #5 — the final state says
+        # `processing`, the table (rightly) does not
+        faithful = "| issue |\n|---|\n" + row % (url, "hand-off: in-user-review", "x")
+        spath = os.path.join(run.dir, "forge", "state.json")
+        with open(spath, encoding="utf-8") as fh:
+            st = json.load(fh)
+        st["issues"]["5"]["labels"].append("status: processing")
+        with open(spath, "w", encoding="utf-8") as fh:
+            json.dump(st, fh)
+        jpath = os.path.join(run.dir, "forge", "journal.jsonl")
+
+        def journal(*routes):
+            with open(jpath, "w", encoding="utf-8") as fh:
+                for route, write in routes:
+                    fh.write(json.dumps({"route": route, "write": write}) + "\n")
+        journal(("issue-list", False), ("threads-list", False), ("label-add", True))
+        run.shadow_scan(["5"], cdir, template, table=faithful)
+        later = (sig("shadow_scan_mismatch"), sig("shadow_scan_rows"))
+        final = len(rl.scan_diff(rl.scan_row(faithful, "5"), run.roz_state("5", template)[1]))
+        journal(("label-add", True), ("issue-list", False))
+        run.shadow_scan(["5"], cdir, template, table=faithful)
+        early = (sig("shadow_scan_mismatch"), sig("shadow_scan_rows"),
+                 "premise" in (sig("shadow_scan_detail") or {}))
+        checks += [
+            ("shadow_scan compares with the SEEDED state the scanner read: a lock taken after a "
+             "faithful table is no mismatch", later == (0, 1)),
+            ("…and the same table against the run's FINAL state would have been one (the defect "
+             "this guards)", final == 1),
+            ("shadow_scan compares nothing when the journal shows a forge write before the "
+             "first listing (the seeded state is not what the scanner read)",
+             early == (0, 0, True)),
         ]
     finally:
         shutil.rmtree(sbx, ignore_errors=True)

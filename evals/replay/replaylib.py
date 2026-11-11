@@ -449,22 +449,23 @@ class Run:
             return None
         return dict(ln.split(" ", 1) for ln in out.splitlines() if " " in ln)
 
-    def roz_state(self, issue, template=None):
-        """Run bin/roz-state for `issue` against this run's final forge state:
-        (exit code, parsed stdout or None). The tool runs in a fresh clone of
-        the bare remote with a COPY of the forge state, so nothing it does —
-        not even the stub's journal line for a read — reaches the run's
-        artifacts."""
+    def roz_state(self, issue, template=None, bare=None, state_path=None):
+        """Run bin/roz-state for `issue`: (exit code, parsed stdout or None).
+        By default against this run's FINAL forge state and remote; `bare` and
+        `state_path` name another moment (shadow_scan: the seeded one). The
+        tool runs in a fresh clone of the bare remote with a COPY of the forge
+        state, so nothing it does — not even the stub's journal line for a
+        read — reaches the run's artifacts."""
         tmp = tempfile.mkdtemp()
         try:
             work, forge = os.path.join(tmp, "work"), os.path.join(tmp, "forge")
             os.makedirs(forge)
-            shutil.copy(os.path.join(self.dir, "forge", "state.json"),
+            shutil.copy(state_path or os.path.join(self.dir, "forge", "state.json"),
                         os.path.join(forge, "state.json"))
             # the seed contract: every sandbox ends on `main` (run_replay.build_sandbox);
             # the bare remote's own HEAD may name a branch that does not exist
-            if subprocess.run(["git", "clone", "-q", "--branch", "main", self.bare, work],
-                              capture_output=True).returncode != 0:
+            if subprocess.run(["git", "clone", "-q", "--branch", "main", bare or self.bare,
+                               work], capture_output=True).returncode != 0:
                 return None, None
             if template:
                 os.makedirs(os.path.join(work, ".claude"), exist_ok=True)
@@ -550,31 +551,74 @@ class Run:
                 table = ev["summary"]
         return table
 
-    def shadow_scan(self, issues, template=None, table=None, _collect=None):
+    def shadow_scan(self, issues, case_dir, template=None, table=None, _collect=None):
         """#133 shadow, secondary: the scanner table's FACT columns — `track`,
-        `status`, `cr` — against the snapshot of the same final state. Never
-        `waiting on`, `verdict`, `unheard` or `evidence`: those are the
-        scanner's interpretation, and their parity is #134's. Writes
-        `shadow_scan_mismatch`, `shadow_scan_rows` (rows compared) and
+        `status`, `cr` — against a snapshot of the state the scanner read.
+        Never `waiting on`, `verdict`, `unheard` or `evidence`: those are the
+        scanner's interpretation, and their parity is #134's.
+
+        The table is from the scan's time, and the pass acts after it, so the
+        run's final state is the wrong thing to compare with (codex review,
+        PR #273: a lock taken after a faithful table read as a misread). The
+        scan is patrol's first step, before any write: the state it read is
+        the case's SEEDED one — `case_dir`'s seed.sh and state.json, rebuilt
+        here. If the journal shows a forge write before the first listing,
+        that premise is false and no row is compared.
+
+        Writes `shadow_scan_mismatch`, `shadow_scan_rows` (rows compared) and
         `shadow_scan_detail`; a signal, never a fail."""
         table = self.scanner_table() if table is None else table
         detail, mismatches, rows = {}, 0, 0
-        for n in issues:
-            row = scan_row(table, n)
-            if row is None:
-                detail[str(n)] = {"row": "absent"}
-                continue
-            rc, obj = (_collect or self.roz_state)(n, template)
-            if rc != 0 or not isinstance(obj, dict):
-                detail[str(n)] = {"snapshot": "exit %s" % rc}
-                continue
-            rows += 1
-            diff = scan_diff(row, obj)
-            mismatches += len(diff)
-            detail[str(n)] = {"diff": diff}
+        routes = [(e.get("route"), bool(e.get("write"))) for e in self.journal()]
+        first_list = next((i for i, (r, _) in enumerate(routes) if r == "issue-list"),
+                          len(routes))
+        early = [r for r, w in routes[:first_list] if w]
+        sbx = bare = None
+        if early:
+            detail["premise"] = "forge writes before the scan: %s" % ", ".join(early[:5])
+        elif _collect is None:
+            sbx, bare = seed_sandbox(case_dir)
+            if not sbx:
+                detail["premise"] = "the seeded state could not be rebuilt"
+        try:
+            for n in issues if "premise" not in detail else ():
+                row = scan_row(table, n)
+                if row is None:
+                    detail[str(n)] = {"row": "absent"}
+                    continue
+                rc, obj = (_collect(n, template) if _collect else self.roz_state(
+                    n, template, bare=bare, state_path=os.path.join(case_dir, "state.json")))
+                if rc != 0 or not isinstance(obj, dict):
+                    detail[str(n)] = {"snapshot": "exit %s" % rc}
+                    continue
+                rows += 1
+                diff = scan_diff(row, obj)
+                mismatches += len(diff)
+                detail[str(n)] = {"diff": diff}
+        finally:
+            if sbx:
+                shutil.rmtree(sbx, ignore_errors=True)
         self.signal(shadow_scan_mismatch=mismatches, shadow_scan_rows=rows,
                     shadow_scan_detail=detail)
         return mismatches
+
+
+def seed_sandbox(cdir):
+    """(sandbox dir, bare remote) for a case's seeded state — run_replay's
+    build_sandbox, with a git identity in the environment: a seed that makes
+    a merge commit needs one, and a CI runner has none."""
+    import run_replay as rr  # noqa: E402 — call time: run_replay imports this module
+    ident = {"GIT_AUTHOR_NAME": "seed", "GIT_AUTHOR_EMAIL": "seed@example.com",
+             "GIT_COMMITTER_NAME": "seed", "GIT_COMMITTER_EMAIL": "seed@example.com"}
+    old = {k: os.environ.get(k) for k in ident}
+    os.environ.update({k: v for k, v in ident.items() if not old[k]})
+    try:
+        sbx, _work, bare = rr.build_sandbox(cdir)
+    finally:
+        for k, v in old.items():
+            if v is None:
+                os.environ.pop(k, None)
+    return sbx, bare
 
 
 # ---- #133: stub truth — what a correct snapshot of this forge state says ----

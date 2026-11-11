@@ -89,9 +89,9 @@ scanner_writes = [b for ev in events if ev.get("parent_tool_use_id") == scanner_
 c.expect("patrol-scan.md (You write nothing)", "no forge write under the scanner",
          scanner_id is not None and not scanner_writes)
 # #133 shadow: bin/roz-state on the final forge state against the stub's own
-# truth, and the scanner table's fact columns
-# (track, status, cr) against the snapshot — signals, never a fail
+# truth, and the scanner table's fact columns (track, status, cr) against a
+# snapshot of the SEEDED state the scanner read — signals, never a fail
 # (evals/CONTRIBUTING.md § 7).
 r.shadow_state(["5"])
-r.shadow_scan(["5"])
+r.shadow_scan(["5"], os.path.dirname(os.path.abspath(__file__)))
 c.finish()

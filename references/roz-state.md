@@ -307,7 +307,9 @@ nothing about the fields, pagination or errors a real GitLab emits.
 ## Forge neutrality and transport
 
 GitHub and GitLab differences stay below the snapshot: the same fact has
-the same path and shape on both. The collector asks through `gh` / `glab`
+the same path and shape on both — GitLab's scoped `track::spec` /
+`status::in-dev` and its plain `processing` lock are the same `track`,
+`status` and `processing` values. The collector asks through `gh` / `glab`
 — the forge ops the prose already names, which the replay forge stub
 intercepts — behind adapters that map each CLI's output to the envelope.
 Branch identity comes only from `roz-branch` (`references/branch-names.md`,
@@ -332,9 +334,10 @@ zero unexplained mismatches, N stable runs — are
 fact authoritative (#133 switches nothing). Two signals carry it:
 `shadow_state` — the snapshot against the forge stub's own state, which
 proves the collector and costs no model call (a seed sweep runs it over
-every replay case's seeded state) — and `shadow_scan` — the snapshot
-against the **fact** columns of the scanner's table (`track`, `status`,
-`cr`), which catches a prose misread. `waiting on`, the verdict, `unheard`
+every replay case's seeded state) — and `shadow_scan` — the **fact**
+columns of the scanner's table (`track`, `status`, `cr`) against a
+snapshot of the state the scanner read (the seeded one: the scan is
+patrol's first step), which catches a prose misread. `waiting on`, the verdict, `unheard`
 and `evidence` are the scanner's interpretation and are never compared
 here; their parity is #134's. The scenario
 matrix every cell of which must be observed first:

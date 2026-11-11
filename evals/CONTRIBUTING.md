@@ -256,9 +256,14 @@ the answer computed straight from the stub's `state.json` and the remote's
 heads (it shares no code with the collector). It writes
 `shadow_state_mismatch` (differing facts), `shadow_state_invalid` (an
 output the contract rejects, or exit 3) and `shadow_state_detail`.
-`Run.shadow_scan(issues, template)` compares the scanner table's **fact**
-columns — `track`, `status`, `cr` — with the snapshot, and writes
-`shadow_scan_mismatch`, `shadow_scan_rows` and `shadow_scan_detail`. It
+`Run.shadow_scan(issues, case_dir, template)` compares the scanner table's
+**fact** columns — `track`, `status`, `cr` — with a snapshot of the state
+the scanner **read**, not the run's final one: the pass acts after the
+table, so a lock it takes later is no misread. The scan is patrol's first
+step, so that state is the case's seeded one, rebuilt from `case_dir`; a
+forge write journalled before the first listing breaks the premise and no
+row is compared. It writes `shadow_scan_mismatch`, `shadow_scan_rows` and
+`shadow_scan_detail`. It
 never reads `waiting on`, `verdict`, `unheard` or `evidence`: those are the
 scanner's interpretation, and a policy-level signal is `roz-check`'s
 (#134). `redproof.py` § state proves both discriminate, and runs the
