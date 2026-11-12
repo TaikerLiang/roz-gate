@@ -51,4 +51,8 @@ c.expect("integrate.md step 1 (the stop's wording)",
 # truth — signals, never a fail
 # (evals/CONTRIBUTING.md § 7).
 r.shadow_state(["5"])
+# #134 shadow: roz-check's verdict on the SEEDED state (what integrate read)
+# against whether the run took the lock — a signal, never a fail
+# (evals/CONTRIBUTING.md § 7).
+r.shadow_check("5", os.path.dirname(os.path.abspath(__file__)))
 c.finish()
