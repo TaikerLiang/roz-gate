@@ -148,4 +148,8 @@ denied, bash_writes = signals()
 print("attempts-denied: %d  bash-acceptance-writes: %d" % (denied, bash_writes))
 with open(os.path.join(os.environ["RUN_DIR"], "attempts.json"), "w") as f:
     json.dump({"attempts_denied": denied, "bash_acceptance_writes": bash_writes}, f)
+# #134 shadow: roz-check's verdict on the SEEDED state (what integrate read)
+# against whether the run took the lock — a signal, never a fail
+# (evals/CONTRIBUTING.md § 7).
+r.shadow_check("5", os.path.dirname(os.path.abspath(__file__)))
 c.finish()

@@ -187,8 +187,8 @@ come back in `agents/`, `commands/`, `references/` or `templates/`.
 | F15 | references/forge-github.md | is a **failed read**, never "no blockers" | Is an issue blocked by an open forge-native blocker? | OBSERVATION | roz-state | #133 (collector first used by #205) | ISSUE-BLOCKERS | a failed read → the fact is `unknown` (`forge_query_failed`); today's prose answer is `waiting on: blockers unknown` | F15; `hooks/tests/test_roz_state.py`; the seed sweep (`redproof.py` § state) | `shadow_state_mismatch` | shadow |
 | L2 | templates/claude-workflow.md | - specs_dir: | What are the block's keys and the clone's local keys? | OBSERVATION | code bin/roz-config | — | `bin/roz-config --json` | absent key → its documented default | L2, test_roz_config | not required: already code | authoritative |
 | L5 | commands/uninit.md | **CLAUDE.md** — or **CLAUDE.local.md**, whichever carries it | Where does the config block live? | OBSERVATION | code hooks/config_block.py | — | `find_block` (CLAUDE.md, then CLAUDE.local.md; toplevel, then main checkout) | none found → the command stops: run `/roz-gate:init` | L5 | not required: already code | authoritative |
-| C22 (policy) | commands/tip.md | review-clean is that record current **and** zero open threads | Is the implementation review-clean (`reviewed-sha` == head, marker present, zero open threads)? | MECHANICAL POLICY | roz-check | #134 ← row C22 (obs) | row C22 (obs) | — | C22, C23 | — | not_ready |
-| C16 (policy) | references/fidelity-brief.md | That comment is the record that the audit ran | May the QA CR integrate (a fidelity record on its current head, zero open fidelity threads)? | MECHANICAL POLICY | roz-check | #134 ← row C16 (obs) | row C16 (obs) | — | C16, C17 | — | not_ready |
+| C22 (policy) | commands/tip.md | review-clean is that record current **and** zero open threads | Is the implementation review-clean (`reviewed-sha` == head, marker present, zero open threads)? | MECHANICAL POLICY | roz-check | #134 ← row C22 (obs) | row C22 (obs) — a `roz-state` snapshot | the rule is `unknown` and the verdict never `eligible` — `may_start` false, no lock (`references/roz-check.md`) | C22, C23; `hooks/tests/test_roz_check.py`; the declared seeds (`redproof.py` § check) | `shadow_check_mismatch` (integrate's entry: C12, C16, D4, F4) | shadow |
+| C16 (policy) | references/fidelity-brief.md | That comment is the record that the audit ran | May the QA CR integrate (a fidelity record on its current head, zero open fidelity threads)? | MECHANICAL POLICY | roz-check | #134 ← row C16 (obs) | row C16 (obs) — a `roz-state` snapshot | the rule is `unknown` and the verdict never `eligible` — `may_start` false, no lock (`references/roz-check.md`) | C16, C17; `hooks/tests/test_roz_check.py`; the declared seeds (`redproof.py` § check) | `shadow_check_mismatch` (C12, C16, D4, F4) | shadow |
 | C24 (policy), F13 | references/patrol-scan.md | illegal state: gate label applied by | Is a gate label applied by a bot an illegal state? | MECHANICAL POLICY | roz-check | #134 ← row C24 (obs) | row C24 (obs), the block's `bot_login` | — | C24, F13 | — | identified |
 | C27, F14 | references/patrol-scan.md | - **A gate label on a stage that passed.** For a `track: spec` issue | Is `ready-for-dev` on a stage that already passed an illegal state? | MECHANICAL POLICY | roz-check | #134 ← rows C6 / L4 | the label, CR-FIND of `<feat-branch>` (all-states) | — | C27, F14 | — | identified |
 | C3 | references/workflow.md | label besides the `processing` lock | Does `processing` coexist with exactly one phase label? | MECHANICAL POLICY | roz-check | #134 | the issue's labels | — | C3 | — | identified |
@@ -273,6 +273,7 @@ a single rule and has its own row above.
 | L8 | the `/roz-gate:config` mod's implementation, not a question the loop answers |
 | L13, L14 | this page's own lints (the inventory; § Kernel) |
 | L15 | the `roz-state` contract's own lint — `references/roz-state.md` and `hooks/state_contract.py` carry one field table (#239) |
+| L16 | `roz-check`'s own lint — `references/roz-check.md`, `hooks/state_check.py` and `commands/integrate.md` § 1 carry one rule table (#134) |
 
 ## Duplicated mechanical interpretation
 
@@ -306,16 +307,16 @@ others (#95, #140 were this shape).
 | step | owner | what it is | status |
 |---|---|---|---|
 | observe | `roz-state` (#133) | the code-review marker's presence, its `reviewed-sha`, the CR's head, the open-thread count | **`shadow`** — `bin/roz-state` reports each as `observed` / `absent` / `unknown`; `shadow_state_mismatch` compares it with the forge stub's truth |
-| interpret | `roz-check` (#134) | `reviewed-sha == head` ∧ marker present ∧ threads == 0 → clean | `not_ready` — blocker `shadow`: no signal compares a computed verdict with the scanner's row |
+| interpret | `roz-check` (#134) | `reviewed-sha == head` ∧ marker present ∧ threads == 0 → clean — three rules of `bin/roz-check integrate` | **`shadow`** for integrate's entry (`shadow_check_mismatch`: the verdict against the lock). The other four restatements — next-stage, tip, patrol, the scanner — are not yet behind a check |
 | shadow | `replaylib` | a `review_clean_mismatch` signal in C22 / C23, as `shadow_branch` is in C11 | — |
 | delete | — | the five restatements above collapse to one call; `workflow.md` keeps the definition for humans | — |
 
 The observation half is in shadow since #133: a failed THREADS-LIST or
 CR-COMMENTS-LIST read is an `unknown` fact, never zero threads or a missing
-record. The policy half keeps both of its blockers, and they are #134's:
-what review-clean answers when a fact is `unknown` (a `waiting on: review
-state unknown` verdict, as F15 does for blockers), and a policy-level
-signal. Then that row is `ready`.
+record. The policy half is in shadow since #134 for one consumer —
+integrate's entry: an `unknown` fact makes the rule `unknown` and the
+verdict never `eligible` (no lock), and `shadow_check` is the signal. The
+other restatements of review-clean are still prose only.
 
 ## Unguarded executable prose
 

@@ -30,7 +30,7 @@ human         authority / intent
 | Is the CR open, merged, draft? What is its base? | `roz-state` |
 | How many unresolved threads? Is an audit marker there, and for which sha? | `roz-state` |
 | Is a forge-native blocker open? | `roz-state` |
-| Is the marker's sha the CR's head? Is the review clean? | `roz-check` |
+| Is the marker's sha the CR's head? Is the review clean? May `integrate` start? | `roz-check` (`references/roz-check.md`) |
 | Is a red a harness issue or a contract mismatch? Is a clause contradictory? | the agent |
 | Should the work be authorized or accepted? | the human |
 

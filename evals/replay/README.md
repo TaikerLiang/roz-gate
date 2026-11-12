@@ -145,8 +145,11 @@ once per SUT under the checkout — plumbing, not the brief. A driver case
 `report.json`, in their own columns: `shadow_branch_mismatch` (#135),
 `shadow_state_mismatch` / `shadow_state_invalid` and `shadow_scan_mismatch`
 / `shadow_scan_rows` (#133 — `bin/roz-state` against the forge stub's truth
-and against the fact columns of the scanner's table). A signal is
-information, never a verdict.
+and against the fact columns of the scanner's table),
+`shadow_check_mismatch` / `shadow_check_unknown` (#134 — `bin/roz-check`'s
+verdict on the seeded state against whether the run took the lock). A
+signal is information, never a verdict. A case may declare the verdict its
+seed must give in `case.json`'s `check` key; the harness verifies it.
 
 The cases built for the comparison are **D10–D19**, the pilot of #199:
 ten `/roz-gate:next-stage 5` runs on four fixture shapes (an HTTP service

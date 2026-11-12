@@ -39,4 +39,8 @@ def claim_ok():
 c.expect("ledger F4 + integrate.md:98-100 (the licensed claim, verbatim)",
          "report claims 'green against the pre-rework spec', never 'verified'",
          claim_ok)
+# #134 shadow: roz-check's verdict on the SEEDED state (what integrate read)
+# against whether the run took the lock — a signal, never a fail
+# (evals/CONTRIBUTING.md § 7).
+r.shadow_check("5", os.path.dirname(os.path.abspath(__file__)))
 c.finish()

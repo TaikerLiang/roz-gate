@@ -603,6 +603,63 @@ class Run:
         return mismatches
 
 
+    # ---- #134: roz-check in shadow ----------------------------------------
+    def lock_taken(self, issue):
+        """The run added `status: processing` to `issue` — integrate's § 2."""
+        return any(e.get("route") == "issue-edit" and str(e.get("issue")) == str(issue)
+                   and any("processing" in a for a in e.get("add", []))
+                   for e in self.journal())
+
+    def shadow_check(self, issue, case_dir, operation="integrate", template=None,
+                     _result=None):
+        """#134 shadow: roz-check's verdict for `operation` on the state the
+        command READ — the case's seeded state, rebuilt from `case_dir` (the
+        lesson of shadow_scan: never the run's final state) — against whether
+        the command took the lock.
+
+            eligible   → the lock is expected
+            ineligible → no lock is expected
+            unknown    → no lock is expected: the evidence does not authorize
+                         the operation, so a lock taken on it is a mismatch,
+                         never ignored
+
+        A snapshot that could not be collected is `unknown` too. Writes
+        `shadow_check_mismatch` (0 / 1), `shadow_check_unknown` (0 / 1, for
+        information) and `shadow_check_detail`; a signal, never a fail."""
+        sys.path.insert(0, os.path.join(ROOT, "hooks"))
+        import state_check as ck  # noqa: E402
+        detail = {"operation": operation, "issue": str(issue)}
+        if _result is not None:
+            result = _result
+        else:
+            result = {"verdict": "unknown", "may_start": False, "failed": [], "unknown": []}
+            sbx, bare = seed_sandbox(case_dir)
+            try:
+                if sbx:
+                    rc, obj = self.roz_state(issue, template, bare=bare,
+                                             state_path=os.path.join(case_dir, "state.json"))
+                    if rc == 0:
+                        try:
+                            result = ck.check(operation, obj)
+                        except ck.InvalidSnapshot as e:
+                            detail["snapshot"] = "invalid: %s" % e
+                    else:
+                        detail["snapshot"] = "exit %s" % rc
+                else:
+                    detail["snapshot"] = "the seeded state could not be rebuilt"
+            finally:
+                if sbx:
+                    shutil.rmtree(sbx, ignore_errors=True)
+        locked = self.lock_taken(issue)
+        mismatch = int(bool(result["may_start"]) != locked)
+        detail.update(verdict=result["verdict"], failed=result["failed"],
+                      unknown=result["unknown"], locked=locked)
+        self.signal(shadow_check_mismatch=mismatch,
+                    shadow_check_unknown=int(result["verdict"] == "unknown"),
+                    shadow_check_detail=detail)
+        return mismatch
+
+
 def seed_sandbox(cdir):
     """(sandbox dir, bare remote) for a case's seeded state — run_replay's
     build_sandbox, with a git identity in the environment: a seed that makes
