@@ -227,22 +227,70 @@ def gql_login(c):
     return login
 
 
-def issue_shape(n, iss, want):
-    full = {
-        "number": int(n),
-        "title": iss.get("title", ""),
-        "body": iss.get("body", ""),
-        "labels": [{"name": l} for l in iss.get("labels", [])],
-        "assignees": [{"login": a} for a in iss.get("assignees", [])],
-        "author": {"login": iss.get("author", "")},
-        "createdAt": iss.get("createdAt", "2026-08-01T00:00:00Z"),
-        "comments": [
-            {"id": c.get("id"), "author": {"login": gql_login(c)},
-             "body": c.get("body", ""), "createdAt": c.get("createdAt", "")}
-            for c in iss.get("comments", [])
-        ],
-    }
-    return {k: v for k, v in full.items() if not want or k in want}
+def repo_slug(st):
+    """#250 — `<owner>/<repo>`: the fixture's own repository, the one `gh
+    repo view` names and the sandbox's remote points at."""
+    repo = st.get("repo") or {}
+    return "%s/%s" % (repo.get("owner", "acme"), repo.get("name", "demo"))
+
+
+def web(st):
+    """The repository's web root — every URL the stub prints or returns
+    starts here, so none can name a repository the fixture is not."""
+    return "https://github.com/" + repo_slug(st)
+
+
+# #250 — the `--json` fields each command SERVES: the ones the fixture can
+# answer faithfully, and nothing else. Not gh's field catalog — a field
+# that is not here (gh's or a typo) is UNKNOWN, never a silent blank. Each
+# value is computed only when asked for.
+ISSUE_FIELDS = {
+    "number": lambda st, n, iss: int(n),
+    "url": lambda st, n, iss: web(st) + "/issues/%s" % n,
+    "title": lambda st, n, iss: iss.get("title", ""),
+    "body": lambda st, n, iss: iss.get("body", ""),
+    "state": lambda st, n, iss: iss.get("state", "open").upper(),
+    "closed": lambda st, n, iss: iss.get("state", "open").lower() != "open",
+    "labels": lambda st, n, iss: [{"name": l} for l in iss.get("labels", [])],
+    "assignees": lambda st, n, iss: [{"login": a} for a in iss.get("assignees", [])],
+    "author": lambda st, n, iss: {"login": iss.get("author", "")},
+    "createdAt": lambda st, n, iss: iss.get("createdAt", "2026-08-01T00:00:00Z"),
+    "comments": lambda st, n, iss: [
+        {"id": c.get("id"), "author": {"login": gql_login(c)},
+         "body": c.get("body", ""), "createdAt": c.get("createdAt", "")}
+        for c in iss.get("comments", [])],
+}
+
+REPO_FIELDS = {
+    "owner": lambda st: {"login": repo_slug(st).split("/")[0]},
+    "name": lambda st: repo_slug(st).split("/")[1],
+    "nameWithOwner": lambda st: repo_slug(st),
+    "url": lambda st: web(st),
+}
+
+
+def json_want(cmd, argv, served):
+    """The `--json` fields asked for, validated as a whole BEFORE the route
+    journals or prints anything: one unserved field makes the command
+    UNKNOWN — never JSON with the served fields and the other dropped.
+    No `--json` at all is [] — the empty projection the stub has always
+    printed there (gh's human-readable view is not emulated)."""
+    raw = flag_val(argv, "--json")
+    if raw is None:
+        return []
+    want = [f.strip() for f in raw.split(",")]
+    missing = [f for f in want if f not in served]
+    if missing:
+        unknown("%s --json %s: not served by the stub" % (cmd, ",".join(missing)))
+    return want
+
+
+def project(fields, want, *args):
+    return {k: f(*args) for k, f in fields.items() if want is None or k in want}
+
+
+def issue_shape(st, n, iss, want):
+    return project(ISSUE_FIELDS, want, st, n, iss)
 
 
 # Real gh accepts a head branch name (or nothing — the current branch)
@@ -355,31 +403,36 @@ def pr_files(base, head):
     return rows
 
 
-def pr_shape(pr, want):
-    full = {
-        "number": pr.get("number"),
-        "url": "https://github.com/x/y/pull/%s" % pr.get("number"),
-        "title": pr.get("title", ""),
-        "isDraft": pr.get("isDraft", False),
-        "state": pr.get("state", "OPEN"),
-        "headRefName": pr.get("headRefName", ""),
-        "baseRefName": pr.get("baseRefName", ""),
-        "body": pr.get("body", ""),
-        "labels": [{"name": l} for l in pr.get("labels", [])],
-        "mergedAt": pr.get("mergedAt"),
-    }
-    if want and "headRefOid" in want:
-        # #133 — the head commit, resolved in the sandbox like `pulls/<n>`'s
-        # `head.sha`; computed only when asked (one git call per row). An
-        # unresolvable head is "" — a visible fixture defect, never invented.
-        rp = subprocess.run(["git", "rev-parse", "--verify", "-q",
-                             resolve_ref(pr.get("headRefName", "")) + "^{commit}"],
-                            capture_output=True, text=True)
-        # #272 — a head the forge deleted has no ref in the sandbox: the
-        # fixture's own `headRefOid` answers for it, as the forge's record does
-        full["headRefOid"] = (rp.stdout.strip() if rp.returncode == 0
-                              else pr.get("headRefOid", ""))
-    return {k: v for k, v in full.items() if not want or k in want}
+def _head_oid(st, pr):
+    # #133 — the head commit, resolved in the sandbox like `pulls/<n>`'s
+    # `head.sha`; computed only when asked (one git call per row). An
+    # unresolvable head is "" — a visible fixture defect, never invented.
+    rp = subprocess.run(["git", "rev-parse", "--verify", "-q",
+                         resolve_ref(pr.get("headRefName", "")) + "^{commit}"],
+                        capture_output=True, text=True)
+    # #272 — a head the forge deleted has no ref in the sandbox: the
+    # fixture's own `headRefOid` answers for it, as the forge's record does
+    return rp.stdout.strip() if rp.returncode == 0 else pr.get("headRefOid", "")
+
+
+PR_FIELDS = {
+    "number": lambda st, pr: pr.get("number"),
+    "url": lambda st, pr: web(st) + "/pull/%s" % pr.get("number"),
+    "title": lambda st, pr: pr.get("title", ""),
+    "isDraft": lambda st, pr: pr.get("isDraft", False),
+    "state": lambda st, pr: pr.get("state", "OPEN"),
+    "closed": lambda st, pr: pr.get("state", "OPEN").upper() != "OPEN",
+    "headRefName": lambda st, pr: pr.get("headRefName", ""),
+    "baseRefName": lambda st, pr: pr.get("baseRefName", ""),
+    "body": lambda st, pr: pr.get("body", ""),
+    "labels": lambda st, pr: [{"name": l} for l in pr.get("labels", [])],
+    "mergedAt": lambda st, pr: pr.get("mergedAt"),
+    "headRefOid": _head_oid,
+}
+
+
+def pr_shape(st, pr, want):
+    return project(PR_FIELDS, want, st, pr)
 
 
 def repo_labels(st):
@@ -561,10 +614,10 @@ def main():
 
     # ---- gh repo view --json owner,name
     if argv[:2] == ["repo", "view"]:
+        want = json_want("repo view", argv, REPO_FIELDS)
         journal("repo-view")
-        repo = st.get("repo", {})
-        out({"owner": {"login": repo.get("owner", "acme")},
-             "name": repo.get("name", "demo")})
+        # no --json: owner and name, as before #250
+        out(project(REPO_FIELDS, want or ["owner", "name"], st))
         return
 
     # ---- gh auth status
@@ -576,8 +629,8 @@ def main():
     # ---- issues
     if argv[:2] == ["issue", "list"]:
         state_q = (flag_val(argv, "--state") or "open").lower()
+        want = json_want("issue list", argv, ISSUE_FIELDS)
         journal("issue-list", state=state_q)
-        want = (flag_val(argv, "--json") or "").split(",")
         label = flag_val(argv, "--label")
         rows = []
         for n, iss in sorted(st.get("issues", {}).items(), key=lambda x: int(x[0])):
@@ -585,7 +638,7 @@ def main():
                 continue
             if label and label not in iss.get("labels", []):
                 continue
-            rows.append(issue_shape(n, iss, want))
+            rows.append(issue_shape(st, n, iss, want))
         out(rows)
         return
 
@@ -593,9 +646,9 @@ def main():
         n = argv[2]
         if n not in st.get("issues", {}):
             unknown("issue %s not in fixture" % n)
+        want = json_want("issue view", argv, ISSUE_FIELDS)
         journal("issue-view", issue=n)
-        want = (flag_val(argv, "--json") or "").split(",")
-        out(issue_shape(n, st["issues"][n], want))
+        out(issue_shape(st, n, st["issues"][n], want))
         return
 
     if argv[:2] == ["issue", "edit"]:
@@ -650,7 +703,7 @@ def main():
         else:
             unknown("issue %s not in fixture" % n)
         save(st)
-        print("https://github.com/x/y/issues/%s#issuecomment-%d" % (n, cid))
+        print(web(st) + "/issues/%s#issuecomment-%d" % (n, cid))
         return
 
     if argv[:2] == ["issue", "create"]:
@@ -663,13 +716,13 @@ def main():
             "author": st.get("agent_login", "paul"), "comments": []}
         journal("issue-create", write=True, issue=n, title=title)
         save(st)
-        print("https://github.com/x/y/issues/%s" % n)
+        print(web(st) + "/issues/%s" % n)
         return
 
     # ---- pull requests
     if argv[:2] == ["pr", "list"]:
+        want = json_want("pr list", argv, PR_FIELDS)
         journal("pr-list", state=flag_val(argv, "--state") or "open")
-        want = (flag_val(argv, "--json") or "").split(",")
         head = flag_val(argv, "--head")
         state = (flag_val(argv, "--state") or "open").lower()
         rows = []
@@ -679,11 +732,12 @@ def main():
             pr_state = pr.get("state", "OPEN").lower()
             if state != "all" and pr_state != state:
                 continue
-            rows.append(pr_shape(pr, want))
+            rows.append(pr_shape(st, pr, want))
         out(rows)
         return
 
     if argv[:2] == ["pr", "view"]:
+        want = json_want("pr view", argv, PR_FIELDS)
         sel = positional(argv, 2)
         if sel is None:
             sel = current_branch()
@@ -697,8 +751,7 @@ def main():
             sys.stderr.write("no pull requests found for branch %s\n" % sel)
             sys.exit(1)
         journal("pr-view", pr=n)
-        want = (flag_val(argv, "--json") or "").split(",")
-        out(pr_shape(pr, want))
+        out(pr_shape(st, pr, want))
         return
 
     # ---- gh pr diff <number|branch> — read-only; the sandbox repo has the
@@ -731,7 +784,7 @@ def main():
         journal("pr-create", write=True, pr=n,
                 head=flag_val(argv, "--head"), draft="--draft" in argv)
         save(st)
-        print("https://github.com/x/y/pull/%s" % n)
+        print(web(st) + "/pull/%s" % n)
         return
 
     if argv[:2] == ["pr", "ready"]:
@@ -799,7 +852,7 @@ def main():
         journal("pr-edit", write=True, pr=n, title_edit=title is not None,
                 body_edit=body is not None, add=added, remove=removed)
         save(st)
-        print("https://github.com/x/y/pull/%s" % n)
+        print(web(st) + "/pull/%s" % n)
         return
 
     if argv[:2] == ["pr", "comment"]:
@@ -813,7 +866,7 @@ def main():
              "body": body, "created_at": "2026-08-24T12:00:00Z"})
         journal("pr-comment", write=True, pr=n, body=body)
         save(st)
-        print("https://github.com/x/y/pull/%s#issuecomment-%d" % (n, cid))
+        print(web(st) + "/pull/%s#issuecomment-%d" % (n, cid))
         return
 
     if argv[:2] == ["pr", "merge"]:
@@ -920,9 +973,9 @@ def main():
                 sys.stderr.write("gh: Not Found (HTTP 404)\n{\"message\":\"Not Found\"}\n")
                 sys.exit(1)
             jq_project({"ref": "refs/heads/%s" % branch, "node_id": "REF_x",
-                        "url": "https://api.github.com/repos/x/y/git/refs/heads/%s" % branch,
+                        "url": "https://api.github.com/repos/" + repo_slug(st) + "/git/refs/heads/%s" % branch,
                         "object": {"sha": sha, "type": "commit",
-                                   "url": "https://api.github.com/repos/x/y/git/commits/%s" % sha}},
+                                   "url": "https://api.github.com/repos/" + repo_slug(st) + "/git/commits/%s" % sha}},
                        flag_val(argv, "--jq", "-q"))
             return
 
@@ -993,7 +1046,7 @@ def main():
                         "state": "open" if pr_state == "open" else "closed",
                         "draft": pr_.get("isDraft", False),
                         "merged_at": "2026-08-24T12:00:00Z" if pr_state == "merged" else None,
-                        "html_url": "https://github.com/x/y/pull/%s" % n_,
+                        "html_url": web(st) + "/pull/%s" % n_,
                         "head": {"ref": head_ref, "sha": sha or "0" * 40},
                         "base": {"ref": pr_.get("baseRefName", "")},
                         "user": {"login": pr_.get("author", st.get("agent_login", "paul"))}},
@@ -1022,7 +1075,7 @@ def main():
                 sys.exit(1)
             msg = subprocess.run(["git", "log", "-1", "--format=%s", sha],
                                  capture_output=True, text=True).stdout.strip()
-            jq_project({"sha": sha, "html_url": "https://github.com/x/y/commit/%s" % sha,
+            jq_project({"sha": sha, "html_url": web(st) + "/commit/%s" % sha,
                         "commit": {"message": msg}}, flag_val(argv, "--jq", "-q"))
             return
 
@@ -1076,7 +1129,7 @@ def main():
                              "head": {"ref": pr.get("headRefName", "")},
                              "base": {"ref": pr.get("baseRefName", "")},
                              "user": {"login": st.get("agent_login", "paul")},
-                             "html_url": "https://github.com/x/y/pull/%s" % pr.get("number")})
+                             "html_url": web(st) + "/pull/%s" % pr.get("number")})
             jq_project(rows, flag_val(argv, "--jq", "-q"))
             return
 
@@ -1214,7 +1267,7 @@ def main():
             save(st)
             jq_project({"id": cid, "body": fields.get("body", ""),
                         "user": {"login": st.get("agent_login", "paul")},
-                        "html_url": "https://github.com/x/y/%s/%s#issuecomment-%d"
+                        "html_url": web(st) + "/%s/%s#issuecomment-%d"
                                     % ("pull" if n in st.get("prs", {}) else "issues", n, cid)},
                        flag_val(argv, "--jq", "-q"))   # codex, PR #238: --jq honoured
             return
@@ -1265,7 +1318,7 @@ def main():
                      "user": {"login": c.get("author", ""),
                               "type": c.get("author_type", "User")},
                      "created_at": c.get("created_at", c.get("createdAt", "")),
-                     "html_url": "https://github.com/x/y/pull/%s#issuecomment-%s"
+                     "html_url": web(st) + "/pull/%s#issuecomment-%s"
                                  % (n, c.get("id"))}
                     for c in src.get("comments", [])]
             if flag_val(argv, "--jq"):
@@ -1294,7 +1347,7 @@ def main():
                                  "path": t.get("path"), "line": t.get("line"),
                                  "created_at": c.get("createdAt", ""),
                                  **({"in_reply_to_id": root} if cid != root else {}),
-                                 "html_url": "https://github.com/x/y/pull/%s"
+                                 "html_url": web(st) + "/pull/%s"
                                              "#discussion_r%s" % (n, cid)})
             jq_project(rows, flag_val(argv, "--jq", "-q"))
             return
@@ -1319,7 +1372,7 @@ def main():
             jq_project({"id": cid, "body": fields.get("body", ""),
                         "path": fields.get("path"), "line": fields.get("line"),
                         "user": {"login": st.get("agent_login", "paul")},
-                        "html_url": "https://github.com/x/y/pull/%s#discussion_r%d" % (n, cid)},
+                        "html_url": web(st) + "/pull/%s#discussion_r%d" % (n, cid)},
                        flag_val(argv, "--jq", "-q"))   # codex, PR #238: --jq honoured
             return
 
@@ -1342,7 +1395,7 @@ def main():
                     jq_project({"id": cid, "body": fields.get("body", ""),
                                 "in_reply_to_id": base,
                                 "user": {"login": st.get("agent_login", "paul")},
-                                "html_url": "https://github.com/x/y/pull/%s#discussion_r%d"
+                                "html_url": web(st) + "/pull/%s#discussion_r%d"
                                             % (n, cid)},
                                flag_val(argv, "--jq", "-q"))
                     return
@@ -1381,7 +1434,7 @@ def main():
                                    "user": {"login": c.get("author", "")},
                                    "created_at": c.get("created_at",
                                                        c.get("createdAt", "")),
-                                   "html_url": "https://github.com/x/y/%s/%s"
+                                   "html_url": web(st) + "/%s/%s"
                                                "#issuecomment-%d"
                                                % ("pull" if kind == "pr"
                                                   else "issues", n, cid)}
@@ -1413,8 +1466,8 @@ def main():
                     unknown("issue-blocked-by: blocker %s not in fixture" % b)
                 rows.append({"number": int(b), "title": bi.get("title", ""),
                              "state": bi.get("state", "open"),
-                             "html_url": "https://github.com/x/y/issues/%s" % b,
-                             "repository_url": "https://api.github.com/repos/x/y"})
+                             "html_url": web(st) + "/issues/%s" % b,
+                             "repository_url": "https://api.github.com/repos/%s" % repo_slug(st)})
             journal("issue-blocked-by", issue=n)
             jq_project(rows, flag_val(argv, "--jq", "-q"))
             return
@@ -1428,14 +1481,14 @@ def main():
             if iss is None:
                 unknown("issue %s not in fixture" % n)
             journal("issue-view", issue=n, via="api")
-            shape = issue_shape(n, iss, None)
+            shape = issue_shape(st, n, iss, None)
             jq_project({"number": int(n), "title": shape["title"], "body": shape["body"],
                         "state": iss.get("state", "open"),
                         "labels": shape["labels"], "assignees": shape["assignees"],
                         "user": {"login": iss.get("author", "")},
                         "created_at": shape["createdAt"],
                         "comments": len(shape["comments"]),
-                        "html_url": "https://github.com/x/y/issues/%s" % n},
+                        "html_url": web(st) + "/issues/%s" % n},
                        flag_val(argv, "--jq", "-q"))
             return
 
@@ -1454,7 +1507,7 @@ def main():
                                     "path": t.get("path"), "line": t.get("line"),
                                     "created_at": c.get("createdAt", ""),
                                     **({"in_reply_to_id": root} if cid != root else {}),
-                                    "html_url": "https://github.com/x/y/pull/%s#discussion_r%s" % (n, cid)},
+                                    "html_url": web(st) + "/pull/%s#discussion_r%s" % (n, cid)},
                                    flag_val(argv, "--jq", "-q"))
                         return
             unknown("review-comment-view: pr %s comment %d not in fixture" % (n, cid))
@@ -1492,7 +1545,7 @@ def main():
                                         "user": {"login": c.get("author", "")},
                                         "path": t.get("path"), "line": t.get("line"),
                                         "created_at": c.get("createdAt", ""),
-                                        "html_url": "https://github.com/x/y/pull/%s"
+                                        "html_url": web(st) + "/pull/%s"
                                                     "#discussion_r%s" % (n, cid)},
                                        flag_val(argv, "--jq", "-q"))
                             return
