@@ -76,7 +76,7 @@ def target():
     for a in ARGV[1:]:
         if skip:
             skip = False
-        elif a in ("-f", "-F", "-X", "--method", "--jq", "-q", "-H"):
+        elif a in ("-f", "-F", "-X", "--method", "--jq", "-q", "-H", "--hostname"):
             skip = True
         elif not a.startswith("-") and out is None:
             out = a
@@ -86,7 +86,14 @@ def target():
 def merged_prs():
     """The world's merged CRs, then `merged_filler` synthetic ones (for the
     ceiling), in the world's own order — never sorted for the caller."""
-    rows = [p for p in W.get("prs", []) if p["state"] == "merged"]
+    # a read bound to a repository (#272, codex): `--repo` (gh) or the project
+    # path (glab) picks that repository's CRs when the world names several
+    repo = flag("--repo", "-R")
+    m = re.match(r"projects/([^/:]+)/merge_requests", target() if ARGV[:1] == ["api"] else "")
+    if m:
+        repo = "%s/%s" % (flag("--hostname") or "", unquote(m.group(1)))
+    prs = W.get("by_repo", {}).get(repo, W.get("prs", [])) if repo else W.get("prs", [])
+    rows = [p for p in prs if p["state"] == "merged"]
     rows += [{"number": 100000 + i, "head": "filler/%d" % i, "head_sha": "f" * 40,
               "merged_at": "2020-01-01T00:00:00Z"} for i in range(int(W.get("merged_filler", 0)))]
     return rows
@@ -184,7 +191,7 @@ def glab():
             die("404 Not Found")
         print(json.dumps({"iid": int(m.group(1)), "labels": [gl_label(x) for x in iss["labels"]]}))
         return
-    if path == "projects/:id/merge_requests":
+    if re.match(r"projects/[^/]+/merge_requests$", path):
         if q.get("state") == "merged":              # the merged history (#272)
             if "merged" in FAIL:
                 die()

@@ -117,6 +117,9 @@ with the CR's number and head `sha`:
   was not read through proves nothing absent;
 - where merged CRs share a head name, the one **merged last** is kept
   (`merged_at`, then the CR number as the tie-breaker).
+- the history is read from **the repository the remote names** (its
+  configured URL), never from wherever the forge CLI resolves by default —
+  the heads and the history are one repository's, or they are not combined.
 
 `bin/roz-branch match` reads it; the commands' own Lookup above does not
 yet (they get it when they switch to the resolver — `evals/CONTRIBUTING.md`

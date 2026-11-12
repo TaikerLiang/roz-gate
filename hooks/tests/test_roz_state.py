@@ -357,6 +357,69 @@ class RozState(unittest.TestCase):
             finally:
                 gone.close()
 
+    def test_history_is_bound_to_the_remote(self):
+        """Codex, PR #275: the merged history must come from the repository the
+        live heads came from — never the forge CLI's default repository."""
+        for forge, cli in (("github", "gh"), ("gitlab", "glab")):
+            r = Repo(forge, branches=("feat/27",))
+            try:
+                # two remotes, both readable (insteadOf → the local bare), each
+                # naming a different forge repository
+                other = os.path.join(r.dir, "other.git")
+                sh(["git", "clone", "-q", "--bare", r.bare, other], r.dir)
+                for name, url, path in (("origin", "https://forge.example/acme/demo.git", r.bare),
+                                        ("upstream", "git@forge.example:up/stream.git", other)):
+                    sh(["git", "config", "url.%s.insteadOf" % path, url], r.work)
+                    sh(["git", "config", "remote.%s.url" % name, url], r.work)
+                    sh(["git", "config", "remote.%s.fetch" % name,
+                        "+refs/heads/*:refs/remotes/%s/*" % name], r.work)
+
+                def merged(n, head):
+                    p = pr(r, n, "merged", head, base="main")
+                    p["head_sha"], p["merged_at"] = "c" * 40, "2026-08-01T00:00:00Z"
+                    return p
+                w = world(r, prs=[merged(999, "spec/27")])       # the CLI's default repository
+                w["by_repo"] = {"forge.example/acme/demo": [merged(40, "spec/27")],
+                                "forge.example/up/stream": [merged(77, "qa/27")]}
+                for remote, want in (("origin", {"spec": [("spec/27", 40)], "qa": []}),
+                                     ("upstream", {"spec": [], "qa": [("qa/27", 77)]})):
+                    p = subprocess.run(
+                        [sys.executable, str(ROOT / "bin" / "roz-branch"), "lookup", "--remote",
+                         remote, "--issues", "27", "--tracks", "27=spec", "--json"],
+                        cwd=r.work, env=r.env(w), capture_output=True, text=True)
+                    with self.subTest("roz-branch: %s — the history of --remote %s is that "
+                                      "remote's repository's, not the CLI default's"
+                                      % (cli, remote)):
+                        got = json.loads(p.stdout)["issues"]["27"]
+                        self.assertEqual({k: [(m["branch"], m["cr"]) for m in got[k]["matches"]
+                                              if m.get("deleted")] for k in ("spec", "qa")}, want)
+            finally:
+                r.close()
+
+    def test_forge_repo(self):
+        d = tempfile.mkdtemp()
+        old = os.getcwd()
+        try:
+            sh(["git", "init", "-q"], d)
+            os.chdir(d)
+            for url, want in (
+                    ("https://github.com/acme/demo.git", ("github.com", "acme/demo")),
+                    ("https://github.com/acme/demo", ("github.com", "acme/demo")),
+                    ("git@github.com:acme/demo.git", ("github.com", "acme/demo")),
+                    ("ssh://git@gitlab.corp:2222/grp/sub/proj.git",
+                     ("gitlab.corp", "grp/sub/proj")),
+                    ("https://user@gitlab.corp/grp/sub/proj/", ("gitlab.corp", "grp/sub/proj")),
+                    ("/srv/git/origin.git", None), ("../origin.git", None),
+                    ("C:/git/origin.git", None), ("file:///srv/git/origin.git", None)):
+                sh(["git", "config", "remote.r.url", url], d)
+                with self.subTest("roz-branch: the forge repository of %s" % url):
+                    self.assertEqual(state_collect.forge_repo("r"), want)
+            with self.subTest("roz-branch: a remote that is not configured names none"):
+                self.assertEqual(state_collect.forge_repo("nope"), None)
+        finally:
+            os.chdir(old)
+            shutil.rmtree(d, ignore_errors=True)
+
     def test_snapshot_without_a_block_asks_no_forge(self):
         nb = Repo("github", branches=("spec/27",), block=False)
         try:

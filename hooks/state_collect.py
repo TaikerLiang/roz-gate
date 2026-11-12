@@ -208,10 +208,12 @@ class GitHub:
         return [_cr(r.get("number"), self.STATES.get(r.get("state")), r.get("isDraft"),
                     r.get("baseRefName"), r.get("headRefOid")) for r in rows]
 
-    def merged_heads(self):
-        rows = _rows(run(["gh", "pr", "list", "--state", "merged", "--limit",
-                          str(MERGED_CEILING + 1), "--json",
-                          "number,headRefName,headRefOid,mergedAt"]))
+    def merged_heads(self, repo=None):
+        argv = ["gh", "pr", "list", "--state", "merged", "--limit", str(MERGED_CEILING + 1),
+                "--json", "number,headRefName,headRefOid,mergedAt"]
+        if repo:                                # (host, path): the remote's own repository
+            argv += ["--repo", "%s/%s" % repo]
+        rows = _rows(run(argv))
         if len(rows) > MERGED_CEILING:
             raise ReadFailed("history_truncated",
                              "more than %d merged CRs" % MERGED_CEILING)
@@ -288,11 +290,14 @@ class GitLab:
                     r.get("draft", r.get("work_in_progress")), r.get("target_branch"),
                     r.get("sha")) for r in rows]
 
-    def merged_heads(self):
+    def merged_heads(self, repo=None):
+        from urllib.parse import quote
         rows, page = [], 1
+        # (host, path): the remote's own project, by its URL-encoded path
+        project, host = (quote(repo[1], safe=""), ["--hostname", repo[0]]) if repo else (":id", [])
         while True:
-            got = _rows(run(["glab", "api", "projects/:id/merge_requests?state=merged"
-                             "&per_page=100&page=%d" % page]))
+            got = _rows(run(["glab", "api", *host, "projects/%s/merge_requests?state=merged"
+                             "&per_page=100&page=%d" % (project, page)]))
             rows.extend(got)
             if len(got) < 100:
                 break                       # the forge's last page: the history is read
@@ -380,6 +385,24 @@ def pick_marker(comments, marker):
 
 # ---- the branch snapshot: the remote's heads + the merged history (#272) ----------
 
+_REMOTE_URL = (re.compile(r"^(?:https?|ssh|git)://(?:[^@/]+@)?([^/:]+)(?::\d+)?/(.+?)(?:\.git)?/?$"),
+               re.compile(r"^(?:[^@/]+@)?([^/:]+):(?!/)(.+?)(?:\.git)?/?$"))      # scp-like
+
+
+def forge_repo(remote):
+    """(host, path) of the forge repository `remote` names — from its
+    configured URL, as written (before any `insteadOf`) — or None when the
+    URL names none (a local path: a sandbox). The history must come from
+    the repository the heads came from, never from wherever the forge CLI
+    resolves by default (codex review, PR #275)."""
+    url = git("config", "--get", "remote.%s.url" % remote) or ""
+    for pat in _REMOTE_URL:
+        m = pat.match(url)
+        if m and "/" in m.group(2):
+            return m.group(1), m.group(2)
+    return None
+
+
 def collect_snapshot(remote="origin"):
     """branch_names.collect_remote_heads, plus `merged_heads` — the head
     names merged CRs remember, so a head the forge deleted on merge can
@@ -391,7 +414,10 @@ def collect_snapshot(remote="origin"):
                     | {"status": "not_asked", "heads": {}}
 
     `not_asked`: no Roz Gate config block (not a roz-gate project — no forge
-    is named), or the remote itself is unreadable. A failed history read
+    is named), or the remote itself is unreadable. The read is bound to the
+    repository `remote` names (`forge_repo`); only a remote whose URL names
+    none — a local path — is left to the forge CLI's own resolution, since
+    there is then no other repository to confuse it with. A failed history read
     never touches the remote's part: `status` stays the remote's. Where
     merged CRs share a head name, the one merged last is kept —
     max((merged_at, number)): chronology, the number only breaking a tie
@@ -406,7 +432,7 @@ def collect_snapshot(remote="origin"):
         return snap
     try:
         best = {}
-        for r in ADAPTERS[forge]().merged_heads():
+        for r in ADAPTERS[forge]().merged_heads(forge_repo(remote)):
             if (not isinstance(r["head"], str) or not r["head"] or not isinstance(r["sha"], str)
                     or not r["sha"] or isinstance(r["cr"], bool) or not isinstance(r["cr"], int)):
                 raise ReadFailed("forge_query_failed", "a merged CR record the adapter "
