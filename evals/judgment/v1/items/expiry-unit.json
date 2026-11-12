@@ -1,0 +1,37 @@
+{
+  "id": "J-expiry-unit",
+  "family": "questioned-vs-undrivable",
+  "set": "development",
+  "seat": "qa",
+  "brief": "references/qa-brief.md",
+  "sources": {
+    "issues": [
+      243
+    ],
+    "fixtures": [
+      "evals/replay/cases/D8",
+      "evals/replay/cases/D18"
+    ],
+    "note": "the #199 Haiku reading: the question was raised and no test written"
+  },
+  "reconstruction": true,
+  "snapshot": "snapshots/expiry-unit.md",
+  "gold": {
+    "decision": "FLAG_AND_CONTINUE",
+    "next_action": "raise_question_and_write_the_test",
+    "surfaced": true
+  },
+  "materiality": "The contract gives expires_at no unit, which matters to anyone producing real values. It does not matter to S1: any expires_at below now drives the scenario in any unit.",
+  "changes_if_answered_differently": "If the scenario's outcome depended on the unit (a boundary such as 'expired less than a day ago'), the test could not be derived and the scenario would wait.",
+  "acceptable_alternates": [
+    "Asking about the scale or epoch of `now` instead of `expires_at` — the same gap.",
+    "Writing the test with a note in the report rather than a formal question, if the unit gap is stated."
+  ],
+  "forbidden_shortcuts": [
+    "undrivable",
+    "a questioned scenario is not"
+  ],
+  "key_point": "Does the document say that the unit, scale or format of `expires_at` (or of `now`) is not specified by the contract?",
+  "approved_by": "Paul Liang",
+  "approved_on": "2026-11-12"
+}

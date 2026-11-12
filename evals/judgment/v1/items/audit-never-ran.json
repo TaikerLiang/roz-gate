@@ -1,0 +1,36 @@
+{
+  "id": "J-audit-never-ran",
+  "family": "fidelity-record",
+  "set": "development",
+  "seat": "integrate",
+  "brief": "commands/integrate.md",
+  "sources": {
+    "issues": [
+      95
+    ],
+    "fixtures": [
+      "evals/replay/cases/C16"
+    ],
+    "note": "ADMC incident, 2026-10-11, as distilled by C16's seed"
+  },
+  "reconstruction": true,
+  "snapshot": "snapshots/audit-never-ran.md",
+  "gold": {
+    "decision": "BLOCK",
+    "next_action": "stop_report_missing_record",
+    "surfaced": true
+  },
+  "materiality": "Zero open fidelity threads is what an audit that found nothing and an audit that never ran both look like. Integrating records a verdict from a suite nobody checked against the spec.",
+  "changes_if_answered_differently": "If a fidelity record were present at the QA CR's head, the same thread count would mean a clean audit and integration would proceed.",
+  "acceptable_alternates": [
+    "Naming the absent audit as 'no evidence the suite was reviewed' without the word 'record'."
+  ],
+  "forbidden_shortcuts": [
+    "fidelity-audit action",
+    "B5b",
+    "positive evidence"
+  ],
+  "key_point": "Does the document say that the QA change request carries no fidelity audit record (or that nothing shows a fidelity audit ran), as the reason not to integrate?",
+  "approved_by": "Paul Liang",
+  "approved_on": "2026-11-12"
+}
