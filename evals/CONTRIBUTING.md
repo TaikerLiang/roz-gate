@@ -275,6 +275,21 @@ case's seeded state — no model call. Its matrix is
 `references/roz-state.md` § Shadow adoption; the sweep prints which seed
 hits each cell and names the cells none does.
 
+`roz-check` (#134) has one. `Run.shadow_check(issue, case_dir)` computes
+`bin/roz-check integrate`'s verdict on the state the command **read** — the
+case's seeded state, as `shadow_scan` does — and compares `may_start` with
+whether the run took the lock (`status: processing` added to that issue):
+`eligible` expects the lock; `ineligible` and `unknown` both expect none,
+so a lock taken on an `unknown` verdict is a mismatch, never ignored. It
+writes `shadow_check_mismatch`, `shadow_check_unknown` and
+`shadow_check_detail` (the verdict, the failed and unknown codes, the
+lock). The STOP reason is prose and is not compared. An integrate case
+also **declares** what its seed must give — `case.json`'s `"check":
+{"integrate": {"<issue>": {"verdict": …, "failed": […]}}}` — and
+`redproof.py` § check runs the checker on every declared seed, with no
+model call: a fixture that drifts from the preconditions it is meant to
+satisfy fails there (D4's did — it had no fidelity record).
+
 **Exit from shadow mode** — the commands switch to the resolver and the
 prose Lookup is deleted — when all three hold (#239 § coverage + stability):
 
