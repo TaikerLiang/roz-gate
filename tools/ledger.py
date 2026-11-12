@@ -221,7 +221,7 @@ def render_baselines():
         groups = {}
         for r in b["results"]:
             if r.get("reported"):
-                key = "reported %s, counts not recorded" % r["reported"]
+                key = "reported — %s" % r["reported"]
             else:
                 lo, hi = wilson90(r["passed"], r["valid"])
                 key = "%d/%d [%.0f%%, %.0f%%]" % (r["passed"], r["valid"], 100 * lo, 100 * hi)
