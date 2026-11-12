@@ -17,7 +17,7 @@ A case starts from a measurement or a shipped defect, never from a worry
 the release that shipped the defect, the review that found the gap.
 
 The issue that adds the case answers the six questions of
-`CHARTER.md § Rules for new eval work` first — its level, its product
+`charter.md § Rules for new eval work` first — its level, its product
 question, why the oracle is trustworthy, what green proves and does not,
 and both the **product decision** the result changes and the **stopping
 rule**. A case that cannot name that decision is not added.

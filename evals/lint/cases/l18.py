@@ -1,5 +1,5 @@
 """L18 · the evaluation charter keeps its shape and its pointers      (#257)
-`evals/CHARTER.md` is the one place the eval program's levels, terms and
+`evals/charter.md` is the one place the eval program's levels, terms and
 claim boundaries are defined: Compliance, Judgment, Workflow value; a tier
 is how evidence is produced, a level is the product claim it may support.
 The other pages apply it by pointing at it — `evals/README.md` links it,
@@ -19,7 +19,7 @@ META = {
     "id": "L18",
     "title": "the evaluation charter keeps its shape and its pointers",
     "tier": "lint (#257)",
-    "ledger": "`evals/CHARTER.md` is at most 80 lines and carries the four terms, the three "
+    "ledger": "`evals/charter.md` is at most 80 lines and carries the four terms, the three "
               "levels, the sentence that a level is not determined by the runner or directory, "
               "every counted tier under § Current usage, and six numbered rules for new eval "
               "work naming both `product decision` and `stopping rule`; `evals/README.md` links "
@@ -28,8 +28,8 @@ META = {
               "as proof of engineering value).",
 }
 
-CHARTER = "evals/CHARTER.md"
-POINTER = "CHARTER.md § Rules for new eval work"
+CHARTER = "evals/charter.md"
+POINTER = "charter.md § Rules for new eval work"
 RETIRED = "whether the spec stage earns its cost"
 TERMS = ("**Verification**", "**Compliance eval**", "**Judgment eval**",
          "**Workflow-value eval**")
@@ -82,7 +82,7 @@ for _lit in ("product decision", "stopping rule"):
     c.expect("pattern", "L18: the rules name the %s" % _lit, _lit in flat(_rules))
 
 c.expect("pattern", "L18: evals/README.md links the charter",
-         "(CHARTER.md)" in read("evals/README.md"))
+         "(charter.md)" in read("evals/README.md"))
 for _p in ("evals/CONTRIBUTING.md", ".claude/skills/plan-issue/SKILL.md"):
     c.expect("pattern", "L18: %s points at the rules" % _p, POINTER in flat(read(_p)))
 for _p in ("evals/README.md", "evals/judgment/README.md"):

@@ -2,7 +2,7 @@
 
 Four tiers of instruments — lint, replay, hook, judgment — and the cases
 each one runs. What their results are evidence *of* is the charter's:
-[`CHARTER.md`](CHARTER.md) defines three levels — **Compliance** (can the
+[`charter.md`](charter.md) defines three levels — **Compliance** (can the
 agent execute a known rule?), **Judgment** (does it make the right call
 under ambiguity?) and **Workflow value** (does the whole loop beat a
 baseline?) — and the terms Verification, Compliance eval, Judgment eval and
@@ -15,7 +15,7 @@ Level-1 suite does not prove Roz Gate improves engineering outcomes.
 | **lint** | 70 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
 | **replay** | 62 | built — `replay/run_replay.py` | needs a running loop and pass^k over repeated runs |
 | **hook** | 4 | built — `ledger-hook.json`, proven in `../hooks/tests/` by the same gate | rules a hook alone enforces; the other hook rules ride on a lint or replay row |
-| **judgment** | 7 items / 4 fixtures | built — `judgment/run_judgment.py`, k=2 baseline complete (2026-09-21) | a real repo per iteration plus an opus judge; the Level-2 seed (`CHARTER.md`) |
+| **judgment** | 7 items / 4 fixtures | built — `judgment/run_judgment.py`, k=2 baseline complete (2026-09-21) | a real repo per iteration plus an opus judge; the Level-2 seed (`charter.md`) |
 <!-- /counts -->
 
 Every case, across all tiers, is indexed in [`LEDGER.md`](LEDGER.md)
@@ -53,7 +53,7 @@ cannot read gives him no control over the rule corpus, which defeats
 the suite's purpose. Everything runs under one uv project
 (the root `pyproject.toml`, stdlib-only; plain `python3` works
 identically). The hook suite, `hooks/tests/`, is Python too but is not
-an eval tier — it is Verification (`CHARTER.md`): it drives each hook through its `.sh` shim and
+an eval tier — it is Verification (`charter.md`): it drives each hook through its `.sh` shim and
 stdin/exit-code contract, exactly the interface Claude Code invokes.
 
 ## Method: linting rules that a model executes

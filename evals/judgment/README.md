@@ -2,7 +2,7 @@
 
 Not "did the agent follow a rule" — **"did the agent surface the thing that
 changed the human's mind."** LLM-as-judge: the expensive, unreliable tier —
-the seed of Level 2 (`../CHARTER.md`), too small to carry the judgment
+the seed of Level 2 (`../charter.md`), too small to carry the judgment
 claim alone; #258 builds the corpus that can.
 
 Corpus: seven graded items from ADMC's real history, harvested by the ADMC
