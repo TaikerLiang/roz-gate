@@ -53,3 +53,41 @@ c.expect("pattern", "J2: the README scopes the action vocabulary",
          "it does not measure free-form action discovery" in _readme)
 c.expect("pattern", "J2: the README bounds the claim to the development set",
          "needs holdout evidence" in _readme)
+
+# codex review, PR #285 — a malformed answer is INVALID and recorded, never a crash
+_qa = _items.get("J-expiry-unit")
+for _name, _raw in (
+        ("a list for next_action", '{"decision": "BLOCK", "next_action": ["fix_harness"]}'),
+        ("an object for next_action", '{"decision": "BLOCK", "next_action": {"id": "x"}}'),
+        ("a list for decision", '{"decision": ["BLOCK"], "next_action": "fix_harness"}'),
+        ("a list for surfaced",
+         '{"decision": "BLOCK", "next_action": "stop_and_report", "surfaced": ["a"]}'),
+        ("a JSON array", '["BLOCK"]')):
+    try:
+        _ans, _why = run_v1.parse_answer(_raw, _qa, _actions)
+        _ok = _ans is None and bool(_why)
+    except Exception as _e:  # noqa: BLE001 — the crash is the defect under test
+        _ok, _why = False, "raised %s" % type(_e).__name__
+    c.expect("pattern", "J2: %s is INVALID, not a crash (%s)" % (_name, _why), _ok)
+
+# codex review, PR #285 — a result scored under an older brief, snapshot,
+# frame or gold is never aggregated with today's
+import tempfile  # noqa: E402
+
+with tempfile.TemporaryDirectory() as _d:
+    _row = {"item": "J-expiry-unit", "arm": "treatment", "valid": True,
+            "decision": "NO_FINDING", "next_action": "write_the_test", "surfaced": False,
+            "key_point": None}
+    _fp = getattr(run_v1, "run_fingerprint", lambda *a: "none")(_qa, "treatment", _actions)
+    for _dir, _decision in (("fp-%s" % _fp, "FLAG_AND_CONTINUE"), ("fp-0000000000000000", "BLOCK")):
+        _p = os.path.join(_d, "sut", "treatment", "J-expiry-unit", _dir, "run-1")
+        os.makedirs(_p)
+        with open(os.path.join(_p, "result.json"), "w", encoding="utf-8") as _f:
+            json.dump(dict(_row, decision=_decision), _f)
+    try:
+        _cur, _stale = run_v1.load_results("sut", _items, _actions, root=_d)
+        _ok = ([r["decision"] for r in _cur] == ["FLAG_AND_CONTINUE"]
+               and [r["decision"] for r in _stale] == ["BLOCK"])
+    except Exception as _e:  # noqa: BLE001
+        _ok = False
+    c.expect("pattern", "J2: a stale result is separated from the current ones", _ok)
