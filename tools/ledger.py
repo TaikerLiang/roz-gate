@@ -44,6 +44,8 @@ README = os.path.join(ROOT, "evals", "README.md")
 CASE_FILE = re.compile(r"^([a-z])(\d+)\.py$")
 ROWS_MARK = re.compile(r"^<!-- rows ((?:[A-Z] ?)+)-->$", re.M)
 COUNTS = re.compile(r"<!-- counts -->\n(.*?)<!-- /counts -->", re.S)
+BASELINES = os.path.join(ROOT, "evals", "replay", "baselines.json")
+BASELINES_MARK = re.compile(r"<!-- baselines -->\n(.*?)<!-- /baselines -->", re.S)
 HOOK_RULE_ROW = re.compile(r"^\| \*\*([A-Z])\*\* ", re.M)  # hooks/README.md's rule table
 TIER_RULE = re.compile(r"\brule ([A-Z])\b")
 
@@ -174,8 +176,82 @@ def counts():
             "judgment": "%d items / %d fixtures · V1: %d decisions" % (items, fixtures, v1)}
 
 
+def wilson90(passed, valid):
+    """The runner's own interval (evals/replay/run_replay.py) — imported,
+    so the page and a run's report can never disagree on the formula."""
+    import importlib.util
+    path = os.path.join(ROOT, "evals", "replay", "run_replay.py")
+    sys.path[:0] = [os.path.dirname(path), os.path.join(ROOT, "evals")]
+    spec = importlib.util.spec_from_file_location("run_replay", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.wilson90(passed, valid)
+
+
+def when(b):
+    return b["date"] or "sweep %s" % b["date_range"]
+
+
+def render_baselines():
+    """evals/README.md's <!-- baselines --> block, from baselines.json (#280).
+    Recorded history, listed as recorded: the headline counts cases with at
+    least one batch and picks no winner among batches; a result with counts
+    gets the runner's Wilson interval, one the record only described is
+    printed in the record's words."""
+    data = json.loads(read(BASELINES))
+    cases = sorted((d for d in os.listdir(REPLAY_CASES)
+                    if os.path.exists(os.path.join(REPLAY_CASES, d, "case.json"))),
+                   key=lambda c: (c[0], int(c[1:])))
+    measured = {r["case"] for b in data["replay"] for r in b["results"]}
+    unknown = sorted(measured - set(cases))
+    if unknown:
+        fail("baselines.json names %s, not a replay case" % ", ".join(unknown))
+    none = [c for c in cases if c not in measured]
+    out = ["**%d of %d replay cases have at least one recorded SUT baseline; %d have none.** "
+           "*Recorded* is not *current*: a batch below is a measurement of the case as it "
+           "was then, and a later seed or checker change may have superseded it — where the "
+           "record says so, the row does."
+           % (len(cases) - len(none), len(cases), len(none)), "",
+           "| batch | SUT | plugin | when | k | results | source |",
+           "|---|---|---|---|---|---|---|"]
+    for b in data["replay"]:
+        for key in ("id", "sut", "k", "source", "results"):
+            if not b.get(key):
+                fail("baselines.json: batch %s has no %s" % (b.get("id", "?"), key))
+        groups = {}
+        for r in b["results"]:
+            if r.get("reported"):
+                key = "reported %s, counts not recorded" % r["reported"]
+            else:
+                lo, hi = wilson90(r["passed"], r["valid"])
+                key = "%d/%d [%.0f%%, %.0f%%]" % (r["passed"], r["valid"], 100 * lo, 100 * hi)
+            groups.setdefault(key, []).append(r["case"])
+        cells = ["%s: %s" % (k, ", ".join(v)) for k, v in groups.items()]
+        sup = [("%s — %s" % (r["case"], r["superseded"])) for r in b["results"]
+               if r.get("superseded")]
+        if b.get("superseded"):
+            sup.insert(0, "the batch — " + b["superseded"])
+        if sup:
+            cells.append("*superseded:* " + "; ".join(sup))
+        out.append("| `%s` | %s | %s | %s | %d | %s | %s |"
+                   % (b["id"], b["sut"], b["plugin"] or b["plugin_range"], when(b), b["k"],
+                      " · ".join(cells).replace("|", "\\|"), b["source"].replace("|", "\\|")))
+    out += ["", "Wilson 90%% intervals, the runner's formula. No recorded baseline (%d): %s."
+            % (len(none), ", ".join(none)), ""]
+    j = data["judgment"]
+    out.append("**Judgment:** the last recorded sweep is %s SUT, %s judge, plugin %s, %s, "
+               "k=%d — %s. Judgment V1 and the Workflow Value pilot have no recorded run."
+               % (j["sut"], j["judge"], j["plugin"] or j.get("plugin_range"), when(j), j["k"],
+                  j["note"]))
+    return "\n".join(out) + "\n"
+
+
 def render_readme():
     text = read(README)
+    b = BASELINES_MARK.search(text)
+    if not b:
+        fail("evals/README.md has no <!-- baselines --> block")
+    text = text[:b.start(1)] + render_baselines() + text[b.end(1):]
     m = COUNTS.search(text)
     if not m:
         fail("evals/README.md has no <!-- counts --> block")
