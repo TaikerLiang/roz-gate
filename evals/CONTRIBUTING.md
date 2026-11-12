@@ -134,7 +134,12 @@ real verdict.
   creates; the issue number matches the prompt.
 - A call the stub has no route for invalidates the iteration (INVALID,
   never red). Extend the stub for a route the case needs; never let a
-  real call fall through. A free-form `--jq` is fine when `jq` is
+  real call fall through. The same holds for a `--json` field the stub
+  does not serve: every requested field is checked before anything is
+  printed, one unserved field makes the whole call UNKNOWN, and the fix
+  is to serve it from the fixture (`ISSUE_FIELDS` / `PR_FIELDS` /
+  `REPO_FIELDS`) — never a default the fixture cannot state. URLs name
+  the fixture's `repo` (default `acme/demo`). A free-form `--jq` is fine when `jq` is
   installed (CI's ubuntu runner has it; the stub falls back to it and
   journals `jq: system`); without it the expression is UNKNOWN.
 

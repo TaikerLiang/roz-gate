@@ -218,6 +218,9 @@ primary observation channel, alongside the session transcript
 bare remote (pushes are refs, nothing leaves the machine). An invocation
 matching no route **invalidates the iteration** — invalid, never red: a
 reach the fixture doesn't define is a fixture gap, not a model failure.
+So is a `--json` field the stub does not serve (#250): the call is
+refused whole, never answered with the other fields. Every URL the stub
+prints names the fixture's `repo`.
 Benign read-only probes (`--version`, `--help`, bare `gh`) are routed
 with canned output — a cautious SUT pokes the CLI before trusting it
 (the opus smoke gate died on a pre-flight `gh --version` around an
