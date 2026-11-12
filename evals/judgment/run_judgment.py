@@ -457,24 +457,19 @@ def run_case(sut, name, fx, rdir, arm="treatment"):
     n_ids = [c for c in fx["criteria"] if CRITERIA[c]["polarity"] == "N"]
     recall = [sum(1 for c in p_ids if verdicts[c]["answer"] == "yes"), len(p_ids)]
     n_ok = 0
-    raised = []          # the immaterial items this run spent a round trip on (#259)
     for c in n_ids:
         if c == "N10" and baseline:
             # N10 is "silence was right". The loop's half — a summary comment
-            # with assumptions — is the loop's own artifact; for the baseline
-            # the item is raised exactly when it asked anything.
+            # with assumptions — is the loop's own artifact; the baseline's
+            # precision on it is silence alone.
             n_ok += 1 if count == 0 else 0
-            raised += [c] if count else []
         elif c == "N10":  # both halves: mechanical silence + judged assumptions
             summary_posted = any(e.get("write") and e.get("route") == "issue-comment"
                                  and (e.get("body") or "").startswith(SUMMARY_MARKER)
                                  for e in Run(rdir).journal())
-            ok = count == 0 and summary_posted and verdicts[c]["answer"] == "yes"
-            n_ok += 1 if ok else 0
-            raised += [] if ok else [c]
+            n_ok += 1 if (count == 0 and summary_posted and verdicts[c]["answer"] == "yes") else 0
         else:
             n_ok += 1 if verdicts[c]["answer"] == "no" else 0
-            raised += [c] if verdicts[c]["answer"] == "yes" else []
     cap_ok = count <= fx["question_cap"]
     judge_tokens = {"in": sum(v["tokens"]["in"] for v in verdicts.values()),
                     "out": sum(v["tokens"]["out"] for v in verdicts.values())}
@@ -484,12 +479,12 @@ def run_case(sut, name, fx, rdir, arm="treatment"):
                            "judge_invalid": sum(1 for v in verdicts.values() if not v["valid"]),
                            "verdicts": verdicts, "tokens": usage, "cost": cost,
                            "judge_tokens": judge_tokens,
-                           # the paired report's fields (#259) — additive
-                           "important_found": [c for c in p_ids
-                                               if verdicts[c]["answer"] == "yes"],
-                           "important_missed": [c for c in p_ids
-                                                if verdicts[c]["answer"] != "yes"],
-                           "immaterial_raised": raised,
+                           # the paired report's fields (#259) — additive, and
+                           # separate from recall / precision above: a
+                           # judge-invalid criterion is unscored, never missed
+                           **wv.paired_fields(
+                               {c: CRITERIA[c]["polarity"] for c in fx["criteria"]},
+                               {c: v["answer"] for c, v in verdicts.items()}, count),
                            "questions": count, "question_unit": wv.QUESTION_UNITS[arm],
                            "outcome": did["outcome"] if baseline else "gate",
                            "human_round_trips": did["human_round_trips"] if baseline else 1,

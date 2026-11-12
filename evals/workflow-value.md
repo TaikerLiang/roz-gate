@@ -76,7 +76,12 @@ nothing an engineer on the repository would know.
 
 - **important found / missed** — by id, the judge's verdict on each P
   criterion;
-- **immaterial raised** — each N criterion the arm spent a question on;
+- **immaterial raised** — each N criterion the arm spent a question on.
+  N10 ("silence was right") is raised exactly when the arm asked
+  anything, in either arm; whether the loop's summary recorded its
+  assumptions is the tier's precision, not this field;
+- **unscored** — a criterion the judge could not rule on (judge-invalid).
+  It is neither found nor missed, and its run is never paired;
 - **questions** — the treatment's distinct Q-ids; the baseline's *asking
   comments* (comments on the issue that contain a question). Two units,
   named in the report, never subtracted from one another;
@@ -91,9 +96,9 @@ recall (important surfaced / important in the record) and precision's
 complement (immaterial raised / immaterial in the record). **Nothing is
 summed across issues.** An issue is UNPAIRED — listed with the reason,
 contributing no number — when its record is unreviewed, when an arm has no
-run, or when an arm's run is INVALID (no result event, a session error, a
-forge call the stub cannot answer). INVALID is the instrument's failure,
-never the arm's.
+run, when an arm's run is INVALID (no result event, a session error, a
+forge call the stub cannot answer), or when a run has an unscored
+criterion. Each of these is the instrument's failure, never the arm's.
 
 ## Phase B — the whole loop, on one or two issues
 

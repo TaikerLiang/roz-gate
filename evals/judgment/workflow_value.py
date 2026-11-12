@@ -90,6 +90,34 @@ def cost(tool_uses, cfg):
             "suite_runs": suites}
 
 
+def paired_fields(polarity, answers, questions):
+    """What one valid run surfaced, from its verdicts (`{criterion: yes |
+    no | judge-invalid}`) and its question count — the same rule for both
+    arms:
+
+    - a P criterion judged yes is found, judged no is missed;
+    - an N criterion judged yes is an immaterial item raised;
+    - N10 ("silence was right") is raised exactly when the run asked
+      anything. Its judged half — did the loop's summary record its
+      assumptions — belongs to the tier's precision, not to this field;
+    - a judge-invalid verdict is neither: the criterion is **unscored**,
+      and a run with one is never paired. The judge failing is not the
+      arm missing a decision, nor the arm staying silent."""
+    found, missed, raised, unscored = [], [], [], []
+    for c in sorted(answers):
+        ans = answers[c]
+        if c == "N10":
+            raised += [c] if questions else []
+        elif ans not in ("yes", "no"):
+            unscored.append(c)
+        elif polarity.get(c) == "P":
+            (found if ans == "yes" else missed).append(c)
+        elif ans == "yes":
+            raised.append(c)
+    return {"important_found": found, "important_missed": missed,
+            "immaterial_raised": raised, "unscored": unscored}
+
+
 # ---- the retrospective record ------------------------------------------------
 RETRO_FIELDS = ("issue", "value_shape", "why_selected", "important", "immaterial",
                 "known_rework", "accepted_outcome", "unknown", "reviewed_by", "reviewed_on")
@@ -148,7 +176,8 @@ def paired(cases):
     """Per issue, the arms side by side, then the raw counts behind the
     ratios. An issue is paired only when its retrospective record is
     reviewed and both arms have a valid run; anything else is listed with
-    the reason and contributes no number. Nothing is summed across issues."""
+    the reason and contributes no number — a run with a judge-invalid
+    criterion included. Nothing is summed across issues."""
     out = []
     for name in sorted(cases):
         c = cases[name]
@@ -166,6 +195,9 @@ def paired(cases):
             for i, r in enumerate(runs, 1):
                 if not r.get("valid"):
                     blocked.append("%s run-%d INVALID: %s" % (arm, i, r.get("invalid_reason")))
+                elif r.get("unscored"):
+                    blocked.append("%s run-%d unscored: judge-invalid on %s"
+                                   % (arm, i, ", ".join(r["unscored"])))
         if blocked:
             out.append("   UNPAIRED — " + "; ".join(blocked))
             continue
