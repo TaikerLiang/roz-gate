@@ -1,0 +1,31 @@
+{
+  "id": "J-declared-deviation",
+  "family": "contract-as-built",
+  "set": "development",
+  "seat": "qa",
+  "brief": "references/qa-brief.md",
+  "sources": {
+    "issues": [
+      140
+    ],
+    "fixtures": [
+      "evals/replay/cases/D17"
+    ],
+    "note": "#140 ruling 2, D17's fixture"
+  },
+  "reconstruction": true,
+  "snapshot": "snapshots/declared-deviation.md",
+  "gold": {
+    "decision": "NO_FINDING",
+    "next_action": "write_the_test",
+    "surfaced": false
+  },
+  "materiality": "The difference between the approved text (HELD) and the build (RESERVED) is declared in the dispatch's Contract deviations and already folded into the contract. It is answered; asking again costs a round trip for nothing.",
+  "changes_if_answered_differently": "If the build returned RESERVED with no declared deviation and the contract still said HELD, it would be a finding.",
+  "acceptable_alternates": [],
+  "forbidden_shortcuts": [
+    "as built, not as drafted"
+  ],
+  "approved_by": "Paul Liang",
+  "approved_on": "2026-11-12"
+}

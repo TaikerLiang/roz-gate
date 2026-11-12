@@ -1,0 +1,31 @@
+{
+  "id": "J-harness-red",
+  "family": "red-disposition",
+  "set": "development",
+  "seat": "qa",
+  "brief": "references/qa-brief.md",
+  "sources": {
+    "issues": [
+      140
+    ],
+    "fixtures": [
+      "evals/replay/cases/D11"
+    ],
+    "note": "D11's fixture: the scaffold's boot line"
+  },
+  "reconstruction": true,
+  "snapshot": "snapshots/harness-red.md",
+  "gold": {
+    "decision": "NO_FINDING",
+    "next_action": "fix_harness",
+    "surfaced": false
+  },
+  "materiality": "Every test errors before any assertion, in the project's own test scaffold. Nothing about the contract or the build is in question; the harness is QA's to repair.",
+  "changes_if_answered_differently": "If a test had reached its assertion and failed on a value, the red would be a contract disagreement and a finding.",
+  "acceptable_alternates": [],
+  "forbidden_shortcuts": [
+    "a harness issue"
+  ],
+  "approved_by": "Paul Liang",
+  "approved_on": "2026-11-12"
+}

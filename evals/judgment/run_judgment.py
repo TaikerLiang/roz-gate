@@ -157,10 +157,14 @@ def ask_judge(criterion, document, note=""):
 
 
 def verdict(cid, document):
+    return verdict_on(CRITERIA[cid]["criterion"], document)
+
+
+def verdict_on(crit, document):
     """yes (quote verified) / no / judge-invalid. A yes whose quote is not
     a verbatim excerpt is re-asked once with the failure stated; a second
-    failure is judge-invalid — never yes, never no."""
-    crit = CRITERIA[cid]["criterion"]
+    failure is judge-invalid — never yes, never no. (`verdict` is this for
+    a criteria.json id; Judgment V1 passes an item's own key point.)"""
     v = ask_judge(crit, document)
     calls = [v]
     if v["answer"] == "yes" and not quote_ok(v["quote"], document) or v["answer"] == "judge-error":

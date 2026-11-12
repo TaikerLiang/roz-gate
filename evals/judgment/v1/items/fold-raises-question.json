@@ -1,0 +1,35 @@
+{
+  "id": "J-fold-raises-question",
+  "family": "post-integration-fold",
+  "set": "development",
+  "seat": "spec-answers",
+  "brief": "commands/spec-answers.md",
+  "sources": {
+    "issues": [
+      193
+    ],
+    "fixtures": [
+      "evals/replay/cases/C5"
+    ],
+    "note": "#193 § 2, opus C5 run-2 (2026-10-23)"
+  },
+  "reconstruction": true,
+  "snapshot": "snapshots/fold-raises-question.md",
+  "gold": {
+    "decision": "FLAG_AND_CONTINUE",
+    "next_action": "fold_question_in_return_comment",
+    "surfaced": true
+  },
+  "materiality": "The work is built and the issue came back from the user's review on one ruling. The clock question is real, but the place that hears it is that review; a new spec-review thread would hold the issue away from it.",
+  "changes_if_answered_differently": "If the implementation and QA change requests were still open (an ordinary spec-review pass), a new question would be a new thread and the issue would stay in spec review.",
+  "acceptable_alternates": [
+    "Any wording that puts the question in front of the user at the review the issue returns to."
+  ],
+  "forbidden_shortcuts": [
+    "[review] · question",
+    "raises no new thread"
+  ],
+  "key_point": "Does the document raise which clock or starting point the 24-hour grace window is counted from?",
+  "approved_by": "Paul Liang",
+  "approved_on": "2026-11-12"
+}

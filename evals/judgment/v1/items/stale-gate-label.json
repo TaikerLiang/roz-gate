@@ -1,0 +1,35 @@
+{
+  "id": "J-stale-gate-label",
+  "family": "passed-stage-label",
+  "set": "development",
+  "seat": "patrol",
+  "brief": "references/patrol-scan.md",
+  "sources": {
+    "issues": [
+      209
+    ],
+    "fixtures": [
+      "evals/replay/cases/F14"
+    ],
+    "note": "ConsoleAPI incident, as distilled by F14's seed"
+  },
+  "reconstruction": true,
+  "snapshot": "snapshots/stale-gate-label.md",
+  "gold": {
+    "decision": "BLOCK",
+    "next_action": "report_illegal_no_dispatch",
+    "surfaced": true
+  },
+  "materiality": "The label asks for an implementation that is already merged. Dispatching rebuilds finished work; only the human knows why the label was applied.",
+  "changes_if_answered_differently": "If the implementation change request were absent or open, ready-for-dev would be the normal gate and the row would be actionable.",
+  "acceptable_alternates": [
+    "Calling the state inconsistent or contradictory rather than 'illegal'."
+  ],
+  "forbidden_shortcuts": [
+    "a stage that passed",
+    "queued: integrate"
+  ],
+  "key_point": "Does the document say that the implementation change request is already merged, so the ready-for-dev label does not match the work's actual state?",
+  "approved_by": "Paul Liang",
+  "approved_on": "2026-11-12"
+}

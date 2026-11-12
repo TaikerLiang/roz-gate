@@ -1,0 +1,63 @@
+{
+ "_comment": "The judge's red-proof for Judgment V1: per surfaced-gold item, answers that name the key point (yes) and answers that do not — a real but different concern on the same snapshot, then an unrelated answer (no). Each document is in the shape the judge sees: what was surfaced, then the rationale. Hand-written; committed before any recorded run.",
+ "J-audit-never-ran": {
+  "yes": [
+   "Surfaced to the human: The QA change request has zero open threads but carries no fidelity audit record at all, so nothing shows the suite was ever audited. I am not integrating.\n\nRationale: Zero threads can mean a clean audit or no audit. Without the reviewer's fidelity comment I cannot tell which, so integration must wait.",
+   "Surfaced to the human: Integration stopped: there is no evidence on the QA CR that the fidelity review of the acceptance suite took place.\n\nRationale: The implementation CR has its review record; the QA CR has no comments, so the audit that should precede integration is not on record."
+  ],
+  "no": [
+   "Surfaced to the human: The spec change request 101 is still open against main; should it be merged before integration runs?\n\nRationale: An open spec CR looked unusual next to a merged implementation, so I am asking before merging anything else.",
+   "Surfaced to the human: Should the nightly export include archived workspaces?\n\nRationale: The export job's scope is undefined in the ticket and it changes the query."
+  ]
+ },
+ "J-stale-gate-label": {
+  "yes": [
+   "Surfaced to the human: Issue 5 wears ready-for-dev, but its implementation change request 102 is already merged into the spec branch. The label does not match the work; please remove or correct it.\n\nRationale: Dispatching an implementer would rebuild code that already landed. Only the label's holder knows what was intended.",
+   "Surfaced to the human: The gate label asks for development although the feature branch has been merged and QA is under way, so I am not starting anything on this issue.\n\nRationale: The implementation is done; a ready-for-dev label on finished work is a state I cannot act on safely."
+  ],
+  "no": [
+   "Surfaced to the human: The QA change request 103 is open and not a draft — should it be integrated now?\n\nRationale: QA looks complete and audited, so the next step might be integration rather than development.",
+   "Surfaced to the human: Which currency should refunds be reported in?\n\nRationale: The reporting spec leaves the currency open and it affects the totals."
+  ]
+ },
+ "J-blockers-unreadable": {
+  "yes": [
+   "Surfaced to the human: I could not read issue 13's blocked-by relationship — the forge refused the request with HTTP 403 — so I do not know whether it is blocked. Not starting it this pass.\n\nRationale: A failed lookup is not an empty list. Acting would assume there are no blockers without having been able to ask.",
+   "Surfaced to the human: The dependency query for this issue failed with a permissions error, so its blockers could not be determined; it needs your attention before work starts.\n\nRationale: Whether a prerequisite is still open is unknown, and starting on a tree that lacks it would waste the run."
+  ],
+  "no": [
+   "Surfaced to the human: Issue 13 has no branch and no change request yet; is the fast track the right one for an audit trail feature?\n\nRationale: An audit trail touches several modules, which seemed large for the fast track.",
+   "Surfaced to the human: Should the landing page show draft pipelines to viewers?\n\nRationale: The visibility rule is not stated and changes the list query."
+  ]
+ },
+ "J-expiry-unit": {
+  "yes": [
+   "Surfaced to the human: The contract types expires_at as an int but never says what unit it is in — seconds, days, an epoch? S1 can still be tested, since any expires_at below now is expired.\n\nRationale: The unit gap is real for anyone producing values, but it does not change S1's outcome, so I raise it and write the test.",
+   "Surfaced to the human: Neither spec nor contract states the scale of the now argument and of expires_at (timestamp seconds versus day numbers).\n\nRationale: I can drive the scenario with now greater than expires_at in any scale, so the test goes ahead while the question is open."
+  ],
+  "no": [
+   "Surfaced to the human: C1 excludes the discount once expires_at < now — what happens when expires_at equals now exactly? The boundary is not covered by any scenario.\n\nRationale: The equality case is unspecified by S1 and could be read either way from the rule's wording.",
+   "Surfaced to the human: Should the order API return 201 or 200 on create?\n\nRationale: The status code is not pinned by the scenario text."
+  ]
+ },
+ "J-red-is-finding": {
+  "yes": [
+   "Surfaced to the human: C1 says an expired offer's discount is excluded, so price must return 10 for this cart; the implementation returns 7 — it still applies the discount. The assertion stays as written.\n\nRationale: The test reached its assertion and the assertion states the contract. The build disagrees with C1, which is a finding, not something to fix in the test.",
+   "Surfaced to the human: The merged build applies the offer after it has expired: the suite expects 10 per the contract clause and observes 7.\n\nRationale: This is a contract disagreement between the implementation and C1; I report it and leave the expected value alone."
+  ],
+  "no": [
+   "Surfaced to the human: The acceptance directory layout is unclear — should the test live under tests/acceptance/pricing or at the top level?\n\nRationale: The folder convention is not stated in the dispatch and affects discovery.",
+   "Surfaced to the human: Is the migration job allowed to run during business hours?\n\nRationale: The runbook does not say and it changes the schedule."
+  ]
+ },
+ "J-fold-raises-question": {
+  "yes": [
+   "Surfaced to the human: The 24-hour grace is folded into R4. One thing to decide at your review: is the window counted from expires_at against the time the cart is priced, or against the time of checkout?\n\nRationale: The work is built and the issue is returning to the user's review, so the clock question goes there rather than into a new spec thread.",
+   "Surfaced to the human: New question from the fold — which moment does the one-day grace period measure against: pricing time or checkout time?\n\nRationale: The ruling mentions checkout while the rule is evaluated at pricing; the two can differ by hours, so the user has to choose."
+  ],
+  "no": [
+   "Surfaced to the human: The acceptance suite was written before the grace window existed; should QA be re-run before the issue returns to review?\n\nRationale: The fold changed behaviour and the existing green run predates it, which may mislead the reviewer.",
+   "Surfaced to the human: Should usernames with no matching record be skipped or reported?\n\nRationale: The import spec is silent on unmatched rows."
+  ]
+ }
+}

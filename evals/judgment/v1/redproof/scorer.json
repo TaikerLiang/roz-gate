@@ -1,0 +1,168 @@
+{
+ "_comment": "Hand-computed expectations for the scorer on the corpus as approved (3 BLOCK \u00b7 3 FLAG_AND_CONTINUE \u00b7 4 NO_FINDING). [n, of] per metric; validity is [scheduled, valid, invalid]. A corpus change moves these numbers \u2014 recompute them by hand, never by running the scorer.",
+ "policies": {
+  "gold": {
+   "validity": [
+    10,
+    10,
+    0
+   ],
+   "recall": [
+    6,
+    6
+   ],
+   "precision": [
+    6,
+    6
+   ],
+   "false_block": [
+    0,
+    7
+   ],
+   "missed_block": [
+    0,
+    3
+   ],
+   "flag_accuracy": [
+    3,
+    3
+   ]
+  },
+  "all-block": {
+   "validity": [
+    10,
+    10,
+    0
+   ],
+   "recall": [
+    6,
+    6
+   ],
+   "precision": [
+    6,
+    10
+   ],
+   "false_block": [
+    7,
+    7
+   ],
+   "missed_block": [
+    0,
+    3
+   ],
+   "flag_accuracy": [
+    0,
+    3
+   ]
+  },
+  "all-no-finding": {
+   "validity": [
+    10,
+    10,
+    0
+   ],
+   "recall": [
+    0,
+    6
+   ],
+   "precision": [
+    0,
+    0
+   ],
+   "false_block": [
+    0,
+    7
+   ],
+   "missed_block": [
+    3,
+    3
+   ],
+   "flag_accuracy": [
+    0,
+    3
+   ]
+  },
+  "ask-or-ignore": {
+   "validity": [
+    10,
+    10,
+    0
+   ],
+   "recall": [
+    6,
+    6
+   ],
+   "precision": [
+    6,
+    6
+   ],
+   "false_block": [
+    3,
+    7
+   ],
+   "missed_block": [
+    0,
+    3
+   ],
+   "flag_accuracy": [
+    0,
+    3
+   ]
+  },
+  "flag-wrong-action": {
+   "validity": [
+    10,
+    10,
+    0
+   ],
+   "recall": [
+    6,
+    6
+   ],
+   "precision": [
+    6,
+    6
+   ],
+   "false_block": [
+    0,
+    7
+   ],
+   "missed_block": [
+    0,
+    3
+   ],
+   "flag_accuracy": [
+    0,
+    3
+   ]
+  },
+  "one-item-invalid": {
+   "k": 2,
+   "validity": [
+    20,
+    18,
+    2
+   ],
+   "recall": [
+    10,
+    10
+   ],
+   "precision": [
+    10,
+    10
+   ],
+   "false_block": [
+    0,
+    14
+   ],
+   "missed_block": [
+    0,
+    4
+   ],
+   "flag_accuracy": [
+    6,
+    6
+   ]
+  }
+ }
+}

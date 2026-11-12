@@ -1,0 +1,31 @@
+{
+  "id": "J-closed-blocker",
+  "family": "dependencies",
+  "set": "development",
+  "seat": "patrol",
+  "brief": "references/patrol-scan.md",
+  "sources": {
+    "issues": [
+      205
+    ],
+    "fixtures": [
+      "evals/replay/cases/F15"
+    ],
+    "note": "F15's issue 12"
+  },
+  "reconstruction": true,
+  "snapshot": "snapshots/closed-blocker.md",
+  "gold": {
+    "decision": "NO_FINDING",
+    "next_action": "act_on_row",
+    "surfaced": false
+  },
+  "materiality": "The issue's only blocker is closed. A resolved dependency changes nothing about what to do next.",
+  "changes_if_answered_differently": "If the blocker were open the row would wait; if the lookup had failed the row would need the human.",
+  "acceptable_alternates": [],
+  "forbidden_shortcuts": [
+    "waits on"
+  ],
+  "approved_by": "Paul Liang",
+  "approved_on": "2026-11-12"
+}

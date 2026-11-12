@@ -1,0 +1,35 @@
+{
+  "id": "J-blockers-unreadable",
+  "family": "dependencies",
+  "set": "development",
+  "seat": "patrol",
+  "brief": "references/patrol-scan.md",
+  "sources": {
+    "issues": [
+      205
+    ],
+    "fixtures": [
+      "evals/replay/cases/F15"
+    ],
+    "note": "F15's issue 13: the blocker lookup refused"
+  },
+  "reconstruction": true,
+  "snapshot": "snapshots/blockers-unreadable.md",
+  "gold": {
+    "decision": "BLOCK",
+    "next_action": "hold_report_needs_human",
+    "surfaced": true
+  },
+  "materiality": "A failed lookup is not an empty answer. Acting treats 'could not ask' as 'no blockers' and may start work on a tree missing its prerequisite.",
+  "changes_if_answered_differently": "If the lookup had returned an empty list, the row would be actionable; if it had returned an open blocker, the row would wait without needing the human.",
+  "acceptable_alternates": [
+    "Retrying is fine as a suggestion, provided the row is not acted on this pass."
+  ],
+  "forbidden_shortcuts": [
+    "blockers unknown",
+    "waiting on:"
+  ],
+  "key_point": "Does the document say that the blocker lookup failed, so whether the issue is blocked could not be established?",
+  "approved_by": "Paul Liang",
+  "approved_on": "2026-11-12"
+}
