@@ -71,7 +71,9 @@ def score_arm(items, rows):
                                   and a["next_action"] == gold(a)["next_action"]), len(flag)),
         "key_point": dict(rate(sum(1 for a in judged if a["key_point"] == "yes"), len(judged)),
                           judge_invalid=sum(1 for a in hit
-                                            if a.get("key_point") == "judge-invalid")),
+                                            if a.get("key_point") == "judge-invalid"),
+                          judge_stale=sum(1 for a in hit
+                                          if a.get("key_point") == "judge-stale")),
         "questions_per_useful": rate(sum(1 for a in ok if a["surfaced"]), len(hit)),
         "items": per_item,
     }
@@ -119,6 +121,10 @@ def render(report):
                                     else "%d/%d (%.2f)" % (q["n"], q["of"], q["rate"])))
         if r["key_point"]["judge_invalid"]:
             out.append("   judge-invalid: %d" % r["key_point"]["judge_invalid"])
+        if r["key_point"]["judge_stale"]:
+            out.append("   judge-stale: %d — judged under another judge configuration, not "
+                       "counted; re-run the sweep to re-judge (no SUT call)"
+                       % r["key_point"]["judge_stale"])
     out.append("== per item (valid/scheduled · answered) — diagnostic, not a comparison verdict")
     ids = sorted(set(i for r in report.values() for i in r["items"]))
     for iid in ids:

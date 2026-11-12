@@ -83,7 +83,11 @@ is never re-run. The fingerprint hashes the prompt as sent (frame, brief,
 vocabulary, snapshot) and the item's record (gold, key point): change any
 of them and the item runs again under a new fingerprint, while the old
 results stay on disk, are counted on the report's first line as **stale**
-and are never scored with the new ones. An answer that is not usable —
+and are never scored with the new ones. A key-point verdict carries the
+judge's own fingerprint (prompt, model, quote policy): after the judge
+changes, a stored verdict reads `judge-stale`, is left out of the judged
+column, and the next sweep re-judges the stored answer without calling the
+SUT. An answer that is not usable —
 malformed, or the wrong type — is recorded as INVALID, never retried. The
 runner refuses to start until the judge red-proof is green under the
 current fingerprint.

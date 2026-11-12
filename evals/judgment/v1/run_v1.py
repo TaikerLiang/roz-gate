@@ -214,6 +214,25 @@ def judge_fingerprint(items):
     return h.hexdigest()[:16]
 
 
+def judge_config_fingerprint():
+    """The judge as configured — prompt, model, quote policy. A key-point
+    verdict is evidence only under the configuration that produced it; the
+    item's key point is already part of the run fingerprint."""
+    rj = judge_module()
+    return sha("\0".join((rj.JUDGE_PROMPT, rj.JUDGE_MODEL, str(rj.MIN_QUOTE),
+                          rj.QUOTE_POLICY)))
+
+
+def judge_answer(it, answer):
+    """The key-point fields of a result, for a surfaced answer to a
+    surfaced gold; all None otherwise."""
+    if not (it["gold"]["surfaced"] and answer["decision"] in sc.SURFACED):
+        return {"key_point": None}
+    v = judge_module().verdict_on(it["key_point"], judged_document(answer))
+    return {"key_point": v["answer"], "key_point_quote": v["quote"],
+            "judge_fingerprint": judge_config_fingerprint()}
+
+
 def judge_redproof(items, rejudge=False):
     """Per judged item: documents that must read yes, documents that must
     read no (a real but different concern; an unrelated answer). Verdicts
@@ -339,12 +358,21 @@ def run_one(model, it, arm, actions):
         return dict(stamp, valid=False, invalid_reason=why, raw=text[-600:])
     result = dict(stamp, valid=True, **answer, surfaced_text=answer["surfaced"])
     result["surfaced"] = bool(answer["surfaced"])
-    result["key_point"] = None
-    if it["gold"]["surfaced"] and answer["decision"] in sc.SURFACED:
-        v = judge_module().verdict_on(it["key_point"], judged_document(answer))
-        result["key_point"] = v["answer"]
-        result["key_point_quote"] = v["quote"]
+    result.update(judge_answer(it, answer))
     return result
+
+
+def judgment_is_stale(result, judge_fp):
+    return result.get("key_point") is not None and result.get("judge_fingerprint") != judge_fp
+
+
+def rejudge(path, it):
+    """Re-ask the judge about a stored answer; the SUT is not called."""
+    r = json.loads(read(path))
+    r.update(judge_answer(it, {"decision": r["decision"], "surfaced": r.get("surfaced_text"),
+                               "rationale": r.get("rationale")}))
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(r, f, indent=1, ensure_ascii=False)
 
 
 def run_dir(sut, it, arm, actions, i, root=None):
@@ -352,10 +380,14 @@ def run_dir(sut, it, arm, actions, i, root=None):
                         "fp-%s" % run_fingerprint(it, arm, actions), "run-%d" % i)
 
 
-def load_results(sut, items, actions, root=None):
+def load_results(sut, items, actions, root=None, judge_fp=None):
     """(current, stale). Current: recorded under today's fingerprint for
     its item and arm. Stale: anything else on disk — another brief,
-    snapshot, frame, vocabulary or gold, or an item that left the corpus."""
+    snapshot, frame, vocabulary or gold, or an item that left the corpus.
+    A current answer whose key-point verdict came from another judge
+    configuration keeps its class and action and reads `judge-stale` in
+    the judged column until the sweep re-judges it."""
+    judge_fp = judge_fp or judge_config_fingerprint()
     current, stale = [], []
     pattern = os.path.join(root or REPORT, sut, "*", "*", "fp-*", "run-*", "result.json")
     for p in sorted(glob.glob(pattern)):
@@ -365,6 +397,8 @@ def load_results(sut, items, actions, root=None):
         fp = os.path.basename(os.path.dirname(rdir))[len("fp-"):]
         it = items.get(r.get("item"))
         if it and r.get("arm") in ARMS and fp == run_fingerprint(it, r["arm"], actions):
+            if judgment_is_stale(r, judge_fp):
+                r["key_point"] = "judge-stale"
             current.append(r)
         else:
             stale.append(r)
@@ -439,8 +473,14 @@ def main(argv):
     for iid in named or sorted(items):
         for i in range(1, k + 1):
             rdir = run_dir(sut, items[iid], arm, actions, i)
-            if os.path.exists(os.path.join(rdir, "result.json")):
-                print("skip %s %s run-%d (done)" % (arm, iid, i))
+            done = os.path.join(rdir, "result.json")
+            if os.path.exists(done):
+                if judgment_is_stale(json.loads(read(done)), judge_config_fingerprint()):
+                    rejudge(done, items[iid])
+                    print("rejudge %s %s run-%d (the judge changed; the answer is kept)"
+                          % (arm, iid, i))
+                else:
+                    print("skip %s %s run-%d (done)" % (arm, iid, i))
                 continue
             result = run_one(row["model"], items[iid], arm, actions)
             os.makedirs(rdir, exist_ok=True)
