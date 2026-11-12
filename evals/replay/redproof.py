@@ -967,7 +967,8 @@ def _seed_run(cdir):
     return sbx, run, template
 
 
-STATE_MATRIX = ("a missing CR", "an open CR", "a draft CR", "a merged CR", "a re-spec ({seq} > 1)",
+STATE_MATRIX = ("a missing CR", "an open CR", "a draft CR", "a merged CR",
+                "a merged CR whose head branch was deleted", "a re-spec ({seq} > 1)",
                 "an implementation CR on the current spec branch",
                 "an implementation CR on another base", "zero review threads",
                 "no audit marker on a QA CR", "a completed clean audit", "one open dependency",
@@ -985,6 +986,10 @@ def _cells(truth, state, shas, n, template):
             out.add("a draft CR" if v["state"] == "open" and v["draft"] else
                     "an open CR" if v["state"] == "open" else
                     "a merged CR" if v["state"] == "merged" else "a closed CR")
+    for b, cr in (("branches.spec", "spec.cr"), ("branches.implementation", "implementation.cr"),
+                  ("branches.qa", "qa.cr")):
+        if f.get(b, (None,))[0] == "absent" and f.get(cr, (None,))[0] == "observed":
+            out.add("a merged CR whose head branch was deleted")
     spec = f.get("branches.spec", (None, None))
     if spec[0] == "observed":
         import branch_names as bn

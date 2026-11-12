@@ -218,6 +218,77 @@ class Match(unittest.TestCase):
                 self.assertEqual(m["outcome"], "UNKNOWN")
                 self.assertEqual(m["matches"], [])
 
+    def test_deleted_heads(self):
+        """#272 — a head only a merged CR remembers. `hist` is the snapshot's
+        merged_heads: observed | unknown (a failed or truncated read)."""
+        def hist(status, heads=None, reason=None):
+            h = {"status": status, "heads": {n: {"cr": c, "sha": s} for n, c, s in heads or ()}}
+            if reason:
+                h["reason"] = reason
+            return h
+
+        def with_hist(heads, h):
+            s = bn.snapshot_from_heads(dict(heads))
+            s["merged_heads"] = h
+            return s
+        seq = "{kind}/{n}/{seq}"
+        s = with_hist({"main": "m"}, hist("observed", [("spec/5", 103, "a" * 40)]))
+        m = bn.match_heads(s, None, kind="spec", n=5)
+        with self.subTest("branch_names: a merged-only name is a match, marked deleted, with "
+                          "its CR and the CR's head sha"):
+            self.assertEqual(m["outcome"], "ONE")
+            self.assertEqual(m["matches"], [{"branch": "spec/5", "user": None, "seq": None,
+                                             "sha": "a" * 40, "deleted": True, "cr": 103}])
+        with self.subTest("branch_names: a merged name of another issue or kind is no match"):
+            self.assertEqual(bn.match_heads(s, None, kind="spec", n=6)["outcome"], "NO_MATCH")
+            self.assertEqual(bn.match_heads(s, None, kind="feat", n=5)["outcome"], "NO_MATCH")
+        s = with_hist({"spec/5": "b" * 40}, hist("observed", [("spec/5", 103, "a" * 40)]))
+        m = bn.match_heads(s, None, kind="spec", n=5)
+        with self.subTest("branch_names: a name on the remote AND in the history is one live "
+                          "match — never deleted, the remote's sha"):
+            self.assertEqual((m["outcome"], m["matches"]),
+                             ("ONE", [{"branch": "spec/5", "user": None, "seq": None,
+                                       "sha": "b" * 40}]))
+        s = with_hist({"spec/5/1": "b" * 40},
+                      hist("observed", [("spec/5/2", 110, "a" * 40)]))
+        m = bn.match_heads(s, seq, kind="spec", n=5)
+        with self.subTest("branch_names: a stale live attempt and a deleted, merged, newer "
+                          "{seq} → MULTIPLE_SEQ; the highest is the deleted one"):
+            self.assertEqual(m["outcome"], "MULTIPLE_SEQ")
+            self.assertEqual([(x["branch"], x.get("deleted", False)) for x in m["matches"]],
+                             [("spec/5/1", False), ("spec/5/2", True)])
+        s = with_hist({}, hist("observed", [("spec/a/5/1", 1, "a"), ("spec/b/5/1", 2, "b")]))
+        with self.subTest("branch_names: two deleted names with one {seq} → MULTIPLE_SAME_SEQ"):
+            self.assertEqual(bn.match_heads(s, K, kind="spec", n=5)["outcome"],
+                             "MULTIPLE_SAME_SEQ")
+        for reason in ("forge_query_failed", "history_truncated"):
+            s = with_hist({"feat/5": "b" * 40}, hist("unknown", reason=reason))
+            m = bn.match_heads(s, None, kind="feat", n=5)
+            with self.subTest("branch_names: history %s, a live match → the live match stands, "
+                              "flagged" % reason):
+                self.assertEqual((m["outcome"], m["matches"][0]["branch"]), ("ONE", "feat/5"))
+                self.assertEqual((m.get("history"), m.get("reason")), ("unknown", reason))
+            m = bn.match_heads(s, None, kind="qa", n=5)
+            with self.subTest("branch_names: history %s, no live match → UNKNOWN, never "
+                              "NO_MATCH" % reason):
+                self.assertEqual((m["outcome"], m["matches"], m.get("reason")),
+                                 ("UNKNOWN", [], reason))
+        for label, h in (("no merged_heads key (an older snapshot file)", None),
+                         ("merged_heads not_asked (no config block)", hist("not_asked"))):
+            s = bn.snapshot_from_heads({"feat/5": "b" * 40})
+            if h:
+                s["merged_heads"] = h
+            with self.subTest("branch_names: %s → live only, exactly as before" % label):
+                self.assertEqual(bn.match_heads(s, None, kind="feat", n=5),
+                                 bn.match_heads(bn.snapshot_from_heads({"feat/5": "b" * 40}),
+                                                None, kind="feat", n=5))
+                self.assertEqual(bn.match_heads(s, None, kind="qa", n=5)["outcome"], "NO_MATCH")
+        s = {"status": "unknown", "reason": "offline", "heads": [],
+             "merged_heads": hist("observed", [("spec/5", 103, "a" * 40)])}
+        with self.subTest("branch_names: an unreadable remote stays UNKNOWN whatever the "
+                          "history says"):
+            self.assertEqual(bn.match_heads(s, None, kind="spec", n=5)["outcome"], "UNKNOWN")
+
     def test_bulk_equals_singles(self):
         s = snap("spec/p/5/1", "fix/p/5/1", "spec/p/6/1", "spec/p/6/2")
         with self.subTest("branch_names: match_issue over one snapshot = per-kind singles"):

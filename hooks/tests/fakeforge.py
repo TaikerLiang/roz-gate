@@ -76,11 +76,27 @@ def target():
     for a in ARGV[1:]:
         if skip:
             skip = False
-        elif a in ("-f", "-F", "-X", "--method", "--jq", "-q", "-H"):
+        elif a in ("-f", "-F", "-X", "--method", "--jq", "-q", "-H", "--hostname"):
             skip = True
         elif not a.startswith("-") and out is None:
             out = a
     return out or ""
+
+
+def merged_prs():
+    """The world's merged CRs, then `merged_filler` synthetic ones (for the
+    ceiling), in the world's own order — never sorted for the caller."""
+    # a read bound to a repository (#272, codex): `--repo` (gh) or the project
+    # path (glab) picks that repository's CRs when the world names several
+    repo = flag("--repo", "-R")
+    m = re.match(r"projects/([^/:]+)/merge_requests", target() if ARGV[:1] == ["api"] else "")
+    if m:
+        repo = "%s/%s" % (flag("--hostname") or "", unquote(m.group(1)))
+    prs = W.get("by_repo", {}).get(repo, W.get("prs", [])) if repo else W.get("prs", [])
+    rows = [p for p in prs if p["state"] == "merged"]
+    rows += [{"number": 100000 + i, "head": "filler/%d" % i, "head_sha": "f" * 40,
+              "merged_at": "2020-01-01T00:00:00Z"} for i in range(int(W.get("merged_filler", 0)))]
+    return rows
 
 
 GH_STATE = {"open": "OPEN", "merged": "MERGED", "closed": "CLOSED"}
@@ -100,6 +116,14 @@ def gh():
         print(json.dumps({"labels": [{"name": x} for x in iss["labels"]]}))
         return
     if ARGV[:2] == ["pr", "list"]:
+        if flag("--state") == "merged":             # the merged history (#272)
+            if "merged" in FAIL:
+                die()
+            rows = [{"number": p["number"], "headRefName": p["head"],
+                     "headRefOid": p.get("head_sha", ""), "mergedAt": p.get("merged_at")}
+                    for p in merged_prs()]
+            print(json.dumps(rows[:int(flag("--limit") or 30)]))
+            return
         if "prs" in FAIL:
             die()
         assert flag("--state") == "all", "CR-FIND must ask all states"
@@ -167,7 +191,16 @@ def glab():
             die("404 Not Found")
         print(json.dumps({"iid": int(m.group(1)), "labels": [gl_label(x) for x in iss["labels"]]}))
         return
-    if path == "projects/:id/merge_requests":
+    if re.match(r"projects/[^/]+/merge_requests$", path):
+        if q.get("state") == "merged":              # the merged history (#272)
+            if "merged" in FAIL:
+                die()
+            per, page = int(q.get("per_page", 20)), int(q.get("page", 1))
+            rows = [{"iid": p["number"], "source_branch": p["head"],
+                     "sha": p.get("head_sha", ""), "merged_at": p.get("merged_at")}
+                    for p in merged_prs()]
+            print(json.dumps(rows[(page - 1) * per:page * per]))
+            return
         if "prs" in FAIL:
             die()
         assert q.get("state") == "all", "CR-FIND must ask all states"

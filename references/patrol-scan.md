@@ -25,11 +25,16 @@ label → `feat`, the rendering `branch-names.md` gives it) — a pure read
 of that file, no network, no git — and bind every `<spec-branch>` /
 `<feat-branch>` / `<qa-branch>` / `<fast-branch>` below from its JSON
 (#135, `references/branch-names.md` § The resolver): `ONE` → that branch;
-`MULTIPLE_SEQ` → the highest `{seq}` among its matches; `NO_MATCH` → the
+`MULTIPLE_SEQ` → the highest `{seq}` among its matches; a match marked
+`deleted` → a head the forge removed after its CR merged: the name is
+bound **for CR-FIND and nothing else** (#272); `NO_MATCH` → the
 branch does not exist; `MULTIPLE_SAME_SEQ` → verdict `illegal state:
 ambiguous branch (<the matches>)`, skip classification, report it;
-`UNKNOWN` cannot reach you — the agent stops the pass on an unknown
-snapshot. Never render the template yourself
+an `UNKNOWN` snapshot cannot reach you — the agent stops the pass on it —
+but `UNKNOWN` **for one branch** can: no live head, and a merged history
+that could not be read to its end. For a branch the row needs → verdict
+`waiting on: branches unknown (<reason>)`, skip classification, report it
+— an unreadable history is never "no branch". Never render the template yourself
 (`references/branch-names.md`) — never by a git call of your own, never by
 guessing. A CR-FIND takes the bound name.
 
@@ -156,7 +161,7 @@ then one line for the filtered-out count. Columns, in this order:
 | `holder` | the gate holder — the issue's assignees minus the bot logins the main agent handed you and any login with the forge's bot shape (the human-comment test's, below), else its `author` when that is not a bot by either test, **humans only** (`none` when no human — a bot-authored, unassigned issue has no holder) — what intake and the user's queue need, so the main agent never re-lists for assignees |
 | `cr` | the loop CR: number, state (`open` / `draft` / `merged` / `closed` / `none`), url |
 | `unheard` | count of unheard items, each with its url (0 when none) |
-| `verdict` | one of: `actionable: review-answers` · `actionable: integrate` · `actionable: address-review` · `actionable: fidelity-audit` · `actionable: code-review` · `actionable: next-stage (qa)` · `actionable: spec-answers` · `actionable: next-stage (ready-for-dev)` · `actionable: next-stage (ready-for-spec)` · `close-out` · `hand-off: in-user-review` · `intake: questions` · `intake: summary` · `intake: reply` · `intake: finalize` · `waiting on user: <which wait>` · `waiting on: #<n>[, #<m>]` · `waiting on: blockers unknown (<error>)` · `in progress` · `illegal state: <why>` · `locked: <phase> · <age>` · `blocked` |
+| `verdict` | one of: `actionable: review-answers` · `actionable: integrate` · `actionable: address-review` · `actionable: fidelity-audit` · `actionable: code-review` · `actionable: next-stage (qa)` · `actionable: spec-answers` · `actionable: next-stage (ready-for-dev)` · `actionable: next-stage (ready-for-spec)` · `close-out` · `hand-off: in-user-review` · `intake: questions` · `intake: summary` · `intake: reply` · `intake: finalize` · `waiting on user: <which wait>` · `waiting on: #<n>[, #<m>]` · `waiting on: blockers unknown (<error>)` · `waiting on: branches unknown (<reason>)` · `in progress` · `illegal state: <why>` · `locked: <phase> · <age>` · `blocked` |
 | `evidence` | what decided the verdict — thread/comment urls, the last agent marker, the gate label's latest `labeled` event (label · actor · time) on every gated row, the fidelity record's url or its absence, the code-review record's url and its `reviewed-sha` against the head (or its absence), the missing CR — enough for the report to cite without another forge read |
 
 Then: `inbox filter: <label list> / <assignee list> · N track-less

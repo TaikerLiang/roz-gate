@@ -366,6 +366,7 @@ def pr_shape(pr, want):
         "baseRefName": pr.get("baseRefName", ""),
         "body": pr.get("body", ""),
         "labels": [{"name": l} for l in pr.get("labels", [])],
+        "mergedAt": pr.get("mergedAt"),
     }
     if want and "headRefOid" in want:
         # #133 — the head commit, resolved in the sandbox like `pulls/<n>`'s
@@ -374,7 +375,10 @@ def pr_shape(pr, want):
         rp = subprocess.run(["git", "rev-parse", "--verify", "-q",
                              resolve_ref(pr.get("headRefName", "")) + "^{commit}"],
                             capture_output=True, text=True)
-        full["headRefOid"] = rp.stdout.strip() if rp.returncode == 0 else ""
+        # #272 — a head the forge deleted has no ref in the sandbox: the
+        # fixture's own `headRefOid` answers for it, as the forge's record does
+        full["headRefOid"] = (rp.stdout.strip() if rp.returncode == 0
+                              else pr.get("headRefOid", ""))
     return {k: v for k, v in full.items() if not want or k in want}
 
 

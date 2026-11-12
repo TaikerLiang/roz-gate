@@ -453,8 +453,11 @@ under another developer's template is not found. Without
 command, as before. **`bin/roz-branch`** is this contract as code (2.15.0):
 `expand`, `snapshot` (the one `ls-remote`), `match` (pure, over a snapshot),
 `lookup`; patrol's scanner binds through it, the hooks share its module,
-and a remote that cannot be read is *unknown*, never "no branch". Details:
-`references/branch-names.md`.
+and a remote that cannot be read is *unknown*, never "no branch". Your
+forge may delete a head branch when its CR merges ("automatically delete
+head branches", "delete source branch"): the snapshot also reads the head
+names merged CRs remember, so patrol still finds the merged CR and closes
+the issue out. Details: `references/branch-names.md`.
 
 `init` also writes a `### Roz Gate personas` block — **fixed seats, swappable
 occupants**. The five role names (product, em, implementer, qa, reviewer) are
