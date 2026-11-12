@@ -50,7 +50,7 @@ refuses a rule that lands unindexed (#189).
 
 ## Cases
 
-`lint` = static check on every push · `replay` = headless runs, pass^k ·
+`lint` = static check on every push · `replay` = headless runs, a pass rate over k ·
 `hook` = enforced by a hook, proven in `hooks/tests/`.
 
 ### A · patrol sees every channel

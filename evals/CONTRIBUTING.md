@@ -233,6 +233,13 @@ after the baseline makes those runs **stale** in `report.json` — out of the
 rate, never silently current — until the case is re-measured
 (`evals/replay/README.md` § The case as scored).
 
+A baseline that is to be cited is **recorded**: one batch in
+`replay/baselines.json` — SUT, the exact plugin version or the range the
+runs spanned, the date or the sweep's span, k, each case's valid and passed
+counts, and where the numbers can be found — then `python3 tools/ledger.py`.
+`README.md` § Recorded baselines renders from it; no page carries a
+baseline figure by hand.
+
 ## 6. Reading a red
 
 An invalid run is not a red at all (no result event, a quota banner, an

@@ -249,7 +249,7 @@ and the eval ledger (`evals/README.md`).
   experiment with an autopsy class per anomaly) — pending Paul's
   direction.
 
-## Current state (as of 2026-09-21)
+## State on 2026-09-21 (v1.16.2) — a snapshot
 
 - **v1.16.2 shipped; 1.16.3 is this docs catch-up** (two clauses in
   `references/workflow.md` — behaviour prose, so the release gate
@@ -262,9 +262,15 @@ and the eval ledger (`evals/README.md`).
 - **ADMC** (the first real project): bot-mode identity config in place
   (in the untracked `CLAUDE.local.md` since its PR #62); the judgment
   fixtures re-create the config block on each sandbox.
-- **2.0.0: shipped.** #140 gave it a vehicle (the stage order changed);
-  the frozen protocol pages below ship with it (#142, 2026-10-17); the
-  patrol gate-label audit is #144, on its own merits.
+
+## Since then
+
+- **2.0.0 shipped on 2026-10-17.** #140 gave it a vehicle (the stage order
+  changed); the frozen protocol pages below ship with it (#142); the patrol
+  gate-label audit is #144, on its own merits.
+- This page is a record, not a status board. What is current lives where
+  it is kept current: `CHANGELOG.md` for what shipped, `evals/README.md`
+  for the case counts and the recorded baselines (both rendered).
 
 ## The vision (why 2.0.0 exists)
 

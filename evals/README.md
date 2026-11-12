@@ -13,7 +13,7 @@ Level-1 suite does not prove Roz Gate improves engineering outcomes.
 | Tier | Cases | Status | Cost class |
 |---|---|---|---|
 | **lint** | 73 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
-| **replay** | 62 | built — `replay/run_replay.py` | needs a running loop and pass^k over repeated runs |
+| **replay** | 62 | built — `replay/run_replay.py` | needs a running loop and a pass rate over k repeated runs |
 | **hook** | 4 | built — `ledger-hook.json`, proven in `../hooks/tests/` by the same gate | rules a hook alone enforces; the other hook rules ride on a lint or replay row |
 | **judgment** | 7 items / 4 fixtures · V1: 10 decisions | built — `judgment/run_judgment.py`, k=2 baseline complete (2026-09-21) | a real repo per iteration plus an opus judge; the Level-2 seed (`charter.md`) |
 <!-- /counts -->
@@ -114,6 +114,31 @@ promoted in 1.16.0 (guard-blind rule E) at 4/5 — one QA child read
 invisible at the gate: the class that gets teeth regardless of rate. Lint
 D2 holds the hook's three regexes byte-identical to the replay checker's.
 
+## Recorded baselines
+
+What has been measured, and what has not — rendered by `tools/ledger.py`
+from `replay/baselines.json`, never edited here. This block is the
+summary; § Baseline results below is the record of each sweep as it was
+read at the time. A new baseline is a new batch in that file, then the
+tool.
+
+<!-- baselines -->
+**36 of 62 replay cases have at least one recorded SUT baseline; 26 have none.** *Recorded* is not *current*: a batch below is a measurement of the case as it was then, and a later seed or checker change may have superseded it — where the record says so, the row does.
+
+| batch | SUT | plugin | when | k | results | source |
+|---|---|---|---|---|---|---|
+| `opus-first-sweep` | opus | v1.14.2–v1.16.2 | sweep 2026-09-16 → 2026-09-21 | 5 | reported 100% at k=5, counts not recorded: A1, A2, A3, A4, A5, C1, C2, D3, E5, F1, F2, F3, F4, F5 · 4/5 [44%, 95%]: C5 · 4/4 [60%, 100%]: D2 · 5/5 [65%, 100%]: E2 · 3/3 [53%, 100%]: F6 · *superseded:* C5 — scored by the pre-#97 checker (evals/replay/README.md § The case as scored: "C5's 4/5 of 2026-09-15") | evals/README.md § Baseline results (opus SUT, plugin v1.14.2 → v1.16.2, 2026-09-16 → 21): "17 of 18 cases at 100%"; the 18 cases are those under evals/replay/cases/ at tag v1.16.2 |
+| `opus-1.19.0-base-branch` | opus | v1.19.0 | 2026-10-03 | 5 | 5/5 [65%, 100%]: C7, F7 | evals/README.md § Baseline results, "Replay, k=5, plugin v1.19.0 (2026-10-03) — the base-branch cases"; checker commit f5e106d |
+| `opus-1.26.0` | opus | v1.26.0 | 2026-10-05 | 5 | 5/5 [65%, 100%]: A7, C10, E6, F8, F7, C7 · 3/5 [27%, 86%]: F9 | evals/README.md § Baseline results, "Replay, k=5, plugin v1.26.0 (2026-10-05) — the 1.20–1.26 cases" |
+| `opus-1.36.0-e8` | opus | v1.36.0 | 2026-10-12 | 3 | 3/3 [53%, 100%]: E8 | evals/README.md § Baseline results, "Replay, k=3, plugin v1.36.0 (2026-10-12) — E8"; checker commits f2cb1d2, 8c1e33a; k=3 by the gate holder's quota call |
+| `qa-brief-pilot-run-1` | opus | v2.10.0–v2.10.1 | sweep 2026-11-07 → 2026-11-08 | 1 | 1/1 [27%, 100%]: D10, D11, D12, D15, D16, D17, D18 · 0/1 [0%, 73%]: D13, D14, D19 · *superseded:* the batch — PR #233 moved every D10–D19 case_fp; the k>1 top-up re-measures them (#199) | evals/README.md § Baseline results, "Replay, k=1, plugin v2.10.0–v2.10.1 … the #199 QA-brief pilot"; issue #199. Brief A only (references/qa-brief.md, the shipped brief); the B and C variants measured other briefs and are not baselines of these cases |
+| `qa-brief-haiku-reading` | haiku55 | main 6cc2c79 … ccfa8ef (PR #242), after v2.10.1 — the plugin sha varied across cells | 2026-11-08 | 3 | 3/3 [53%, 100%]: D10, D11, D15, D16, D18 · 2/2 [43%, 100%]: D12, D13, D14 · 1/1 [27%, 100%]: D17 · 2/3 [25%, 92%]: D19 · *superseded:* the batch — references/qa-brief.md changed after this reading (#243, #261, #262); a result is evidence about the brief it ran under | issue #199, "Pilot report — Haiku reading" (https://github.com/TaikerLiang/roz-gate/issues/199#issuecomment-6719997010): brief A, 24/25 valid cells, 5 invalid. Not in evals/README.md's narrative. Brief A only; B and C measured other briefs |
+
+Wilson 90% intervals, the runner's formula. No recorded baseline (26): A9, A11, C11, C12, C13, C16, C17, C20, C22, C23, C26, C30, D4, D5, D6, D7, D8, D9, E9, E11, F10, F11, F12, F13, F14, F15.
+
+**Judgment:** the last recorded sweep is opus SUT, opus judge, plugin v1.16.2, sweep 2026-09-20 → 2026-09-21, k=2 — the only judgment sweep on record; nine valid runs over the four fixtures. Judgment V1 and the Workflow Value pilot have no recorded run.
+<!-- /baselines -->
+
 ## Baseline results (opus SUT, plugin v1.14.2 → v1.16.2, 2026-09-16 → 21)
 
 **Replay, k=5 (F6 = three 12-turn sessions):** 17 of 18 cases at 100%.
@@ -121,8 +146,8 @@ The two genuine violations the sweep found were both promoted to hooks
 and re-measured green: E2 0/5 → 5/5 (rule D), D2 4/5 → 4/4 with zero
 denied attempts (rule E). D2's remaining shortfall is one stub-route
 invalid, not a miss. F6's curve is all-true at turns 1/3/5/8/12 in every
-session — **no in-session decay observed**, against the literature's
-prediction of ~5.6% odds loss per step. Cost ≈ $150 API-equivalent
+session — **no decay detected at n=3 sessions**, which is too few to
+exclude the literature's prediction of ~5.6% odds loss per step. Cost ≈ $150 API-equivalent
 including re-runs; cache reads dominate.
 
 **Replay, k=5, plugin v1.19.0 (2026-10-03) — the base-branch cases:** C7
