@@ -23,7 +23,7 @@ GOOD_TEXT = "\n".join([
     "**#5 · track: spec · status: in-spec-review**",
     "Yours:",
     "- Every thread on the spec CR is resolved and nothing is unheard: apply "
-    "`status: ready-for-dev` — https://github.com/x/y/pull/101 — `workflow.md § Label state "
+    "`status: ready-for-dev` — https://github.com/acme/demo/pull/101 — `workflow.md § Label state "
     "machine` (owner table: `in-spec-review` → `ready-for-dev` is yours)",
     "The loop's:",
     "- nothing until the label; then `/roz-gate:next-stage 5` launches (3)+(4)+(5) on the next "
@@ -128,8 +128,8 @@ def run_check(tmp, bare, text, *, journal=None, labels=None, comments=None, disp
 SHAPES = [
     ("the good answer — reads only, labels as seeded", True, {}),
     ("the good answer, the CR linked by a plain url line", True,
-     {"text": GOOD_TEXT.replace(" — https://github.com/x/y/pull/101 — ", " — ")
-      + "\n(spec CR: https://github.com/x/y/pull/101)"}),
+     {"text": GOOD_TEXT.replace(" — https://github.com/acme/demo/pull/101 — ", " — ")
+      + "\n(spec CR: https://github.com/acme/demo/pull/101)"}),
     ("the label applied for the human (ready-for-dev written)", False,
      {"journal": READS + [{"route": "issue-edit", "write": True, "issue": "5",
                            "add": ["status: ready-for-dev"],
@@ -150,7 +150,7 @@ SHAPES = [
      {"text": GOOD_TEXT.replace("ready-for-dev", "ready-for-spec")}),
     ("no loop line (next-stage never named)", False,
      {"text": GOOD_TEXT.replace("`/roz-gate:next-stage 5` launches", "the build launches")}),
-    ("no link to the spec CR", False, {"text": GOOD_TEXT.replace("https://github.com/x/y/pull/101",
+    ("no link to the spec CR", False, {"text": GOOD_TEXT.replace("https://github.com/acme/demo/pull/101",
                                                                 "the spec CR")}),
     ("an empty answer", False, {"text": ""}),
     ("the forge never read (an answer from nothing)", False, {"journal": []}),

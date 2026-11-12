@@ -209,6 +209,7 @@ text follows the experiment; the driver's citation was updated to match.
 | L14 | a kernel rule has one definition | lint (#263) |
 | L15 | the roz-state contract has one field table | lint (#239) |
 | L16 | the integrate precondition codes have one table | lint (#134) |
+| L17 | the replay tier names no repository but the fixture's | lint (#250) |
 
 ## The judgment corpus
 

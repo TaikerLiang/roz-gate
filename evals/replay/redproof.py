@@ -89,7 +89,7 @@ ROUTES = [
      '"state": "closed"'),
     ("blocked_by: the doc's --jq projection, --paginate (codex review, PR #249)",
      ["api", "--paginate", "repos/{owner}/{repo}/issues/7/dependencies/blocked_by", "--jq",
-      "[.[] | {number, state, url: .html_url}]"], "issue-blocked-by", '"url": "https://github.com/x/y/issues/5"'),
+      "[.[] | {number, state, url: .html_url}]"], "issue-blocked-by", '"url": "https://github.com/acme/demo/issues/5"'),
     ("blocked_by: no blockers is an empty list, not an error",
      ["api", "repos/acme/demo/issues/5/dependencies/blocked_by"], "issue-blocked-by", "[]"),
     ("blocked_by: an issue not in the fixture → UNKNOWN",
@@ -251,7 +251,7 @@ JQ_EXACT = [
      "comment-edit", "1"),
     ("top-level comment POST through REST, --jq .html_url",
      ["api", "repos/acme/demo/issues/101/comments", "-f", "body=hi", "--jq", ".html_url"],
-     "pr-comment", "https://github.com/x/y/pull/101#issuecomment-1001"),   # next_id
+     "pr-comment", "https://github.com/acme/demo/pull/101#issuecomment-1001"),   # next_id
     ("thread reply, --jq .id is a number",
      ["api", "-X", "POST", "repos/acme/demo/pulls/101/comments/9101/replies", "-f", "body=r",
       "--jq", ".in_reply_to_id"],
@@ -294,6 +294,54 @@ GH_ERRORS = [
      "graphql-error"),
 ]
 
+# #250 — the stub's URLs name the fixture's repository, and a `--json` field
+# the stub does not serve is UNKNOWN before anything is printed. The fixture
+# is NOT the default repository: a hard-coded `acme/demo` is as red here as
+# the `x/y` it replaced. (name, argv, route, needles stdout must carry —
+# for UNKNOWN: the field the journal note must name)
+OCTO = "https://github.com/octo/widgets"
+REPO_ROUTES = [
+    ("issue view --json url names the fixture's repository",
+     ["issue", "view", "5", "--json", "url"], "issue-view", ['"url": "%s/issues/5"' % OCTO]),
+    ("issue view --json state,closed — an open issue",
+     ["issue", "view", "5", "--json", "state,closed"], "issue-view",
+     ['"state": "OPEN"', '"closed": false']),
+    ("issue view --json state,closed — a closed issue",
+     ["issue", "view", "6", "--json", "state,closed"], "issue-view",
+     ['"state": "CLOSED"', '"closed": true']),
+    ("issue list --json number,url",
+     ["issue", "list", "--json", "number,url"], "issue-list", ['"url": "%s/issues/5"' % OCTO]),
+    ("pr view --json url,closed",
+     ["pr", "view", "101", "--json", "url,closed"], "pr-view",
+     ['"url": "%s/pull/101"' % OCTO, '"closed": false']),
+    ("pr list --json number,url",
+     ["pr", "list", "--json", "number,url"], "pr-list", ['"url": "%s/pull/101"' % OCTO]),
+    ("repo view --json nameWithOwner,url — and only those",
+     ["repo", "view", "--json", "nameWithOwner,url"], "repo-view",
+     ['{"nameWithOwner": "octo/widgets", "url": "%s"}' % OCTO]),
+    ("repo view --json owner,name still answers",
+     ["repo", "view", "--json", "owner,name"], "repo-view",
+     ['{"owner": {"login": "octo"}, "name": "widgets"}']),
+    ("a printed URL (pr comment)",
+     ["pr", "comment", "101", "--body", "hi"], "pr-comment", ["%s/pull/101#issuecomment-" % OCTO]),
+    ("an html_url (blocked_by)",
+     ["api", "repos/{owner}/{repo}/issues/7/dependencies/blocked_by", "--jq", ".[0].html_url"],
+     "issue-blocked-by", ["%s/issues/5" % OCTO]),
+    # one unserved field makes the whole command UNKNOWN — no partial JSON
+    ("issue view --json url,updatedAt (served beside unserved)",
+     ["issue", "view", "5", "--json", "url,updatedAt"], "UNKNOWN", ["updatedAt"]),
+    ("issue list --json number,updatedAt",
+     ["issue", "list", "--json", "number,updatedAt"], "UNKNOWN", ["updatedAt"]),
+    ("pr view --json url,reviews",
+     ["pr", "view", "101", "--json", "url,reviews"], "UNKNOWN", ["reviews"]),
+    ("pr list --json number,reviews",
+     ["pr", "list", "--json", "number,reviews"], "UNKNOWN", ["reviews"]),
+    ("repo view --json name,defaultBranchRef",
+     ["repo", "view", "--json", "name,defaultBranchRef"], "UNKNOWN", ["defaultBranchRef"]),
+    ("issue view --json bogus (a field gh itself lacks is unserved too)",
+     ["issue", "view", "5", "--json", "bogus"], "UNKNOWN", ["bogus"]),
+]
+
 # (name, result.json content or None for absent, iteration_done)
 RESUME = [
     ("no result.json", None, False),
@@ -309,7 +357,7 @@ RESUME = [
 ]
 
 
-def run_route(argv, cwd=None, env=None, state_dir=None, stdin=""):
+def run_route(argv, cwd=None, env=None, state_dir=None, stdin="", state=None, notes=None):
     """One stub call against a throwaway state — or `state_dir`, kept
     between calls so a write can be read back. `env` overrides the
     inherited environment (the PATH-without-jq row, #219); `stdin` is
@@ -318,12 +366,15 @@ def run_route(argv, cwd=None, env=None, state_dir=None, stdin=""):
     try:
         if not state_dir:
             with open(os.path.join(d, "state.json"), "w") as f:
-                json.dump(STATE, f)
+                json.dump(state or STATE, f)
         p = subprocess.run([sys.executable, GH] + argv, capture_output=True, text=True,
                            env={**(env if env is not None else os.environ), "FORGE_STATE": d},
                            cwd=cwd, input=stdin)
         routes = [json.loads(line)["route"]
                   for line in open(os.path.join(d, "journal.jsonl")) if line.strip()]
+        if notes is not None:   # the journal's notes, for a row that reads why
+            notes.extend(json.loads(line).get("note", "")
+                         for line in open(os.path.join(d, "journal.jsonl")) if line.strip())
         return p.returncode, p.stdout, routes
     finally:
         if not state_dir:
@@ -1118,7 +1169,7 @@ def state_checks():
 
         row = ("| #5 Offer expiry | spec | `status: in-user-review` | paul | #101 open %s "
                "| 1 | %s | %s |")
-        url = "https://github.com/x/y/pull/101"
+        url = "https://github.com/acme/demo/pull/101"
 
         def scan(cells_row):
             run.shadow_scan(["5"], cdir, template,
@@ -1463,6 +1514,24 @@ def main():
         print("%s route: %s -> %s" % ("PASS" if ok else "FAIL", name, route),
               "" if ok else "(got rc=%d routes=%s out=%r)" % (rc, routes, out[:120]))
         passed, failed = passed + ok, failed + (not ok)
+    octo = dict(STATE, repo={"owner": "octo", "name": "widgets"})
+    for name, argv, route, needles in REPO_ROUTES:
+        notes = []
+        rc, out, routes = run_route(argv, state=octo, notes=notes)
+        if route == "UNKNOWN":
+            ok = (rc == 64 and routes == ["UNKNOWN"] and out == ""
+                  and all(n in notes[-1] for n in needles))
+        else:
+            ok = rc == 0 and routes == [route] and all(n in out for n in needles)
+        print("%s route: #250 %s -> %s" % ("PASS" if ok else "FAIL", name, route),
+              "" if ok else "(got rc=%d routes=%s out=%r notes=%s)"
+              % (rc, routes, out[:120], notes))
+        passed, failed = passed + ok, failed + (not ok)
+    rc, out, routes = run_route(["issue", "view", "5", "--json", "url"])
+    ok = rc == 0 and '"url": "https://github.com/acme/demo/issues/5"' in out
+    print("%s route: #250 a fixture with no `repo` is acme/demo" % ("PASS" if ok else "FAIL"),
+          "" if ok else "(got rc=%d out=%r)" % (rc, out[:120]))
+    passed, failed = passed + ok, failed + (not ok)
     for name, content, want in RESUME:
         d = tempfile.mkdtemp()
         try:

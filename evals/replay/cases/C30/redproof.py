@@ -118,7 +118,7 @@ SHAPES = [
     ("#6 queued but `needs you: yes`, with a queue item", False,
      {"text": report([R5_ACTED, R6_QUEUED.replace("| queued: integrate | — |",
                                                    "| queued: integrate | yes |")],
-                     queue=["- #6 — apply the gate label — https://github.com/x/y/issues/6"])}),
+                     queue=["- #6 — apply the gate label — https://github.com/acme/demo/issues/6"])}),
     ("#6 commented on — touched without a lock", False,
      {"journal": GOOD + [comment6()], "comments6": 1}),
     ("#6's QA CR commented on — a write on its CR", False,
