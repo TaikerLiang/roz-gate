@@ -88,8 +88,14 @@ def check(items=None, actions=None):
             continue
         if not re.match(r"^J-[a-z0-9-]+$", iid):
             bad.append("%s: id is not J-<kebab>" % where)
-        if not (it["approved_by"] and re.match(r"^\d{4}-\d{2}-\d{2}$", str(it["approved_on"]))):
-            bad.append("%s: not approved — approved_by and approved_on (YYYY-MM-DD)" % where)
+        # approval is a state, not a defect: both null (awaiting the
+        # maintainer's review of the full record) or both stamped. Anything
+        # in between claims a review the repository cannot show.
+        by, on = it["approved_by"], it["approved_on"]
+        stamped = bool(by) and bool(re.match(r"^\d{4}-\d{2}-\d{2}$", str(on)))
+        if not stamped and not (by is None and on is None):
+            bad.append("%s: half-stamped approval — approved_by and approved_on are both "
+                       "null, or a name and a YYYY-MM-DD date" % where)
         if it["set"] not in ("development", "holdout"):
             bad.append("%s: set is %r" % (where, it["set"]))
         sets.setdefault(it["family"], set()).add(it["set"])
@@ -136,6 +142,23 @@ def check(items=None, actions=None):
         if frame.count(slot) != 1:
             bad.append("prompt.md must carry %s exactly once" % slot)
     return bad
+
+
+def unapproved(items):
+    """Ids whose full gold record the maintainer has not signed. Approving
+    a plan, a class table or a pull request is not this signature."""
+    return sorted(iid for iid, it in items.items()
+                  if not (it.get("approved_by") and it.get("approved_on")))
+
+
+def spend_refusal(items):
+    """Why no model call may be made on `items`, or None. SUT and judge
+    alike: an unreviewed oracle produces numbers nobody may read."""
+    todo = unapproved(items)
+    if not todo:
+        return None
+    return ("refused: %d item(s) await the maintainer's review of their full gold record "
+            "(approved_by / approved_on are null): %s" % (len(todo), ", ".join(todo)))
 
 
 def class_counts(items):
@@ -438,6 +461,10 @@ def main(argv):
         cc = class_counts(items) if not bad else {}
         print("%d items%s — %s" % (len(items), "".join(" · %s %d" % kv for kv in cc.items()),
                                    "ok" if not bad else "%d defect(s)" % len(bad)))
+        todo = unapproved(items)
+        print("approved %d/%d%s" % (len(items) - len(todo), len(items),
+                                    "" if not todo else " — not runnable until reviewed: "
+                                    + ", ".join(todo)))
         return 3 if bad else 0
     bad = check(items, actions) + scorer_redproof(items, actions)
     if bad:
@@ -446,6 +473,8 @@ def main(argv):
         return 3
     if "--redproof" in argv:
         print("PASS scorer red-proof (no model)")
+        if spend_refusal(items):
+            die("judge red-proof " + spend_refusal(items), 3)
         return 3 if judge_redproof(items, "--rejudge" in argv) else 0
     if "--report" in argv:
         report(argv[argv.index("--report") + 1], items, actions)
@@ -462,14 +491,17 @@ def main(argv):
         die("unknown SUT '%s' (evals/replay/models.yaml)" % sut)
     if row["mode"] != "subscription":
         die("Judgment V1 runs subscription rows only (%s is %s)" % (sut, row["mode"]))
-    if not judge_is_green(items):
-        die("the judge red-proof is not green under the current fingerprint — "
-            "run --redproof first", 3)
     flags = {"--sut", "--arm", "--k"}
     named = [a for i, a in enumerate(argv) if not a.startswith("--") and argv[i - 1] not in flags]
     for iid in named:
         if iid not in items:
             die("unknown item %s" % iid)
+    refusal = spend_refusal({i: items[i] for i in named} if named else items)
+    if refusal:
+        die(refusal, 3)
+    if not judge_is_green(items):
+        die("the judge red-proof is not green under the current fingerprint — "
+            "run --redproof first", 3)
     for iid in named or sorted(items):
         for i in range(1, k + 1):
             rdir = run_dir(sut, items[iid], arm, actions, i)

@@ -125,15 +125,17 @@ def render(report):
             out.append("   judge-stale: %d — judged under another judge configuration, not "
                        "counted; re-run the sweep to re-judge (no SUT call)"
                        % r["key_point"]["judge_stale"])
-    out.append("== per item (valid/scheduled · answered) — diagnostic, not a comparison verdict")
+    out.append("== per item — run-level frequency of the gold class; not a pass/fail, "
+               "not a comparison verdict")
     ids = sorted(set(i for r in report.values() for i in r["items"]))
     for iid in ids:
         cells = []
         for arm, r in report.items():
             it = r["items"].get(iid)
             if it:
-                cells.append("%s %d/%d [%s]" % (arm, it["valid"], it["scheduled"],
-                                                " ".join(it["decisions"])))
+                cells.append("%s correct %d/%d valid (%d scheduled) [%s]"
+                             % (arm, it["class_correct"], it["valid"], it["scheduled"],
+                                " ".join(it["decisions"])))
         gold = next(r["items"][iid]["gold"] for r in report.values() if iid in r["items"])
         out.append("   %-26s gold %-17s %s" % (iid, gold, " | ".join(cells)))
     return "\n".join(out)

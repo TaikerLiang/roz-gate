@@ -30,6 +30,6 @@
     "raises no new thread"
   ],
   "key_point": "Does the document raise which clock or starting point the 24-hour grace window is counted from?",
-  "approved_by": "Paul Liang",
-  "approved_on": "2026-11-12"
+  "approved_by": null,
+  "approved_on": null
 }

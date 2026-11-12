@@ -32,6 +32,6 @@
     "a questioned scenario is not"
   ],
   "key_point": "Does the document say that the unit, scale or format of `expires_at` (or of `now`) is not specified by the contract?",
-  "approved_by": "Paul Liang",
-  "approved_on": "2026-11-12"
+  "approved_by": null,
+  "approved_on": null
 }

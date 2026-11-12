@@ -34,10 +34,13 @@ produce the decision each incident taught.
   action vocabulary; it does not measure free-form action discovery.
 - **Workflow value** — Level 3 (#259).
 
-What a red changes: a treatment regression (an item the treatment arm gets
-wrong across its valid runs) or a systematic weakness (a class or a seat
-failing across items) → inspect that brief. Stopping rule: the approved
-items × 2 arms × k=3. No item is added except a holdout item.
+What a result changes: V1 reports, per item, the run-level frequency of the
+gold class — `0/3`, `1/3`, `2/3`, `3/3` of the valid runs — and the human
+decides whether it warrants a brief change. `0/3` on the treatment arm is a
+strong regression signal; `1/3` or `2/3` is instability to inspect; a class
+or a seat failing across items is a systematic weakness. k=3 is never
+collapsed into a pass or a fail. Stopping rule: the approved items × 2 arms
+× k=3. No item is added except a holdout item.
 
 ## An item
 
@@ -55,7 +58,29 @@ agent could see at the decision point, and only that.
 | `acceptable_alternates` | reasoning that also counts |
 | `forbidden_shortcuts` | hindsight phrases — the snapshot may not contain them |
 | `key_point` | the one proposition the judge answers (surfaced golds only) |
-| `approved_by`, `approved_on` | the human ruling. An unapproved item cannot be run |
+| `approved_by`, `approved_on` | the maintainer's signature on **this whole record** — see § Approval. `null` until then; an unapproved item cannot be run |
+
+## Approval
+
+A gold record is human-reviewed only when the maintainer has read all of
+it: the snapshot, `gold` (class, next action, surfaced), `materiality`,
+`changes_if_answered_differently`, `acceptable_alternates`,
+`forbidden_shortcuts`, `key_point` and `family`. Approving a plan, a table
+of ids and classes, or the pull request that adds the files is **not** that
+review.
+
+    plan approved
+    → the complete records and snapshots are built
+    → the pull request shows every full record
+    → the maintainer reviews each record and approves it explicitly
+    → only then `approved_by` / `approved_on` are stamped, in a commit that
+      names the items and the review it follows
+    → only then may a SUT or judge call be spent on the item
+
+Until then both fields are `null`. `run_v1.py --check` prints how many
+items are approved; `--redproof`'s judge half and `--sut` refuse an
+unapproved item; lint J2 rejects a half-stamped record. A record edited
+after its approval is unapproved again — reset the two fields with the edit.
 
 `actions.json` holds **one action vocabulary per seat** — the moves that
 seat's brief names, right and wrong alike. Every item of a seat shows the
@@ -133,6 +158,10 @@ Every V1 item is `development`. The holdout is empty, and its rule is:
   for it;
 - sets are split by decision `family`, never by phrasing — a family sits
   in one set only (lint J2);
+- a family is defined by the underlying decision mechanism / failure
+  class, not incident wording. Family assignment is part of gold review,
+  and an existing item cannot be relabelled or split after a holdout run
+  merely to repair contamination;
 - an incident that has shaped the prose is development evidence for good.
 
 ## Adding an item

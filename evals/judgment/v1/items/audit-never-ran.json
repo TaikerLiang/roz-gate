@@ -31,6 +31,6 @@
     "positive evidence"
   ],
   "key_point": "Does the document say that the QA change request carries no fidelity audit record (or that nothing shows a fidelity audit ran), as the reason not to integrate?",
-  "approved_by": "Paul Liang",
-  "approved_on": "2026-11-12"
+  "approved_by": null,
+  "approved_on": null
 }

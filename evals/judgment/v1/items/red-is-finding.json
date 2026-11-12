@@ -30,6 +30,6 @@
     "never edit the assertion"
   ],
   "key_point": "Does the document say that the implementation returns 7 where clause C1 (or the spec's rule) requires 10 — that the build disagrees with the contract?",
-  "approved_by": "Paul Liang",
-  "approved_on": "2026-11-12"
+  "approved_by": null,
+  "approved_on": null
 }
