@@ -78,9 +78,13 @@ python3 evals/judgment/v1/run_v1.py --report haiku55
 ```
 
 Never CI, never pre-push: runs spend quota and are the maintainer's call.
-Resumable: `report/v1/<sut>/<arm>/<item>/run-<i>/result.json` is never
-re-run. Each result stamps the item, the brief, the frame and the prompt
-(sha256), so a result scored under an older brief is visible as such. The
+Resumable: `report/v1/<sut>/<arm>/<item>/fp-<fingerprint>/run-<i>/result.json`
+is never re-run. The fingerprint hashes the prompt as sent (frame, brief,
+vocabulary, snapshot) and the item's record (gold, key point): change any
+of them and the item runs again under a new fingerprint, while the old
+results stay on disk, are counted on the report's first line as **stale**
+and are never scored with the new ones. An answer that is not usable —
+malformed, or the wrong type — is recorded as INVALID, never retried. The
 runner refuses to start until the judge red-proof is green under the
 current fingerprint.
 

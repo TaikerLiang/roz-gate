@@ -278,12 +278,21 @@ def parse_answer(text, it, actions):
         obj = None
     if not isinstance(obj, dict):
         return None, "no JSON object in the answer"
-    if obj.get("decision") not in sc.CLASSES:
-        return None, "decision %r is not a class" % obj.get("decision")
-    if obj.get("next_action") not in actions[it["seat"]]:
+    # types first: an array or an object is not hashable, and a membership
+    # test on it would raise instead of recording the run as INVALID
+    for key in ("decision", "next_action"):
+        if not isinstance(obj.get(key), str):
+            return None, "%s is not a string (%r)" % (key, obj.get(key))
+    if obj["decision"] not in sc.CLASSES:
+        return None, "decision %r is not a class" % obj["decision"]
+    if obj["next_action"] not in actions[it["seat"]]:
         return None, "next_action %r is not in the %s vocabulary" % (
-            obj.get("next_action"), it["seat"])
+            obj["next_action"], it["seat"])
     surfaced = obj.get("surfaced")
+    if surfaced is not None and not isinstance(surfaced, str):
+        return None, "surfaced is neither a string nor null (%r)" % (surfaced,)
+    if not isinstance(obj.get("rationale") or "", str):
+        return None, "rationale is not a string"
     if isinstance(surfaced, str) and surfaced.strip().lower() in ("", "null", "none"):
         surfaced = None
     return {"decision": obj["decision"], "next_action": obj["next_action"],
@@ -292,6 +301,19 @@ def parse_answer(text, it, actions):
 
 def sha(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
+def item_hash(it):
+    return sha(json.dumps({k: v for k, v in it.items() if k != "_file"}, sort_keys=True))
+
+
+def run_fingerprint(it, arm, actions):
+    """What a result is evidence about: the prompt as sent (frame, brief or
+    baseline sentence, vocabulary, snapshot) and the item's record (gold,
+    key point). A result lives under `fp-<this>`; when any of it changes
+    the old results stay on disk, are reported as stale and are never
+    scored with the new ones — and the sweep runs the item again."""
+    return sha(build_prompt(it, arm, actions) + "\0" + item_hash(it))
 
 
 def run_one(model, it, arm, actions):
@@ -309,8 +331,7 @@ def run_one(model, it, arm, actions):
         die("the SUT's session failed (%s) — resume after reset; finished runs are kept"
             % (text or out.stderr)[:120], 4)
     stamp = {"item": it["id"], "arm": arm, "model": model, "prompt_sha256": sha(prompt),
-             "item_sha256": sha(json.dumps({k: v for k, v in it.items() if k != "_file"},
-                                           sort_keys=True)),
+             "item_sha256": item_hash(it), "fingerprint": run_fingerprint(it, arm, actions),
              "brief_sha256": sha(read(ROOT, it["brief"])),
              "frame_sha256": sha(read(S, "prompt.md"))}
     answer, why = parse_answer(text, it, actions)
@@ -326,22 +347,48 @@ def run_one(model, it, arm, actions):
     return result
 
 
-def load_results(sut):
-    rows = []
-    for p in sorted(glob.glob(os.path.join(REPORT, sut, "*", "*", "run-*", "result.json"))):
+def run_dir(sut, it, arm, actions, i, root=None):
+    return os.path.join(root or REPORT, sut, arm, it["id"],
+                        "fp-%s" % run_fingerprint(it, arm, actions), "run-%d" % i)
+
+
+def load_results(sut, items, actions, root=None):
+    """(current, stale). Current: recorded under today's fingerprint for
+    its item and arm. Stale: anything else on disk — another brief,
+    snapshot, frame, vocabulary or gold, or an item that left the corpus."""
+    current, stale = [], []
+    pattern = os.path.join(root or REPORT, sut, "*", "*", "fp-*", "run-*", "result.json")
+    for p in sorted(glob.glob(pattern)):
         r = json.loads(read(p))
-        r["run"] = int(os.path.basename(os.path.dirname(p)).split("-")[1])
-        rows.append(r)
-    return rows
+        rdir = os.path.dirname(p)
+        r["run"] = int(os.path.basename(rdir).split("-")[1])
+        fp = os.path.basename(os.path.dirname(rdir))[len("fp-"):]
+        it = items.get(r.get("item"))
+        if it and r.get("arm") in ARMS and fp == run_fingerprint(it, r["arm"], actions):
+            current.append(r)
+        else:
+            stale.append(r)
+    return current, stale
 
 
-def report(sut, items):
-    rows = [r for r in load_results(sut) if r["item"] in items]
+def report(sut, items, actions):
+    rows, stale = load_results(sut, items, actions)
     if not rows:
-        die("no results under %s" % os.path.join(REPORT, sut))
+        die("no current results under %s (%d stale)" % (os.path.join(REPORT, sut), len(stale)))
     rep = sc.score(items, rows)
+    meta = {"fingerprints": {arm: {iid: run_fingerprint(it, arm, actions)
+                                   for iid, it in sorted(items.items())} for arm in ARMS},
+            "stale_excluded": len(stale)}
     with open(os.path.join(REPORT, sut, "report.json"), "w", encoding="utf-8") as f:
-        json.dump(rep, f, indent=1)
+        json.dump(dict(rep, _meta=meta), f, indent=1)
+    if stale:
+        by = {}
+        for r in stale:
+            key = "%s/%s" % (r.get("arm"), r.get("item"))
+            by[key] = by.get(key, 0) + 1
+        print("!! %d stale result(s) excluded — recorded under an older brief, snapshot, "
+              "frame, vocabulary or gold: %s"
+              % (len(stale), ", ".join("%s ×%d" % kv for kv in sorted(by.items()))))
     print(sc.render(rep))
     print("\nDevelopment set only: these numbers show whether today's briefs keep the "
           "judgment each incident taught.\nThey do not show that a brief adds value over "
@@ -367,7 +414,7 @@ def main(argv):
         print("PASS scorer red-proof (no model)")
         return 3 if judge_redproof(items, "--rejudge" in argv) else 0
     if "--report" in argv:
-        report(argv[argv.index("--report") + 1], items)
+        report(argv[argv.index("--report") + 1], items, actions)
         return 0
     if "--sut" not in argv or "--arm" not in argv:
         die(__doc__)
@@ -391,7 +438,7 @@ def main(argv):
             die("unknown item %s" % iid)
     for iid in named or sorted(items):
         for i in range(1, k + 1):
-            rdir = os.path.join(REPORT, sut, arm, iid, "run-%d" % i)
+            rdir = run_dir(sut, items[iid], arm, actions, i)
             if os.path.exists(os.path.join(rdir, "result.json")):
                 print("skip %s %s run-%d (done)" % (arm, iid, i))
                 continue
@@ -400,7 +447,7 @@ def main(argv):
             with open(os.path.join(rdir, "result.json"), "w", encoding="utf-8") as f:
                 json.dump(result, f, indent=1, ensure_ascii=False)
             print("%s %s run-%d: %s" % (arm, iid, i, result.get("decision") or "INVALID"))
-    report(sut, items)
+    report(sut, items, actions)
     return 0
 
 
