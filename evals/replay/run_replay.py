@@ -201,8 +201,9 @@ def invoke_claude(sut, work, forge_state, prompt, timeout, transcript,
     if resume:
         args += ["--resume", resume]
     args += ["--model", sut["model"], "--output-format", "stream-json",
-             "--verbose", "--dangerously-skip-permissions",
-             "--plugin-dir", plugin_dir]
+             "--verbose", "--dangerously-skip-permissions"]
+    if plugin_dir:      # None: no plugin at all — the Workflow Value baseline (#259)
+        args += ["--plugin-dir", plugin_dir]
     with open(transcript, "w") as t, open(stderr_log, "a") as e:
         try:
             sh(args, cwd=work, env=claude_env(sut, forge_state),

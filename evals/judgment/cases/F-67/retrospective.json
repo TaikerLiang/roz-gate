@@ -1,0 +1,18 @@
+{
+ "issue": 67,
+ "value_shape": "a finding, not a question",
+ "why_selected": "The value was one finding — a Makefile with the same targets already existed (P12); the historical run's five questions were moot.",
+ "important": [
+  "P12"
+ ],
+ "immaterial": [],
+ "known_rework": "unknown",
+ "accepted_outcome": "unknown",
+ "unknown": [
+  "known_rework",
+  "accepted_outcome"
+ ],
+ "_note": "important / immaterial are the tier's criteria, picked by the gate holder in 2026-09. known_rework and accepted_outcome are the gate holder's to write from ADMC's later history; they were not readable where this record was drafted.",
+ "reviewed_by": null,
+ "reviewed_on": null
+}

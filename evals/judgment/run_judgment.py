@@ -51,6 +51,7 @@ rr = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(rr)
 sys.path.insert(0, S)
 import sources  # noqa: E402
+import workflow_value as wv  # noqa: E402
 from materialize import check_frozen  # noqa: E402
 
 ROOT = rr.ROOT
@@ -283,12 +284,29 @@ def overlay(work, fx, admc):
         f.write(cur)
 
 
-def build_sandbox(fx):
+def loop_config(admc):
+    """The loop's config block as the overlay carries it — the source of
+    the ordinary commands both arms know (#259)."""
+    return wv.parse_config(git(admc, "show", "%s:CLAUDE.md" % CONFIG_SOURCE))
+
+
+def baseline_overlay(work, admc):
+    """The baseline arm's CLAUDE.md (#259): the pin's own text with the
+    loop's section removed and the project's commands kept. No plugin, no
+    hooks, nothing that names the loop — and nothing withheld that an
+    engineer on the repository would know."""
+    path = os.path.join(work, "CLAUDE.md")
+    cur = open(path, encoding="utf-8").read() if os.path.isfile(path) else ""
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(wv.baseline_claude_md(cur, loop_config(admc)))
+
+
+def build_sandbox(fx, arm="treatment"):
     """ADMC at the pin: clone the local checkout (never network), main
     reset to the pin, every other ref and the reflog dropped so nothing
-    after T is reachable by name, the config overlay committed on top,
-    then a local bare remote as replay does. Returns (sbx, work, bare,
-    overlay_sha)."""
+    after T is reachable by name, the config overlay committed on top
+    (the baseline arm: its own CLAUDE.md instead), then a local bare
+    remote as replay does. Returns (sbx, work, bare, overlay_sha)."""
     admc = admc_path()
     if subprocess.run(["git", "-C", admc, "rev-parse", "--verify", "-q", fx["pin"] + "^{commit}"],
                       capture_output=True).returncode != 0:
@@ -305,7 +323,10 @@ def build_sandbox(fx):
     git(work, "remote", "remove", "origin")
     git(work, "reflog", "expire", "--expire=now", "--all")
     git(work, "gc", "--prune=now", "--quiet")   # post-T objects are gone, not merely unnamed
-    overlay(work, fx, admc)
+    if arm == "baseline":
+        baseline_overlay(work, admc)
+    else:
+        overlay(work, fx, admc)
     git(work, "add", "-A")
     # --allow-empty: at a pin whose CLAUDE.md already carries the section
     # the overlay is a no-op, and the overlay SHA must still exist.
@@ -344,6 +365,33 @@ def judged_surface(fx, rdir, bare):
     return "\n\n".join(parts) + ("\n" if parts else "")
 
 
+def baseline_surface(fx, rdir):
+    """Everything the baseline put in front of a human (#259): its comments
+    on the issue, the body and comments of every pull request it opened,
+    and its final message."""
+    r = Run(rdir)
+    n = str(fx["issue"])
+    parts, opened = [], []
+    for e in r.journal():
+        if not e.get("write"):
+            continue
+        if e.get("route") == "issue-comment" and str(e.get("issue")) == n:
+            parts.append("--- [issue-comment] ---\n%s" % (e.get("body") or "").strip())
+        elif e.get("route") == "pr-comment":
+            parts.append("--- [pr-comment] ---\n%s" % (e.get("body") or "").strip())
+        elif e.get("route") == "pr-create":
+            opened.append(str(e.get("pr")))
+    prs = r.state().get("prs", {})
+    for pr in opened:
+        body = (prs.get(pr) or {}).get("body") or ""
+        parts.append("--- [pull request %s] ---\n%s\n\n%s"
+                     % (pr, (prs.get(pr) or {}).get("title") or "", body.strip()))
+    final = (r.result_text() or "").strip()
+    if final:
+        parts.append("--- [final message] ---\n" + final)
+    return "\n\n".join(parts) + ("\n" if parts else "")
+
+
 def unknown_routes(rdir):
     out = []
     for e in Run(rdir).journal():
@@ -352,8 +400,10 @@ def unknown_routes(rdir):
     return out
 
 
-def run_case(sut, name, fx, rdir):
-    """0 pass-through (valid), 1 invalid, 3 invalid + quota (stop)."""
+def run_case(sut, name, fx, rdir, arm="treatment"):
+    """0 pass-through (valid), 1 invalid, 3 invalid + quota (stop).
+    `arm` baseline (#259): no plugin, the baseline CLAUDE.md, one neutral
+    instruction; judged on the same criteria."""
     os.makedirs(os.path.join(rdir, "forge"), exist_ok=True)
     shutil.copy(os.path.join(S, "cases", name, "state.json"),
                 os.path.join(rdir, "forge", "state.json"))
@@ -363,11 +413,16 @@ def run_case(sut, name, fx, rdir):
     # attempt's termination line would invalidate this one (codex review,
     # PR #34). Each attempt starts with an empty stderr.log.
     open(os.path.join(rdir, "stderr.log"), "w").close()
-    sbx, work, bare, overlay_sha = build_sandbox(fx)
+    sbx, work, bare, overlay_sha = build_sandbox(fx, arm)
     transcript = os.path.join(rdir, "transcript.jsonl")
-    rr.invoke_claude(sut, work, os.path.join(rdir, "forge"), fx["command"], fx["timeout"],
-                     transcript, os.path.join(rdir, "stderr.log"))
-    base = {"fixture": name, "pin": fx["pin"], "overlay_sha": overlay_sha, "sut": sut["name"]}
+    baseline = arm == "baseline"
+    prompt = wv.baseline_prompt(fx["issue"]) if baseline else fx["command"]
+    rr.invoke_claude(sut, work, os.path.join(rdir, "forge"), prompt, fx["timeout"],
+                     transcript, os.path.join(rdir, "stderr.log"),
+                     plugin_dir=None if baseline else rr.ROOT)
+    base = {"fixture": name, "pin": fx["pin"], "overlay_sha": overlay_sha, "sut": sut["name"],
+            "arm": arm, "prompt": prompt}
+    cost_counts = wv.cost(Run(rdir).tool_uses(), loop_config(admc_path()))
     if not has_result_event(transcript):
         rr.write_result(rdir, {**base, "valid": False,
                                "invalid_reason": "no result event — the session never completed"})
@@ -384,17 +439,18 @@ def run_case(sut, name, fx, rdir):
         rr.write_result(rdir, {**base, "valid": False, "invalid_reason": short, "tokens": usage})
         shutil.rmtree(sbx, ignore_errors=True)
         return 1
-    surface = judged_surface(fx, rdir, bare)
+    surface = baseline_surface(fx, rdir) if baseline else judged_surface(fx, rdir, bare)
     with open(os.path.join(rdir, "surface.md"), "w", encoding="utf-8") as f:
         f.write(surface)
     unknowns = unknown_routes(rdir)
-    count = question_count(surface)
+    did = wv.baseline_outcome(Run(rdir).journal(), fx["issue"]) if baseline else None
+    count = did["asking_comments"] if baseline else question_count(surface)
     shutil.rmtree(sbx, ignore_errors=True)
     if unknowns:
         reason = "forge stub hit %d UNKNOWN route(s)" % len(unknowns)
         rr.write_result(rdir, {**base, "valid": False, "invalid_reason": reason,
                                "unknown_routes": unknowns, "question_count": count,
-                               "tokens": usage, "cost": cost})
+                               "tokens": usage, "cost": cost, "cost_counts": cost_counts})
         return 1
     verdicts = {cid: verdict(cid, surface) for cid in fx["criteria"]}
     p_ids = [c for c in fx["criteria"] if CRITERIA[c]["polarity"] == "P"]
@@ -402,7 +458,12 @@ def run_case(sut, name, fx, rdir):
     recall = [sum(1 for c in p_ids if verdicts[c]["answer"] == "yes"), len(p_ids)]
     n_ok = 0
     for c in n_ids:
-        if c == "N10":  # both halves: mechanical silence + judged assumptions
+        if c == "N10" and baseline:
+            # N10 is "silence was right". The loop's half — a summary comment
+            # with assumptions — is the loop's own artifact; the baseline's
+            # precision on it is silence alone.
+            n_ok += 1 if count == 0 else 0
+        elif c == "N10":  # both halves: mechanical silence + judged assumptions
             summary_posted = any(e.get("write") and e.get("route") == "issue-comment"
                                  and (e.get("body") or "").startswith(SUMMARY_MARKER)
                                  for e in Run(rdir).journal())
@@ -417,7 +478,17 @@ def run_case(sut, name, fx, rdir):
                            "cap_ok": cap_ok, "recall": recall, "precision": [n_ok, len(n_ids)],
                            "judge_invalid": sum(1 for v in verdicts.values() if not v["valid"]),
                            "verdicts": verdicts, "tokens": usage, "cost": cost,
-                           "judge_tokens": judge_tokens})
+                           "judge_tokens": judge_tokens,
+                           # the paired report's fields (#259) — additive, and
+                           # separate from recall / precision above: a
+                           # judge-invalid criterion is unscored, never missed
+                           **wv.paired_fields(
+                               {c: CRITERIA[c]["polarity"] for c in fx["criteria"]},
+                               {c: v["answer"] for c, v in verdicts.items()}, count),
+                           "questions": count, "question_unit": wv.QUESTION_UNITS[arm],
+                           "outcome": did["outcome"] if baseline else "gate",
+                           "human_round_trips": did["human_round_trips"] if baseline else 1,
+                           "baseline_outcome": did, "cost_counts": cost_counts})
     return 0
 
 
@@ -482,8 +553,41 @@ def aggregate(sut, report):
                    "cases": rows}, f, indent=1, ensure_ascii=False)
 
 
+def load_runs(d):
+    out = []
+    if os.path.isdir(d):
+        for run in sorted(os.listdir(d)):
+            r = rr.load_json(os.path.join(d, run, "result.json"))
+            if r:
+                out.append(r)
+    return out
+
+
+def paired_report(sut_name, report_root):
+    """Baseline and treatment side by side per issue (#259). No model."""
+    cases = {}
+    for name in sorted(os.listdir(os.path.join(S, "cases"))):
+        cdir = os.path.join(S, "cases", name)
+        if not os.path.isdir(cdir):
+            continue
+        rec = rr.load_json(os.path.join(cdir, "retrospective.json")) or {}
+        # a treatment result from before #259 has no paired fields: it is
+        # not comparable, and says so instead of printing blanks
+        treat = [r if (not r.get("valid") or "important_found" in r)
+                 else {"valid": False, "invalid_reason": "recorded before the paired fields "
+                       "existed — re-run this arm"}
+                 for r in load_runs(os.path.join(report_root, sut_name, name))]
+        cases[name] = {"retrospective": rec, "treatment": treat,
+                       "baseline": load_runs(os.path.join(report_root, "baseline",
+                                                          sut_name, name))}
+    print("Workflow Value pilot, Phase A — SUT %s. Per issue; nothing is summed across "
+          "issues.\n" % sut_name)
+    print(wv.paired(cases))
+    print("\nRead with evals/workflow-value.md § What the pilot does not establish.")
+
+
 def main(argv):
-    sut_name, k, cases, mode, rejudge = "fable", 1, [], "run", False
+    sut_name, k, cases, mode, rejudge, arm = "fable", 1, [], "run", False, "treatment"
     i = 0
     while i < len(argv):
         a = argv[i]
@@ -496,6 +600,12 @@ def main(argv):
         elif a in ("--check", "--redproof"):
             mode = a[2:]
             i += 1
+        elif a == "--arm":
+            arm = argv[i + 1]
+            i += 2
+        elif a == "--paired":
+            mode, sut_name = "paired", argv[i + 1]
+            i += 2
         elif a == "--rejudge":
             rejudge = True
             i += 1
@@ -509,6 +619,11 @@ def main(argv):
         print("frozen: every timestamp <= T in every fixture")
         return
     report_root = os.path.join(S, "report")
+    if arm not in ("treatment", "baseline"):
+        die("--arm is treatment or baseline")
+    if mode == "paired":
+        paired_report(sut_name, report_root)
+        return
     if mode == "redproof":
         sys.exit(0 if redproof(report_root, rejudge) else 1)
     sut = rr.resolve_sut(sut_name)
@@ -522,7 +637,10 @@ def main(argv):
             "the judge is unmeasured; run `--redproof` first"
             % (stored.get("fingerprint"), JUDGE_FP))
     sources.require(cases or None)   # every pin and the overlay's commit, before any spend
-    report = os.path.join(report_root, sut_name)
+    # the treatment's paths are the tier's own and do not move; the
+    # baseline arm lives beside them (#259)
+    report = os.path.join(report_root, sut_name) if arm == "treatment" \
+        else os.path.join(report_root, "baseline", sut_name)
     os.makedirs(report, exist_ok=True)
     for name in cases or sorted(os.listdir(os.path.join(S, "cases"))):
         fx = json.load(open(os.path.join(S, "cases", name, "fixture.json"), encoding="utf-8"))
@@ -531,13 +649,19 @@ def main(argv):
             if iteration_done(rdir):
                 print("skip %s run-%d (done)" % (name, it))
                 continue
-            print("run  %s run-%d (%s, timeout %ds) ..." % (name, it, fx["command"], fx["timeout"]))
-            rc = run_case(sut, name, fx, rdir)
+            print("run  %s run-%d (%s, %s, timeout %ds) ..."
+                  % (name, it, arm, fx["command"] if arm == "treatment" else "baseline prompt",
+                     fx["timeout"]))
+            rc = run_case(sut, name, fx, rdir, arm)
             print({0: "VALID", 1: "INVALID"}.get(rc, "INVALID"), "%s run-%d" % (name, it))
             if rc == 3:
                 die("quota exhausted at %s/run-%d; resume after reset with the same command"
                     % (name, it), 4)
-    aggregate(sut, report)
+    if arm == "treatment":
+        aggregate(sut, report)
+    else:
+        print("baseline runs recorded under %s — read them with --paired %s"
+              % (os.path.relpath(report, S), sut_name))
 
 
 if __name__ == "__main__":

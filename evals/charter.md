@@ -61,7 +61,7 @@ directory. A Level-3 question asked through the replay runner is Level 3.
 | `lint/`, `hook` rows and `hooks/tests/`, red-proofs, the ledger check, shadow-signal checks | Verification, primarily supporting Level 1 |
 | `replay/` | mostly Level-1 Compliance — including #199, a QA component regression / prose ablation, not the repository's AI-eval score |
 | `judgment/` | Level 2 — a seed, and V1's ten development decisions (`judgment/v1/`); no holdout yet |
-| — | Level 3: no experiment yet (#259) |
+| `judgment/` + a baseline arm | Level 3 — the Workflow Value pilot's Phase A (`workflow-value.md`); not yet run |
 
 ## Rules for new eval work
 
