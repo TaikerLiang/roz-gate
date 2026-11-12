@@ -1185,6 +1185,79 @@ def state_checks():
     return checks
 
 
+def check_checks():
+    """#134: bin/roz-check in shadow. (1) every case that declares a `check`
+    in case.json — the checker on its seeded state gives that verdict and
+    those failed codes, no model call; (2) shadow_check compares may_start
+    with the lock, and an `unknown` verdict with a lock taken is a mismatch."""
+    sys.path.insert(0, os.path.join(rr.ROOT, "hooks"))
+    import state_check as ck
+    checks, declared = [], 0
+    for cid in sorted(os.listdir(os.path.join(HERE, "cases"))):
+        cdir = os.path.join(HERE, "cases", cid)
+        try:
+            with open(os.path.join(cdir, "case.json"), encoding="utf-8") as fh:
+                want = (json.load(fh).get("check") or {})
+        except (OSError, ValueError):
+            continue
+        for operation, per_issue in want.items():
+            sbx, run, template = _seed_run(cdir)
+            try:
+                for n, exp in per_issue.items():
+                    declared += 1
+                    rc, obj = run.roz_state(n, template) if sbx else (None, None)
+                    try:
+                        got = ck.check(operation, obj) if rc == 0 else {"verdict": "exit %s" % rc,
+                                                                        "failed": []}
+                    except ck.InvalidSnapshot as e:
+                        got = {"verdict": "invalid: %s" % e, "failed": []}
+                    checks.append((
+                        "%s#%s seed: roz-check %s is %s %s (got %s %s)"
+                        % (cid, n, operation, exp["verdict"], exp["failed"], got["verdict"],
+                           got["failed"]),
+                        (got["verdict"], got["failed"]) == (exp["verdict"], exp["failed"])))
+            finally:
+                if sbx:
+                    shutil.rmtree(sbx, ignore_errors=True)
+    checks.append(("at least four case seeds declare a roz-check verdict (%d)" % declared,
+                   declared >= 4))
+
+    tmp = tempfile.mkdtemp()
+    try:
+        os.makedirs(os.path.join(tmp, "forge"))
+        run = rl.Run(tmp)
+        jpath = os.path.join(tmp, "forge", "journal.jsonl")
+
+        def shape(verdict, lock):
+            with open(jpath, "w", encoding="utf-8") as fh:
+                fh.write(json.dumps({"route": "issue-view", "write": False}) + "\n")
+                fh.write(json.dumps({"route": "issue-edit", "write": True, "issue": "6",
+                                     "add": ["status: processing"]}) + "\n")
+                if lock:
+                    fh.write(json.dumps({"route": "issue-edit", "write": True, "issue": "5",
+                                         "add": ["status: processing"]}) + "\n")
+            run.shadow_check("5", tmp, _result={
+                "verdict": verdict, "may_start": verdict == "eligible",
+                "failed": ["QA_CR_EXISTS"] if verdict == "ineligible" else [],
+                "unknown": ["QA_CR_EXISTS"] if verdict == "unknown" else []})
+            with open(os.path.join(tmp, "attempts.json"), encoding="utf-8") as fh:
+                a = json.load(fh)
+            return a.get("shadow_check_mismatch"), a.get("shadow_check_unknown")
+        for verdict, lock, want, why in (
+                ("eligible", True, (0, 0), "eligible and the lock taken → agree"),
+                ("ineligible", False, (0, 0), "ineligible and no lock → agree"),
+                ("unknown", False, (0, 1), "unknown and no lock → agree (unknown recorded)"),
+                ("unknown", True, (1, 1), "unknown and the lock taken → a mismatch, never "
+                                          "ignored"),
+                ("eligible", False, (1, 0), "eligible and no lock → a mismatch"),
+                ("ineligible", True, (1, 0), "ineligible and the lock taken → a mismatch")):
+            checks.append(("shadow_check: %s (a lock on another issue is not this one's)" % why,
+                           shape(verdict, lock) == want))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return checks
+
+
 def main():
     passed = failed = 0
     for name, ok in export_checks():
@@ -1201,6 +1274,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in state_checks():
         print("%s state: %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in check_checks():
+        print("%s check: %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     tmp, work = git_sandbox()
     try:

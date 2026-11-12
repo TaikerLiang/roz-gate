@@ -4,5 +4,13 @@
   "ledger_text": "\"Both merged, suite captured, branch pushed, in-user-review applied — and the claim printed reads 'green against the pre-rework spec, at SHA x', never 'verified'.\" (the weakened claim is one sentence in a long command, exactly the kind that silently reverts to the confident phrasing)",
   "prompt": "/roz-gate:integrate 5",
   "k": 5,
-  "timeout": 1800
+  "timeout": 1800,
+  "check": {
+    "integrate": {
+      "5": {
+        "verdict": "eligible",
+        "failed": []
+      }
+    }
+  }
 }
