@@ -194,6 +194,7 @@ text follows the experiment; the driver's citation was updated to match.
 |---|---|---|
 | J1 | the judgment fixtures are frozen at T | lint (preventive) |
 | J2 | the Judgment V1 corpus is approved, leak-free and scored as stated | lint (#258) |
+| J3 | the Workflow Value pilot pairs like with like | lint (#259) |
 | L1 | one stage map | lint (preventive) |
 | L2 | the local keys `roz-config` accepts are the ones the commands read and README documents — eight since 2.9.0: `helper_model` governing the scanner and the commit sub-agent only, `branch_user` the `{user}` slot of `branch_template`, `branch_template` itself per developer, `worktree_copy` the files copied into the loop's worktrees, `patrol_issues_per_pass` how many in-loop issues a pass acts on | lint (defect 1.18.0) |
 | L3 | every commit a command makes goes through the commit sub-agent's brief | lint (preventive) |
