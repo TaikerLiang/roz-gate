@@ -1524,7 +1524,8 @@ def main():
         else:
             ok = rc == 0 and routes == [route] and all(n in out for n in needles)
         print("%s route: #250 %s -> %s" % ("PASS" if ok else "FAIL", name, route),
-              "" if ok else "(got rc=%d routes=%s out=%r notes=%s)" % (rc, routes, out[:120], notes))
+              "" if ok else "(got rc=%d routes=%s out=%r notes=%s)"
+              % (rc, routes, out[:120], notes))
         passed, failed = passed + ok, failed + (not ok)
     rc, out, routes = run_route(["issue", "view", "5", "--json", "url"])
     ok = rc == 0 and '"url": "https://github.com/acme/demo/issues/5"' in out
