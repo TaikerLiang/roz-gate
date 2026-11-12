@@ -167,8 +167,11 @@ def counts():
                 if not k.startswith("_"))
     fixtures = sum(1 for d in os.listdir(os.path.join(JUDGMENT, "cases"))
                    if os.path.isdir(os.path.join(JUDGMENT, "cases", d)))
+    v1_items = os.path.join(JUDGMENT, "v1", "items")
+    v1 = sum(1 for n in os.listdir(v1_items) if n.endswith(".json")) \
+        if os.path.isdir(v1_items) else 0
     return {"lint": str(lint), "replay": str(replay), "hook": str(len(hook_cases())),
-            "judgment": "%d items / %d fixtures" % (items, fixtures)}
+            "judgment": "%d items / %d fixtures · V1: %d decisions" % (items, fixtures, v1)}
 
 
 def render_readme():

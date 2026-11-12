@@ -1,0 +1,29 @@
+{
+  "_comment": "One stable action vocabulary per seat (#258): the moves that seat's brief names, right and wrong alike. Every item of a seat shows the whole list to both arms; an item never defines actions of its own. V1 measures judgment under this constrained vocabulary, not free-form action discovery.",
+  "qa": {
+    "write_the_test": "write the scenario's test against the contract as it stands; raise nothing",
+    "raise_question_and_write_the_test": "raise a question or finding for the human AND write the scenario's test now",
+    "raise_question_scenario_waits": "raise a question for the human; the scenario's test waits for the answer",
+    "report_finding_keep_assertion": "report the disagreement as a finding; leave the assertion as written and carry on with the suite",
+    "change_assertion_to_observed": "edit the assertion so it matches what the run returned",
+    "fix_harness": "repair the test harness yourself and re-run; raise nothing",
+    "stop_and_report": "stop all QA work and report to the main agent"
+  },
+  "patrol": {
+    "act_on_row": "the issue is actionable: take the lock and run its stage",
+    "hold_no_human_needed": "do not act this pass; nothing is asked of the human",
+    "hold_report_needs_human": "do not act; report the row as needing the human",
+    "report_illegal_no_dispatch": "report an illegal state for the human to correct; dispatch nothing, write nothing"
+  },
+  "integrate": {
+    "integrate": "the preconditions hold: merge, run the acceptance suite, record the verdict",
+    "stop_report_missing_record": "stop before any merge and report that a required review or audit record is missing",
+    "stop_report_open_threads": "stop before any merge and report the open review threads"
+  },
+  "spec-answers": {
+    "fold_and_return_to_review": "fold the answer and return the issue to the user's review; surface nothing more",
+    "fold_question_in_return_comment": "fold the answer, post the new question as a top-level comment for the user's review, and return the issue to that review",
+    "keep_in_spec_review_with_new_thread": "open a new question thread and hold the issue in spec review until it is answered",
+    "stop_and_report": "fold nothing; stop and report to the human"
+  }
+}
