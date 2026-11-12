@@ -31,7 +31,7 @@ FILTER = "inbox filter: none · 0 track-less issues not in the inbox filter"
 QUEUE = [
     "Your queue:",
     "- #5 — remove `status: ready-for-dev` (the stage it gates has passed); patrol resumes "
-    "from the CRs — https://github.com/x/y/issues/5",
+    "from the CRs — https://github.com/acme/demo/issues/5",
 ]
 READS = [{"route": "issue-list", "write": False, "state": "open"},
          {"route": "label-events", "write": False, "issue": "5", "explicit": True},
@@ -130,7 +130,7 @@ SHAPES = [
      {"text": report(table=swap(TABLE, "merged) | yes |", "merged) | — |"))}),
     ("#5 absent from the queue", False, {"text": report(queue=["Your queue:"])}),
     ("the queue item without its link", False,
-     {"text": report(queue=swap(QUEUE, " — https://github.com/x/y/issues/5", ""))}),
+     {"text": report(queue=swap(QUEUE, " — https://github.com/acme/demo/issues/5", ""))}),
     ("the queue item says reapply, not remove", False,
      {"text": report(queue=swap(QUEUE, "- #5 — remove `status: ready-for-dev`",
                                 "- #5 — reapply `status: ready-for-dev`"))}),

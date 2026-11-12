@@ -32,8 +32,8 @@ R9 = "| #9 Retire the legacy /v0/ping route | fast · ready-for-dev " \
 TABLE = ["| issue | state | this pass | needs you |", "|---|---|---|---|", R5, R6, R7, R8, R9]
 FILTER = "inbox filter: discuss / none · 0 track-less issues not in the inbox filter"
 QUEUE = ["Your queue:",
-         "- #5 — review & merge — https://github.com/x/y/pull/101",
-         "- #7 — answer the intake questions — https://github.com/x/y/issues/7"]
+         "- #5 — review & merge — https://github.com/acme/demo/pull/101",
+         "- #7 — answer the intake questions — https://github.com/acme/demo/issues/7"]
 READS = [{"route": "issue-list", "write": False, "state": "open"},
          {"route": "label-events", "write": False, "issue": "6", "explicit": True},
          {"route": "label-events", "write": False, "issue": "8", "explicit": True},

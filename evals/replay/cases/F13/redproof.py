@@ -32,11 +32,11 @@ TABLE = [
 FILTER = "inbox filter: discuss / none · 0 track-less issues not in the inbox filter"
 QUEUE = [
     "Your queue:",
-    "- #5 — review & merge — https://github.com/x/y/pull/101",
+    "- #5 — review & merge — https://github.com/acme/demo/pull/101",
     "- #6 — remove the gate label roz-bot[bot] applied, then reapply it yourself — "
-    "https://github.com/x/y/issues/6",
+    "https://github.com/acme/demo/issues/6",
     "- #7 — remove the gate label roz-bot[bot] applied, then reapply it yourself — "
-    "https://github.com/x/y/issues/7",
+    "https://github.com/acme/demo/issues/7",
 ]
 # The scan's reads: the list, the two audits, #5's CR.
 READS = [{"route": "issue-list", "write": False, "state": "open"},
@@ -126,7 +126,7 @@ SHAPES = [
                                 "| #6 Bump the HTTP client to 3.2 | fast · ready-for-dev "
                                 "| illegal: gate label applied by roz-bot[bot] | — |"))}),
     ("#7's queue item has no link", False,
-     {"text": report(queue=swap(QUEUE, " — https://github.com/x/y/issues/7", ""))}),
+     {"text": report(queue=swap(QUEUE, " — https://github.com/acme/demo/issues/7", ""))}),
     ("#7 illegal, needs you, but absent from the queue", False,
      {"text": report(queue=[ln for ln in QUEUE if not ln.startswith("- #7")])}),
     ("the illegal clause without the actor's login", False,

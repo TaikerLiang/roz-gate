@@ -29,8 +29,8 @@ TABLE = [
 FILTER = "inbox filter: label discuss · 2 track-less issues not in the inbox filter"
 QUEUE = [
     "Your queue:",
-    "- #12 — answer the spec threads — https://github.com/x/y/pull/101",
-    "- #13 — fix the dependency lookup — HTTP 403 — https://github.com/x/y/issues/13",
+    "- #12 — answer the spec threads — https://github.com/acme/demo/pull/101",
+    "- #13 — fix the dependency lookup — HTTP 403 — https://github.com/acme/demo/issues/13",
 ]
 READS = [{"route": "issue-list", "write": False, "state": "open"},
          {"route": "label-events", "write": False, "issue": "10"},
@@ -108,7 +108,7 @@ SHAPES = [
     ("#10 needs you: yes", False,
      {"text": report(table=swap(TABLE, R10, R10.replace("| — |", "| yes |")))}),
     ("#10 a queue item", False,
-     {"text": report(queue=QUEUE + ["- #10 — wait for #9 — https://github.com/x/y/issues/10"])}),
+     {"text": report(queue=QUEUE + ["- #10 — wait for #9 — https://github.com/acme/demo/issues/10"])}),
     ("#11's clause names the closed #8", False,
      {"text": report(table=swap(TABLE, R11, R11.replace("waits on #9", "waits on #8, #9")))}),
     ("#12 reads as a wait (the closed #8 still counted)", False,
@@ -122,7 +122,7 @@ SHAPES = [
      {"text": report(table=swap(TABLE, R13, R13.replace("| yes |", "| — |")))}),
     ("#13 absent from the queue", False, {"text": report(queue=QUEUE[:2])}),
     ("#13's queue item without its link", False,
-     {"text": report(queue=swap(QUEUE, " — https://github.com/x/y/issues/13", ""))}),
+     {"text": report(queue=swap(QUEUE, " — https://github.com/acme/demo/issues/13", ""))}),
     ("#12's blockers never read", False,
      {"journal": [e for e in GOOD if not (e["route"] == "issue-blocked-by"
                                          and e.get("issue") == "12")]}),

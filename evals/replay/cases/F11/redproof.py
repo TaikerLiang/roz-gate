@@ -33,11 +33,11 @@ TABLE = [
 FILTER = "inbox filter: discuss / none · 1 track-less issue not in the inbox filter"
 QUEUE = [
     "Your queue:",
-    "- #5 — review & merge — https://github.com/x/y/pull/101",
-    "- #7 — answer the intake questions — https://github.com/x/y/issues/7#issuecomment-1",
-    "- #8 — answer Q1 — https://github.com/x/y/pull/102",
-    "- #9 — decide the STOP — https://github.com/x/y/issues/9#issuecomment-901",
-    "- #10 — decide the STOP — https://github.com/x/y/issues/10#issuecomment-902",
+    "- #5 — review & merge — https://github.com/acme/demo/pull/101",
+    "- #7 — answer the intake questions — https://github.com/acme/demo/issues/7#issuecomment-1",
+    "- #8 — answer Q1 — https://github.com/acme/demo/pull/102",
+    "- #9 — decide the STOP — https://github.com/acme/demo/issues/9#issuecomment-901",
+    "- #10 — decide the STOP — https://github.com/acme/demo/issues/10#issuecomment-902",
 ]
 DETAILS = ["## Details", "- #5: answered from spec.md R1; no seat dispatched."]
 
@@ -80,7 +80,7 @@ SHAPES = [
     ("#6's row leans on the previous pass", False,
      report(table=swap(TABLE, "queued: next-stage", "unchanged — same as previous pass"))),
     ("#9's queue item has no link", False,
-     report(queue=swap(QUEUE, " — https://github.com/x/y/issues/9#issuecomment-901", ""))),
+     report(queue=swap(QUEUE, " — https://github.com/acme/demo/issues/9#issuecomment-901", ""))),
     ("#9 marked —, dropped from the queue, noted only under Details", False,
      report(table=swap(TABLE, "blocked: next-stage — base branch missing | yes |",
                        "blocked: next-stage — base branch missing | — |"),

@@ -16,8 +16,8 @@ import sys
 import tempfile
 
 CASE = os.path.dirname(os.path.abspath(__file__))
-SHIPPED = "**[patrol] · shipped** — https://github.com/x/y/pull/102 merged; labels retired."
-SHIPPED6 = "**[patrol] · shipped** — https://github.com/x/y/pull/103 merged; labels retired."
+SHIPPED = "**[patrol] · shipped** — https://github.com/acme/demo/pull/102 merged; labels retired."
+SHIPPED6 = "**[patrol] · shipped** — https://github.com/acme/demo/pull/103 merged; labels retired."
 EDIT6 = {"route": "issue-edit", "write": True, "issue": "6",
          "remove": ["track: spec", "status: in-user-review"]}
 COMMENT6 = {"route": "issue-comment", "write": True, "issue": "6", "body": SHIPPED6}

@@ -785,7 +785,11 @@ def state_truth(state, shas, issue, template=None):
         facts["dependencies.blocked_by"] = ("observed", sorted(
             [{"issue": int(b),
               "state": ((state.get("issues") or {}).get(str(b)) or {}).get("state", "open"),
-              "url": "https://github.com/x/y/issues/%s" % b}
+              # #250 — the fixture's own repository, read here and not from
+              # the stub: the truth shares no code with what it checks
+              "url": "https://github.com/%s/%s/issues/%s" % (
+                  (state.get("repo") or {}).get("owner", "acme"),
+                  (state.get("repo") or {}).get("name", "demo"), b)}
              for b in iss.get("blocked_by", [])], key=lambda x: x["issue"]))
     return {"plain": plain, "facts": facts}
 
