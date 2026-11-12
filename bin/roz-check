@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+"""roz-check — may an operation start from an issue's observed state? (#134)
+
+    roz-check integrate <issue> --json [--state <snapshot.json>]
+
+The entry preconditions of `integrate` as code (references/roz-check.md),
+over a roz-state snapshot: collected through roz-state, or read from
+`--state` (then nothing is asked of the forge or git at all). It never
+runs the operation, takes no lock and writes nothing; nothing in the loop
+consumes it yet.
+
+The JSON carries `verdict` — eligible | ineligible | unknown — and
+`may_start`, true only for eligible. Exit codes:
+  0   a verdict was computed (read the JSON: ineligible is an answer)
+  2   the snapshot could not be collected — roz-state's typed collection
+      failure, passed through on stdout
+  3   internal contract violation in roz-state's output
+  64  usage
+  65  `--state` is not a snapshot of this issue
+"""
+
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "hooks"))
+from state_check import OPERATIONS, InvalidSnapshot, check  # noqa: E402
+from state_collect import collect  # noqa: E402
+from state_contract import validate_failure  # noqa: E402
+
+USAGE = __doc__.split("\n\n")[1]
+
+
+def main(argv):
+    args, state, i = [], None, 0
+    while i < len(argv):
+        if argv[i] == "--state" and i + 1 < len(argv):
+            state, i = argv[i + 1], i + 1
+        elif argv[i] != "--json":
+            args.append(argv[i])
+        i += 1
+    if ("--json" not in argv or len(args) != 2 or args[0] not in OPERATIONS
+            or not args[1].isdigit()):
+        sys.stderr.write("usage:%s\n" % USAGE)
+        return 64
+    operation, issue = args[0], int(args[1])
+    if state is not None:
+        try:
+            with open(state, encoding="utf-8") as f:
+                obj, rc = json.load(f), 0
+        except (OSError, ValueError) as e:
+            sys.stderr.write("roz-check: --state %s: %s\n" % (state, e))
+            return 65
+        if isinstance(obj, dict) and "collection_failure" in obj:
+            rc = 2
+    else:
+        obj, rc = collect(issue)
+    if rc != 0:
+        if validate_failure(obj):
+            sys.stderr.write("roz-check: roz-state returned neither a snapshot nor a typed "
+                             "failure\n")
+            return 3
+        print(json.dumps(obj, indent=1, ensure_ascii=False))
+        return 2
+    try:
+        if isinstance(obj, dict) and obj.get("issue") != issue:
+            raise InvalidSnapshot("the snapshot is of issue %r, not %d" % (obj.get("issue"), issue))
+        result = check(operation, obj)
+    except InvalidSnapshot as e:
+        sys.stderr.write("roz-check: not a snapshot the contract accepts — %s\n" % e)
+        return 65 if state is not None else 3
+    print(json.dumps(result, indent=1, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
