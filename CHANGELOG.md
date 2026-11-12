@@ -2,7 +2,40 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
-## v2.16.0 — QA-4 has one definition — 2026-11-11
+## v2.17.0 — a deleted head keeps its CR — 2026-11-12
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.17.0>
+
+**Behavior:** patrol now closes out an issue even when the forge deleted the merged CR's head branch. This release also ships `bin/roz-check integrate`, which checks integrate's entry preconditions in shadow; nothing in the loop consumes it yet. It also adds the evaluation charter and two judgment evals that have not been run yet.
+
+### Behavior
+- **A deleted head branch no longer hides its merged CR** (#272): `bin/roz-branch snapshot` also reads the head names that merged CRs remember. A head the forge deleted after its CR merged becomes a match marked `deleted`, which is a CR's name and never a branch. Patrol's scanner therefore still finds the CR, and the close-out runs. The history is read to its end. When the history cannot be read, a live branch is unaffected, and a branch with no live head is reported as `waiting on: branches unknown`, never "no branch". The commands' own Lookup is unchanged.
+
+### Evals
+- **A11** covers the close-out when the head branches have been deleted (replay), and the prose that close-out reads (lint).
+- **L16** checks that the rule table in `references/roz-check.md` matches the module, and that each rule still quotes `commands/integrate.md` § 1.
+- **Shadow signal** `shadow_check` compares the verdict on the seeded state with whether integrate took the lock. It runs on C12, C16, D4 and F4, whose earlier runs are stale.
+- **Declared seeds**: each integrate case states the verdict its seed must give (`case.json`'s `check`), and the harness verifies it with no model call. D4's fixture gains the fidelity record it lacked.
+- **Forge stub URLs name the fixture's repository** (#250): URLs use `state.json` `repo` (default `acme/demo`) instead of `x/y`. The stub now serves `gh issue view/list --json url,state,closed`, `gh pr view/list --json closed` and `gh repo view --json nameWithOwner,url`. A `--json` field the stub does not serve now invalidates the iteration (UNKNOWN, checked before anything prints); before, the field was dropped and the iteration was still scored. Past cells are not re-run, and no `case_fp` moved. **L17** checks that no `x/y` repository appears under `evals/replay/`.
+- **The evaluation charter** (#257, `evals/charter.md`) defines three levels: Compliance, Judgment and Workflow value. A fully green Level-1 suite does not prove that Roz Gate improves engineering outcomes. Every new eval's issue must answer six questions, ending with its product decision and its stopping rule. #199 is placed as a Level-1 component regression, not a repository-wide score. **L18** enforces the charter's lint rules.
+- **Judgment V1** (#258, `evals/judgment/v1/`) is ten approved historical decisions, each with block / flag / no-finding gold. It has a treatment arm and a baseline arm, deterministic scoring, and one judged proposition per item. It is a development-set regression: it claims nothing about a brief's added value, and no result is published until the maintainer runs it. **J2** lints it.
+- **The Workflow Value pilot** (#259, Level 3), Phase A, adds a baseline arm on the frozen ADMC fixtures, paired outcome and cost fields on both arms, and a per-issue paired report. Phase B, the whole loop with a scripted human, is a written protocol only. The pilot has not been run, and no result is claimed. **J3** lints it.
+
+### Hooks
+- **`hooks/state_check.py`** (#134) is the policy behind `bin/roz-check`. It is pure code, not a hook.
+
+### Tooling
+- **`bin/roz-check integrate <issue> --json`** (#134) encodes integrate's entry preconditions as code over a `roz-state` snapshot (`references/roz-check.md`). The verdict is `eligible`, `ineligible` or `unknown`, and `may_start` is true only for `eligible`. Each rule has a stable code, a status (`pass` / `fail` / `unknown` / `not_evaluated`) and the exact facts it read. The tool is read-only; `--state <file>` checks a saved snapshot.
+- **`bin/roz-state`** (#272) reports a merged CR whose head branch is gone as `observed`, with its branch `absent`.
+
+### Docs
+- **`references/roz-check.md`** (#134) holds the rule table for `bin/roz-check`.
+- **`evals/workflow-value.md`** (#259) and **`evals/judgment/v1/README.md`** (#258) are new. `evals/README.md`, `evals/judgment/README.md`, `evals/CONTRIBUTING.md`, `evals/replay/README.md` and `docs/prose-inventory.md` (L18, J2, J3) were updated to match, including the rule on served fields and the rule on stub URLs.
+
+### Checks
+Hook tests 1152/1152 · lint 1703/1703 · red-proofs 47/47 · ruff · judgment `--check` · ledger `--check` current
+
+## v2.16.0 — QA-4 has one definition — 2026-11-12
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.16.0>
 
