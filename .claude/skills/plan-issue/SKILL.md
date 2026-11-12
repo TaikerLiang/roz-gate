@@ -65,6 +65,10 @@ omitted.
 
 - Which existing cases **cannot** see this defect, and why (e.g. every
   `next-stage` seed carried `default_branch: main`).
+- For a new case, or a change to what a case measures: the six answers of
+  `evals/charter.md § Rules for new eval work` — level, product question,
+  oracle, what green proves, what it does not, and the product decision
+  plus the stopping rule. No decision to name → drop the case.
 - New or changed cases by ID (`LEDGER.md` family rules; numbers never
   reused), each with its ledger text drafted here.
 - Every new replay case ships `redproof.py`; every hook change ships
