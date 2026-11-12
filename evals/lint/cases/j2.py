@@ -91,3 +91,27 @@ with tempfile.TemporaryDirectory() as _d:
     except Exception as _e:  # noqa: BLE001
         _ok = False
     c.expect("pattern", "J2: a stale result is separated from the current ones", _ok)
+
+# codex review, PR #285 — a key-point verdict from another judge configuration
+# is never counted in today's column; the SUT's answer itself stays current
+with tempfile.TemporaryDirectory() as _d:
+    _row = {"item": "J-expiry-unit", "arm": "treatment", "valid": True,
+            "decision": "FLAG_AND_CONTINUE", "next_action": "raise_question_and_write_the_test",
+            "surfaced": True, "key_point": "yes"}
+    for _i, _jfp in ((1, "judge-now"), (2, "judge-then")):
+        _p = os.path.join(_d, "sut", "treatment", "J-expiry-unit", "fp-%s" % _fp, "run-%d" % _i)
+        os.makedirs(_p)
+        with open(os.path.join(_p, "result.json"), "w", encoding="utf-8") as _f:
+            json.dump(dict(_row, judge_fingerprint=_jfp), _f)
+    try:
+        _cur, _stale = run_v1.load_results("sut", _items, _actions, root=_d,
+                                           judge_fp="judge-now")
+        _rep = run_v1.sc.score(_items, _cur)["treatment"]
+        _ok = (len(_cur) == 2 and not _stale
+               and sorted(r["key_point"] for r in _cur) == ["judge-stale", "yes"]
+               and _rep["key_point"]["of"] == 1 and _rep["key_point"]["judge_stale"] == 1
+               and _rep["recall"]["of"] == 2
+               and "judge-stale: 1" in run_v1.sc.render({"treatment": _rep}))
+    except Exception as _e:  # noqa: BLE001
+        _ok = False
+    c.expect("pattern", "J2: a verdict from another judge configuration is not counted", _ok)
