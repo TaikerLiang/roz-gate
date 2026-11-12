@@ -1,0 +1,22 @@
+{
+ "issue": 63,
+ "value_shape": "a spec ambiguity that materially changed the design",
+ "why_selected": "Two questions at spec refinement changed the design (P1, the user–workspace relation; P2, the trigger that cannot interrupt a long migration) and two cost a round trip the gate holder dismissed (N1, N5): the one fixture with both kinds on one issue.",
+ "important": [
+  "P1",
+  "P2"
+ ],
+ "immaterial": [
+  "N1",
+  "N5"
+ ],
+ "known_rework": "unknown",
+ "accepted_outcome": "unknown",
+ "unknown": [
+  "known_rework",
+  "accepted_outcome"
+ ],
+ "_note": "important / immaterial are the tier's criteria, picked by the gate holder in 2026-09. known_rework and accepted_outcome are the gate holder's to write from ADMC's later history; they were not readable where this record was drafted.",
+ "reviewed_by": null,
+ "reviewed_on": null
+}

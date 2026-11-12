@@ -137,7 +137,14 @@ def run():
                  tokens={"in": 90000, "out": 4000},
                  cost_counts={"tool_calls": 40, "dispatches": 0, "suite_runs": 2})
     rev = dict(good, reviewed_by="Paul Liang", reviewed_on="2026-11-13")
-    text = wv.paired({"F-63": {"retrospective": rev, "treatment": [res_t], "baseline": [res_b]}})
+    real_paired = wv.paired
+
+    def paired(cases):      # a crash is a failed check with a name, never a dead suite
+        try:
+            return real_paired(cases)
+        except Exception as e:  # noqa: BLE001
+            return "RAISED %s" % type(e).__name__
+    text = paired({"F-63": {"retrospective": rev, "treatment": [res_t], "baseline": [res_b]}})
     check("paired: both arms on the issue's block",
           "F-63" in text and "treatment" in text and "baseline" in text)
     check("paired: found and missed by id", "found P1" in text and "missed P1, P2" in text)
@@ -147,10 +154,10 @@ def run():
     check("paired: no cross-issue total", "total" not in text.lower()
           and "overall" not in text.lower())
     bad_b = {"valid": False, "invalid_reason": "forge stub hit 2 UNKNOWN route(s)"}
-    text = wv.paired({"F-63": {"retrospective": rev, "treatment": [res_t], "baseline": [bad_b]}})
+    text = paired({"F-63": {"retrospective": rev, "treatment": [res_t], "baseline": [bad_b]}})
     check("paired: an INVALID arm unpairs the issue and says why",
           "UNPAIRED" in text and "UNKNOWN route" in text and "found P1" not in text)
-    text = wv.paired({"F-63": {"retrospective": good, "treatment": [res_t], "baseline": [res_b]}})
+    text = paired({"F-63": {"retrospective": good, "treatment": [res_t], "baseline": [res_b]}})
     check("paired: an unreviewed retrospective is never paired",
           "not reviewed" in text and "found P1" not in text)
     return out

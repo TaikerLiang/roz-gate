@@ -277,6 +277,7 @@ a single rule and has its own row above.
 | L17 | the replay instrument's own lint — the forge stub's URLs name the fixture's repository, and an unserved `--json` field is UNKNOWN (#250) |
 | L18 | the evaluation charter's own lint — `evals/charter.md` keeps its terms, levels and six rules, and the pages that apply it point at it (#257) |
 | J2 | Judgment V1's own lint — the corpus is approved and leak-free, and the scorer reproduces hand-computed numbers (#258) |
+| J3 | the Workflow Value pilot's own lint — the baseline is told nothing of the loop, the gold is the retrospective record, an invalid or unreviewed pair is never compared (#259) |
 
 ## Duplicated mechanical interpretation
 

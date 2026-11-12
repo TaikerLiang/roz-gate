@@ -46,6 +46,46 @@ python3 evals/judgment/run_judgment.py --sut haiku55 --k 2     # the sweep (k=2 
 - `--sut` (replay's `models.yaml`) is the SUT only; **the judge is opus on
   every row**, including the opus SUT row.
 
+## The baseline arm — the Workflow Value pilot (#259)
+
+The same fixtures run a second way: `--arm baseline` is a capable agent
+with **no plugin, no hooks and no loop** — the pin's `CLAUDE.md` with the
+loop's section removed and its ordinary commands kept, and one instruction
+(`baseline-prompt.md`). It is judged on the same criteria. The protocol,
+what is held equal and what the comparison does not establish:
+`../workflow-value.md`.
+
+```sh
+python3 evals/judgment/run_judgment.py --arm baseline --sut haiku55 --k 1 F-51   # calibration: the cheapest
+python3 evals/judgment/run_judgment.py --arm baseline --sut haiku55 --k 1
+python3 evals/judgment/run_judgment.py --arm treatment --sut haiku55 --k 1
+python3 evals/judgment/run_judgment.py --paired haiku55    # no model: the arms side by side per issue
+```
+
+- Baseline results live under `report/baseline/<sut>/<case>/run-<i>/`; the
+  treatment's paths are unchanged. Both arms now also record the paired
+  fields (important found / missed, immaterial raised, questions and
+  their unit, outcome, round trips, tool calls / dispatches / suite runs).
+  A treatment result recorded before these fields existed is not paired —
+  re-run it.
+- `--paired` refuses nothing and spends nothing: an issue whose
+  `retrospective.json` is unreviewed, or whose arm is INVALID or missing,
+  prints as UNPAIRED with the reason.
+- Expect the first baseline runs to be INVALID: an agent with no forge
+  adapter calls `gh` in shapes the stub has never seen (§ What this tier
+  cannot see, 7). Each UNKNOWN names its call; add the routes, re-run.
+
+### Adding a fixture
+
+The pilot wants a fifth issue of a shape the four lack (a dependency or
+state case, or a QA / harness case). In ADMC: pick the issue, its freeze
+time T and the pin (the parent of the first commit the loop made for it);
+add `cases/<F>/fixture.json` in the shape of the others; run
+`materialize.py` to freeze `state.json`; add its criteria to
+`criteria.json` and its red-proof documents; write
+`cases/<F>/retrospective.json`. `--check` and lint J1 / J3 must be green
+before any run.
+
 ## Contamination is the whole game
 
 Every comment after T contains the answer. So:

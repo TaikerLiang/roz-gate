@@ -1,0 +1,18 @@
+{
+ "issue": 54,
+ "value_shape": "a design finding spread across several threads",
+ "why_selected": "The split identity model (P8) was the thing the human needed named before workspace-scoped reads could be enforced; graded on the batch.",
+ "important": [
+  "P8"
+ ],
+ "immaterial": [],
+ "known_rework": "unknown",
+ "accepted_outcome": "unknown",
+ "unknown": [
+  "known_rework",
+  "accepted_outcome"
+ ],
+ "_note": "important / immaterial are the tier's criteria, picked by the gate holder in 2026-09. known_rework and accepted_outcome are the gate holder's to write from ADMC's later history; they were not readable where this record was drafted.",
+ "reviewed_by": null,
+ "reviewed_on": null
+}

@@ -1,0 +1,18 @@
+{
+ "issue": 51,
+ "value_shape": "a case where questioning would be harmful",
+ "why_selected": "The right move at intake was silence: a summary with recorded assumptions and zero questions (N10).",
+ "important": [],
+ "immaterial": [
+  "N10"
+ ],
+ "known_rework": "unknown",
+ "accepted_outcome": "unknown",
+ "unknown": [
+  "known_rework",
+  "accepted_outcome"
+ ],
+ "_note": "important / immaterial are the tier's criteria, picked by the gate holder in 2026-09. known_rework and accepted_outcome are the gate holder's to write from ADMC's later history; they were not readable where this record was drafted.",
+ "reviewed_by": null,
+ "reviewed_on": null
+}
