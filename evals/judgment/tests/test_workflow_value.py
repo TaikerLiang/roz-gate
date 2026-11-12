@@ -160,6 +160,35 @@ def run():
     text = paired({"F-63": {"retrospective": good, "treatment": [res_t], "baseline": [res_b]}})
     check("paired: an unreviewed retrospective is never paired",
           "not reviewed" in text and "found P1" not in text)
+    # codex review, PR #287 — what a run surfaced, from the verdicts alone
+    def fields(answers, count):
+        try:
+            return wv.paired_fields(pol10, answers, count)
+        except Exception as e:  # noqa: BLE001
+            return {"error": type(e).__name__}
+
+    pol10 = {"P1": "P", "P2": "P", "N1": "N", "N5": "N", "N10": "N"}
+    f = fields({"P1": "yes", "P2": "no", "N1": "yes", "N5": "no"}, 14)
+    check("paired fields: yes is found, no is missed, a raised N is raised",
+          (f.get("important_found"), f.get("important_missed"), f.get("immaterial_raised"),
+           f.get("unscored")) == (["P1"], ["P2"], ["N1"], []))
+    f = fields({"P1": "judge-invalid", "P2": "yes", "N1": "judge-invalid", "N5": "no"}, 3)
+    check("paired fields: a judge-invalid verdict is unscored — never missed, never silent",
+          (f.get("important_found"), f.get("important_missed"), f.get("immaterial_raised"),
+           f.get("unscored")) == (["P2"], [], [], ["N1", "P1"]))
+    # N10 — "silence was right" — is raised exactly when a question was
+    # asked, in either arm; the loop's summary check is precision's, not this
+    check("paired fields: N10 is not raised by a silent run, whatever the judge said",
+          fields({"N10": "no"}, 0).get("immaterial_raised") == []
+          and fields({"N10": "yes"}, 0).get("immaterial_raised") == [])
+    check("paired fields: N10 is raised by a run that asked",
+          fields({"N10": "yes"}, 2).get("immaterial_raised") == ["N10"])
+    check("paired fields: a judge-invalid N10 does not unscore — it is never judged here",
+          fields({"N10": "judge-invalid"}, 0).get("unscored") == [])
+    res_u = dict(res_t, important_found=[], important_missed=[], unscored=["P1"])
+    text = paired({"F-63": {"retrospective": rev, "treatment": [res_u], "baseline": [res_b]}})
+    check("paired: a run with an unscored criterion unpairs the issue and names it",
+          "UNPAIRED" in text and "judge-invalid on P1" in text and "missed" not in text)
     return out
 
 
