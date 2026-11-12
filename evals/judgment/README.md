@@ -1,8 +1,9 @@
 # The judgment tier
 
 Not "did the agent follow a rule" — **"did the agent surface the thing that
-changed the human's mind."** LLM-as-judge: the expensive, unreliable tier,
-and the only one that measures whether the spec stage earns its cost.
+changed the human's mind."** LLM-as-judge: the expensive, unreliable tier —
+the seed of Level 2 (`../CHARTER.md`), too small to carry the judgment
+claim alone; #258 builds the corpus that can.
 
 Corpus: seven graded items from ADMC's real history, harvested by the ADMC
 session and picked by Paul — **P1 P2 P8 P12** (the human changed the

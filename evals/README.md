@@ -1,6 +1,13 @@
 # The eval ledger
 
-Three tiers of evidence that the workflow's rules hold.
+Four tiers of instruments — lint, replay, hook, judgment — and the cases
+each one runs. What their results are evidence *of* is the charter's:
+[`CHARTER.md`](CHARTER.md) defines three levels — **Compliance** (can the
+agent execute a known rule?), **Judgment** (does it make the right call
+under ambiguity?) and **Workflow value** (does the whole loop beat a
+baseline?) — and the terms Verification, Compliance eval, Judgment eval and
+Workflow-value eval. Nearly everything below is Level 1, and a fully green
+Level-1 suite does not prove Roz Gate improves engineering outcomes.
 
 <!-- counts -->
 | Tier | Cases | Status | Cost class |
@@ -8,10 +15,10 @@ Three tiers of evidence that the workflow's rules hold.
 | **lint** | 70 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
 | **replay** | 62 | built — `replay/run_replay.py` | needs a running loop and pass^k over repeated runs |
 | **hook** | 4 | built — `ledger-hook.json`, proven in `../hooks/tests/` by the same gate | rules a hook alone enforces; the other hook rules ride on a lint or replay row |
-| **judgment** | 7 items / 4 fixtures | built — `judgment/run_judgment.py`, k=2 baseline complete (2026-09-21) | a real repo per iteration plus an opus judge; the only tier that measures whether the spec stage earns its cost |
+| **judgment** | 7 items / 4 fixtures | built — `judgment/run_judgment.py`, k=2 baseline complete (2026-09-21) | a real repo per iteration plus an opus judge; the Level-2 seed (`CHARTER.md`) |
 <!-- /counts -->
 
-Every case, across all three tiers, is indexed in [`LEDGER.md`](LEDGER.md)
+Every case, across all tiers, is indexed in [`LEDGER.md`](LEDGER.md)
 — IDs, families, and the ledger text each checker cites. Adding a case:
 [`CONTRIBUTING.md`](CONTRIBUTING.md) — the procedure, tier by tier, and
 the instruments that lied.
@@ -46,7 +53,7 @@ cannot read gives him no control over the rule corpus, which defeats
 the suite's purpose. Everything runs under one uv project
 (the root `pyproject.toml`, stdlib-only; plain `python3` works
 identically). The hook suite, `hooks/tests/`, is Python too but is not
-an eval tier: it drives each hook through its `.sh` shim and
+an eval tier — it is Verification (`CHARTER.md`): it drives each hook through its `.sh` shim and
 stdin/exit-code contract, exactly the interface Claude Code invokes.
 
 ## Method: linting rules that a model executes
@@ -168,7 +175,8 @@ than the 2026-08 run (14–15 vs 8) and hits the design-changing one less.
 A recall miss this consistent points at the seat brief (what stage (2)
 reads before it asks), not at k. Open item.
 
-**Replay, k=1, plugin v2.10.0–v2.10.1 (2026-11-07 → 08) — the #199 QA-brief pilot,
+**Replay, k=1, plugin v2.10.0–v2.10.1 (2026-11-07 → 08) — the #199 QA-brief pilot
+(a Level-1 component regression, not a repository-wide score),
 D10–D19 under three briefs** (`run_replay.py --variant A|B|C`; A =
 `references/qa-brief.md`, B and C = the frozen STE rewrites in
 `evals/replay/variants/qa-brief/`). One iteration per cell, so a cell is a

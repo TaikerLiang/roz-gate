@@ -16,6 +16,12 @@ A case starts from a measurement or a shipped defect, never from a worry
 — the same bar as a hook rule. Name it: the replay run that went red,
 the release that shipped the defect, the review that found the gap.
 
+The issue that adds the case answers the six questions of
+`CHARTER.md § Rules for new eval work` first — its level, its product
+question, why the oracle is trustworthy, what green proves and does not,
+and both the **product decision** the result changes and the **stopping
+rule**. A case that cannot name that decision is not added.
+
 ## 2. Write its ledger row first
 
 The row is the case's own metadata; `LEDGER.md` is rendered from it by
@@ -38,7 +44,8 @@ has one, carries `META = {"id": …}` only — one source per row.
 
 ## 3. Pick the tier
 
-Take the first that can decide it:
+The tier picks the instrument; it does not set the level, which is the
+issue's own answer to the charter. Take the first that can decide it:
 
 | if the rule… | put it in | example |
 |---|---|---|
