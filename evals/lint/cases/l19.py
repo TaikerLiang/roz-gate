@@ -98,3 +98,20 @@ c.expect("pattern", "L19: the replay README does not claim k=10 (the cases say %
          "k=10" not in read("evals/replay/README.md") and 10 not in _ks)
 c.expect("pattern", "L19: ROADMAP has no section that claims to be current",
          not re.search(r"^## Current state", read("docs/ROADMAP.md"), re.M))
+
+# codex review, PR #289 — an instrument-only case has no pass mark: its
+# driver writes a curve and the runner keeps it out of every pass count and
+# interval. A baseline row may quote what the record says about it; it may
+# not give it `passed / valid`, which the renderer would turn into a rate.
+_curve = sorted(d for d in _cases if any(
+    "instrument_only" in read(os.path.join("evals/replay/cases", d, f))
+    for f in os.listdir(os.path.join(R, "evals", "replay", "cases", d)) if f.endswith(".py")))
+c.expect("pattern", "L19: the instrument-only cases are found from their drivers (%s)"
+         % ", ".join(_curve), bool(_curve))
+_counted = sorted({_r["case"] for _b in _data.get("replay", []) for _r in _b.get("results", [])
+                   if _r.get("case") in _curve and ("valid" in _r or "passed" in _r)})
+c.expect("pattern", "L19: no instrument-only case is given a pass count (%s)"
+         % ", ".join(_counted), _have and not _counted)
+c.expect("pattern", "L19: the rendered block gives no instrument-only case an interval",
+         bool(_block) and not any(re.search(r"\d+/\d+ \[[^\]]*\]: [^·|]*\b%s\b" % d,
+                                            _block.group(1)) for d in _curve))
