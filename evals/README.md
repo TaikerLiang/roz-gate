@@ -12,7 +12,7 @@ Level-1 suite does not prove Roz Gate improves engineering outcomes.
 <!-- counts -->
 | Tier | Cases | Status | Cost class |
 |---|---|---|---|
-| **lint** | 73 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
+| **lint** | 74 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
 | **replay** | 62 | built — `replay/run_replay.py` | needs a running loop and a pass rate over k repeated runs |
 | **hook** | 4 | built — `ledger-hook.json`, proven in `../hooks/tests/` by the same gate | rules a hook alone enforces; the other hook rules ride on a lint or replay row |
 | **judgment** | 7 items / 4 fixtures · V1: 10 decisions | built — `judgment/run_judgment.py`, k=2 baseline complete (2026-09-21) | a real repo per iteration plus an opus judge; the Level-2 seed (`charter.md`) |
