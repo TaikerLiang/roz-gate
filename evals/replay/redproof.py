@@ -816,8 +816,33 @@ def variant_checks():
     row_sig = _aggregate([{**ok, "brief_sha256": b_hash, "variant": "B", "suite_pushed": 1,
                            "attempts_denied": 2, "signals": ["attempts_denied", "suite_pushed"]}],
                          key="C5@B")
+    # #290 — a result as the 2026-11-12 sweep left it on disk: a shadow
+    # count AND its detail dict, both listed in `signals`. aggregate() must
+    # return the count's column and never try to sum the dict.
+    def _safe(fn):
+        try:
+            return fn()
+        except Exception as e:  # noqa: BLE001 — the crash is the defect under test
+            return "RAISED %s" % type(e).__name__
+    row_detail = _safe(lambda: _aggregate(
+        [{**ok, "brief_sha256": a_hash, "shadow_state_mismatch": 1,
+          "shadow_state_detail": {"qa.cr": ["absent", "observed"]},
+          "signals": ["shadow_state_detail", "shadow_state_mismatch"]},
+         {**ok, "brief_sha256": a_hash, "shadow_state_mismatch": 2,
+          "shadow_state_detail": {}, "signals": ["shadow_state_detail", "shadow_state_mismatch"]}]))
+    split = _safe(lambda: rr.split_attempts(
+        {"attempts_denied": 2, "shadow_branch_detail": {"spec": "x"}, "rows": [1, 2],
+         "flag": True, "ratio": 0.5, "note": "text", "zero": 0}))
     inv = _score("import sys\nprint('INVALID the brief was never exercised')\nsys.exit(3)\n")
     return [
+        ("#290 a detail dict listed beside a count aggregates: the count is summed, the "
+         "dict is not a column",
+         isinstance(row_detail, dict) and row_detail.get("shadow_state_mismatch") == 3
+         and "shadow_state_detail" not in row_detail),
+        ("#290 only an int is a signal — a dict, a list, a bool, a float and a string are "
+         "details",
+         split == (["attempts_denied", "zero"],
+                   ["flag", "note", "ratio", "rows", "shadow_branch_detail"])),
         ("the variant plugin copy differs from the checkout in exactly references/qa-brief.md",
          plugin != rr.ROOT and diff == [rr.BRIEF_REL]),
         ("the copy's brief is the variant file, hash for hash; A is the checkout itself",
