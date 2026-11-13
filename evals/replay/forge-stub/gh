@@ -508,8 +508,8 @@ def _pr_author(st, pr):
 
 
 def _pr_reviews(st, pr):
-    return [{"id": r.get("id"), "author": {"login": gql_login(r)}, "body": r.get("body", ""),
-             "state": r.get("state", ""),
+    return [{"id": r.get("id"), "author": {"login": gql_login(r)},
+             "body": expand_shas(r.get("body", "")), "state": r.get("state", ""),
              "submittedAt": r.get("submittedAt", r.get("submitted_at", ""))}
             for r in pr.get("reviews", [])]
 
@@ -558,33 +558,28 @@ def _merge_commit(st, pr):
     return {"oid": found[0]}
 
 
-CHANGE_TYPES = {"A": "ADDED", "M": "MODIFIED", "D": "DELETED", "R": "RENAMED", "C": "COPIED",
-                "T": "CHANGED"}
+CHANGE_TYPES = {"added": "ADDED", "modified": "MODIFIED", "removed": "DELETED",
+                "renamed": "RENAMED", "copied": "COPIED", "changed": "CHANGED"}
 
 
 def _pr_files(st, pr):
-    """An OPEN PR's files are the sandbox's diff of head against base
-    (api/queries_pr.go PullRequestFile: path, additions, deletions,
-    changeType). After a merge that diff is empty and GitHub's answer is
-    not, so a merged PR's files are not served."""
+    """An OPEN PR's files are the sandbox's diff of head against base, in
+    gh's shape (api/queries_pr.go PullRequestFile: path, additions,
+    deletions, changeType) — the SAME rows `pulls/<n>/files` serves, read
+    by the one parser (`pr_files`: NUL records, so a rename is its new
+    path and a quoted pathname the real one). After a merge that diff is
+    empty and GitHub's answer is not, so a merged PR's files are not served."""
     n = pr.get("number")
     if pr.get("state", "OPEN").upper() != "OPEN":
         return unserved("files", "pr %s is not open; the sandbox's diff is no longer its "
                         "file list" % n)
-    span = "%s...%s" % (resolve_ref(pr.get("baseRefName", "")),
-                        resolve_ref(pr.get("headRefName", "")))
-    num, names = _git("diff", "--numstat", span), _git("diff", "--name-status", span)
-    if num is None or names is None:
-        return unserved("files", "pr %s's base or head does not resolve in the sandbox" % n)
-    kinds = {line.split("\t")[-1]: CHANGE_TYPES.get(line[:1], "CHANGED")
-             for line in names.splitlines() if line.strip()}
-    rows = []
-    for line in num.splitlines():
-        add, rm, path = line.split("\t", 2)
-        rows.append({"path": path, "additions": int(add) if add.isdigit() else 0,
-                     "deletions": int(rm) if rm.isdigit() else 0,
-                     "changeType": kinds.get(path, "CHANGED")})
-    return rows
+    try:
+        rows = pr_files(pr.get("baseRefName", ""), pr.get("headRefName", ""))
+    except (RuntimeError, OSError, subprocess.TimeoutExpired) as e:
+        return unserved("files", "pr %s's base or head does not resolve in the sandbox (%s)"
+                        % (n, str(e)[:80]))
+    return [{"path": r["filename"], "additions": r["additions"], "deletions": r["deletions"],
+             "changeType": CHANGE_TYPES.get(r["status"], "CHANGED")} for r in rows]
 
 
 PR_FIELDS = {
@@ -601,8 +596,12 @@ PR_FIELDS = {
     "mergedAt": lambda st, pr: pr.get("mergedAt"),
     "headRefOid": _head_oid,
     # #291 — each from the fixture or the sandbox, or UNKNOWN naming itself
+    # `{{sha:<ref>}}` expanded exactly as `issues/<n>/comments` expands it:
+    # one comment is the same evidence by either route (a `reviewed-sha:`
+    # left literal would read as a stale review)
     "comments": lambda st, pr: [
-        {"id": c.get("id"), "author": {"login": gql_login(c)}, "body": c.get("body", ""),
+        {"id": c.get("id"), "author": {"login": gql_login(c)},
+         "body": expand_shas(c.get("body", "")),
          "createdAt": c.get("createdAt", c.get("created_at", ""))}
         for c in pr.get("comments", [])],
     "reviews": _pr_reviews,
