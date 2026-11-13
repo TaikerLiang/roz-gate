@@ -439,22 +439,38 @@ def fields_rows():
                st({"101": pr(reviews=[rv("ann", "CHANGES_REQUESTED", "24")])}), V + ["reviews"],
                "pr-view", '"state": "CHANGES_REQUESTED"', '"author": {"login": "ann"}',
                '"submittedAt": "2026-08-24T10:00:00Z"')
-        for name, reviews, want in (
-                ("no reviews", [], '""'),
-                ("an approval", [rv("ann", "APPROVED", "24")], '"APPROVED"'),
-                ("a change request", [rv("ann", "CHANGES_REQUESTED", "24")], '"CHANGES_REQUESTED"'),
-                ("a later approval supersedes the same author's change request",
-                 [rv("ann", "CHANGES_REQUESTED", "24"), rv("ann", "APPROVED", "25")], '"APPROVED"'),
-                ("one author approves, another requests changes",
-                 [rv("ann", "APPROVED", "24"), rv("bob", "CHANGES_REQUESTED", "25")],
+        # codex review, PR #297 (third pass) — the reviews alone do not settle
+        # the decision: GitHub answers REVIEW_REQUIRED when the repository
+        # requires a review, and nothing here says whether it does. So: the
+        # fixture's stated `reviewDecision`; else an outstanding change
+        # request (which blocks whatever the requirement); else UNKNOWN.
+        RD = V + ["reviewDecision"]
+        for name, extra, want in (
+                ("the fixture states REVIEW_REQUIRED", {"reviewDecision": "REVIEW_REQUIRED"},
+                 '"REVIEW_REQUIRED"'),
+                ("the fixture states APPROVED",
+                 {"reviewDecision": "APPROVED", "reviews": [rv("ann", "APPROVED", "24")]},
+                 '"APPROVED"'),
+                ("the fixture states none required", {"reviewDecision": ""}, '""'),
+                ("an outstanding change request",
+                 {"reviews": [rv("ann", "CHANGES_REQUESTED", "24")]}, '"CHANGES_REQUESTED"'),
+                ("one author approves, another's change request is outstanding",
+                 {"reviews": [rv("ann", "APPROVED", "24"), rv("bob", "CHANGES_REQUESTED", "25")]},
                  '"CHANGES_REQUESTED"'),
-                ("a later comment does not undo an approval",
-                 [rv("ann", "APPROVED", "24"), rv("ann", "COMMENTED", "25")], '"APPROVED"')):
-            served("pr view --json reviewDecision: %s" % name, st({"101": pr(reviews=reviews)}),
-                   V + ["reviewDecision"], "pr-view", '"reviewDecision": %s' % want)
-        unknown("pr view --json reviewDecision: a review state the corpus never carried",
-                st({"101": pr(reviews=[rv("ann", "DISMISSED", "24")])}), V + ["reviewDecision"],
-                "reviewDecision")
+                ("a later comment does not withdraw a change request",
+                 {"reviews": [rv("ann", "CHANGES_REQUESTED", "24"), rv("ann", "COMMENTED", "25")]},
+                 '"CHANGES_REQUESTED"')):
+            served("pr view --json reviewDecision: %s" % name, st({"101": pr(**extra)}), RD,
+                   "pr-view", '"reviewDecision": %s' % want)
+        for name, reviews in (
+                ("no reviews — \"\" and REVIEW_REQUIRED cannot be told apart", []),
+                ("an approval — approved or still short of the requirement",
+                 [rv("ann", "APPROVED", "24")]),
+                ("a change request the same author later approved",
+                 [rv("ann", "CHANGES_REQUESTED", "24"), rv("ann", "APPROVED", "25")]),
+                ("a review state the stub does not interpret", [rv("ann", "DISMISSED", "24")])):
+            unknown("pr view --json reviewDecision: %s → UNKNOWN" % name,
+                    st({"101": pr(reviews=reviews)}), RD, "reviewDecision")
         served("pr view --json mergeCommit: an open PR has none", st(), V + ["mergeCommit"],
                "pr-view", '"mergeCommit": null')
         served("pr view --json mergeCommit: the fixture states it",
