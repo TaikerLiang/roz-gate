@@ -52,6 +52,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -1648,8 +1649,104 @@ def check_checks():
     return checks
 
 
+# ---- #293: a seed makes true what the seat is told ----------------------------
+# The shared base carries the system issue #5 names; a seeded implementation
+# CR carries the section the fidelity dispatch copies; the as-built spec
+# carries the line Path B greps for; F4's acceptance test asserts S1.
+SHARED_BASE = ("src/store/offers.py", "src/checkout/service.py")
+TEST_PORT = {"D2": "none", "D6": "none", "C17": "src/pricing.py", "F4": "src/pricing.py"}
+F4_MUTANT = ("def price(cart, now):\n"
+             "    return sum(i['cost'] - (i['offer']['discount'] if i.get('offer') else 0)"
+             " for i in cart)\n")
+
+
+def _git(work, *args):
+    p = subprocess.run(["git", "-C", work] + list(args), capture_output=True, text=True)
+    return p.returncode, p.stdout
+
+
+def _f4_suite(work):
+    p = subprocess.run(
+        [sys.executable, "-c", "import runpy; runpy.run_path("
+         "'tests/acceptance/offers/test_expiry.py')['test_expired_offer']()"],
+        cwd=work, capture_output=True, text=True)
+    return p.returncode == 0
+
+
+def seed_contract_checks():
+    cases = sorted(d for d in os.listdir(os.path.join(HERE, "cases"))
+                   if os.path.exists(os.path.join(HERE, "cases", d, "seed.sh")))
+    no_base, no_section, no_port, crs, bases = [], [], [], 0, 0
+    f4 = None
+    for cid in cases:
+        cdir = os.path.join(HERE, "cases", cid)
+        sbx, _bare = rl.seed_sandbox(cdir)
+        if not sbx:
+            no_base.append("%s: seed failed" % cid)
+            continue
+        try:
+            work = os.path.join(sbx, "work")
+            refs = ["main"]
+            try:
+                with open(os.path.join(work, ".claude", "roz-gate.local.json"),
+                          encoding="utf-8") as f:
+                    configured = json.load(f).get("default_branch")
+            except (OSError, ValueError):
+                configured = None
+            if configured and _git(work, "show-ref", "--verify", "-q",
+                                   "refs/heads/%s" % configured)[0] == 0:
+                refs.append(configured)
+            for ref in refs:
+                bases += 1
+                for path in SHARED_BASE:
+                    if _git(work, "cat-file", "-e", "%s:%s" % (ref, path))[0] != 0:
+                        no_base.append("%s %s lacks %s" % (cid, ref, path))
+            try:
+                with open(os.path.join(cdir, "state.json"), encoding="utf-8") as f:
+                    prs = (json.load(f).get("prs") or {})
+            except (OSError, ValueError):
+                prs = {}
+            for n, pr in sorted(prs.items()):
+                if re.match(r"(feat|fix)/", pr.get("headRefName") or ""):
+                    crs += 1
+                    if not re.search(r"(?m)^## Contract deviations$", pr.get("body") or ""):
+                        no_section.append("%s#%s" % (cid, n))
+            if cid in TEST_PORT:
+                rc, spec = _git(work, "show", "spec/5:docs/specs/5/technical-spec.md")
+                hits = re.findall(r"(?m)^\*\*Test port\*\* — (.*)$", spec if rc == 0 else "")
+                if hits != [TEST_PORT[cid]]:
+                    no_port.append("%s %r" % (cid, hits))
+            if cid == "F4":
+                _git(work, "checkout", "-q", "qa/5")
+                green = _f4_suite(work)
+                with open(os.path.join(work, "src", "pricing.py"), "w", encoding="utf-8") as f:
+                    f.write(F4_MUTANT)
+                f4 = (green, _f4_suite(work))
+        finally:
+            shutil.rmtree(sbx, ignore_errors=True)
+    return [
+        ("#293 the shared base carries the offers table and the checkout service on main and "
+         "on every configured base branch (%d bases over %d seeds%s)"
+         % (bases, len(cases), "; " + "; ".join(no_base[:4]) if no_base else ""),
+         not no_base and bases > len(cases)),
+        ("#293 every seeded implementation CR's body carries `## Contract deviations` "
+         "(%d CRs%s)" % (crs, "; missing: " + ", ".join(no_section) if no_section else ""),
+         not no_section and crs >= 13),
+        ("#293 the as-built spec of %s carries exactly one `**Test port** — …` line, the "
+         "port its suite drives%s" % (", ".join(sorted(TEST_PORT)),
+                                      " (got " + "; ".join(no_port) + ")" if no_port else ""),
+         not no_port),
+        ("#293 F4's acceptance test asserts S1: green against the seeded pricing, red against "
+         "a pricing that applies an expired offer (got %s)" % (f4,),
+         f4 == (True, False)),
+    ]
+
+
 def main():
     passed = failed = 0
+    for name, ok in seed_contract_checks():
+        print("%s seed: %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
     for name, ok in export_checks():
         print("%s export: %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
