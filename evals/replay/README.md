@@ -226,7 +226,11 @@ fields read (#291): a PR's `author` and `mergeCommit`; an issue's
 `updatedAt`, `closedAt`, `stateReason`; `repo.default_branch`. Unstated,
 each is derived only where the sandbox proves it (a PR opened in the run;
 the one merge commit with the head as a parent; the remote's HEAD) and is
-otherwise UNKNOWN.
+otherwise UNKNOWN. A stated issue fact is served only while it still
+describes the issue: the stub records each issue as seeded
+(`seeded-issues.json`, beside `state.json`), and once the run writes to an
+issue its `updatedAt` — or, after a state change, its `stateReason` and
+`closedAt` — is UNKNOWN. The stub keeps no clock and invents no timestamp.
 Benign read-only probes (`--version`, `--help`, bare `gh`) are routed
 with canned output — a cautious SUT pokes the CLI before trusting it
 (the opus smoke gate died on a pre-flight `gh --version` around an

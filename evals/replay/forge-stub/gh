@@ -18,6 +18,7 @@ here touches the network, ever.
 """
 
 import atexit
+import hashlib
 import json
 import os
 import re
@@ -43,6 +44,42 @@ def load():
 def save(st):
     with open(STATE, "w", encoding="utf-8") as f:
         json.dump(st, f, indent=1)
+
+
+# #291 — what each issue was when the run began, so a fact the fixture
+# states (`updatedAt`, `stateReason`, `closedAt`) is served only while it
+# still describes the issue. Written once, by the first invocation, before
+# any route can write; every write path is covered without each having to
+# remember to say so (an edit, a comment, a close, a REST write, an edited
+# or deleted comment).
+SEEDED = os.path.join(STATE_DIR, "seeded-issues.json")
+STATED_FACTS = ("updatedAt", "stateReason", "closedAt")
+
+
+def issue_digest(iss):
+    body = {k: v for k, v in iss.items() if k not in STATED_FACTS}
+    return hashlib.sha256(json.dumps(body, sort_keys=True).encode("utf-8")).hexdigest()[:16]
+
+
+def remember_seed(st):
+    if os.path.exists(SEEDED):
+        return
+    snap = {n: {"digest": issue_digest(i), "state": i.get("state", "open").lower()}
+            for n, i in st.get("issues", {}).items()}
+    try:
+        fd = os.open(SEEDED, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
+    except FileExistsError:      # another invocation of the same run got there first
+        return
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        json.dump(snap, f)
+
+
+def seeded(n):
+    try:
+        with open(SEEDED, encoding="utf-8") as f:
+            return json.load(f).get(str(n))
+    except (OSError, ValueError):
+        return None
 
 
 # Where the last body came from, when not inline: "file" | "stdin" |
@@ -269,8 +306,7 @@ ISSUE_FIELDS = {
     # #291 — stated by the fixture or not served. `updatedAt` is never the
     # latest of the timestamps the fixture happens to carry: that is a
     # lower bound, not GitHub's value.
-    "updatedAt": lambda st, n, iss: iss["updatedAt"] if iss.get("updatedAt") else unserved(
-        "updatedAt", "issue %s's fixture states none" % n),
+    "updatedAt": lambda st, n, iss: _updated_at(n, iss),
     # gh's struct zero values for an open issue (api/queries_issue.go:
     # `StateReason string`, `ClosedAt *time.Time`); a closed one needs the fact
     "stateReason": lambda st, n, iss: _closed_fact(n, iss, "stateReason", ""),
@@ -281,11 +317,34 @@ ISSUE_FIELDS = {
         for c in iss.get("comments", [])],
 }
 
+def _updated_at(n, iss):
+    if not iss.get("updatedAt"):
+        return unserved("updatedAt", "issue %s's fixture states none" % n)
+    seed = seeded(n)
+    if not seed or seed["digest"] != issue_digest(iss):
+        # the stub keeps no clock: after a write in this run the seeded
+        # timestamp is stale, and a fresh one would be invented
+        return unserved("updatedAt", "issue %s was written to in this run; its seeded "
+                        "updatedAt no longer describes it" % n)
+    return iss["updatedAt"]
+
+
 def _closed_fact(n, iss, key, when_open):
-    if iss.get("state", "open").lower() == "open":
-        return when_open
+    """`stateReason` / `closedAt`: the fixture's stated value while the
+    issue is in the state it was seeded in — an open issue may state
+    `REOPENED` (GitHub's IssueStateReason) — else gh's zero value for an
+    open issue, else UNKNOWN. A state the run itself changed has no stated
+    reason or time: the seeded one is the old state's."""
+    state = iss.get("state", "open").lower()
+    seed = seeded(n)
+    # an issue the run itself created was born open
+    if (seed["state"] if seed else "open") != state:
+        return unserved(key, "issue %s changed state in this run (now %s); the stub does "
+                        "not invent its %s" % (n, state, key))
     if iss.get(key):
         return iss[key]
+    if state == "open":
+        return when_open
     return unserved(key, "issue %s is closed and its fixture states no %s" % (n, key))
 
 
@@ -792,6 +851,7 @@ def main():
             print(text)
             sys.exit(rc)
     st = load()
+    remember_seed(st)
 
     # ---- gh repo view --json owner,name
     if argv[:2] == ["repo", "view"]:
