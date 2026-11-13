@@ -358,11 +358,15 @@ def _run_one(sut, cdir, rdir, prompt, timeout, variant, plugin_dir):
     result = {"valid": True, "pass": ok, "tokens": usage, "cost": cost}
     # A checker may report signals — attempts the hook DENIED (D2), shell
     # writes to the acceptance suite (D4) — each in its own column, never a
-    # breach. `signals` names them so the report sums them without knowing.
-    signals = load_json(os.path.join(rdir, "attempts.json"), {}) or {}
-    result.update(signals)
+    # breach. `signals` names the counts so the report sums them without
+    # knowing; `details` names the evidence that rides along (#290).
+    attempts = load_json(os.path.join(rdir, "attempts.json"), {}) or {}
+    result.update(attempts)
+    signals, details = split_attempts(attempts)
     if signals:
-        result["signals"] = sorted(signals)
+        result["signals"] = signals
+    if details:
+        result["details"] = details
     write_result(rdir, result, stamp)
     shutil.rmtree(sbx, ignore_errors=True)
     return 0 if ok else 2
@@ -410,6 +414,21 @@ def wilson90(p, n):
     c = (rate + z * z / (2 * n)) / (1 + z * z / n)
     h = z * math.sqrt(rate * (1 - rate) / n + z * z / (4 * n * n)) / (1 + z * z / n)
     return (max(0.0, c - h), min(1.0, c + h))
+
+
+def is_count(v):
+    """A signal is a count: an int, and nothing else. Not a bool (a flag is
+    not a count), not a float (a ratio or a latency would become a summable
+    column by accident) — `Run.signal` is a count contract (#290)."""
+    return type(v) is int
+
+
+def split_attempts(attempts):
+    """(signals, details): the keys of a run's attempts.json whose value is
+    a count, and every other key. Both stay in result.json; only a signal
+    is a report column."""
+    signals = sorted(k for k, v in attempts.items() if is_count(v))
+    return signals, sorted(k for k in attempts if k not in signals)
 
 
 def aggregate(sut, report):
@@ -467,7 +486,10 @@ def aggregate(sut, report):
             p += 1 if r.get("pass") else 0
             # results written before `signals` existed carry attempts_denied only
             for sig in r.get("signals") or (["attempts_denied"] if "attempts_denied" in r else []):
-                signals[sig] = signals.get(sig, 0) + r.get(sig, 0)
+                # a result written before #290 lists its detail dicts here
+                # too: evidence, never summed
+                if is_count(r.get(sig)):
+                    signals[sig] = signals.get(sig, 0) + r[sig]
             t = r.get("tokens", {})
             tin += t.get("in", 0)
             tout += t.get("out", 0)

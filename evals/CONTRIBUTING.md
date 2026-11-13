@@ -255,7 +255,9 @@ A deterministic re-implementation of something the prose does — the branch
 resolver (#135), later `roz-state` (#133) — runs **beside** the commands
 before it replaces them. The comparison is a **signal**, never a verdict:
 `Run.signal(...)` writes extra keys into the run's `attempts.json` and the
-report sums them in their own columns (D2's `attempts_denied` pattern);
+report sums the **counts** — an int value — in their own columns (D2's
+`attempts_denied` pattern); any other value (a `*_detail` dict) is evidence
+that stays in `result.json`, listed under `details`, and is never a column;
 `c.expect` is not involved. `Run.shadow_branch([(kind, n), …], template,
 acts)` is the first: the names the run **itself** bound — `Run.observed_bindings`
 reads them from what it did, never from a fixture constant (`create`:
