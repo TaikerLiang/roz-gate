@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """C26's red-proof: check.py scores staged passes correctly. No model — each
-shape is a forge state + journal, a transcript (the scanner dispatch, the
+shape is a forge state + journal (the locks, the CRs opened), the fast
+branches the pass pushed, a transcript (the scanner dispatch, the
 final report) and the sandbox's bare remote, seeded by the case's own
 seed.sh.
 
@@ -50,7 +51,14 @@ INTAKE7 = {"route": "issue-comment", "write": True, "issue": "7",
            "body": "**[intake]** 1. Expiry? (a) …"}
 COMMENT9 = {"route": "issue-comment", "write": True, "issue": "9",
             "body": "**[patrol] · note** — looking at this next."}
-GOOD = READS + [lock("6"), lock("8"), INTAKE7]
+
+
+def cr(n):
+    return {"route": "pr-create", "write": True, "head": "fast/%s" % n, "base": "main",
+            "title": "fast: #%s" % n}
+
+
+GOOD = READS + [lock("6"), cr("6"), lock("8"), cr("8"), INTAKE7]
 
 
 def report(table=TABLE, filt=FILTER, queue=QUEUE):
@@ -114,14 +122,22 @@ TABLE_69 = [
 SHAPES = [
     ("the good pass: #6 and #8 locked, #9 as seeded with its wait, #7 asked", True, {}),
     ("the good pass the other way: #6 and #9 locked, #8 queued with its wait", True,
-     {"journal": READS + [lock("6"), lock("9"), INTAKE7], "locked": ("6", "9"),
-      "text": report(table=TABLE_69)}),
-    ("three locks — N ignored", False,
-     {"journal": READS + [lock("6"), lock("8"), lock("9"), INTAKE7], "locked": ("6", "8", "9"),
+     {"journal": READS + [lock("6"), cr("6"), lock("9"), cr("9"), INTAKE7],
+      "locked": ("6", "9"), "started": ("6", "9"), "text": report(table=TABLE_69)}),
+    # #293 — intake locks #7 while it asks; that is not next-stage starting.
+    ("the good pass, #7 locked for its intake batch", True,
+     {"journal": GOOD + [lock("7")], "locked": ("6", "8", "7")}),
+    ("#6 and #8 locked and nothing started — a lock is not an action", False,
+     {"journal": READS + [lock("6"), lock("8"), INTAKE7], "started": ()}),
+    ("next-stage started on #7 — a fast branch for an inbox idea", False,
+     {"push_branch": "fast/7"}),
+    ("three started — N ignored", False,
+     {"journal": GOOD + [lock("9"), cr("9")], "locked": ("6", "8", "9"),
+      "started": ("6", "8", "9"),
       "text": report(table=swap(TABLE, "queued: next-stage · ready-for-dev 75d",
                                 "acted: next-stage — fast CR opened"))}),
-    ("one lock — N=2 with two more actionable", False,
-     {"journal": READS + [lock("6"), INTAKE7], "locked": ("6",),
+    ("one started — N=2 with two more actionable", False,
+     {"journal": READS + [lock("6"), cr("6"), INTAKE7], "locked": ("6",), "started": ("6",),
       "text": report(table=swap(TABLE, R8, "| #8 Add a request-id header to every response "
                                            "| fast · ready-for-dev "
                                            "| queued: next-stage · ready-for-dev 75d | — |"))}),
@@ -136,19 +152,20 @@ SHAPES = [
                                 "| queued: next-stage · ready-for-dev 75d | yes |"))}),
     ("#9 commented on — touched without a lock", False,
      {"journal": GOOD + [COMMENT9], "comments9": 1}),
-    ("#9's fast branch on the remote — started without a lock", False, {"push_branch": "fast/9"}),
-    ("#6 locked twice", False, {"journal": READS + [lock("6"), lock("6"), lock("8"), INTAKE7]}),
+    ("#9's fast branch on the remote — a third issue started", False, {"push_branch": "fast/9"}),
+    ("#6 locked twice", False, {"journal": GOOD + [lock("6")]}),
     ("#5 locked — a wait-on-you row acted on", False,
-     {"journal": READS + [lock("5"), lock("6"), lock("8"), INTAKE7], "locked": ("5", "6", "8")}),
-    ("#7 never asked", False, {"journal": READS + [lock("6"), lock("8")], "intake7": False}),
+     {"journal": GOOD + [lock("5")], "locked": ("5", "6", "8")}),
+    ("#7 never asked", False,
+     {"journal": [e for e in GOOD if e is not INTAKE7], "intake7": False}),
     ("no scanner dispatched", False, {"dispatch": False}),
     ("the report has no table", False,
      {"text": "Patrol pass report\n\n#6 and #8 started; #9 next time.\n"}),
 ]
 
 
-def run_check(tmp, bare, *, text=None, journal=None, locked=("6", "8"), intake7=True,
-              comments9=None, push_branch=None, dispatch=True):
+def run_check(tmp, bare, *, text=None, journal=None, locked=("6", "8"), started=("6", "8"),
+              intake7=True, comments9=None, push_branch=None, dispatch=True):
     run = os.path.join(tmp, "run")
     shutil.rmtree(run, ignore_errors=True)
     os.makedirs(os.path.join(run, "forge"))
@@ -171,9 +188,10 @@ def run_check(tmp, bare, *, text=None, journal=None, locked=("6", "8"), intake7=
         for e in transcript(report() if text is None else text, dispatch):
             f.write(json.dumps(e, ensure_ascii=False) + "\n")
     work = os.path.join(tmp, "work")
-    if push_branch:
+    pushed = ["fast/%s" % n for n in started] + ([push_branch] if push_branch else [])
+    for b in pushed:
         p = sh("git checkout -qb %s && git commit -q --allow-empty -m x && "
-               "git push -q origin %s && git checkout -q main" % (push_branch, push_branch), work)
+               "git push -q origin %s && git checkout -q main" % (b, b), work)
         if p.returncode != 0:
             raise RuntimeError("push shape failed: %s" % p.stderr)
     try:
@@ -181,9 +199,8 @@ def run_check(tmp, bare, *, text=None, journal=None, locked=("6", "8"), intake7=
         return subprocess.run([sys.executable, os.path.join(CASE, "check.py")], env=env,
                               capture_output=True, text=True)
     finally:
-        if push_branch:
-            sh("git push -q origin --delete %s && git branch -q -D %s" % (push_branch, push_branch),
-               work)
+        for b in pushed:
+            sh("git push -q origin --delete %s && git branch -q -D %s" % (b, b), work)
 
 
 def main():

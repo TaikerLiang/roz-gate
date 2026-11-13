@@ -9,6 +9,9 @@
 # source: commands/patrol.md §3 — up to N loop issues per pass, in priority
 #   order, from the one table, each issue at most once; the exemptions
 #   (intake among them) are outside the N.
+# source: #293 — "acted on" is what starting next-stage leaves (the fast
+#   branch, or a CR from it), never the lock: intake locks #7 in the same
+#   pass.
 # source: commands/patrol.md §4 — `queued: <action> · <gate label> <age>`
 #   for a gated row the pass did not reach; the age from the scanner's
 #   `labeled` event.
@@ -35,14 +38,19 @@ def touches(e, n):
     return any(str(e.get(k)) == n for k in ("issue", "pr", "target"))
 
 
+def locks(n):
+    return sum(1 for e in journal if e.get("route") == "issue-edit" and str(e.get("issue")) == n
+               and any("processing" in a for a in e.get("add", [])))
+
+
 def acted(n):
-    """The pass started next-stage on #n: the lock journaled, or its fast
-    branch on the remote, or a CR opened from it."""
-    lock = any(e.get("route") == "issue-edit" and str(e.get("issue")) == n
-               and any("processing" in a for a in e.get("add", [])) for e in journal)
+    """The pass started next-stage on #n: its fast branch on the remote, or a
+    CR opened from it. The `processing` lock alone is not evidence (#293):
+    intake locks too, and this checker expects #7's intake batch — a pass
+    that locked and then stopped started nothing."""
     branch = r.git("show-ref", "--verify", "-q", "refs/heads/fast/%s" % n)[0] == 0
     cr = any(e.get("route") == "pr-create" and e.get("head") == "fast/%s" % n for e in journal)
-    return lock or branch or cr
+    return branch or cr
 
 
 def untouched(n):
@@ -62,12 +70,12 @@ c.expect("patrol.md §3 (up to N = 2, each issue at most once)",
 c.expect("patrol.md §3 (the third is not reached)",
          "the remaining fast issue is as seeded — labels, no comment, no write, no branch",
          len(left) == 1 and left[0] not in started)
-c.expect("patrol.md §3 (never two locks on one issue, never a third)",
-         "no issue was locked twice and no issue outside #6/#8/#9 was locked",
-         all(sum(1 for e in journal if e.get("route") == "issue-edit" and str(e.get("issue")) == n
-                 and any("processing" in a for a in e.get("add", []))) <= 1 for n in FAST)
-         and not any(e.get("route") == "issue-edit" and str(e.get("issue")) not in FAST
-                     and any("processing" in a for a in e.get("add", [])) for e in journal))
+c.expect("patrol.md §3 (never two locks on one issue; #5 waits on you)",
+         "no issue was locked twice and #5 was never locked (#7's intake lock is intake's own)",
+         all(locks(n) <= 1 for n in FAST + ("7",)) and locks("5") == 0)
+c.expect("patrol.md §3 (next-stage starts on a gated row only)",
+         "no fast branch and no CR for #5 or #7",
+         not any(acted(n) for n in ("5", "7")))
 c.expect("patrol.md §3 (the whole inbox, outside the N)",
          "#7 got its **[intake]** questions batch",
          any(b.startswith("**[intake]**") for b in r.issue_comment_bodies("7")))
