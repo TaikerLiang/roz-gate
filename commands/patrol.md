@@ -200,8 +200,8 @@ implementation side; #140 ruling 9). Patrol runs the review alone.
    for the CR's head branch — a refusal (the branch is checked out
    elsewhere) → the STOP exit.
 3. Dispatch the **reviewer** as next-stage B5 does (C6 on the fast track):
-   the CR's diff against its base, `<specs_dir>/<n>/spec.md` and
-   `technical-spec.md` attached (the issue body on the fast track), the
+   the CR's diff against its base, the seat's R&R row,
+   `<specs_dir>/<n>/spec.md` and `technical-spec.md` attached (the issue body on the fast track), the
    as-built contract diff and the CR's `## Contract deviations` for a
    `track: spec` CR. It posts its severity-graded threads and, **last**, the
    `**[reviewer] · code-review**` record with `reviewed-sha: <head>` and the
@@ -232,8 +232,8 @@ an audited one. Patrol runs the audit alone — nothing else of B2.7.
    line names, none for `none`, `seat=reviewer`, and the same paths on a line of their own
    in the dispatch text, `Test port: …` (B2.7, #125) — then dispatch the **reviewer** seat in a
    **fresh context** with
-   `${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md` as its contract, in
-   the `<qa-branch>` worktree; immediately after it returns,
+   `${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md` as its contract and
+   the seat's R&R row, in the `<qa-branch>` worktree; immediately after it returns,
    `rm -f "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`.
    The dispatch posts its two-way-cited threads on the QA CR and the
    `**[reviewer] · fidelity**` summary — the record this action exists to
@@ -253,8 +253,9 @@ gate holder** — only the questions batch may be posted on it, and the
 report lists it in the user's queue as "needs an assignee". The thread is
 free-form and open to
 anyone; the clarification thinking is always the dispatched `product` agent's
-(async mode, with `${CLAUDE_PLUGIN_ROOT}/references/intake-brief.md`, the
-issue body, and all comments), never patrol's own.
+(async mode, with the seat's R&R row from `workflow.md`,
+`${CLAUDE_PLUGIN_ROOT}/references/intake-brief.md`, the issue body, and all
+comments), never patrol's own.
 1. Lock: LABEL-ADD `status: processing`.
 2. Route by the issue's state — first match wins:
    - **Gate label present** (`ready-for-spec` / `ready-for-dev` on this
