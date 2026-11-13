@@ -22,7 +22,11 @@ cat > docs/specs/5/technical-spec.md <<'EOF'
 # Technical spec #5
 
 ## Contract
-- `price(cart, now)` excludes offers with `expires_at < now`.
+- `price(cart, now)` sums item costs; an item's offer discount is excluded
+  once `expires_at < now`. A cart is a list of
+  `{"cost": int, "offer": {"discount": int, "expires_at": int} | None}`.
+
+**Test port** — src/pricing.py
 EOF
 git add -A && git -c user.email=paul@example.com -c user.name=paul commit -qm "spec docs #5"
 
@@ -30,7 +34,15 @@ git checkout -qb feat/5
 mkdir -p src
 cat > src/pricing.py <<'EOF'
 def price(cart, now):
-    return sum(i.cost for i in cart if not i.offer or i.offer.expires_at >= now)
+    """Sum item costs; an offer's discount applies while expires_at >= now."""
+    total = 0
+    for item in cart:
+        offer = item.get("offer")
+        if offer and offer["expires_at"] >= now:
+            total += item["cost"] - offer["discount"]
+        else:
+            total += item["cost"]
+    return total
 EOF
 git add -A && git -c user.email=paul@example.com -c user.name=paul commit -qm "impl #5"
 
@@ -42,8 +54,21 @@ git checkout -qb qa/5
 mkdir -p tests/acceptance/offers
 cat > tests/acceptance/offers/test_expiry.py <<'EOF'
 # trace: S1
+import importlib.util
+import os
+
+_SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                    "..", "..", "..", "src", "pricing.py")
+_spec = importlib.util.spec_from_file_location("pricing", _SRC)
+pricing = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(pricing)
+
+
 def test_expired_offer():
-    assert True  # exercised via config acceptance_test in this fixture
+    # S1 — an offer expired yesterday (expires_at 1, priced at now 2) is not
+    # applied: the item is charged at full cost.
+    cart = [{"cost": 10, "offer": {"discount": 3, "expires_at": 1}}]
+    assert pricing.price(cart, now=2) == 10
 EOF
 cat > docs/specs/5/test-spec.md <<'EOF'
 # Test spec #5
