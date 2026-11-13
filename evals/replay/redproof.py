@@ -1071,6 +1071,45 @@ def _fixture_fingerprint_moves():
         shutil.rmtree(d, ignore_errors=True)
 
 
+def _shared_seed_fingerprint_moves():
+    """#293 — the shared seed is part of every case's fingerprint: explicit
+    data (`replaylib.SHARED_FINGERPRINT_INPUTS`), not inferred from a seed's
+    shell text. Returns (listed, every_case, moves, unlisted_does_not)."""
+    shared = getattr(rl, "SHARED_FINGERPRINT_INPUTS", ())
+    listed = "lib/seed-common.sh" in shared
+    cases = sorted(d for d in os.listdir(os.path.join(HERE, "cases"))
+                   if os.path.exists(os.path.join(HERE, "cases", d, "seed.sh")))
+    uses = [d for d in cases if "seed-common.sh" in open(
+        os.path.join(HERE, "cases", d, "seed.sh"), encoding="utf-8").read()]
+    d = tempfile.mkdtemp(dir=rr.S)
+    try:
+        cdir = os.path.join(d, "case")
+        os.makedirs(cdir)
+        for n, text in (("check.py", "c"), ("seed.sh", "s"), ("state.json", "{}"),
+                        ("case.json", "{}")):
+            with open(os.path.join(cdir, n), "w") as f:
+                f.write(text)
+        one, other = os.path.join(d, "shared.sh"), os.path.join(d, "other.sh")
+        for p in (one, other):
+            with open(p, "w") as f:
+                f.write("a\n")
+        rel = os.path.relpath(one, rr.S)
+        try:
+            before = rl.case_fingerprint(cdir, shared=(rel,))
+            with open(one, "w") as f:
+                f.write("b\n")
+            after = rl.case_fingerprint(cdir, shared=(rel,))
+            with open(other, "w") as f:
+                f.write("b\n")
+            still = rl.case_fingerprint(cdir, shared=(rel,))
+            default = rl.case_fingerprint(cdir) != rl.case_fingerprint(cdir, shared=())
+        except TypeError:
+            return listed, uses == cases, False, False
+        return listed, uses == cases, before != after and default, after == still
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
 def variant_checks():
     plugin = rr.variant_plugin("B")
     diff = rr.variant_diff(plugin)
@@ -1140,6 +1179,9 @@ def variant_checks():
          and _score("import sys\nsys.exit(1)\n") == ("fail", None)),
         ("the fingerprint follows a case's fixture tree and every listed shared file",
          _fixture_fingerprint_moves()),
+        ("#293 the shared seed is a listed fingerprint input, every case's seed invokes it, "
+         "an edit to a listed input moves a fingerprint and an unlisted file does not",
+         _shared_seed_fingerprint_moves() == (True, True, True, True)),
         ("the report key splits into case and variant; a plain key is A",
          rr.split_key("D10@B") == ("D10", "B") and rr.split_key("D10") == ("D10", "A")
          and rr.case_key("D10", "A") == "D10" and rr.case_key("D10", "C") == "D10@C"),
