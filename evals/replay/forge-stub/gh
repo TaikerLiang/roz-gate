@@ -573,11 +573,23 @@ def _pr_reviews(st, pr):
             for r in pr.get("reviews", [])]
 
 
+REVIEW_DECISIONS = ("", "APPROVED", "CHANGES_REQUESTED", "REVIEW_REQUIRED")
+
+
 def _review_decision(st, pr):
-    """From the fixture's reviews and nothing else: each author's latest
-    APPROVED / CHANGES_REQUESTED review, COMMENTED ignored. Any change
-    request outstanding → CHANGES_REQUESTED; else any approval → APPROVED;
-    else "" (gh's zero value). A state outside those three is not emulated."""
+    """The fixture's stated `reviewDecision`, when it states one. Otherwise
+    only what the reviews settle on their own: a change request still
+    outstanding from some author's latest APPROVED / CHANGES_REQUESTED
+    review (COMMENTED ignored) is CHANGES_REQUESTED whatever the repository
+    requires. Everything else — no reviews, approvals only — is UNKNOWN:
+    GitHub answers "", APPROVED or REVIEW_REQUIRED there according to a
+    review requirement the fixture does not state (codex review, PR #297)."""
+    n = pr.get("number")
+    if "reviewDecision" in pr:
+        if pr["reviewDecision"] not in REVIEW_DECISIONS:
+            return unserved("reviewDecision", "pr %s's fixture states %r, not one of gh's "
+                            "values" % (n, pr["reviewDecision"]))
+        return pr["reviewDecision"]
     latest = {}
     for r in pr.get("reviews", []):
         state = r.get("state", "")
@@ -585,11 +597,13 @@ def _review_decision(st, pr):
             continue
         if state not in ("APPROVED", "CHANGES_REQUESTED"):
             return unserved("reviewDecision", "pr %s has a %r review, which the stub does "
-                            "not interpret" % (pr.get("number"), state))
+                            "not interpret" % (n, state))
         latest[r.get("author", "")] = state
-    states = set(latest.values())
-    return "CHANGES_REQUESTED" if "CHANGES_REQUESTED" in states else \
-        "APPROVED" if states else ""
+    if "CHANGES_REQUESTED" in latest.values():
+        return "CHANGES_REQUESTED"
+    return unserved("reviewDecision", "pr %s's fixture states no reviewDecision and its "
+                    "reviews do not settle one (the repository's review requirement is "
+                    "not a fixture fact)" % n)
 
 
 def _merge_commit(st, pr):

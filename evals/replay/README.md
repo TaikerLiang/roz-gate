@@ -222,7 +222,7 @@ reach the fixture doesn't define is a fixture gap, not a model failure.
 So is a `--json` field the stub does not serve (#250): the call is
 refused whole, never answered with the other fields. Every URL the stub
 prints names the fixture's `repo`. Optional fixture facts the `--json`
-fields read (#291): a PR's `author` and `mergeCommit`; an issue's
+fields read (#291): a PR's `author`, `mergeCommit` and `reviewDecision`; an issue's
 `updatedAt`, `closedAt`, `stateReason`; `repo.default_branch`. Unstated,
 each is derived only where the sandbox proves it (a PR opened in the run;
 the one merge commit with the head as a parent; the remote's HEAD) and is
