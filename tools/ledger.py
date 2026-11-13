@@ -207,11 +207,16 @@ def render_baselines():
     if unknown:
         fail("baselines.json names %s, not a replay case" % ", ".join(unknown))
     none = [c for c in cases if c not in measured]
+    # a case is *currently* measured only by a result that neither its
+    # batch nor the result itself marks superseded (#293)
+    live = {r["case"] for b in data["replay"] if not b.get("superseded")
+            for r in b["results"] if not r.get("superseded")}
     out = ["**%d of %d replay cases have at least one recorded SUT baseline; %d have none.** "
            "*Recorded* is not *current*: a batch below is a measurement of the case as it "
            "was then, and a later seed or checker change may have superseded it — where the "
-           "record says so, the row does."
-           % (len(cases) - len(none), len(cases), len(none)), "",
+           "record says so, the row does. **%d of %d have a recorded baseline that is not "
+           "superseded.**"
+           % (len(cases) - len(none), len(cases), len(none), len(live), len(cases)), "",
            "| batch | SUT | plugin | when | k | results | source |",
            "|---|---|---|---|---|---|---|"]
     for b in data["replay"]:

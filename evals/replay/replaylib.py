@@ -105,9 +105,20 @@ def iteration_done(rdir):
 # scored it, so a case edited after its baseline leaves those runs STALE
 # in report.json instead of silently current: C5's 4/5 of 2026-09-15 was
 # scored by the pre-#97 checker and read as the current case for a month.
-def case_fingerprint(cdir):
+# Files every case's sandbox is built from, hashed into every case's
+# fingerprint (#293). Explicit data: `lib/seed-common.sh` seeds the base all
+# 62 cases start from, and until this list existed an edit to it changed
+# every sandbox and marked no recorded result stale. Paths relative to
+# evals/replay. A new shared seed input is added here by hand — never
+# discovered by reading a seed's shell text.
+SHARED_FINGERPRINT_INPUTS = ("lib/seed-common.sh",)
+
+
+def case_fingerprint(cdir, shared=None):
     """sha256 (16 hex) over check.py — or the driver case.json names —
-    case.json, seed.sh and state.json; an absent file hashes as absent. A
+    case.json, seed.sh and state.json; an absent file hashes as absent;
+    then every SHARED_FINGERPRINT_INPUTS file (`shared` overrides the list
+    for the harness). A
     case that depends on shared files (`"fixture"` in case.json: a path or a
     list of paths relative to evals/replay — fixture trees the seed copies,
     the frame the checker imports, #199) hashes each of them too, every file
@@ -127,6 +138,13 @@ def case_fingerprint(cdir):
         except OSError:
             data = b"<absent>"
         h.update(name.encode("utf-8") + b"\0" + data + b"\0")
+    for dep in (SHARED_FINGERPRINT_INPUTS if shared is None else shared):
+        try:
+            with open(os.path.join(S, dep), "rb") as f:
+                data = f.read()
+        except OSError:
+            data = b"<absent>"
+        h.update(b"shared:" + dep.encode("utf-8") + b"\0" + data + b"\0")
     deps = [fixture] if isinstance(fixture, str) else list(fixture or [])
     for dep in [d for d in deps if d]:
         top = os.path.join(S, dep)
