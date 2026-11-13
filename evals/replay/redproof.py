@@ -347,7 +347,8 @@ REPO_ROUTES = [
 # call stays UNKNOWN and its note names the field. Never a default.
 def fields_sandbox():
     """origin (HEAD → main) with: spec/5, open against main; feat/7, merged
-    into main by a true merge commit; feat/8, squashed onto main."""
+    into main by a true merge commit; feat/8, squashed onto main; ren/9, a
+    pure rename of app.txt."""
     tmp = tempfile.mkdtemp()
     work = os.path.join(tmp, "work")
     env = dict(os.environ, GIT_AUTHOR_NAME="a", GIT_AUTHOR_EMAIL="a@a",
@@ -364,6 +365,8 @@ def fields_sandbox():
              " && git merge -q --squash feat/8 && git commit -qm 'squash feat/8'"
              " && git checkout -qb spec/5 && mkdir -p docs && printf 'a\\nb\\n' > docs/spec.md"
              " && echo more >> app.txt && git add -A && git commit -qm spec"
+             " && git checkout -q main && git checkout -qb ren/9"
+             " && git mv app.txt 'renamed app.txt' && git commit -qm rename"
              " && git checkout -q main && git remote add origin ../origin.git"
              " && git push -q origin --all", work)):
         subprocess.run(["bash", "-c", cmd], cwd=cwd, env=env, check=True, capture_output=True)
@@ -471,6 +474,22 @@ def fields_rows():
                "pr-view", '{"path": "docs/spec.md", "additions": 2, "deletions": 0, '
                '"changeType": "ADDED"}', '{"path": "app.txt", "additions": 1, "deletions": 0, '
                '"changeType": "MODIFIED"}')
+        # codex review, PR #297 — the same evidence as the REST routes give
+        head5 = subprocess.check_output(["git", "-C", work, "rev-parse", "spec/5"],
+                                        text=True).strip()
+        served("pr view --json comments: a fixture's {{sha:<ref>}} is the sandbox's SHA",
+               st({"101": pr(comments=[{"id": 1, "author": "paul",
+                                        "created_at": "2026-08-23T10:00:00Z",
+                                        "body": "reviewed-sha: {{sha:spec/5}}"}])}),
+               V + ["comments"], "pr-view", '"body": "reviewed-sha: %s"' % head5)
+        served("pr view --json reviews: the same expansion in a review's body",
+               st({"101": pr(reviews=[dict(rv("ann", "APPROVED", "24"),
+                                           body="at {{sha:spec/5}}")])}),
+               V + ["reviews"], "pr-view", '"body": "at %s"' % head5)
+        served("pr view --json files: a rename is the new path, RENAMED",
+               st({"101": pr(headRefName="ren/9")}), V + ["files"], "pr-view",
+               '[{"path": "renamed app.txt", "additions": 0, "deletions": 0, '
+               '"changeType": "RENAMED"}]')
         unknown("pr view --json files: a merged PR's files are not the sandbox's diff",
                 st({"101": pr(state="MERGED", headRefName="feat/7")}), V + ["files"], "files")
         served("pr view --json author: the fixture states it", st({"101": pr(author="ann")}),
