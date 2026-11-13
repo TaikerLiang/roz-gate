@@ -332,12 +332,12 @@ REPO_ROUTES = [
      ["issue", "view", "5", "--json", "url,updatedAt"], "UNKNOWN", ["updatedAt"]),
     ("issue list --json number,updatedAt",
      ["issue", "list", "--json", "number,updatedAt"], "UNKNOWN", ["updatedAt"]),
-    ("pr view --json url,reviews",
-     ["pr", "view", "101", "--json", "url,reviews"], "UNKNOWN", ["reviews"]),
-    ("pr list --json number,reviews",
-     ["pr", "list", "--json", "number,reviews"], "UNKNOWN", ["reviews"]),
-    ("repo view --json name,defaultBranchRef",
-     ["repo", "view", "--json", "name,defaultBranchRef"], "UNKNOWN", ["defaultBranchRef"]),
+    ("pr view --json url,statusCheckRollup",
+     ["pr", "view", "101", "--json", "url,statusCheckRollup"], "UNKNOWN", ["statusCheckRollup"]),
+    ("pr list --json number,statusCheckRollup",
+     ["pr", "list", "--json", "number,statusCheckRollup"], "UNKNOWN", ["statusCheckRollup"]),
+    ("repo view --json name,description",
+     ["repo", "view", "--json", "name,description"], "UNKNOWN", ["description"]),
     ("issue view --json bogus (a field gh itself lacks is unserved too)",
      ["issue", "view", "5", "--json", "bogus"], "UNKNOWN", ["bogus"]),
 ]
@@ -510,8 +510,16 @@ def fields_rows():
         served("repo view --json defaultBranchRef: the remote's HEAD", st(),
                ["repo", "view", "--json", "defaultBranchRef"], "repo-view",
                '"defaultBranchRef": {"name": "main"}')
-        unknown("repo view --json defaultBranchRef: no remote to read it from", st(),
-                ["repo", "view", "--json", "defaultBranchRef"], "defaultBranchRef", cwd=tmp)
+        bare = tempfile.mkdtemp()    # not `tmp`: git would read ./origin.git as `origin`
+        try:
+            unknown("repo view --json defaultBranchRef: no remote to read it from", st(),
+                    ["repo", "view", "--json", "defaultBranchRef"], "defaultBranchRef", cwd=bare)
+            served("repo view --json defaultBranchRef: the fixture states it",
+                   st(repo={"owner": "acme", "name": "demo", "default_branch": "trunk"}),
+                   ["repo", "view", "--json", "defaultBranchRef"], "repo-view",
+                   '"defaultBranchRef": {"name": "trunk"}', cwd=bare)
+        finally:
+            shutil.rmtree(bare, ignore_errors=True)
         # a field gh itself rejects: gh's error, scored — not UNKNOWN
         rc, out, err, j = stub(V + ["comments,reviewThreads"], st(), cwd=work)
         rows.append(("pr view --json comments,reviewThreads: gh's Unknown JSON field, exit 1",

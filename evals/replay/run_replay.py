@@ -170,7 +170,9 @@ def build_sandbox(cdir):
     work = os.path.join(sbx, "work")
     os.makedirs(work)
     steps = [
-        (["git", "init", "-q", "--bare", bare], sbx),
+        # HEAD → main: the remote's default branch is the sandbox's trunk,
+        # never whatever init.defaultBranch is on the machine running it (#291)
+        (["git", "init", "-q", "--bare", "-b", "main", bare], sbx),
         (["git", "init", "-q", "-b", "main"], work),
         (["bash", os.path.join(cdir, "seed.sh"), ROOT], work),
         (["git", "checkout", "-q", "main"], work),
