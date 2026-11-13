@@ -115,3 +115,31 @@ with tempfile.TemporaryDirectory() as _d:
     except Exception as _e:  # noqa: BLE001
         _ok = False
     c.expect("pattern", "J2: a verdict from another judge configuration is not counted", _ok)
+
+# #258 follow-up review — plan approval is not gold approval. An item's
+# approval is a state the repository records honestly, never a defect of
+# the corpus: an unapproved item validates and is scored by the red-proof,
+# and no model call — SUT or judge — may be spent on it.
+_un = {k: dict(v, approved_by=None, approved_on=None) for k, v in _items.items()}
+try:
+    _ok = (not run_v1.check(_un, _actions)
+           and sorted(run_v1.unapproved(_un)) == sorted(_un)
+           and not run_v1.unapproved(
+               {k: dict(v, approved_by="Paul Liang", approved_on="2026-11-13")
+                for k, v in _items.items()})
+           and "refuse" in (run_v1.spend_refusal(_un) or "")
+           and run_v1.spend_refusal({}) is None)
+except Exception as _e:  # noqa: BLE001
+    _ok = False
+c.expect("pattern", "J2: an unapproved item validates and cannot be run", _ok)
+for _bad_stamp in ({"approved_by": "Paul Liang", "approved_on": None},
+                   {"approved_by": None, "approved_on": "2026-11-13"},
+                   {"approved_by": "Paul Liang", "approved_on": "yesterday"}):
+    _half = dict(_items, **{"J-expiry-unit": dict(_items["J-expiry-unit"], **_bad_stamp)})
+    c.expect("pattern", "J2: a half-stamped approval is a defect (%s)" % _bad_stamp,
+             any("approval" in b for b in run_v1.check(_half, _actions)))
+_fam = " ".join(read("evals/judgment/v1/README.md").split())
+c.expect("pattern", "J2: the README freezes family provenance",
+         "cannot be relabelled or split after a holdout run" in _fam)
+c.expect("pattern", "J2: the README reports run-level frequency, not a pass/fail",
+         "the human decides whether it warrants a brief change" in _fam)
