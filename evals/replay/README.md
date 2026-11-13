@@ -142,7 +142,8 @@ once per SUT under the checkout — plumbing, not the brief. A driver case
 (F6) runs the checkout's plugin and refuses `--variant` other than A.
 
 `attempts.json` signals (`evals/CONTRIBUTING.md` § 7) are summed per case in
-`report.json`, in their own columns: `shadow_branch_mismatch` (#135),
+`report.json`, in their own columns — an int is a column, anything else is
+a detail kept in the run's `result.json`: `shadow_branch_mismatch` (#135),
 `shadow_state_mismatch` / `shadow_state_invalid` and `shadow_scan_mismatch`
 / `shadow_scan_rows` (#133 — `bin/roz-state` against the forge stub's truth
 and against the fact columns of the scanner's table),
