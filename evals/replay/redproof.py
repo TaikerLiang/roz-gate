@@ -524,6 +524,44 @@ def fields_rows():
                                 "stateReason": "COMPLETED", "closedAt": "2026-08-21T09:00:00Z"}}),
                ["issue", "view", "6", "--json", "stateReason,closedAt"], "issue-view",
                '"stateReason": "COMPLETED"', '"closedAt": "2026-08-21T09:00:00Z"')
+        # codex review, PR #297 (second pass) — a stated fact is evidence about
+        # the issue as seeded; once the run writes to the issue it is stale
+        def after(writes, read, state):
+            d = tempfile.mkdtemp()
+            try:
+                for w in writes:
+                    stub(w, state, cwd=work, state_dir=d)
+                rc, out, err, j = stub(read, state, cwd=work, state_dir=d)
+                return rc, out, [e["route"] for e in j][-1], j[-1].get("note", "")
+            finally:
+                shutil.rmtree(d, ignore_errors=True)
+
+        dated = st(issues={
+            "5": {"title": "x", "labels": [], "updatedAt": "2026-08-22T09:00:00Z",
+                  "comments": []},
+            "9": {"title": "z", "labels": [], "updatedAt": "2026-08-22T09:00:00Z"}})
+        for name, write in (
+                ("an edit", ["issue", "edit", "5", "--add-label", "status: blocked"]),
+                ("a comment", ["issue", "comment", "5", "--body", "hi"]),
+                ("a close", ["issue", "close", "5"])):
+            rc, out, route, note = after([write], IV + ["updatedAt"], dated)
+            rows.append(("issue view --json updatedAt: stale after %s in this run → UNKNOWN"
+                         % name, rc == 64 and out == "" and route == "UNKNOWN"
+                         and "updatedAt" in note))
+        rc, out, route, note = after([["issue", "edit", "9", "--add-label", "x"]],
+                                     IV + ["updatedAt"], dated)
+        rows.append(("issue view --json updatedAt: another issue's write leaves this one's",
+                     rc == 0 and '"updatedAt": "2026-08-22T09:00:00Z"' in out))
+        served("issue view --json stateReason: an open issue that states REOPENED keeps it",
+               st(issues={"5": {"title": "x", "labels": [], "stateReason": "REOPENED"}}),
+               IV + ["stateReason,closedAt"], "issue-view", '"stateReason": "REOPENED"',
+               '"closedAt": null')
+        rc, out, route, note = after(
+            [["issue", "close", "5"]], IV + ["stateReason"],
+            st(issues={"5": {"title": "x", "labels": [], "stateReason": "REOPENED"}}))
+        rows.append(("issue view --json stateReason: closed in this run, the seeded reason "
+                     "is not the answer → UNKNOWN",
+                     rc == 64 and out == "" and route == "UNKNOWN" and "stateReason" in note))
         served("issue list --json number,closedAt: open issues", st(),
                ["issue", "list", "--json", "number,closedAt"], "issue-list", '"closedAt": null')
         served("repo view --json defaultBranchRef: the remote's HEAD", st(),
