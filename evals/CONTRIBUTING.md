@@ -145,7 +145,13 @@ real verdict.
   does not serve: every requested field is checked before anything is
   printed, one unserved field makes the whole call UNKNOWN, and the fix
   is to serve it from the fixture (`ISSUE_FIELDS` / `PR_FIELDS` /
-  `REPO_FIELDS`) — never a default the fixture cannot state. URLs name
+  `REPO_FIELDS`) — never a default the fixture cannot state. A served
+  field that this fixture cannot answer for this PR or issue (a merged PR
+  with no `mergeCommit` and no single merge commit in the sandbox, a PR
+  with no `author`, an issue with no `updatedAt`) is UNKNOWN too, and its
+  note names the field: the fix is the fixture's — state the fact in
+  `state.json`. A field gh itself rejects goes in `GH_REJECTS` only after
+  a seat asked for it and real gh was seen to refuse it. URLs name
   the fixture's `repo` (default `acme/demo`). A free-form `--jq` is fine when `jq` is
   installed (CI's ubuntu runner has it; the stub falls back to it and
   journals `jq: system`); without it the expression is UNKNOWN.

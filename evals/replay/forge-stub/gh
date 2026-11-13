@@ -18,6 +18,7 @@ here touches the network, ever.
 """
 
 import atexit
+import hashlib
 import json
 import os
 import re
@@ -43,6 +44,42 @@ def load():
 def save(st):
     with open(STATE, "w", encoding="utf-8") as f:
         json.dump(st, f, indent=1)
+
+
+# #291 — what each issue was when the run began, so a fact the fixture
+# states (`updatedAt`, `stateReason`, `closedAt`) is served only while it
+# still describes the issue. Written once, by the first invocation, before
+# any route can write; every write path is covered without each having to
+# remember to say so (an edit, a comment, a close, a REST write, an edited
+# or deleted comment).
+SEEDED = os.path.join(STATE_DIR, "seeded-issues.json")
+STATED_FACTS = ("updatedAt", "stateReason", "closedAt")
+
+
+def issue_digest(iss):
+    body = {k: v for k, v in iss.items() if k not in STATED_FACTS}
+    return hashlib.sha256(json.dumps(body, sort_keys=True).encode("utf-8")).hexdigest()[:16]
+
+
+def remember_seed(st):
+    if os.path.exists(SEEDED):
+        return
+    snap = {n: {"digest": issue_digest(i), "state": i.get("state", "open").lower()}
+            for n, i in st.get("issues", {}).items()}
+    try:
+        fd = os.open(SEEDED, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
+    except FileExistsError:      # another invocation of the same run got there first
+        return
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        json.dump(snap, f)
+
+
+def seeded(n):
+    try:
+        with open(SEEDED, encoding="utf-8") as f:
+            return json.load(f).get(str(n))
+    except (OSError, ValueError):
+        return None
 
 
 # Where the last body came from, when not inline: "file" | "stdin" |
@@ -158,6 +195,17 @@ def http_error(status, text, **kw):
     sys.exit(1)
 
 
+def gql_not_found(kind, number, path):
+    """gh's answer to a number GitHub cannot resolve — not UNKNOWN: the
+    seat used an issue number as a PR number (2 iterations, haiku55 sweep
+    2026-11-12) and recovers from gh's message."""
+    journal("graphql-error", kind=kind, number=str(number)[:20])
+    flush_journal()
+    sys.stderr.write("GraphQL: Could not resolve to a %s with the number of %s. (%s)\n"
+                     % (kind, number, path))
+    sys.exit(1)
+
+
 def unknown(why):
     journal("UNKNOWN", note=why)
     flush_journal()
@@ -255,17 +303,76 @@ ISSUE_FIELDS = {
     "assignees": lambda st, n, iss: [{"login": a} for a in iss.get("assignees", [])],
     "author": lambda st, n, iss: {"login": iss.get("author", "")},
     "createdAt": lambda st, n, iss: iss.get("createdAt", "2026-08-01T00:00:00Z"),
+    # #291 — stated by the fixture or not served. `updatedAt` is never the
+    # latest of the timestamps the fixture happens to carry: that is a
+    # lower bound, not GitHub's value.
+    "updatedAt": lambda st, n, iss: _updated_at(n, iss),
+    # gh's struct zero values for an open issue (api/queries_issue.go:
+    # `StateReason string`, `ClosedAt *time.Time`); a closed one needs the fact
+    "stateReason": lambda st, n, iss: _closed_fact(n, iss, "stateReason", ""),
+    "closedAt": lambda st, n, iss: _closed_fact(n, iss, "closedAt", None),
     "comments": lambda st, n, iss: [
         {"id": c.get("id"), "author": {"login": gql_login(c)},
          "body": c.get("body", ""), "createdAt": c.get("createdAt", "")}
         for c in iss.get("comments", [])],
 }
 
+def _updated_at(n, iss):
+    if not iss.get("updatedAt"):
+        return unserved("updatedAt", "issue %s's fixture states none" % n)
+    seed = seeded(n)
+    if not seed or seed["digest"] != issue_digest(iss):
+        # the stub keeps no clock: after a write in this run the seeded
+        # timestamp is stale, and a fresh one would be invented
+        return unserved("updatedAt", "issue %s was written to in this run; its seeded "
+                        "updatedAt no longer describes it" % n)
+    return iss["updatedAt"]
+
+
+def _closed_fact(n, iss, key, when_open):
+    """`stateReason` / `closedAt`: the fixture's stated value while the
+    issue is in the state it was seeded in — an open issue may state
+    `REOPENED` (GitHub's IssueStateReason) — else gh's zero value for an
+    open issue, else UNKNOWN. A state the run itself changed has no stated
+    reason or time: the seeded one is the old state's."""
+    state = iss.get("state", "open").lower()
+    seed = seeded(n)
+    # an issue the run itself created was born open
+    if (seed["state"] if seed else "open") != state:
+        return unserved(key, "issue %s changed state in this run (now %s); the stub does "
+                        "not invent its %s" % (n, state, key))
+    if iss.get(key):
+        return iss[key]
+    if state == "open":
+        return when_open
+    return unserved(key, "issue %s is closed and its fixture states no %s" % (n, key))
+
+
+def _default_branch(st):
+    """The repository's default branch: the fixture's `repo.default_branch`,
+    else the branch the remote's HEAD names — if that branch exists."""
+    stated = (st.get("repo") or {}).get("default_branch")
+    if stated:
+        return {"name": stated}
+    try:
+        ls = subprocess.run(["git", "ls-remote", "--symref", "origin", "HEAD"],
+                            capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        ls = None
+    m = re.search(r"^ref: refs/heads/(\S+)\s+HEAD$", ls.stdout, re.M) \
+        if ls and ls.returncode == 0 else None
+    if not m:
+        return unserved("defaultBranchRef", "the fixture states no repo.default_branch and "
+                        "the remote's HEAD names no branch")
+    return {"name": m.group(1)}
+
+
 REPO_FIELDS = {
     "owner": lambda st: {"login": repo_slug(st).split("/")[0]},
     "name": lambda st: repo_slug(st).split("/")[1],
     "nameWithOwner": lambda st: repo_slug(st),
     "url": lambda st: web(st),
+    "defaultBranchRef": _default_branch,
 }
 
 
@@ -279,10 +386,36 @@ def json_want(cmd, argv, served):
     if raw is None:
         return []
     want = [f.strip() for f in raw.split(",")]
+    rejected = [f for f in want if f in GH_REJECTS.get(cmd, ())]
+    if rejected:
+        # gh's own client-side answer, before any request: the seat's
+        # recovery is behaviour under measurement, so this is scored
+        journal("json-field-rejected", field=rejected[0])
+        flush_journal()
+        sys.stderr.write('Unknown JSON field: "%s"\nAvailable fields:\n%s\n'
+                         % (rejected[0], "\n".join("  " + f for f in sorted(served))))
+        sys.exit(1)
     missing = [f for f in want if f not in served]
     if missing:
         unknown("%s --json %s: not served by the stub" % (cmd, ",".join(missing)))
     return want
+
+
+# #291 — `--json` fields gh itself rejects for a command. NOT a catalog of
+# gh's fields (#250): a name is added here only after a seat asked for it in
+# a sweep AND real gh was seen to answer `Unknown JSON field` for it.
+#   reviewThreads — haiku55 sweep 2026-11-12; `gh pr view --json reviewThreads`
+#   on gh 2.89.0. gh prints its whole field list after the first line; the
+#   stub prints the fields it serves, which is what is available here.
+GH_REJECTS = {"pr view": {"reviewThreads"}, "pr list": {"reviewThreads"}}
+
+
+def unserved(field, why):
+    """A served field this fixture cannot answer for THIS issue or PR: the
+    whole call is UNKNOWN and names the field — never a default in its
+    place, and nothing of the call is journalled or printed (#250, #291)."""
+    PENDING.clear()
+    unknown("--json %s: %s" % (field, why))
 
 
 def project(fields, want, *args):
@@ -415,6 +548,113 @@ def _head_oid(st, pr):
     return rp.stdout.strip() if rp.returncode == 0 else pr.get("headRefOid", "")
 
 
+def _git(*args):
+    try:
+        p = subprocess.run(["git"] + list(args), capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return p.stdout if p.returncode == 0 else None
+
+
+def _pr_author(st, pr):
+    """The fixture's `author`, which `pr create` also records for a PR made
+    in this run. No fallback to the viewer: "the loop opens every CR here"
+    is a convention of the corpus, not a fact about a PR that carries none
+    (#291 review)."""
+    if pr.get("author"):
+        return {"login": gql_login(pr)}
+    return unserved("author", "pr %s's fixture states no author" % pr.get("number"))
+
+
+def _pr_reviews(st, pr):
+    return [{"id": r.get("id"), "author": {"login": gql_login(r)},
+             "body": expand_shas(r.get("body", "")), "state": r.get("state", ""),
+             "submittedAt": r.get("submittedAt", r.get("submitted_at", ""))}
+            for r in pr.get("reviews", [])]
+
+
+REVIEW_DECISIONS = ("", "APPROVED", "CHANGES_REQUESTED", "REVIEW_REQUIRED")
+
+
+def _review_decision(st, pr):
+    """The fixture's stated `reviewDecision`, when it states one. Otherwise
+    only what the reviews settle on their own: a change request still
+    outstanding from some author's latest APPROVED / CHANGES_REQUESTED
+    review (COMMENTED ignored) is CHANGES_REQUESTED whatever the repository
+    requires. Everything else — no reviews, approvals only — is UNKNOWN:
+    GitHub answers "", APPROVED or REVIEW_REQUIRED there according to a
+    review requirement the fixture does not state (codex review, PR #297)."""
+    n = pr.get("number")
+    if "reviewDecision" in pr:
+        if pr["reviewDecision"] not in REVIEW_DECISIONS:
+            return unserved("reviewDecision", "pr %s's fixture states %r, not one of gh's "
+                            "values" % (n, pr["reviewDecision"]))
+        return pr["reviewDecision"]
+    latest = {}
+    for r in pr.get("reviews", []):
+        state = r.get("state", "")
+        if state == "COMMENTED":
+            continue
+        if state not in ("APPROVED", "CHANGES_REQUESTED"):
+            return unserved("reviewDecision", "pr %s has a %r review, which the stub does "
+                            "not interpret" % (n, state))
+        latest[r.get("author", "")] = state
+    if "CHANGES_REQUESTED" in latest.values():
+        return "CHANGES_REQUESTED"
+    return unserved("reviewDecision", "pr %s's fixture states no reviewDecision and its "
+                    "reviews do not settle one (the repository's review requirement is "
+                    "not a fixture fact)" % n)
+
+
+def _merge_commit(st, pr):
+    """null while unmerged. Merged: the fixture's `mergeCommit`, else the
+    ONE merge commit on the base that has the PR's head as a parent — the
+    only history shape where the sandbox states what GitHub's
+    `mergeCommit` is. A squash, a rebase, a head that moved, or two
+    candidates are not guessed."""
+    if pr.get("state", "OPEN").upper() != "MERGED":
+        return None
+    if pr.get("mergeCommit"):
+        return {"oid": pr["mergeCommit"]}
+    n = pr.get("number")
+    head = _git("rev-parse", "--verify", "-q",
+                resolve_ref(pr.get("headRefName", "")) + "^{commit}")
+    log = _git("rev-list", "--merges", "--parents", resolve_ref(pr.get("baseRefName", "")))
+    if not head or log is None:
+        return unserved("mergeCommit", "pr %s is merged, its fixture states no mergeCommit "
+                        "and its head or base does not resolve" % n)
+    found = [line.split()[0] for line in log.splitlines() if head.strip() in line.split()[2:]]
+    if len(found) != 1:
+        return unserved("mergeCommit", "pr %s is merged, its fixture states no mergeCommit "
+                        "and the base has %d merge commits with its head as a parent"
+                        % (n, len(found)))
+    return {"oid": found[0]}
+
+
+CHANGE_TYPES = {"added": "ADDED", "modified": "MODIFIED", "removed": "DELETED",
+                "renamed": "RENAMED", "copied": "COPIED", "changed": "CHANGED"}
+
+
+def _pr_files(st, pr):
+    """An OPEN PR's files are the sandbox's diff of head against base, in
+    gh's shape (api/queries_pr.go PullRequestFile: path, additions,
+    deletions, changeType) — the SAME rows `pulls/<n>/files` serves, read
+    by the one parser (`pr_files`: NUL records, so a rename is its new
+    path and a quoted pathname the real one). After a merge that diff is
+    empty and GitHub's answer is not, so a merged PR's files are not served."""
+    n = pr.get("number")
+    if pr.get("state", "OPEN").upper() != "OPEN":
+        return unserved("files", "pr %s is not open; the sandbox's diff is no longer its "
+                        "file list" % n)
+    try:
+        rows = pr_files(pr.get("baseRefName", ""), pr.get("headRefName", ""))
+    except (RuntimeError, OSError, subprocess.TimeoutExpired) as e:
+        return unserved("files", "pr %s's base or head does not resolve in the sandbox (%s)"
+                        % (n, str(e)[:80]))
+    return [{"path": r["filename"], "additions": r["additions"], "deletions": r["deletions"],
+             "changeType": CHANGE_TYPES.get(r["status"], "CHANGED")} for r in rows]
+
+
 PR_FIELDS = {
     "number": lambda st, pr: pr.get("number"),
     "url": lambda st, pr: web(st) + "/pull/%s" % pr.get("number"),
@@ -428,6 +668,20 @@ PR_FIELDS = {
     "labels": lambda st, pr: [{"name": l} for l in pr.get("labels", [])],
     "mergedAt": lambda st, pr: pr.get("mergedAt"),
     "headRefOid": _head_oid,
+    # #291 — each from the fixture or the sandbox, or UNKNOWN naming itself
+    # `{{sha:<ref>}}` expanded exactly as `issues/<n>/comments` expands it:
+    # one comment is the same evidence by either route (a `reviewed-sha:`
+    # left literal would read as a stale review)
+    "comments": lambda st, pr: [
+        {"id": c.get("id"), "author": {"login": gql_login(c)},
+         "body": expand_shas(c.get("body", "")),
+         "createdAt": c.get("createdAt", c.get("created_at", ""))}
+        for c in pr.get("comments", [])],
+    "reviews": _pr_reviews,
+    "reviewDecision": _review_decision,
+    "mergeCommit": _merge_commit,
+    "files": _pr_files,
+    "author": _pr_author,
 }
 
 
@@ -611,6 +865,7 @@ def main():
             print(text)
             sys.exit(rc)
     st = load()
+    remember_seed(st)
 
     # ---- gh repo view --json owner,name
     if argv[:2] == ["repo", "view"]:
@@ -744,7 +999,10 @@ def main():
         n, pr = pr_lookup(st, sel or "")
         if pr is None:
             if sel is not None and sel.isdigit():
-                unknown("pr %s not in fixture" % sel)
+                # #291 — a number with no pull request is gh's own error,
+                # not a fixture gap: `GraphQL: <message> (<path>)` is
+                # go-gh's format (pkg/api/errors.go), the message GitHub's
+                gql_not_found("PullRequest", sel, "repository.pullRequest")
             # branch-name / current-branch miss: the real CLI answer is
             # "no PR", not a fixture gap — journal it, error like gh
             journal("pr-view-nomatch", selector=sel)
@@ -780,7 +1038,10 @@ def main():
             "state": "OPEN", "isDraft": "--draft" in argv,
             "headRefName": flag_val(argv, "--head") or "",
             "baseRefName": flag_val(argv, "--base") or "",
-            "threads": [], "reviews": [], "comments": []}
+            "threads": [], "reviews": [], "comments": [],
+            # recorded creation evidence (#291): who opened it, as the
+            # stub already records for an issue or a comment it creates
+            "author": st.get("agent_login", "paul")}
         journal("pr-create", write=True, pr=n,
                 head=flag_val(argv, "--head"), draft="--draft" in argv)
         save(st)
