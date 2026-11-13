@@ -307,8 +307,11 @@ a verdict trimmed by `| tail`) were each proven only in a scratch script.
 The 18 older cases are red-proofed in their commit messages and exempt by
 name (`LEGACY` in `run_redproofs.py`) — a list that only shrinks.
 
-**pass^k**: every case runs k times (A–E k=5, F1–F5 k=10) and reports the
-observed rate — never a boolean. F6 is instrument-only: a 12-turn session
+**The rate**: every case runs k times — `k` is the case's own, in its
+`case.json` (5 for every case today; F6's 3 is sessions) — and reports the
+observed pass rate p̂ = passed / valid with a Wilson 90% interval, never a
+boolean. It is not the probability that all k runs pass: 5/5 is an interval
+of [65%, 100%], not a certainty. F6 is instrument-only: a 12-turn session
 measuring compliance at turns 1/3/5/8/12, producing a curve, no pass mark
 (the published decay puts the median first omission around step four; a
 three-step fixture measures nothing).

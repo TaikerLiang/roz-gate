@@ -1,0 +1,324 @@
+{
+ "_comment": "Recorded SUT baselines — measurements the repository can provenance, migrated from prose (#280). A batch is recorded history: it is not, by being here or by being the newest, the current or comparable baseline of its cases; a case measured in two batches has two entries and neither wins. `plugin` is an exact version or null with `plugin_range`; `date` is an exact run date or null with `date_range` (a sweep's span, not each case's run date). A result carries counts (`valid`, `passed`) or, where the record never wrote them down, its own words under `reported`. `superseded` names why a batch or a result no longer describes the case as it stands. tools/ledger.py renders evals/README.md's block from this file; a new baseline is a new batch here, then the tool. An instrument-only case (F6: its driver writes a curve, and the runner keeps it out of every pass count) is always `reported`, never counted.",
+ "replay": [
+  {
+   "id": "opus-first-sweep",
+   "sut": "opus",
+   "plugin": null,
+   "plugin_range": "v1.14.2–v1.16.2",
+   "date": null,
+   "date_range": "2026-09-16 → 2026-09-21",
+   "k": 5,
+   "source": "evals/README.md § Baseline results (opus SUT, plugin v1.14.2 → v1.16.2, 2026-09-16 → 21): \"17 of 18 cases at 100%\"; the 18 cases are those under evals/replay/cases/ at tag v1.16.2",
+   "note": "The record gives counts for three cases only (C5, D2, E2); for fourteen it says 100% at k=5 and nothing more; F6 is instrument-only and has no pass count at all.",
+   "results": [
+    {
+     "case": "A1",
+     "reported": "100% at k=5 (counts not recorded)"
+    },
+    {
+     "case": "A2",
+     "reported": "100% at k=5 (counts not recorded)"
+    },
+    {
+     "case": "A3",
+     "reported": "100% at k=5 (counts not recorded)"
+    },
+    {
+     "case": "A4",
+     "reported": "100% at k=5 (counts not recorded)"
+    },
+    {
+     "case": "A5",
+     "reported": "100% at k=5 (counts not recorded)"
+    },
+    {
+     "case": "C1",
+     "reported": "100% at k=5 (counts not recorded)"
+    },
+    {
+     "case": "C2",
+     "reported": "100% at k=5 (counts not recorded)"
+    },
+    {
+     "case": "D3",
+     "reported": "100% at k=5 (counts not recorded)"
+    },
+    {
+     "case": "E5",
+     "reported": "100% at k=5 (counts not recorded)"
+    },
+    {
+     "case": "F1",
+     "reported": "100% at k=5 (counts not recorded)"
+    },
+    {
+     "case": "F2",
+     "reported": "100% at k=5 (counts not recorded)"
+    },
+    {
+     "case": "F3",
+     "reported": "100% at k=5 (counts not recorded)"
+    },
+    {
+     "case": "F4",
+     "reported": "100% at k=5 (counts not recorded)"
+    },
+    {
+     "case": "F5",
+     "reported": "100% at k=5 (counts not recorded)"
+    },
+    {
+     "case": "C5",
+     "valid": 5,
+     "passed": 4,
+     "note": "the one case below 100%",
+     "superseded": "scored by the pre-#97 checker (evals/replay/README.md § The case as scored: \"C5's 4/5 of 2026-09-15\")"
+    },
+    {
+     "case": "D2",
+     "valid": 4,
+     "passed": 4,
+     "note": "4/5 before guard-blind rule E; re-measured 4/4 with zero denied attempts, the fifth run a stub-route invalid"
+    },
+    {
+     "case": "E2",
+     "valid": 5,
+     "passed": 5,
+     "note": "0/5 before guard-gate rule D; re-measured 5/5"
+    },
+    {
+     "case": "F6",
+     "reported": "all-true at turns 1/3/5/8/12 in each of three 12-turn sessions — a compliance curve, instrument-only: no pass mark, no rate; no decay detected at n=3 sessions"
+    }
+   ]
+  },
+  {
+   "id": "opus-1.19.0-base-branch",
+   "sut": "opus",
+   "plugin": "v1.19.0",
+   "plugin_range": null,
+   "date": "2026-10-03",
+   "date_range": null,
+   "k": 5,
+   "source": "evals/README.md § Baseline results, \"Replay, k=5, plugin v1.19.0 (2026-10-03) — the base-branch cases\"; checker commit f5e106d",
+   "results": [
+    {
+     "case": "C7",
+     "valid": 5,
+     "passed": 5
+    },
+    {
+     "case": "F7",
+     "valid": 5,
+     "passed": 5
+    }
+   ]
+  },
+  {
+   "id": "opus-1.26.0",
+   "sut": "opus",
+   "plugin": "v1.26.0",
+   "plugin_range": null,
+   "date": "2026-10-05",
+   "date_range": null,
+   "k": 5,
+   "source": "evals/README.md § Baseline results, \"Replay, k=5, plugin v1.26.0 (2026-10-05) — the 1.20–1.26 cases\"",
+   "results": [
+    {
+     "case": "A7",
+     "valid": 5,
+     "passed": 5
+    },
+    {
+     "case": "C10",
+     "valid": 5,
+     "passed": 5
+    },
+    {
+     "case": "E6",
+     "valid": 5,
+     "passed": 5
+    },
+    {
+     "case": "F8",
+     "valid": 5,
+     "passed": 5
+    },
+    {
+     "case": "F7",
+     "valid": 5,
+     "passed": 5,
+     "note": "re-measured on the local-JSON seeds"
+    },
+    {
+     "case": "C7",
+     "valid": 5,
+     "passed": 5,
+     "note": "re-measured on the local-JSON seeds"
+    },
+    {
+     "case": "F9",
+     "valid": 5,
+     "passed": 3,
+     "note": "runs 1 and 5 rescored under the fixed checker"
+    }
+   ]
+  },
+  {
+   "id": "opus-1.36.0-e8",
+   "sut": "opus",
+   "plugin": "v1.36.0",
+   "plugin_range": null,
+   "date": "2026-10-12",
+   "date_range": null,
+   "k": 3,
+   "source": "evals/README.md § Baseline results, \"Replay, k=3, plugin v1.36.0 (2026-10-12) — E8\"; checker commits f2cb1d2, 8c1e33a; k=3 by the gate holder's quota call",
+   "results": [
+    {
+     "case": "E8",
+     "valid": 3,
+     "passed": 3
+    }
+   ]
+  },
+  {
+   "id": "qa-brief-pilot-run-1",
+   "sut": "opus",
+   "plugin": null,
+   "plugin_range": "v2.10.0–v2.10.1",
+   "date": null,
+   "date_range": "2026-11-07 → 2026-11-08",
+   "k": 1,
+   "source": "evals/README.md § Baseline results, \"Replay, k=1, plugin v2.10.0–v2.10.1 … the #199 QA-brief pilot\"; issue #199. Brief A only (references/qa-brief.md, the shipped brief); the B and C variants measured other briefs and are not baselines of these cases",
+   "note": "One iteration per case: a reading, not a rate. As scored, before PR #233's checker correction.",
+   "superseded": "PR #233 moved every D10–D19 case_fp; the k>1 top-up re-measures them (#199)",
+   "results": [
+    {
+     "case": "D10",
+     "valid": 1,
+     "passed": 1
+    },
+    {
+     "case": "D11",
+     "valid": 1,
+     "passed": 1
+    },
+    {
+     "case": "D12",
+     "valid": 1,
+     "passed": 1
+    },
+    {
+     "case": "D13",
+     "valid": 1,
+     "passed": 0
+    },
+    {
+     "case": "D14",
+     "valid": 1,
+     "passed": 0
+    },
+    {
+     "case": "D15",
+     "valid": 1,
+     "passed": 1
+    },
+    {
+     "case": "D16",
+     "valid": 1,
+     "passed": 1
+    },
+    {
+     "case": "D17",
+     "valid": 1,
+     "passed": 1
+    },
+    {
+     "case": "D18",
+     "valid": 1,
+     "passed": 1
+    },
+    {
+     "case": "D19",
+     "valid": 1,
+     "passed": 0
+    }
+   ]
+  },
+  {
+   "id": "qa-brief-haiku-reading",
+   "sut": "haiku55",
+   "plugin": null,
+   "plugin_range": "main 6cc2c79 … ccfa8ef (PR #242), after v2.10.1 — the plugin sha varied across cells",
+   "date": "2026-11-08",
+   "date_range": null,
+   "k": 3,
+   "source": "issue #199, \"Pilot report — Haiku reading\" (https://github.com/TaikerLiang/roz-gate/issues/199#issuecomment-6719997010): brief A, 24/25 valid cells, 5 invalid. Not in evals/README.md's narrative. Brief A only; B and C measured other briefs",
+   "note": "valid < k where a cell was invalid (two SUT timeouts, three dispatches that never ran or never pushed)",
+   "superseded": "references/qa-brief.md changed after this reading (#243, #261, #262); a result is evidence about the brief it ran under",
+   "results": [
+    {
+     "case": "D10",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D11",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D12",
+     "valid": 2,
+     "passed": 2
+    },
+    {
+     "case": "D13",
+     "valid": 2,
+     "passed": 2
+    },
+    {
+     "case": "D14",
+     "valid": 2,
+     "passed": 2
+    },
+    {
+     "case": "D15",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D16",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D17",
+     "valid": 1,
+     "passed": 1
+    },
+    {
+     "case": "D18",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D19",
+     "valid": 3,
+     "passed": 2
+    }
+   ]
+  }
+ ],
+ "judgment": {
+  "sut": "opus",
+  "judge": "opus",
+  "plugin": "v1.16.2",
+  "date": null,
+  "date_range": "2026-09-20 → 2026-09-21",
+  "k": 2,
+  "source": "evals/judgment/README.md § Results — k=2, opus SUT, opus judge, plugin v1.16.2 (2026-09-20/21)",
+  "note": "the only judgment sweep on record; nine valid runs over the four fixtures"
+ }
+}

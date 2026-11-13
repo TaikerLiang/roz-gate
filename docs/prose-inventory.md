@@ -276,6 +276,7 @@ a single rule and has its own row above.
 | L16 | `roz-check`'s own lint — `references/roz-check.md`, `hooks/state_check.py` and `commands/integrate.md` § 1 carry one rule table (#134) |
 | L17 | the replay instrument's own lint — the forge stub's URLs name the fixture's repository, and an unserved `--json` field is UNKNOWN (#250) |
 | L18 | the evaluation charter's own lint — `evals/charter.md` keeps its terms, levels and six rules, and the pages that apply it point at it (#257) |
+| L19 | the documents' own lint — recorded baselines are data and rendered; the retired headline figures and phrasings stay out (#280) |
 | J2 | Judgment V1's own lint — the corpus is approved and leak-free, and the scorer reproduces hand-computed numbers (#258) |
 | J3 | the Workflow Value pilot's own lint — the baseline is told nothing of the loop, the gold is the retrospective record, an invalid or unreviewed pair is never compared (#259) |
 

@@ -31,10 +31,11 @@ page, and a human joining a thread needs only
 A single AI assistant asked to "build and test the feature" grades its own
 homework: its misunderstandings flow into the code *and* the tests, so green
 proves nothing. Roz Gate splits the work across agents with strict
-information walls — the QA agent **never sees the implementation**; it writes
-black-box tests from the spec and the contract as built, runs them against code
-it cannot read, and that suite is what the **integration verdict** is computed
-from. Disagreements surface as real test failures before merge, not in
+information walls. The QA seat works on a branch that contains the
+implementation, but **hook rule E blocks reads of implementation outside the
+declared test port**; QA-4 forbids adapting assertions to observed behaviour,
+and the fidelity audit checks the suite against the contract before the
+verdict. That suite is what the **integration verdict** is computed from. Disagreements surface as real test failures before merge, not in
 production. Every open question an
 agent hits stops the line and comes to you as a written, answerable thread —
 agents are forbidden to guess.
@@ -559,18 +560,17 @@ Three evidence tiers under `evals/` (the ledger: `evals/README.md`):
   proven against positive and negative fixtures.
 - **replay** — the real commands run headless in a sandbox repo against a
   stateful forge stub, graded by code from the forge journal, the transcript
-  and the pushed refs; pass^k with Wilson intervals — rates, never booleans;
-  an invalid run is never a red.
+  and the pushed refs; the observed pass rate over k runs with a Wilson
+  interval — rates, never booleans; an invalid run is never a red.
 - **judgment** — LLM-as-judge on real historical issues frozen at the moment
   before the loop ran: "did it surface the thing that changed the human's
   mind", quote-verified, recall and precision reported separately.
 
-The release gate runs lint and the hook unit tests on every push. The opus
-baseline as of 2026-09-21: replay 17/18 cases at 100% (k=5), F6 no
-in-session decay across three 12-turn sessions; judgment at k=2, F-63 recall
-1/2 · precision 1/2 against the historical run's 2/2 · 0/2. A later baseline,
-2026-10-03: the two base-branch cases added in 1.19.0 (C7, F7) at 5/5 each;
-2026-10-05, v1.26.0: A7, C10, E6, F8, F7, C7 at 5/5, F9 (the scanner pass) 3/5. Every case
+The release gate runs lint and the hook unit tests on every push. What has
+been measured on a model — each recorded baseline with its SUT, plugin
+version, date, k and interval, and the cases never measured — is in
+[`evals/README.md` § Recorded baselines](evals/README.md#recorded-baselines),
+rendered from data; this page carries no figure that can go stale. Every case
 derives from one repository and one operator — green proves no regression on
 work shaped like that, nothing about shapes never run.
 
