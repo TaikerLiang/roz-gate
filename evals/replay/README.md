@@ -282,6 +282,16 @@ describes the issue: the stub records each issue as seeded
 (`seeded-issues.json`, beside `state.json`), and once the run writes to an
 issue its `updatedAt` — or, after a state change, its `stateReason` and
 `closedAt` — is UNKNOWN. The stub keeps no clock and invents no timestamp.
+A call with no `--json` (#259) — `issue view` (with or without
+`--comments`), `issue list`, `pr view`, `pr list` — prints gh's human
+format as gh 2.82 prints it to a pipe, never `{}`: the same facts, so a
+list row needs its issue's `updatedAt` or its PR's `createdAt`, and a
+`pr view` its `author` and an open head (for additions / deletions); a PR
+with reviews is UNKNOWN there (the reviewers line and review entries are
+not emulated). Lines no fixture can state — `projects`, `milestone`,
+`auto-merge` — are gh's empty values, and so are a comment's
+`association`, `edited` and `status` (`none`, `false`, `none`) unless the
+comment states them (`CONTRIBUTING.md` § state.json, the one exception).
 Benign read-only probes (`--version`, `--help`, bare `gh`) are routed
 with canned output — a cautious SUT pokes the CLI before trusting it
 (the opus smoke gate died on a pre-flight `gh --version` around an

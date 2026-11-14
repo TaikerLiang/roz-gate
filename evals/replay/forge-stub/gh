@@ -380,8 +380,8 @@ def json_want(cmd, argv, served):
     """The `--json` fields asked for, validated as a whole BEFORE the route
     journals or prints anything: one unserved field makes the command
     UNKNOWN — never JSON with the served fields and the other dropped.
-    No `--json` at all is [] — the empty projection the stub has always
-    printed there (gh's human-readable view is not emulated)."""
+    No `--json` at all is [] — the route then prints gh's human format
+    (#259, `plain_issue` / `plain_pr` / the list rows), never `{}`."""
     raw = flag_val(argv, "--json")
     if raw is None:
         return []
@@ -689,6 +689,64 @@ def pr_shape(st, pr, want):
     return project(PR_FIELDS, want, st, pr)
 
 
+# ---- #259 — gh's human format, for a call with no --json --------------------
+# What gh 2.82 prints to a pipe (a seat's Bash is never a TTY): issue/view
+# printRawIssuePreview, pr/view printRawPrPreview, pr/shared RawCommentList,
+# and the list tables' tab-separated rows — copied from real gh output.
+# A line the fixture cannot state is UNKNOWN naming it (#291); `projects`,
+# `milestone` and `auto-merge`, which no fixture can state, are gh's empty
+# values, and so are a comment's `association` / `edited` / `status` when
+# its fixture states none (`none`, `false`, `none`) — CONTRIBUTING's single
+# named exception to #291. Never `{}`.
+def plain_comments(comments, body=lambda b: b):
+    return "".join("author:\t%s\nassociation:\t%s\nedited:\t%s\nstatus:\t%s\n--\n%s\n--\n"
+                   % (gql_login(c), str(c.get("association") or "none").lower(),
+                      "true" if c.get("edited") else "false",
+                      str(c.get("status") or "none").lower(), body(c.get("body", "")))
+                   for c in comments)
+
+
+def plain_issue(st, n, iss, comments):
+    if comments:
+        return plain_comments(iss.get("comments", []))
+    return ("title:\t%s\nstate:\t%s\nauthor:\t%s\nlabels:\t%s\ncomments:\t%d\n"
+            "assignees:\t%s\nprojects:\t\nmilestone:\t\nnumber:\t%s\n--\n%s\n"
+            % (iss.get("title", ""), ISSUE_FIELDS["state"](st, n, iss),
+               ISSUE_FIELDS["author"](st, n, iss)["login"], ", ".join(iss.get("labels", [])),
+               len(iss.get("comments", [])), ", ".join(iss.get("assignees", [])), n,
+               iss.get("body", "")))
+
+
+def pr_state_plain(pr):
+    state = pr.get("state", "OPEN").upper()
+    return "DRAFT" if state == "OPEN" and pr.get("isDraft") else state
+
+
+def plain_pr(st, pr, comments):
+    n = pr.get("number")
+    if pr.get("reviews") or pr.get("threads"):
+        # gh lists each reviewer's latest state and interleaves the reviews
+        # with the comments; neither is emulated
+        return unserved("review entries" if comments else "reviewers",
+                        "pr %s has reviews; the plain-text form does not render them — "
+                        "ask with --json" % n)
+    if comments:
+        return plain_comments(pr.get("comments", []), expand_shas)
+    author = _pr_author(st, pr)["login"]
+    files = _pr_files(st, pr)
+    return ("title:\t%s\nstate:\t%s\nauthor:\t%s\nlabels:\t%s\nassignees:\t%s\n"
+            "reviewers:\t\nprojects:\t\nmilestone:\t\nnumber:\t%s\nurl:\t%s\n"
+            "additions:\t%d\ndeletions:\t%d\nauto-merge:\tdisabled\n--\n%s\n"
+            % (pr.get("title", ""), pr_state_plain(pr), author,
+               ", ".join(pr.get("labels", [])), ", ".join(pr.get("assignees", [])), n,
+               PR_FIELDS["url"](st, pr), sum(f["additions"] for f in files),
+               sum(f["deletions"] for f in files), pr.get("body", "")))
+
+
+def one_line(text):
+    return " ".join((text or "").split())   # gh's text.RemoveExcessiveWhitespace
+
+
 def repo_labels(st):
     """The fixture repo's label set: the plugin's scheme (state may
     override via "labels")."""
@@ -893,8 +951,14 @@ def main():
                 continue
             if label and label not in iss.get("labels", []):
                 continue
-            rows.append(issue_shape(st, n, iss, want))
-        out(rows)
+            rows.append(issue_shape(st, n, iss, want) if want else
+                        "%s\t%s\t%s\t%s\t%s\n" % (
+                            n, ISSUE_FIELDS["state"](st, n, iss), one_line(iss.get("title")),
+                            ", ".join(iss.get("labels", [])), _updated_at(n, iss)))
+        if want:
+            out(rows)
+        else:
+            sys.stdout.write("".join(rows))
         return
 
     if argv[:2] == ["issue", "view"]:
@@ -903,7 +967,11 @@ def main():
             unknown("issue %s not in fixture" % n)
         want = json_want("issue view", argv, ISSUE_FIELDS)
         journal("issue-view", issue=n)
-        out(issue_shape(st, n, st["issues"][n], want))
+        if want:
+            out(issue_shape(st, n, st["issues"][n], want))
+        else:
+            sys.stdout.write(plain_issue(st, n, st["issues"][n],
+                                         "--comments" in argv or "-c" in argv))
         return
 
     if argv[:2] == ["issue", "edit"]:
@@ -987,8 +1055,18 @@ def main():
             pr_state = pr.get("state", "OPEN").lower()
             if state != "all" and pr_state != state:
                 continue
-            rows.append(pr_shape(st, pr, want))
-        out(rows)
+            if want:
+                rows.append(pr_shape(st, pr, want))
+                continue
+            created = pr.get("createdAt") or unserved(
+                "createdAt", "pr %s's fixture states no createdAt" % pr.get("number"))
+            rows.append("%s\t%s\t%s\t%s\t%s\n" % (
+                pr.get("number"), one_line(pr.get("title")), pr.get("headRefName", ""),
+                pr_state_plain(pr), created))
+        if want:
+            out(rows)
+        else:
+            sys.stdout.write("".join(rows))
         return
 
     if argv[:2] == ["pr", "view"]:
@@ -1009,7 +1087,10 @@ def main():
             sys.stderr.write("no pull requests found for branch %s\n" % sel)
             sys.exit(1)
         journal("pr-view", pr=n)
-        out(pr_shape(st, pr, want))
+        if want:
+            out(pr_shape(st, pr, want))
+        else:
+            sys.stdout.write(plain_pr(st, pr, "--comments" in argv or "-c" in argv))
         return
 
     # ---- gh pr diff <number|branch> — read-only; the sandbox repo has the

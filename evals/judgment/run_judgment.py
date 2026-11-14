@@ -312,9 +312,11 @@ def baseline_overlay(work, admc):
 def build_sandbox(fx, arm="treatment"):
     """ADMC at the pin: clone the local checkout (never network), main
     reset to the pin, every other ref and the reflog dropped so nothing
-    after T is reachable by name, the config overlay committed on top
-    (the baseline arm: its own CLAUDE.md instead), then a local bare
-    remote as replay does. Returns (sbx, work, bare, overlay_sha)."""
+    after T is reachable by name, the config overlay committed on top,
+    then a local bare remote as replay does. The baseline arm instead gets
+    its own CLAUDE.md and ONE root commit with no history (#259, ruling
+    (b)): the pin's history names the loop. Returns (sbx, work, bare,
+    overlay_sha)."""
     admc = admc_path()
     if subprocess.run(["git", "-C", admc, "rev-parse", "--verify", "-q", fx["pin"] + "^{commit}"],
                       capture_output=True).returncode != 0:
@@ -333,15 +335,16 @@ def build_sandbox(fx, arm="treatment"):
     git(work, "gc", "--prune=now", "--quiet")   # post-T objects are gone, not merely unnamed
     if arm == "baseline":
         baseline_overlay(work, admc)
+        sha = wv.flatten_history(work)
     else:
         overlay(work, fx, admc)
-    git(work, "add", "-A")
-    # --allow-empty: at a pin whose CLAUDE.md already carries the section
-    # the overlay is a no-op, and the overlay SHA must still exist.
-    git(work, "-c", "user.email=fixture@roz-gate", "-c", "user.name=fixture", "commit", "-q",
-        "--allow-empty", "-m",
-        "fixture: roz-gate config overlay (judgment tier, pin %s)" % fx["pin"])
-    sha = git(work, "rev-parse", "HEAD").strip()
+        git(work, "add", "-A")
+        # --allow-empty: at a pin whose CLAUDE.md already carries the section
+        # the overlay is a no-op, and the overlay SHA must still exist.
+        git(work, "-c", "user.email=fixture@roz-gate", "-c", "user.name=fixture", "commit",
+            "-q", "--allow-empty", "-m",
+            "fixture: roz-gate config overlay (judgment tier, pin %s)" % fx["pin"])
+        sha = git(work, "rev-parse", "HEAD").strip()
     subprocess.run(["git", "init", "-q", "--bare", bare], check=True)
     git(work, "remote", "add", "origin", bare)
     git(work, "push", "-q", "origin", "--all")

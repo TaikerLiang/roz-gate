@@ -43,6 +43,10 @@ throwaway state, the resume rule against staged result.json files.
   case with the variant named; a checker's exit 3 (`replaylib.invalid`) is
   an invalid iteration carrying the checker's reason, never a FAIL; the
   fingerprint follows a case's shared fixture tree (`"fixture"`).
+- PLAIN (#259) — `issue view` (with and without `--comments`), `issue
+  list`, `pr list` and `pr view` with no `--json` print gh's human format
+  byte for byte, or UNKNOWN naming the fact the fixture does not state
+  (`updatedAt`, `createdAt`, a PR's `author`, its reviewers) — never `{}`.
 - TOKENS (#308) — `session_tokens` on canned transcripts whose messages
   stream one event per block: the result event's `modelUsage` (seats
   included), else its `usage` summed over result events, else each message
@@ -1755,6 +1759,107 @@ def seed_contract_checks():
     ]
 
 
+# ---- #259: gh's human format when there is no --json ------------------------
+PLAIN_STATE = {
+    "agent_login": "roz-gatekeeper",
+    "issues": {
+        "5": {"title": "Expire  offers  soon", "state": "open", "author": "paul",
+              "labels": ["bug", "track: spec"], "assignees": ["paul", "sam"],
+              "body": "Offers should expire.", "updatedAt": "2026-08-02T00:00:00Z",
+              "comments": [{"id": 1, "author": "paul", "body": "Any deadline?",
+                            "createdAt": "2026-08-02T00:00:00Z"},
+                           {"id": 2, "author": "sam", "association": "MEMBER", "edited": True,
+                            "status": "OUTDATED", "body": "Friday.",
+                            "createdAt": "2026-08-02T01:00:00Z"}]},
+        "6": {"title": "Closed one", "state": "closed", "author": "sam", "labels": [],
+              "assignees": [], "body": "", "updatedAt": "2026-08-01T00:00:00Z",
+              "comments": []},
+        "7": {"title": "No stamp", "author": "paul", "labels": [], "assignees": [],
+              "body": "b", "comments": []},
+    },
+    "prs": {
+        "101": {"number": 101, "title": "Spec: #5", "state": "OPEN", "isDraft": True,
+                "headRefName": "spec/5", "baseRefName": "main", "author": "roz-gatekeeper",
+                "createdAt": "2026-08-03T00:00:00Z", "body": "Spec body.",
+                "comments": [{"id": 3, "author": "paul", "body": "LGTM?",
+                              "createdAt": "2026-08-03T01:00:00Z"}]},
+        "102": {"number": 102, "title": "No author", "state": "OPEN", "headRefName": "x/1",
+                "baseRefName": "main", "body": ""},
+        "103": {"number": 103, "title": "Reviewed", "state": "MERGED", "headRefName": "spec/5",
+                "baseRefName": "main", "author": "paul", "createdAt": "2026-08-04T00:00:00Z",
+                "reviews": [{"id": 9, "author": "sam", "state": "APPROVED", "body": "ok"}]},
+    },
+}
+ISSUE_5_PLAIN = ("title:\tExpire  offers  soon\nstate:\tOPEN\nauthor:\tpaul\n"
+                 "labels:\tbug, track: spec\ncomments:\t2\nassignees:\tpaul, sam\n"
+                 "projects:\t\nmilestone:\t\nnumber:\t5\n--\nOffers should expire.\n")
+ISSUE_5_COMMENTS = ("author:\tpaul\nassociation:\tnone\nedited:\tfalse\nstatus:\tnone\n--\n"
+                    "Any deadline?\n--\n"
+                    "author:\tsam\nassociation:\tmember\nedited:\ttrue\nstatus:\toutdated\n--\n"
+                    "Friday.\n--\n")
+PR_101_PLAIN = ("title:\tSpec: #5\nstate:\tDRAFT\nauthor:\troz-gatekeeper\nlabels:\t\n"
+                "assignees:\t\nreviewers:\t\nprojects:\t\nmilestone:\t\nnumber:\t101\n"
+                "url:\thttps://github.com/acme/demo/pull/101\nadditions:\t2\ndeletions:\t0\n"
+                "auto-merge:\tdisabled\n--\nSpec body.\n")
+# (name, argv, git sandbox?, route, rc, exact stdout or the UNKNOWN note's needle)
+PLAIN_ROUTES = [
+    ("issue view <n>: gh's raw preview (title … number, --, body)",
+     ["issue", "view", "5"], False, "issue-view", 0, ISSUE_5_PLAIN),
+    ("issue view <n> --comments: the comments alone, gh's raw comment blocks; association / "
+     "edited / status as stated, else gh's zero values",
+     ["issue", "view", "5", "--comments"], False, "issue-view", 0, ISSUE_5_COMMENTS),
+    ("issue view <n> -c on an issue with no comments: nothing", ["issue", "view", "6", "-c"],
+     False, "issue-view", 0, ""),
+    ("issue list: tab-separated number, STATE, title (whitespace collapsed), labels, updatedAt",
+     ["issue", "list", "--label", "bug"], False, "issue-list", 0,
+     "5\tOPEN\tExpire offers soon\tbug, track: spec\t2026-08-02T00:00:00Z\n"),
+    ("issue list --state closed: the closed row", ["issue", "list", "--state", "closed"],
+     False, "issue-list", 0, "6\tCLOSED\tClosed one\t\t2026-08-01T00:00:00Z\n"),
+    ("issue list with a row whose fixture states no updatedAt -> UNKNOWN naming it",
+     ["issue", "list"], False, "UNKNOWN", 64, "updatedAt"),
+    ("pr list --head: tab-separated number, title, head, DRAFT/STATE, createdAt",
+     ["pr", "list", "--head", "spec/5"], True, "pr-list", 0,
+     "101\tSpec: #5\tspec/5\tDRAFT\t2026-08-03T00:00:00Z\n"),
+    ("pr list with a row whose fixture states no createdAt -> UNKNOWN naming it",
+     ["pr", "list"], True, "UNKNOWN", 64, "createdAt"),
+    ("pr view <n>: gh's raw preview, additions / deletions from the sandbox's diff",
+     ["pr", "view", "101"], True, "pr-view", 0, PR_101_PLAIN),
+    ("pr view <n> --comments: the comments alone", ["pr", "view", "101", "--comments"], True,
+     "pr-view", 0, "author:\tpaul\nassociation:\tnone\nedited:\tfalse\nstatus:\tnone\n--\n"
+     "LGTM?\n--\n"),
+    ("pr view <n> with no author in the fixture -> UNKNOWN naming it",
+     ["pr", "view", "102"], True, "UNKNOWN", 64, "author"),
+    ("pr view <n> with reviews -> UNKNOWN (the reviewers line is not rendered)",
+     ["pr", "view", "103"], True, "UNKNOWN", 64, "reviewers"),
+    ("pr view <n> --comments with reviews -> UNKNOWN (review entries are not rendered)",
+     ["pr", "view", "103", "--comments"], True, "UNKNOWN", 64, "review"),
+]
+
+
+def plain_checks():
+    """#259: a non-JSON `issue view` / `pr view` / `issue list` / `pr list`
+    printed `{}` (an agent may read an empty issue). Now gh's human format,
+    as gh 2.82 prints it to a pipe, or UNKNOWN naming the fact the fixture
+    does not state — never `{}`."""
+    rows = []
+    tmp, work = git_sandbox()
+    try:
+        for name, argv, in_git, route, rc_want, want in PLAIN_ROUTES:
+            notes = []
+            rc, out, routes = run_route(argv, cwd=work if in_git else None, state=PLAIN_STATE,
+                                        notes=notes)
+            if route == "UNKNOWN":
+                ok = rc == 64 and routes[-1:] == ["UNKNOWN"] and out == "" \
+                    and want in (notes[-1] if notes else "")
+            else:
+                ok = rc == 0 and routes == [route] and out == want
+            rows.append((name, ok, "" if ok else "(got rc=%d routes=%s out=%r notes=%s)"
+                         % (rc, routes, out[:200], notes)))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return rows
+
+
 # ---- #308: a session's tokens are the runtime's own totals -----------------
 def _tok_msg(mid, blk, u, parent=None):
     ev = {"type": "assistant", "message": {"id": mid, "content": [{"type": blk}], "usage": u}}
@@ -2009,6 +2114,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in persona_checks():
         print("%s persona: %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok, why in plain_checks():
+        print("%s plain: %s" % ("PASS" if ok else "FAIL", name), why)
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in token_checks():
         print("%s tokens: %s" % ("PASS" if ok else "FAIL", name))

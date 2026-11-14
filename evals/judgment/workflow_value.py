@@ -2,12 +2,14 @@
 """The Workflow Value pilot's pure functions (#259, `evals/workflow-value.md`).
 
 No model, no forge, no ADMC: everything here takes text, journal entries
-and transcript tool-use blocks and returns data. `run_judgment.py` calls
-it for the baseline arm and the paired report; lint J3 runs its tests.
+and transcript tool-use blocks and returns data — except flatten_history,
+which rewrites a git repository it is handed. `run_judgment.py` calls it
+for the baseline arm and the paired report; lint J3 runs its tests.
 """
 
 import os
 import re
+import subprocess
 import sys
 
 S = os.path.dirname(os.path.abspath(__file__))
@@ -50,6 +52,39 @@ def baseline_claude_md(text, cfg):
              if cfg.get(key) and cfg[key] not in ("true", "false", "''", '""')]
     block = BASELINE_SECTION + "\n\n" + "\n".join(lines) + "\n"
     return text.rstrip("\n") + "\n\n" + block
+
+
+# The baseline sandbox's one commit: a message and an identity with no
+# loop word in them (J3 holds both to LOOP_WORDS).
+BASELINE_COMMIT = ("-c", "user.name=dev", "-c", "user.email=dev@example.com",
+                   "commit", "-q", "-m", "Initial commit")
+
+
+def flatten_history(work):
+    """The baseline sandbox's history (#259, ruling (b), 2026-11-14): the
+    working tree as it stands becomes ONE root commit on main; every other
+    ref, the reflog and every object that commit does not reach are gone.
+    The pin's history names the loop and the overlay commit's diff printed
+    the removed section — the F-51 calibration's seat read it from
+    `git show HEAD`. The tree keeps every ordinary fact. Returns the SHA."""
+    def g(*args):
+        return subprocess.run(["git", "-C", work] + list(args), check=True,
+                              capture_output=True, text=True).stdout
+
+    g("checkout", "-q", "--orphan", "baseline-root")
+    g("add", "-A")
+    g(*BASELINE_COMMIT)
+    for ref in g("for-each-ref", "--format=%(refname)").split():
+        if ref != "refs/heads/baseline-root":
+            g("update-ref", "-d", ref)
+    g("branch", "-m", "main")
+    for name in ("ORIG_HEAD", "FETCH_HEAD", "MERGE_HEAD", "COMMIT_EDITMSG"):
+        path = os.path.join(work, ".git", name)
+        if os.path.exists(path):
+            os.remove(path)
+    g("reflog", "expire", "--expire=now", "--expire-unreachable=now", "--all")
+    g("gc", "--prune=now", "--quiet")
+    return g("rev-parse", "HEAD").strip()
 
 
 def baseline_prompt(issue):
