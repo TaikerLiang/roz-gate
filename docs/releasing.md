@@ -123,6 +123,10 @@ Hook tests N/N · lint N/N · red-proofs N/N
 - **Code formatting for every path, command and placeholder.** GitHub
   swallows a bare `<n>` as an HTML tag: v1.17.0's first draft rendered
   `spec/<n>` as "spec/".
+- **A prose cap that moved is an Evals bullet** — which cap, from what to
+  what, and the PR that raised it (lint `L21`, `evals/CONTRIBUTING.md`
+  § 9). Lowering a cap after a cut is a release-time step, the
+  maintainer's call.
 - **Checks** is one line: the counts from `hooks/tests/run_tests.py`,
   `evals/lint/run_lint.py` and `evals/replay/run_redproofs.py` on the
   released commit.

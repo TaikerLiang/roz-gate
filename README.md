@@ -547,9 +547,9 @@ hygiene, deliberately not a case in the eval ledger).
 
 And the line between `references/` and `docs/`: everything in
 `references/` is agent input on every invocation, so every line there is a
-token cost on every turn (the 46–72 live-rules figure in the roadmap);
-`docs/` is for humans and is never loaded. Do not put human reading
-material in `references/`.
+token cost on every turn (lint `L21` caps the total and each command
+file: `evals/README.md` § Prose caps); `docs/` is for humans and is never
+loaded. Do not put human reading material in `references/`.
 
 ## How we know it works
 

@@ -12,7 +12,7 @@ Level-1 suite does not prove Roz Gate improves engineering outcomes.
 <!-- counts -->
 | Tier | Cases | Status | Cost class |
 |---|---|---|---|
-| **lint** | 75 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
+| **lint** | 76 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
 | **replay** | 62 | built — `replay/run_replay.py` | needs a running loop and a pass rate over k repeated runs |
 | **hook** | 4 | built — `ledger-hook.json`, proven in `../hooks/tests/` by the same gate | rules a hook alone enforces; the other hook rules ride on a lint or replay row |
 | **judgment** | 7 items / 4 fixtures · V1: 10 decisions | built — `judgment/run_judgment.py`, k=2 baseline complete (2026-09-21) | a real repo per iteration plus an opus judge; the Level-2 seed (`charter.md`) |
@@ -113,6 +113,37 @@ promoted in 1.16.0 (guard-blind rule E) at 4/5 — one QA child read
 `src/app.txt` under the fidelity dispatch — because that failure is
 invisible at the gate: the class that gets teeth regardless of rate. Lint
 D2 holds the hook's three regexes byte-identical to the replay checker's.
+
+## Prose caps
+
+Lint `L21` caps the agent-loaded prose at two levels: **the repo's runtime
+prose total** (every `*.md` under `commands/`, `references/`, `agents/`,
+plus `templates/implementer.md`) and **each command file's word count** (a
+slash command injects its file whole). A word is a whitespace-separated
+token, what `wc -w` prints. The caps were frozen at the measured value with
+no headroom, so when they were set one more word turned the lint red; after
+a cut the room stays — a cap is a ceiling, and lowering it is a release-time
+step. Raising a cap: [`CONTRIBUTING.md`](CONTRIBUTING.md) § Prose caps. The
+table is rendered from the case's constants (`lint/cases/l21.py`) by
+`tools/ledger.py`; the lint's PASS line prints the measured value.
+
+<!-- prose-caps -->
+Set on `main` at `2ee634c`.
+
+| prose | cap (words) |
+|---|---|
+| **the repo's runtime prose total** | 52,040 |
+| `commands/config.md` | 540 |
+| `commands/init.md` | 1,351 |
+| `commands/integrate.md` | 2,494 |
+| `commands/next-stage.md` | 1,076 |
+| `commands/patrol.md` | 3,917 |
+| `commands/review-answers.md` | 1,822 |
+| `commands/spec-answers.md` | 3,333 |
+| `commands/tip.md` | 2,586 |
+| `commands/to-issues.md` | 504 |
+| `commands/uninit.md` | 444 |
+<!-- /prose-caps -->
 
 ## Recorded baselines
 

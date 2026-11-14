@@ -17,6 +17,8 @@ CHANGELOG.md renders the releases). One row has one source:
     `evals/ledger-hook.json` — `rule` names the letter in `hooks/README.md`'s
     rule table (#189). Every letter in that table must appear in some row's
     tier as `rule X`, or the check fails: a hook rule cannot land unindexed.
+evals/README.md's `<!-- prose-caps -->` block renders lint L21's constants
+(`SET_AT`, `TOTAL_CAP`, `COMMAND_CAPS`), read with `ast` like `META` (#278).
 Rows render in ID order within a family. The prose around the tables is
 `evals/ledger-template.md`; a `<!-- rows A -->` line is where family A's
 rows go (`<!-- rows J L -->` renders two lint-only families, three
@@ -46,6 +48,8 @@ ROWS_MARK = re.compile(r"^<!-- rows ((?:[A-Z] ?)+)-->$", re.M)
 COUNTS = re.compile(r"<!-- counts -->\n(.*?)<!-- /counts -->", re.S)
 BASELINES = os.path.join(ROOT, "evals", "replay", "baselines.json")
 BASELINES_MARK = re.compile(r"<!-- baselines -->\n(.*?)<!-- /baselines -->", re.S)
+PROSE_CAPS = os.path.join(LINT_CASES, "l21.py")
+PROSE_CAPS_MARK = re.compile(r"<!-- prose-caps -->\n(.*?)<!-- /prose-caps -->", re.S)
 HOOK_RULE_ROW = re.compile(r"^\| \*\*([A-Z])\*\* ", re.M)  # hooks/README.md's rule table
 TIER_RULE = re.compile(r"\brule ([A-Z])\b")
 
@@ -251,12 +255,35 @@ def render_baselines():
     return "\n".join(out) + "\n"
 
 
+def render_prose_caps():
+    """evals/README.md's <!-- prose-caps --> block, from lint L21's constants
+    (#278) — the caps, never a live count."""
+    k = {}
+    for node in ast.parse(read(PROSE_CAPS)).body:
+        if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):
+            k[node.targets[0].id] = node.value
+    try:
+        set_at, total, caps = (ast.literal_eval(k[n]) for n in
+                               ("SET_AT", "TOTAL_CAP", "COMMAND_CAPS"))
+    except (KeyError, ValueError):
+        fail("evals/lint/cases/l21.py: SET_AT, TOTAL_CAP and COMMAND_CAPS must be literals")
+    out = ["Set on `main` at `%s`." % set_at, "",
+           "| prose | cap (words) |", "|---|---|",
+           "| **the repo's runtime prose total** | %s |" % format(total, ",")]
+    out += ["| `%s` | %s |" % (p, format(n, ",")) for p, n in sorted(caps.items())]
+    return "\n".join(out) + "\n"
+
+
 def render_readme():
     text = read(README)
     b = BASELINES_MARK.search(text)
     if not b:
         fail("evals/README.md has no <!-- baselines --> block")
     text = text[:b.start(1)] + render_baselines() + text[b.end(1):]
+    pc = PROSE_CAPS_MARK.search(text)
+    if not pc:
+        fail("evals/README.md has no <!-- prose-caps --> block")
+    text = text[:pc.start(1)] + render_prose_caps() + text[pc.end(1):]
     m = COUNTS.search(text)
     if not m:
         fail("evals/README.md has no <!-- counts --> block")

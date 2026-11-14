@@ -369,6 +369,18 @@ text. Re-running them is the maintainer's spend call; the PR names them
 and does not start the runs. A consumer-only edit keeps the pointer and the
 consumer's anchor in the same commit.
 
+## 9. Prose caps
+
+Lint `L21` caps the repo's runtime prose total and each command file's word
+count (`evals/README.md` § Prose caps has the table; `lint/cases/l21.py`
+holds the constants — the one source). On a red, cut first: a sentence
+whose anchors must move is still cheaper than a cap that only goes up.
+When the growth is the point of the PR, raise the cap in that PR — the
+constant, then `python3 tools/ledger.py` — and say so in its
+`## Release note` under Evals (which cap, from what to what). A new command
+file needs a cap in the same PR. A cap is a ceiling, not a target: a cut
+leaves room, and lowering a cap is the maintainer's, at release.
+
 ## Instruments that lied — check yours against each
 
 | case | what the instrument missed | the class |

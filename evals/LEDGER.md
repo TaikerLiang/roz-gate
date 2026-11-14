@@ -216,6 +216,7 @@ text follows the experiment; the driver's citation was updated to match.
 | L18 | the evaluation charter keeps its shape and its pointers | lint (#257) |
 | L19 | the documents say what the instrument measured, and no more | lint (#280) |
 | L20 | next-stage loads one path | lint (#279) |
+| L21 | runtime prose stays within its caps | lint (#278) |
 
 ## The judgment corpus
 
