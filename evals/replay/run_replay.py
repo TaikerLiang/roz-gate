@@ -2,6 +2,16 @@
 """Replay-tier runner. Usage:
 
     run_replay.py [--sut NAME] [--k N] [--variant A|B|C] [case ...]    # default: fable, A, all
+    run_replay.py --list [case ...]          # each case's default k, baseline status, tier
+    run_replay.py --dry-run [--sut NAME] [--k N] [--variant V] [case ...]
+                                             # what a run would do: k, done, pending, smoke
+    run_replay.py --help
+
+Every argument is checked for the whole batch — the SUT, the variant, each
+case, its `# source:` citation, the driver/variant pairing — before the
+report dir is created, a variant copied or the smoke gate run (#282).
+`--list` and `--dry-run` are read-only: no model, no credentials, nothing
+written.
 
 Measurement, not a gate: per-case observed rates with Wilson 90% intervals
 into report/<sut>/report.json, no pass thresholds anywhere — the gate
@@ -42,6 +52,7 @@ CI runs the lint tier only, never this. Replay is local, on-demand,
 pre-release manual.
 """
 
+import argparse
 import atexit
 import filecmp
 import json
@@ -63,6 +74,9 @@ from export_langfuse import maybe_export  # noqa: E402
 from replaylib import has_result_event, session_error  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(S))
+REPORT = os.path.join(S, "report")
+BASELINES = os.path.join(S, "baselines.json")
+SMOKE = ("S1", "S2", "S3")
 
 # ---- brief variants (#199) ---------------------------------------------------
 BRIEF_REL = "references/qa-brief.md"
@@ -379,6 +393,11 @@ def _run_one(sut, cdir, rdir, prompt, timeout, variant, plugin_dir):
     return 0 if ok else 2
 
 
+def smoke_passed(report, sc):
+    """A smoke case already passed for this SUT — skipped by the gate."""
+    return bool((load_json(os.path.join(report, "smoke-" + sc, "result.json")) or {}).get("pass"))
+
+
 def smoke_gate(sut, report):
     marker = os.path.join(report, "smoke-pass")
     incompat = os.path.join(report, "HARNESS_INCOMPATIBLE")
@@ -390,11 +409,10 @@ def smoke_gate(sut, report):
     print("== smoke gate for SUT '%s' (%s, %s) =="
           % (sut["name"], sut["model"], sut["mode"]))
     failed = False
-    for sc in ("S1", "S2", "S3"):
+    for sc in SMOKE:
         scdir = os.path.join(S, "smoke", sc)
         srdir = os.path.join(report, "smoke-" + sc)
-        prior = load_json(os.path.join(srdir, "result.json"))
-        if prior and prior.get("pass"):
+        if smoke_passed(report, sc):
             print("smoke %s: already passed" % sc)
             continue
         prompt = load_json(os.path.join(scdir, "case.json"))["prompt"]
@@ -567,42 +585,46 @@ def aggregate(sut, report):
                  r["tokens"]["in"], r["tokens"]["out"], extra))
 
 
-def main(argv):
-    sut_name, k_override, variant, cases = "fable", None, "A", []
-    i = 0
-    while i < len(argv):
-        if argv[i] == "--sut":
-            sut_name = argv[i + 1]
-            i += 2
-        elif argv[i] == "--k":
-            k_override = int(argv[i + 1])
-            i += 2
-        elif argv[i] == "--variant":
-            variant = argv[i + 1]
-            i += 2
-        else:
-            cases.append(argv[i])
-            i += 1
-    if not cases:
-        cases = sorted(os.listdir(os.path.join(S, "cases")))
+def positive_int(text):
+    """argparse type for --k: an integer >= 1, else a usage error."""
+    try:
+        n = int(text)
+    except ValueError:
+        n = 0
+    if n < 1:
+        raise argparse.ArgumentTypeError("must be a positive integer, got %r" % text)
+    return n
 
-    sut = resolve_sut(sut_name)
+
+def parse_args(argv):
+    p = argparse.ArgumentParser(
+        prog="run_replay.py", allow_abbrev=False,
+        description="Replay-tier runner: per-case observed rates, no pass thresholds. "
+                    "Every argument is checked before any model session starts.")
+    p.add_argument("--sut", default="fable", help="a row of models.yaml (default: fable)")
+    p.add_argument("--k", type=positive_int, help="iterations per case (default: the case's k)")
+    p.add_argument("--variant", default="A",
+                   help="the QA brief: A (the checkout's) or a file under variants/qa-brief/")
+    mode = p.add_mutually_exclusive_group()
+    mode.add_argument("--list", action="store_true",
+                      help="list the cases: default k, baseline status, tier — no model")
+    mode.add_argument("--dry-run", action="store_true",
+                      help="print each case's k, done and pending iterations and the smoke "
+                           "sessions a run would start — no model, nothing written")
+    p.add_argument("cases", nargs="*", metavar="case", help="case ids (default: every case)")
+    return p.parse_args(argv)
+
+
+def selected(args):
+    """(sut, [(case, cdir, meta)]): every check a run makes before spend,
+    over the whole batch, before anything is written or started (#282)."""
+    sut = resolve_sut(args.sut)
     if not sut:
-        die("unknown SUT '%s' (see models.yaml)" % sut_name)
-    if sut["mode"] == "api" and not os.environ.get(sut["key_env"], ""):
-        die("SUT '%s' is api-mode but $%s is unset" % (sut_name, sut["key_env"]))
-    if not variant_file(variant):
-        die("unknown variant '%s' (A, or a file under %s)" % (variant, VARIANTS))
-
-    report = os.path.join(S, "report", sut_name)
-    os.makedirs(report, exist_ok=True)
-    smoke_gate(sut, report)   # plumbing, under the checkout: the brief is not involved
-    plugin_dir = variant_plugin(variant)
-    if variant != "A":
-        print("variant %s: plugin copy at %s, brief sha256 %s" %
-              (variant, plugin_dir, rl.brief_sha256(os.path.join(plugin_dir, BRIEF_REL))))
-
-    for case in cases:
+        die("unknown SUT '%s' (see models.yaml)" % args.sut)
+    if not variant_file(args.variant):
+        die("unknown variant '%s' (A, or a file under %s)" % (args.variant, VARIANTS))
+    chosen = []
+    for case in args.cases or sorted(os.listdir(os.path.join(S, "cases"))):
         cdir = os.path.join(S, "cases", case)
         if not os.path.isdir(cdir):
             die("no such case: %s" % case)
@@ -612,10 +634,88 @@ def main(argv):
         if not has_citation(guard):
             die("REFUSED %s: %s has no '# source:' citation (blindness guard)"
                 % (case, os.path.basename(guard)))
-        if driver and variant != "A":
+        if driver and args.variant != "A":
             die("REFUSED %s: a driver case runs the checkout's plugin; --variant is for "
                 "check.py cases" % case)
+        chosen.append((case, cdir, meta))
+    return sut, chosen
+
+
+def baseline_status(case, batches):
+    """The case's entries in baselines.json: `current`, `superseded` or
+    `none`, with the batch ids. Current is a result neither it nor its
+    batch marks superseded — tools/ledger.py's rule (#293)."""
+    cur, old = [], []
+    for b in batches:
+        for r in b.get("results", []):
+            if r.get("case") == case:
+                (old if b.get("superseded") or r.get("superseded") else cur).append(b["id"])
+    if cur:
+        return "current: " + ", ".join(cur)
+    return "superseded: " + ", ".join(old) if old else "none"
+
+
+def list_cases(chosen):
+    batches = (load_json(BASELINES) or {}).get("replay", [])
+    print("%-5s %3s  %-48s  %s" % ("case", "k", "baseline", "tier"))
+    for case, _, meta in chosen:
+        print("%-5s %3d  %-48s  %s" % (case, meta.get("k", 5), baseline_status(case, batches),
+                                       meta.get("tier", "")))
+
+
+def dry_run(sut, chosen, k_override, variant):
+    report = os.path.join(REPORT, sut["name"])
+    print("dry run — SUT %s (%s, %s), variant %s: no model, nothing written"
+          % (sut["name"], sut["model"], sut["mode"], variant))
+    smoke = 0
+    if os.path.isfile(os.path.join(report, "smoke-pass")):
+        print("smoke gate: passed — 0 sessions")
+    elif os.path.isfile(os.path.join(report, "HARNESS_INCOMPATIBLE")):
+        print("smoke gate: SUT marked harness-incompatible — the run refuses (remove %s)"
+              % os.path.join(report, "HARNESS_INCOMPATIBLE"))
+    else:
+        todo = [sc for sc in SMOKE if not smoke_passed(report, sc)]
+        smoke = len(todo)
+        print("smoke gate: %d session(s)%s" % (smoke, " — " + ", ".join(todo) if todo else ""))
+    print("%-8s %3s %5s %8s" % ("case", "k", "done", "pending"))
+    pending = 0
+    for case, _, meta in chosen:
+        key = case_key(case, variant)
         k = k_override or meta.get("k", 5)
+        done = sum(1 for i in range(1, k + 1)
+                   if rl.iteration_done(os.path.join(report, key, "run-%d" % i)))
+        pending += k - done
+        print("%-8s %3d %5d %8d%s" % (key, k, done, k - done,
+                                      "  (driver: its own sessions per iteration)"
+                                      if meta.get("driver") else ""))
+    print("total: %d pending iteration(s) over %d case(s), plus %d smoke session(s)"
+          % (pending, len(chosen), smoke))
+
+
+def main(argv):
+    args = parse_args(argv)
+    sut, chosen = selected(args)
+    if args.list:
+        list_cases(chosen)
+        return
+    if args.dry_run:
+        dry_run(sut, chosen, args.k, args.variant)
+        return
+    if sut["mode"] == "api" and not os.environ.get(sut["key_env"], ""):
+        die("SUT '%s' is api-mode but $%s is unset" % (sut["name"], sut["key_env"]))
+
+    variant = args.variant
+    report = os.path.join(REPORT, sut["name"])
+    os.makedirs(report, exist_ok=True)
+    smoke_gate(sut, report)   # plumbing, under the checkout: the brief is not involved
+    plugin_dir = variant_plugin(variant)
+    if variant != "A":
+        print("variant %s: plugin copy at %s, brief sha256 %s" %
+              (variant, plugin_dir, rl.brief_sha256(os.path.join(plugin_dir, BRIEF_REL))))
+
+    for case, cdir, meta in chosen:
+        driver = meta.get("driver", "")
+        k = args.k or meta.get("k", 5)
         for i in range(1, k + 1):
             rdir = os.path.join(report, case_key(case, variant), "run-%d" % i)
             if rl.iteration_done(rdir):

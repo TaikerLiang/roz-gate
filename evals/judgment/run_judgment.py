@@ -4,7 +4,16 @@
     run_judgment.py --check                       # fixtures frozen? (no tokens)
     run_judgment.py --redproof [--rejudge]        # judge red-proof (28 judge calls, verdicts
                                                   #   cached) — BEFORE any SUT spend
-    run_judgment.py [--sut NAME] [--k N] [case ...]   # SUT iterations + judging; default fable, k=1
+    run_judgment.py [--sut NAME] [--k N] [--arm treatment|baseline] [case ...]
+                                                  # SUT iterations + judging; default fable, k=1
+    run_judgment.py --paired SUT                  # the two arms side by side (no model)
+    run_judgment.py --list [case ...]             # each fixture's default k, baseline status
+    run_judgment.py --dry-run [--sut NAME] [--k N] [--arm A] [case ...]
+                                                  # k, done, pending, judge calls (no model)
+    run_judgment.py --help
+
+Every selected fixture is checked before the red-proof gate and the pin
+check; `--list` and `--dry-run` start no model and write nothing (#282).
 
 What this tier measures: not "did the agent follow a rule" but "did the
 agent surface the thing that changed the human's mind". Each fixture is a
@@ -28,6 +37,7 @@ validity / quota / resumability. Never network: the sandbox is a clone of
 the local ADMC clone that sources.py sets up.
 """
 
+import argparse
 import glob
 import hashlib
 import importlib.util
@@ -63,6 +73,8 @@ import workflow_value as wv  # noqa: E402
 from materialize import check_frozen  # noqa: E402
 
 ROOT = rr.ROOT
+REPORT = os.path.join(S, "report")
+DEFAULT_K = 1
 JUDGE_MODEL = "claude-opus-5"
 MIN_QUOTE = 40
 # A question is a TITLE LINE — `**[role] · Q<k> · label**` (spec threads
@@ -607,64 +619,124 @@ def paired_report(sut_name, report_root):
     print("\nRead with evals/workflow-value.md § What the pilot does not establish.")
 
 
+def parse_args(argv):
+    p = argparse.ArgumentParser(
+        prog="run_judgment.py", allow_abbrev=False,
+        description="Judgment-tier runner: SUT iterations judged against each fixture's "
+                    "criteria. Every argument is checked before any model session starts.")
+    p.add_argument("--sut", default="fable", help="a row of replay/models.yaml (default: fable)")
+    p.add_argument("--k", type=rr.positive_int, default=DEFAULT_K, help="iterations per fixture "
+                   "(default: 1)")
+    p.add_argument("--arm", choices=("treatment", "baseline"), default="treatment",
+                   help="treatment: the plugin; baseline: no plugin (#259)")
+    p.add_argument("--rejudge", action="store_true", help="with --redproof: re-ask every verdict")
+    mode = p.add_mutually_exclusive_group()
+    mode.add_argument("--check", action="store_true", help="fixtures frozen? (no tokens)")
+    mode.add_argument("--redproof", action="store_true", help="the judge red-proof — before "
+                      "any SUT spend")
+    mode.add_argument("--paired", metavar="SUT", help="the arms side by side per issue (no model)")
+    mode.add_argument("--list", action="store_true", help="list the fixtures: default k, "
+                      "baseline status — no model")
+    mode.add_argument("--dry-run", action="store_true", help="print each fixture's k, done and "
+                      "pending iterations and the judge calls — no model, nothing written")
+    p.add_argument("cases", nargs="*", metavar="case", help="fixture ids (default: every fixture)")
+    return p.parse_args(argv)
+
+
+def arm_report(arm, sut_name):
+    """The treatment's paths are the tier's own and do not move; the
+    baseline arm lives beside them (#259)."""
+    return os.path.join(REPORT, sut_name) if arm == "treatment" \
+        else os.path.join(REPORT, "baseline", sut_name)
+
+
+def redproof_refusal():
+    """Why a sweep may not start: no green red-proof, or one recorded
+    under another judge configuration. None when the judge is measured."""
+    stored = rr.load_json(os.path.join(REPORT, "judge-redproof.json")) or {}
+    if not stored.get("rows") or stored.get("mismatches"):
+        return "run `--redproof` first (and green) — the judge is unmeasured until then"
+    if stored.get("fingerprint") != JUDGE_FP:
+        return ("judge configuration changed since the last red-proof (stored %s, current %s) — "
+                "the judge is unmeasured; run `--redproof` first"
+                % (stored.get("fingerprint"), JUDGE_FP))
+    return None
+
+
+def fixture(name):
+    return json.load(open(os.path.join(S, "cases", name, "fixture.json"), encoding="utf-8"))
+
+
+def list_fixtures(names):
+    """The judgment record in baselines.json is one sweep over every
+    fixture, not per fixture: each row shows its status, the footer what
+    it was."""
+    rec = (rr.load_json(rr.BASELINES) or {}).get("judgment")
+    status = "none" if not rec else "superseded" if rec.get("superseded") else "current"
+    print("%-6s %3s  %-10s  %s" % ("case", "k", "baseline", "tier"))
+    for name in names:
+        print("%-6s %3d  %-10s  %s" % (name, DEFAULT_K, status, "judgment"))
+    if rec:
+        print("baseline: %s SUT, %s judge, plugin %s, k=%d — %s%s"
+              % (rec["sut"], rec["judge"], rec.get("plugin") or rec.get("plugin_range"),
+                 rec["k"], rec.get("note", ""),
+                 " (superseded: %s)" % rec["superseded"] if rec.get("superseded") else ""))
+
+
+def dry_run(sut, names, k, arm):
+    report = arm_report(arm, sut["name"])
+    print("dry run — SUT %s (%s), arm %s, judge %s: no model, nothing written"
+          % (sut["name"], sut["model"], arm, JUDGE_MODEL))
+    print("%-6s %3s %5s %8s  %s" % ("case", "k", "done", "pending", "judge calls"))
+    sessions = calls = 0
+    for name in names:
+        done = sum(1 for it in range(1, k + 1)
+                   if iteration_done(os.path.join(report, name, "run-%d" % it)))
+        per = len(fixture(name)["criteria"])
+        sessions += k - done
+        calls += (k - done) * per
+        print("%-6s %3d %5d %8d  %d (%d per iteration)" % (name, k, done, k - done,
+                                                         (k - done) * per, per))
+    print("total: %d SUT session(s); %d judge call(s), up to %d with re-asks — only a valid "
+          "iteration is judged" % (sessions, calls, 2 * calls))
+    print("judge red-proof: %s" % (redproof_refusal() or "green"))
+
+
 def main(argv):
-    sut_name, k, cases, mode, rejudge, arm = "fable", 1, [], "run", False, "treatment"
-    i = 0
-    while i < len(argv):
-        a = argv[i]
-        if a == "--sut":
-            sut_name = argv[i + 1]
-            i += 2
-        elif a == "--k":
-            k = int(argv[i + 1])
-            i += 2
-        elif a in ("--check", "--redproof"):
-            mode = a[2:]
-            i += 1
-        elif a == "--arm":
-            arm = argv[i + 1]
-            i += 2
-        elif a == "--paired":
-            mode, sut_name = "paired", argv[i + 1]
-            i += 2
-        elif a == "--rejudge":
-            rejudge = True
-            i += 1
-        else:
-            cases.append(a)
-            i += 1
+    args = parse_args(argv)
+    for name in args.cases:
+        if not os.path.isfile(os.path.join(S, "cases", name, "fixture.json")):
+            die("no such fixture: %s" % name)
+    names = args.cases or sorted(os.listdir(os.path.join(S, "cases")))
     bad = check_frozen(os.path.join(S, "cases"))
     if bad:
         die("REFUSED — fixtures not frozen:\n  " + "\n  ".join(bad))
-    if mode == "check":
+    if args.check:
         print("frozen: every timestamp <= T in every fixture")
         return
-    report_root = os.path.join(S, "report")
-    if arm not in ("treatment", "baseline"):
-        die("--arm is treatment or baseline")
-    if mode == "paired":
-        paired_report(sut_name, report_root)
+    if args.list:
+        list_fixtures(names)
         return
-    if mode == "redproof":
-        sys.exit(0 if redproof(report_root, rejudge) else 1)
-    sut = rr.resolve_sut(sut_name)
+    if args.paired:
+        paired_report(args.paired, REPORT)
+        return
+    if args.redproof:
+        sys.exit(0 if redproof(REPORT, args.rejudge) else 1)
+    sut = rr.resolve_sut(args.sut)
     if not sut:
-        die("unknown SUT '%s' (see replay/models.yaml)" % sut_name)
-    stored = rr.load_json(os.path.join(report_root, "judge-redproof.json")) or {}
-    if not stored.get("rows") or stored.get("mismatches"):
-        die("run `--redproof` first (and green) — the judge is unmeasured until then")
-    if stored.get("fingerprint") != JUDGE_FP:
-        die("judge configuration changed since the last red-proof (stored %s, current %s) — "
-            "the judge is unmeasured; run `--redproof` first"
-            % (stored.get("fingerprint"), JUDGE_FP))
-    sources.require(cases or None)   # every pin and the overlay's commit, before any spend
-    # the treatment's paths are the tier's own and do not move; the
-    # baseline arm lives beside them (#259)
-    report = os.path.join(report_root, sut_name) if arm == "treatment" \
-        else os.path.join(report_root, "baseline", sut_name)
+        die("unknown SUT '%s' (see replay/models.yaml)" % args.sut)
+    if args.dry_run:
+        dry_run(sut, names, args.k, args.arm)
+        return
+    why = redproof_refusal()
+    if why:
+        die(why)
+    sources.require(args.cases or None)   # every pin and the overlay's commit, before any spend
+    k, arm = args.k, args.arm
+    report = arm_report(arm, sut["name"])
     os.makedirs(report, exist_ok=True)
-    for name in cases or sorted(os.listdir(os.path.join(S, "cases"))):
-        fx = json.load(open(os.path.join(S, "cases", name, "fixture.json"), encoding="utf-8"))
+    for name in names:
+        fx = fixture(name)
         for it in range(1, k + 1):
             rdir = os.path.join(report, name, "run-%d" % it)
             if iteration_done(rdir):
@@ -682,7 +754,7 @@ def main(argv):
         aggregate(sut, report)
     else:
         print("baseline runs recorded under %s — read them with --paired %s"
-              % (os.path.relpath(report, S), sut_name))
+              % (os.path.relpath(report, S), sut["name"]))
 
 
 if __name__ == "__main__":
