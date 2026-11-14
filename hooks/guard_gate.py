@@ -109,6 +109,22 @@ pattern. Ten rules, each the mechanical form of existing protocol text:
      human sync the base. Outside ``roz-gate/wt/`` the rule is silent: the
      person's own merges are theirs. ``rebase`` and ``cherry-pick`` are not
      judged (not in #213's scope).
+     Parsing (#292): a shell redirection is never a ref — ``2>&1``,
+     ``>f``, ``>>f``, ``&>f``, ``<f``, and a bare operator with its
+     target. The place the merge runs in is tracked through ``cd`` and
+     ``git -C`` as one of three things: a path (static, as written); a
+     loop worktree named by a static ``…/roz-gate/wt/<branch>`` suffix on
+     a directory the hook cannot otherwise resolve (``cd "$(git rev-parse
+     --git-common-dir)/roz-gate/wt/spec/5"`` — the substitution is never
+     executed, the suffix names the branch); or **unknown** — ``cd
+     "$WT"``, ``git -C "$(cmd)"``, a relative path after either. An
+     unresolved directory is never treated as if the ``cd`` had not
+     happened: in a repository that has loop worktrees, a merge at an
+     unknown place is denied, because it may run in another issue's
+     worktree. Each denial names its own cause — a foreign branch; an
+     issue that cannot be told from the worktree's branch; a ref that is
+     not a branch name (a SHA, another remote); a place that cannot be
+     told — and only the first speaks of the base.
      Top level: outside quotes and ``$(…)`` / backticks; ``2>&1`` and
      ``&>`` are redirects, and a backslash-newline continues the line. An
      add found anywhere outside quotes — inside ``{ …; }``, ``if …; then``,
@@ -1151,6 +1167,27 @@ RULE_K_MSG = (
     "`status: blocked`) and stop. (ref: %(ref)s · issue: %(n)s · base: %(base)s"
     " · allowed: origin/%(base)s and this issue's `%(template)s` branches)"
 )
+RULE_K_HEAD = ("Roz Gate: blocked — rule K: the loop merges only the base or its own "
+               "branches (#213). ")
+RULE_K_TAIL = (" Post the STOP comment (`**[<command>] · blocked**`) and stop. "
+               "(ref: %(ref)s · base: %(base)s · allowed: origin/%(base)s and this "
+               "issue's `%(template)s` branches)")
+RULE_K_NO_ISSUE = RULE_K_HEAD + (
+    "The hook could not tell which issue this worktree belongs to — its branch "
+    "`%(branch)s` does not match `%(template)s` — so it cannot confirm `%(ref)s` is "
+    "one of the issue's own branches. Nothing is known to be wrong with the base. "
+    "STOP and report the worktree's branch to the human.") + RULE_K_TAIL
+RULE_K_NOT_A_BRANCH = RULE_K_HEAD + (
+    "`%(ref)s` is not a branch name the hook can read (a commit id, or a branch on "
+    "another remote), so it cannot be shown to be the base or one of this issue's "
+    "own branches. Merge by branch name from origin, or STOP and ask the human.") \
+    + RULE_K_TAIL
+RULE_K_NO_PLACE = RULE_K_HEAD + (
+    "The hook could not determine which worktree this merge runs in — the "
+    "directory `%(place)s` is not one it can resolve without running the command — "
+    "so it cannot tell whose branches are its own. Nothing is known to be wrong "
+    "with the base. Re-issue the merge from inside the issue's worktree, or with "
+    "its literal path (`…/roz-gate/wt/<branch>`).")
 MERGE_VALUE_FLAGS = {"-m", "-F", "-s", "-X", "--strategy", "--strategy-option",
                      "--into-name", "--cleanup"}
 GIT_VALUE_OPTS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path",
@@ -1189,10 +1226,27 @@ def base_branch(tops, cwd):
     return "main"
 
 
+REDIRECT_RE = re.compile(r"^(?:\d*|&)(?:>>?|<)(?P<dup>&[\d-]+|\|)?(?P<target>.*)$")
+
+
+def redirection(tok):
+    """None, or how many tokens the redirection `tok` occupies (#292):
+    1 for a whole one (`2>&1`, `>/dev/null`, `&>out`), 2 for a bare
+    operator whose target is the next token (`2>`, `>`, `<`, `>>`). shlex
+    keeps these as ordinary tokens; none is an argument of the command."""
+    m = REDIRECT_RE.match(tok)
+    if not m:
+        return None
+    return 1 if (m.group("target") or m.group("dup")) else 2
+
+
 def merge_refs(toks):
     """(kind, refs) for a `git [opts] merge <ref…>` / `git [opts] pull [remote
     [refspec…]]` token list, else None. `merge --abort|--continue|--quit`
-    and a bare `pull` name no ref."""
+    and a bare `pull` name no ref. A redirection among the arguments is
+    not a ref — checked AFTER a value flag has taken its value, so the
+    message of `-m ">note"` is never mistaken for one and cannot hide the
+    ref that follows it."""
     i = 0
     while i < len(toks) and toks[i] != "git":
         i += 1
@@ -1217,6 +1271,10 @@ def merge_refs(toks):
                 i += 1
             i += 1
             continue
+        width = redirection(t)
+        if width:
+            i += width
+            continue
         args.append(t)
         i += 1
     if kind == "merge":
@@ -1233,20 +1291,49 @@ def merge_refs(toks):
     return kind, [a.split(":", 1)[0] for a in args[1:]]
 
 
-def cd_target(seg, cwd):
+WT_MARKER = "/roz-gate/wt/"
+UNKNOWN_PLACE = ("unknown", None)
+
+
+def static_path(text):
+    """A directory the hook can read as written: no expansion to run."""
+    return "$" not in text and "`" not in text
+
+
+def place_after(text, here):
+    """Where a `cd <text>` / `git -C <text>` leaves the command, from `here`
+    — ("path", p), ("wt", "<branch>[/sub]") or UNKNOWN_PLACE (#292). The
+    hook never executes a substitution: a directory it cannot read is a
+    loop worktree only when a static `/roz-gate/wt/<branch>` suffix says
+    which, and unknown otherwise — never the place it was before."""
+    if static_path(text):
+        text = os.path.expanduser(text)
+        if os.path.isabs(text):
+            return ("path", os.path.normpath(text))
+        if here[0] == "path":
+            return ("path", os.path.normpath(os.path.join(here[1], text)))
+        return UNKNOWN_PLACE
+    i = text.rfind(WT_MARKER)
+    rest = text[i + len(WT_MARKER):].strip("/") if i >= 0 else ""
+    if rest and static_path(rest) and ".." not in rest.split("/"):
+        return ("wt", rest)
+    return UNKNOWN_PLACE
+
+
+def cd_arg(seg):
     toks = tokens(seg)
     if toks and toks[0] == "cd" and len(toks) > 1 and not toks[1].startswith("-"):
-        return os.path.normpath(os.path.join(cwd, os.path.expanduser(toks[1])))
+        return toks[1]
     return None
 
 
-def git_c_target(toks, cwd):
+def git_c_arg(toks):
     for i, t in enumerate(toks[:-1]):
         if t == "git":
             j = i + 1
             while j + 1 < len(toks) and toks[j].startswith("-"):
                 if toks[j] == "-C":
-                    return os.path.normpath(os.path.join(cwd, toks[j + 1]))
+                    return toks[j + 1]
                 j += 2 if toks[j] in GIT_VALUE_OPTS else 1
             return None
     return None
@@ -1259,48 +1346,81 @@ def tokens(seg):
         return []
 
 
+def has_loop_worktrees(cwd):
+    """The hook's own repository runs the loop: its cwd is in a loop
+    worktree, or `<git-common-dir>/roz-gate/wt` exists."""
+    if WT_MARKER in os.path.abspath(cwd) + "/":
+        return True
+    common = git_out("-C", cwd, "rev-parse", "--path-format=absolute", "--git-common-dir")
+    return bool(common) and os.path.isdir(os.path.join(common.strip(), "roz-gate", "wt"))
+
+
+def worktree_branch(rest, template):
+    """The loop branch a `roz-gate/wt/<rest>` suffix names: `rest` itself,
+    or its longest leading part that is a template branch (`cd …/wt/spec/5/src`)."""
+    parts = rest.split("/")
+    for k in range(len(parts), 0, -1):
+        if parse_branch("/".join(parts[:k]), template):
+            return "/".join(parts[:k])
+    return rest
+
+
 def check_loop_merge(cmd, cwd):
-    """Rule K (#213): see the module docstring."""
+    """Rule K (#213, #292): see the module docstring."""
     if "merge" not in cmd and "pull" not in cmd:
         return
-    here = cwd
+    here, said = ("path", cwd), cwd
     for seg in top_level_segments(cmd):
         toks = tokens(seg)
-        target = cd_target(seg, here)
-        if target:
-            here = target
+        arg = cd_arg(seg)
+        if arg is not None:
+            here, said = place_after(arg, here), arg
             continue
         found = merge_refs(toks)
         if not found:
             continue
-        where = git_c_target(toks, here) or here
-        branch = loop_worktree_of(where)
-        if not branch:
-            continue
         kind, refs = found
         if not refs:
             continue
-        tops = [(git_out("-C", where, "rev-parse", "--show-toplevel") or "").strip() or None,
-                main_checkout_from(where)]
-        base = base_branch(tops, where)
+        c_arg = git_c_arg(toks)
+        where = place_after(c_arg, here) if c_arg is not None else here
+        if where == UNKNOWN_PLACE:
+            if has_loop_worktrees(cwd):
+                deny(RULE_K_NO_PLACE % {"place": c_arg if c_arg is not None else said})
+            continue
+        # config and the base are the hook's own repository's: a worktree
+        # named only by its suffix has no path to ask
+        at = where[1] if where[0] == "path" else cwd
+        tops = [(git_out("-C", at, "rev-parse", "--show-toplevel") or "").strip() or None,
+                main_checkout_from(at)]
         template = local_key(tops, "branch_template") or DEFAULT_TEMPLATE
+        branch = loop_worktree_of(where[1]) if where[0] == "path" \
+            else worktree_branch(where[1], template)
+        if not branch:
+            continue
+        base = base_branch(tops, at)
         own = parse_branch(branch, template)         # hooks/branch_names (#135)
         n = own["n"] if own else None
         for ref in refs:
-            if " " in ref:          # `git pull <other-remote> <branch>`: never origin's
-                deny(RULE_K_MSG % {"ref": ref, "n": n or "?", "base": base,
-                                   "template": template})
+            ctx = {"ref": ref, "n": n or "?", "base": base, "template": template,
+                   "branch": branch}
+            if " " in ref or SHA_RE.match(ref):
+                # `git pull <other-remote> <branch>` is never origin's; a
+                # commit id names no branch at all
+                deny(RULE_K_NOT_A_BRANCH % ctx)
             name = ref
             for prefix in ("refs/remotes/origin/", "origin/", "refs/heads/"):
                 if name.startswith(prefix):
                     name = name[len(prefix):]
                     break
-            if name == base and not SHA_RE.match(ref):
+            if name == base:
                 continue
+            if n is None:
+                deny(RULE_K_NO_ISSUE % ctx)
             other = parse_branch(name, template)
-            if other and n and other["n"] == n and not SHA_RE.match(ref):
+            if other and other["n"] == n:
                 continue
-            deny(RULE_K_MSG % {"ref": ref, "n": n or "?", "base": base, "template": template})
+            deny(RULE_K_MSG % ctx)
 
 
 def main_checkout_from(path):

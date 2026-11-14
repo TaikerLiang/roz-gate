@@ -1144,7 +1144,7 @@ class RuleK_LoopMergesOnlyBaseOrOwn(HookTest):
         self.repo = self.new_repo({"CLAUDE.md": config_block(forge="github"),
                                    "README.md": "x\n"}, commit=True)
         self.git(self.repo, "remote", "add", "origin", str(self.bare))
-        for b in ("master", "release/20261117", "spec/5", "feat/5", "qa/5", "feat/6",
+        for b in ("master", "release/20261117", "spec/5", "feat/5", "qa/5", "feat/6", "spec/6",
                   "fix/pwl/5/1", "fix/pwl/5/2", "fix/pwl/6/1"):
             self.git(self.repo, "branch", b)
         self.git(self.repo, "push", "-q", "origin", "--all")
@@ -1256,6 +1256,91 @@ class RuleK_LoopMergesOnlyBaseOrOwn(HookTest):
             self.assertDenied(self.bash("git merge --no-edit origin/spec/pwl/6/1",
                                         self.wt("fix/pwl/5/1")), "rule K")
         self.local.unlink()
+
+    def test_redirections_and_locations(self):
+        """#292 — a redirection is not a ref; a directory the hook cannot
+        resolve is not the previous one; each denial names its cause."""
+        spec5 = self.wt("spec/5")
+        self.wt("spec/6")
+        common = '"$(git rev-parse --git-common-dir)/roz-gate/wt/%s"'
+        for name, cmd, cwd in [
+            ("rule K: `2>&1` after the issue's own branch",
+             "git merge --no-edit origin/feat/5 2>&1", spec5),
+            ("rule K: `>/dev/null 2>&1`", "git merge --no-edit origin/feat/5 >/dev/null 2>&1",
+             spec5),
+            ("rule K: `2> err.txt` — the operator and its target",
+             "git merge --no-edit origin/feat/5 2> err.txt", spec5),
+            ("rule K: `&>out` and `>>log`", "git merge --no-edit origin/feat/5 &>out >>log",
+             spec5),
+            ("rule K: a redirection after the base", "git pull origin main 2>&1 | tail -3", spec5),
+            ("rule K: cd through $(git rev-parse --git-common-dir) into this worktree",
+             "cd %s && git merge --no-edit origin/feat/5" % (common % "spec/5"), spec5),
+            ("rule K: the same cd from the main checkout",
+             "cd %s && git merge --no-edit origin/feat/5 2>&1" % (common % "spec/5"), self.repo),
+            ("rule K: `git -C` through the same expression",
+             "git -C %s merge --no-edit origin/feat/5" % (common % "spec/5"), self.repo),
+            ("rule K: the suffix names the worktree, not the cwd — issue 6's own branch",
+             "cd %s && git merge --no-edit origin/feat/6" % (common % "spec/6"), spec5),
+            ("rule K: an unresolved cd with no merge after it", 'cd "$WT" && git status', spec5),
+            ("rule K: an unresolved cd, then `git merge --abort` (no ref)",
+             'cd "$WT" && git merge --abort', spec5),
+        ]:
+            with self.case(name):
+                self.assertAllowed(self.bash(cmd, cwd))
+        where = "could not determine which worktree"
+        for name, cmd, cwd, says in [
+            ("rule K: a redirection does not hide a foreign ref",
+             "git merge --no-edit origin/feat/6 2>&1", spec5, "never merge another branch"),
+            ("rule K: a foreign ref after the recognisable cd",
+             "cd %s && git merge --no-edit origin/feat/6" % (common % "spec/5"), spec5,
+             "never merge another branch"),
+            ("rule K: the suffix names issue 6 — issue 5's branch is foreign there",
+             "cd %s && git merge --no-edit origin/feat/5" % (common % "spec/6"), spec5,
+             "never merge another branch"),
+            ("rule K: a quoted `-m \">note\"` is a message, and does not swallow the ref",
+             'git merge -m ">note" origin/master', spec5, "never merge another branch"),
+            ("rule K: `2>` takes its target, not the ref after it",
+             "git merge 2> err.txt origin/master", spec5, "never merge another branch"),
+            ("rule K: `cd \"$WT\"` may be another issue's worktree",
+             'cd "$WT" && git merge --no-edit origin/feat/5', spec5, where),
+            ("rule K: `cd \"$(some-command)/x\"`",
+             'cd "$(some-command)/x" && git merge --no-edit origin/feat/5', spec5, where),
+            ("rule K: `git -C \"$UNKNOWN\" merge`",
+             'git -C "$UNKNOWN" merge --no-edit origin/feat/5', spec5, where),
+            ("rule K: a backtick directory",
+             "cd `pwd`/x && git merge --no-edit origin/feat/5", spec5, where),
+            ("rule K: a relative cd after an unresolved one stays unknown",
+             'cd "$WT" && cd sub && git merge --no-edit origin/feat/5', spec5, where),
+            ("rule K: an unresolved cd from the main checkout of a repo with loop worktrees",
+             'cd "$WT" && git merge --no-edit origin/feat/5', self.repo, where),
+            ("rule K: the base is not exempt at an unknown location",
+             'cd "$WT" && git pull origin main', spec5, where),
+        ]:
+            with self.case(name):
+                self.assertDenied(self.bash(cmd, cwd), says)
+        with self.case("rule K: an unknown location makes no claim about the base"):
+            out = self.bash('cd "$WT" && git merge --no-edit origin/feat/5', spec5)
+            self.assertDenied(out, "rule K")
+            self.assertNotIn("lacks code", out.stderr)
+        with self.case("rule K: a static absolute cd after an unresolved one is known again"):
+            self.assertAllowed(self.bash(
+                'cd "$WT" && cd %s && git merge --no-edit origin/feat/5' % spec5, spec5))
+        with self.case("rule K: a sha is not a branch the hook can read — and says so"):
+            out = self.bash("git merge 0123456789abcdef0123456789abcdef01234567", spec5)
+            self.assertDenied(out, "not a branch name")
+            self.assertNotIn("lacks code", out.stderr)
+        with self.case("rule K: a worktree whose branch does not match the template — the "
+                       "issue is unknown, and the message says that"):
+            odd = self.wt("release/20261117")
+            out = self.bash("git merge --no-edit origin/feat/5", odd)
+            self.assertDenied(out, "could not tell which issue")
+            self.assertNotIn("lacks code", out.stderr)
+
+    def test_unresolved_location_outside_a_loop_repo(self):
+        """#292 — a repository with no loop worktree is never judged."""
+        plain = self.new_repo({"README.md": "x\n"}, commit=True)
+        with self.case("rule K: `cd \"$DIR\" && git pull origin main` in an unrelated repo"):
+            self.assertAllowed(self.bash('cd "$DIR" && git pull origin main', plain))
 
     def test_silent_outside_the_loop(self):
         mine = self.new_dir() / "mine"
