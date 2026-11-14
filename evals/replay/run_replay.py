@@ -380,8 +380,10 @@ def _run_one(sut, cdir, rdir, prompt, timeout, variant, plugin_dir):
     # A checker may report signals — attempts the hook DENIED (D2), shell
     # writes to the acceptance suite (D4) — each in its own column, never a
     # breach. `signals` names the counts so the report sums them without
-    # knowing; `details` names the evidence that rides along (#290).
-    attempts = load_json(os.path.join(rdir, "attempts.json"), {}) or {}
+    # knowing; `details` names the evidence that rides along (#290). The
+    # runner adds one of its own: the next-stage path files Read (#279).
+    attempts = {**rl.path_files_read(transcript),
+                **(load_json(os.path.join(rdir, "attempts.json"), {}) or {})}
     result.update(attempts)
     signals, details = split_attempts(attempts)
     if signals:

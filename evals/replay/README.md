@@ -190,6 +190,20 @@ verdict on the seeded state against whether the run took the lock). A
 signal is information, never a verdict. A case may declare the verdict its
 seed must give in `case.json`'s `check` key; the harness verifies it.
 
+One signal is the runner's own, on every valid run (#279):
+`path_files_read`, the number of distinct `references/next-stage-path-*.md`
+files the session Read (seats included), with their names, in the order
+first Read, in `path_files_read_detail`. Expect **1** for a
+`/roz-gate:next-stage` run that reached the hand-off, and the right one for
+its route; **0** for a legal STOP before the route (an invalid label, no
+gated issue) — and for a run that acted without reading its path, which is
+the defect the signal exists to show; **2 or more**, another path loaded
+too. Patrol's code-review and fidelity actions read one path file as well.
+The count says the file was loaded, not that the run followed it, nor when:
+whether the Read came before the lock is read from the run's
+`transcript.jsonl`. `report.json` sums the count per case, like every
+signal; each run's own figure and names stay in its `result.json`.
+
 The cases built for the comparison are **D10–D19**, the pilot of #199:
 ten `/roz-gate:next-stage 5` runs on four fixture shapes (an HTTP service
 through `bin/serve`, a CLI through `src/kv/cli.py`, the port under `src/`
