@@ -185,7 +185,7 @@ two are counted in a rate:
 |---|---|---|
 | **PASS** | every expectation held in a valid run | the case's `check.py`, exit 0 |
 | **FAIL** | an expectation did not hold in a valid run — a rule broken, a required behaviour missing | `check.py`, exit ≠ 0 and ≠ 3 |
-| **INVALID** | no meaningful verdict: the seed failed, the session never completed or was cut short, a quota or session error, an unrouted forge call — or the checker found the rule was never exercised (`replaylib.invalid(reason)`, exit 3: for D10–D19, the QA dispatch never ran, or the seat's suite was never pushed so its work is unobservable) | the runner; or the checker, with its reason in `invalid_reason` |
+| **INVALID** | no meaningful verdict: the seed failed, the session never completed or was cut short, a quota or session error, a session that loaded something beyond the plugin under test (#307), an unrouted forge call — or the checker found the rule was never exercised (`replaylib.invalid(reason)`, exit 3: for D10–D19, the QA dispatch never ran, or the seat's suite was never pushed so its work is unobservable) | the runner; or the checker, with its reason in `invalid_reason` |
 
 Invalid is never red (§ Method): a rate is computed over valid runs only
 and `report.json` counts the invalid ones beside it. Under the QA-brief
@@ -226,6 +226,26 @@ are each row's plumbing proof.
 **The SUT** is headless Claude Code (`claude -p`) running the working-tree
 plugin in a throwaway git repo, hooks included — the measurement covers
 the guard layer, not the prose alone.
+
+**Nothing from the operator's user scope** (#307). Every SUT session —
+the runner, the F6 driver, the judgment tier — runs with
+`--setting-sources project,local --strict-mcp-config`
+(`replaylib.SUT_ISOLATION_ARGS`). Without it the session loaded the
+operator's plugins (a second roz-gate from the installed copy, telegram),
+hooks, skills, MCP servers (a connected messaging server, the claude.ai
+connectors) and `~/.claude/CLAUDE.md`; measured on Claude Code 2.1.325,
+the setting-source restriction drops all of those, and
+`--strict-mcp-config` drops every MCP server on its own, a project
+`.mcp.json` included. The runner then reads the session's `system/init`
+event (`replaylib.isolation_breach`): any plugin other than the runtime's
+built-ins (`cc-plugin-*@builtin`) and exactly one roz-gate loaded from
+`--plugin-dir` — none for a no-plugin session — any MCP server, or no init
+event at all makes the iteration INVALID with that reason. Every
+`result.json` records the session's effective `plugins`; a result without
+the field was recorded before the isolation and may have run with the
+operator's configuration. One thing stays: the runtime's auto-memory
+directory for the sandbox's path (`~/.claude/projects/<path>/memory/`) —
+a fresh temp path each run, so it starts empty.
 
 **The forge** is a stateful stub (`forge-stub/gh`) shadowing the real CLI
 via PATH. Fixtures seed `state.json`; writes mutate state (commands read

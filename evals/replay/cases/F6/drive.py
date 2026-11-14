@@ -34,10 +34,13 @@ ROOT, S = os.environ["ROOT"], os.environ["S"]
 sys.path.insert(0, S)
 from replaylib import (  # noqa: E402
     SUT_ENV,
+    SUT_ISOLATION_ARGS,
     TIMEOUT_NOTE,
     cut_short,
     has_result_event,
+    isolation_breach,
     session_error,
+    session_plugins,
 )
 
 SUT = {"model": os.environ["SUT_MODEL"], "mode": os.environ["SUT_MODE"],
@@ -102,7 +105,7 @@ def run_turn(work, prompt, outfile, sid):
         args += ["--resume", sid]
     args += ["--model", SUT["model"], "--output-format", "stream-json",
              "--verbose", "--dangerously-skip-permissions",
-             "--plugin-dir", ROOT]
+             "--plugin-dir", ROOT] + SUT_ISOLATION_ARGS
     with open(outfile, "w") as t, open(os.path.join(RDIR, "stderr.log"), "a") as e:
         if sh(args, cwd=work, env=env, timeout=900, out=t, err=e) == -1:
             e.write("\n" + TIMEOUT_NOTE % 900 + "\n")
@@ -135,7 +138,8 @@ def turn_failed(outfile):
         return "no result event — the turn never completed"
     # stderr.log accumulates across turns: once any turn was cut short the
     # session is invalid from there on, which is what aborting means here.
-    return session_error(outfile) or cut_short(os.path.join(RDIR, "stderr.log"))
+    return (session_error(outfile) or isolation_breach(outfile, ROOT)
+            or cut_short(os.path.join(RDIR, "stderr.log")))
 
 
 def main():
@@ -195,7 +199,8 @@ def main():
             usage["out"] += u.get("output_tokens", 0)
     complete = (not aborted) and len(curve) == len(MEASURED)
     result = {"valid": complete, "pass": False, "instrument_only": True,
-              "curve": curve, "tokens": usage}
+              "curve": curve, "tokens": usage,
+              "plugins": session_plugins(os.path.join(RDIR, "turn-1.jsonl"))}  # #307
     if not complete:
         result["invalid_reason"] = aborted or "session aborted before turn 12"
     json.dump(result, open(os.path.join(RDIR, "result.json"), "w"), indent=1)

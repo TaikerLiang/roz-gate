@@ -44,7 +44,15 @@ E = os.path.dirname(S)                       # evals/
 RS = os.path.join(E, "replay")
 sys.path.insert(0, RS)
 sys.path.insert(0, E)
-from replaylib import Run, cut_short, has_result_event, iteration_done, session_error  # noqa: E402
+from replaylib import (  # noqa: E402
+    Run,
+    cut_short,
+    has_result_event,
+    isolation_breach,
+    iteration_done,
+    session_error,
+    session_plugins,
+)
 
 _spec = importlib.util.spec_from_file_location("run_replay", os.path.join(RS, "run_replay.py"))
 rr = importlib.util.module_from_spec(_spec)
@@ -420,11 +428,11 @@ def run_case(sut, name, fx, rdir, arm="treatment"):
     transcript = os.path.join(rdir, "transcript.jsonl")
     baseline = arm == "baseline"
     prompt = wv.baseline_prompt(fx["issue"]) if baseline else fx["command"]
+    plugin_dir = None if baseline else rr.ROOT
     rr.invoke_claude(sut, work, os.path.join(rdir, "forge"), prompt, fx["timeout"],
-                     transcript, os.path.join(rdir, "stderr.log"),
-                     plugin_dir=None if baseline else rr.ROOT)
+                     transcript, os.path.join(rdir, "stderr.log"), plugin_dir=plugin_dir)
     base = {"fixture": name, "pin": fx["pin"], "overlay_sha": overlay_sha, "sut": sut["name"],
-            "arm": arm, "prompt": prompt}
+            "arm": arm, "prompt": prompt, "plugins": session_plugins(transcript)}
     cost_counts = wv.cost(Run(rdir).tool_uses(), loop_config(admc_path()))
     if not has_result_event(transcript):
         rr.write_result(rdir, {**base, "valid": False,
@@ -437,6 +445,11 @@ def run_case(sut, name, fx, rdir, arm="treatment"):
         rr.write_result(rdir, {**base, "valid": False, "invalid_reason": err, "tokens": usage})
         shutil.rmtree(sbx, ignore_errors=True)
         return 3 if err == "quota-exhausted" else 1
+    leak = isolation_breach(transcript, plugin_dir)   # #307: a harness failure, never scored
+    if leak:
+        rr.write_result(rdir, {**base, "valid": False, "invalid_reason": leak, "tokens": usage})
+        shutil.rmtree(sbx, ignore_errors=True)
+        return 1
     short = cut_short(os.path.join(rdir, "stderr.log"))
     if short:
         rr.write_result(rdir, {**base, "valid": False, "invalid_reason": short, "tokens": usage})
