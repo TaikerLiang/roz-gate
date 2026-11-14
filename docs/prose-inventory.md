@@ -278,6 +278,7 @@ a single rule and has its own row above.
 | L18 | the evaluation charter's own lint — `evals/charter.md` keeps its terms, levels and six rules, and the pages that apply it point at it (#257) |
 | L19 | the documents' own lint — recorded baselines are data and rendered; the retired headline figures and phrasings stay out (#280) |
 | L20 | `next-stage`'s own lint — the route table names one path file per row, every step id is a heading in exactly one file, the hand-off instruction is present (#279) |
+| L21 | rules about the prose itself — the repo's runtime prose total and each command file's word count stay within their caps (#278) |
 | D21 | the dispatch steps' own lint — a step that enumerates a dispatch's contents names the seat's R&R row (#294) |
 | J2 | Judgment V1's own lint — the corpus is approved and leak-free, and the scorer reproduces hand-computed numbers (#258) |
 | J3 | the Workflow Value pilot's own lint — the baseline is told nothing of the loop, the gold is the retrospective record, an invalid or unreviewed pair is never compared (#259) |
