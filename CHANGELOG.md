@@ -2,6 +2,37 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.18.0 — guards judge the file's worktree and fail closed — 2026-11-14
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.18.0>
+
+**Behavior:** hooks — `guard-acceptance` judges the edited file's worktree, an invalid `branch_template` denies suite writes, and a guard that cannot finish its check blocks the call instead of letting it through.
+
+### Hooks
+- **guard-acceptance judges the file's worktree, not the session's cwd** (#277, PR #312). The loop's own edits in `<common-dir>/roz-gate/wt/spec/<n>` were never denied from 1.22.0 on. Branch, toplevel, config block and local file now come from the worktree holding `file_path`: its nearest existing directory, with a relative path resolved against cwd and symlinks resolved to where the file really is. That includes the block's and the template's fallback to that repo's own main checkout. The shim is a thin wrapper, with one Python start per Edit / Write / MultiEdit.
+- **An invalid `branch_template` denies suite writes on every branch** (#277, PR #312) instead of switching the guard off. The message gives `validate`'s reason and names the checkout whose local file to fix. This changes behaviour for a clone that hand-edited its JSON.
+- **Guards fail closed** (#281, PR #314): `guard-gate`, `guard-blind` and `guard-acceptance` block the call when their Python side cannot decide — `python3` missing, unable to start, or the guard crashing (any exit but 0/2). The deny says it is a tool failure, not a protocol block. Calls a prefilter lets through are unaffected. Because `guard-acceptance` has no prefilter, a machine without `python3` can make no edits until it is installed (ruled on #281).
+- **`sync-worktree` reports a copy that did not run** (#281, PR #314), and how to recover.
+
+### Evals
+- **SUT isolation** (#307, PR #309): every SUT session runs with `--setting-sources project,local --strict-mcp-config`. Before, sessions loaded the operator's plugins, hooks, skills, MCP servers and `~/.claude/CLAUDE.md`. The #259 F-51 baseline calibration had Roz Gate in its "no Roz Gate" arm.
+- **Init-event check** (#307, PR #309): a session that loaded anything beyond the built-ins and the one `--plugin-dir` plugin is INVALID with a harness reason, never scored. So is a session with any MCP server or no init event. `result.json` records the effective `plugins`.
+- **Token accounting** (#308, PR #310): a session's tokens are the runtime's own totals from the `result` event (`modelUsage`, seats included), not the sum of per-block stream events. `tokens` now carries `cache_read` and `counter: 2`; reports add up only runs on the current counter (`tokens_old_counter` counts the rest), and the paired Workflow Value report prints "not comparable" for an old run's tokens.
+- **F6** (PRs #309, #310): the driver runs with the same flags, check and counter, so its `case_fp` moves and its earlier runs read stale.
+- **Baseline sandbox flattened** (#259, PR #311, ruling (b)): the Workflow Value baseline arm runs in a repository with one root commit carrying the transformed tree; nothing remains in history, refs, reflog or objects.
+- **Forge stub plain-text forms** (#259, PR #311): `issue view` (with and without `--comments`), `issue list`, `pr view` and `pr list` without `--json` print gh 2.82's human format instead of `{}`. A fact the fixture does not state makes the call UNKNOWN; a comment's `association` / `edited` / `status` are the fixture's when stated, else gh's zero values.
+- **Runner CLI** (#282, PR #313): `run_replay.py` and `run_judgment.py` use argparse and validate every argument for the whole batch before any model session. An unknown case or fixture, a bad `--k` or an unknown flag exits 2 and starts nothing. New read-only `--list` and `--dry-run` in both runners.
+
+### Tooling
+- **`roz-config` validates what it migrates from the config block** (#277, PR #312), with the same `problem()` check `set` makes. An invalid line is reported, not seeded, on every run while the key is still eligible. The exit code is unchanged.
+
+### Docs
+- **`hooks/README.md`**: the acceptance row (place, invalid-template deny), the thin-wrapper exception, the fail-closed paragraph, two fail-direction rows, `run-guard.sh`. **`references/branch-names.md` § The hooks**: HEAD and the template come from the edited file's worktree.
+- **`evals/replay/README.md`**, **`evals/judgment/README.md`**, **`evals/workflow-value.md`**, **`evals/CONTRIBUTING.md`**: SUT isolation and the new INVALID reason, the token counter, the flattened baseline sandbox, the stub's plain forms, the runners' new modes and the check-before-spend rule.
+
+### Checks
+Hook tests 1243/1243 · lint 1746/1746 · red-proofs 47/47 · ruff · judgment `--check` · ledger `--check` current
+
 ## v2.17.1 — dispatch lists name the R&R row — 2026-11-14
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.17.1>
