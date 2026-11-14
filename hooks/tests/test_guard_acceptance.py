@@ -297,6 +297,23 @@ class ThePlaceIsTheFiles(HookTest):
         with self.case("place: cwd in the spec/5 worktree, a target in no repo — allowed"):
             self.assertAllowed(self.edit(self.new_dir() / ACCEPTANCE_FILE, spec))
 
+    def test_symlinks_resolve_to_the_file(self):
+        # codex, PR #312: an alias outside any repo names the spec worktree's
+        # suite file — the place is where the file really is.
+        main = self.loop_repo()
+        spec = self.worktree(main, "spec/5")
+        self.write(spec / ACCEPTANCE_FILE, "x = 1\n")
+        outside = self.new_dir()
+        (outside / "alias.py").symlink_to(spec / ACCEPTANCE_FILE)
+        with self.case("place: a symlinked file outside any repo pointing into the spec/5 "
+                       "worktree's suite — denied"):
+            self.assertDenied(self.edit(outside / "alias.py", main), "acceptance suite")
+        (outside / "suite").symlink_to(spec / "tests" / "acceptance")
+        with self.case("place: a symlinked directory component outside any repo, a new file "
+                       "under the spec/5 worktree's suite — denied"):
+            self.assertDenied(self.edit(outside / "suite" / "new" / "test_n.py", main, "Write"),
+                              "acceptance suite")
+
     def test_config_from_the_files_main_checkout(self):
         # Plan review item 1: the block (CLAUDE.local.md, untracked) and the
         # template (the local file) exist only in the target repo's own main

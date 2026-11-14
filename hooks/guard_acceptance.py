@@ -101,10 +101,12 @@ def git(*args):
 
 def toplevel(target):
     """The toplevel of the work tree that holds `target`, or None (#277): a
-    relative path resolves against the hook's cwd; the walk up stops at the
-    nearest existing directory, since a Write may create the file and its
-    directories."""
-    d = os.path.dirname(os.path.abspath(target))
+    relative path resolves against the hook's cwd, symlinks to where the file
+    really is (an alias outside the repo still names the suite — codex, PR
+    #312; realpath resolves the existing part and keeps the rest); the walk
+    up stops at the nearest existing directory, since a Write may create the
+    file and its directories."""
+    d = os.path.dirname(os.path.realpath(target))
     while not os.path.isdir(d):
         d = os.path.dirname(d)
     return git("-C", d, "rev-parse", "--show-toplevel")
