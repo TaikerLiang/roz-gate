@@ -217,16 +217,14 @@ def invoke_claude(sut, work, forge_state, prompt, timeout, transcript,
 
 
 def usage_and_cost(transcript, mode):
-    usage = {"in": 0, "out": 0}
+    """The session's tokens (replaylib.session_tokens, #308) and its cost."""
+    usage = rl.session_tokens([transcript])
     cost = None
     for line in open(transcript, encoding="utf-8"):
         try:
             ev = json.loads(line)
         except ValueError:
             continue
-        u = (ev.get("message") or {}).get("usage") or {}
-        usage["in"] += u.get("input_tokens", 0) + u.get("cache_creation_input_tokens", 0)
-        usage["out"] += u.get("output_tokens", 0)
         if ev.get("type") == "result" and ev.get("total_cost_usd") is not None:
             cost = ev["total_cost_usd"]
     if mode == "api":
@@ -447,7 +445,7 @@ def aggregate(sut, report):
         if not os.path.isdir(d) or key.startswith("smoke-"):
             continue
         case, variant = split_key(key)
-        n = p = inv = stale = unknown = tin = tout = 0
+        n = p = inv = stale = unknown = tin = tout = tcr = old_counter = 0
         usd = 0.0
         signals = {}
         cdir = os.path.join(S, "cases", case)
@@ -499,14 +497,21 @@ def aggregate(sut, report):
                 # too: evidence, never summed
                 if is_count(r.get(sig)):
                     signals[sig] = signals.get(sig, 0) + r[sig]
+            # tokens counted another way are never summed with these (#308)
             t = r.get("tokens", {})
-            tin += t.get("in", 0)
-            tout += t.get("out", 0)
+            if rl.current_counter(t):
+                tin += t.get("in", 0)
+                tout += t.get("out", 0)
+                tcr += t.get("cache_read", 0)
+            else:
+                old_counter += 1
             usd += (r.get("cost") or {}).get("usd") or 0
         if n == 0 and inv == 0 and stale == 0:
             continue
         counts = {"invalid": inv, **({"stale": stale} if stale else {}),
-                  **({"unknown": unknown} if unknown else {})}
+                  **({"unknown": unknown} if unknown else {}),
+                  **({"tokens_old_counter": old_counter} if old_counter else {})}
+        tokens = {"in": tin, "out": tout, "cache_read": tcr}
         if n == 0:
             # All iterations invalid or stale: a harness failure or another
             # case's measurement, never a scored 0% — publishing it as a
@@ -516,13 +521,13 @@ def aggregate(sut, report):
                     if not inv else "unavailable — every iteration invalid or stale")
             rows.append({"case": key, "variant": variant, "runs": 0, "passes": 0, **counts,
                          "rate": None, "wilson90": None, "note": note,
-                         "tokens": {"in": tin, "out": tout}})
+                         "tokens": tokens})
             continue
         lo, hi = wilson90(p, n)
         rows.append({"case": key, "variant": variant, "runs": n, "passes": p, **counts,
                      "rate": round(p / n, 3),
                      "wilson90": [round(lo, 3), round(hi, 3)],
-                     "tokens": {"in": tin, "out": tout},
+                     "tokens": tokens,
                      **signals, **({"signals": sorted(signals)} if signals else {}),
                      **({"cost_usd": round(usd, 4)} if sut["mode"] == "api"
                         else {"cost": "quota"})})
@@ -551,7 +556,7 @@ def aggregate(sut, report):
                   % (r["case"], r["note"], r["invalid"], r.get("stale", 0)))
             continue
         extra = "  (%d invalid)" % r["invalid"] if r["invalid"] else ""
-        for key in ("stale", "unknown"):
+        for key in ("stale", "unknown", "tokens_old_counter"):
             if r.get(key):
                 extra += "  %s=%d" % (key, r[key])
         for key in r.get("signals", []):

@@ -530,13 +530,16 @@ def aggregate(sut, report):
                     runs.append((run, r))
         inv = [(run, r) for run, r in runs if not r.get("valid")]
         val = [(run, r) for run, r in runs if r.get("valid")]
+        # tokens counted another way are never summed with these (#308)
+        counted = [r for _, r in val if rr.rl.current_counter(r.get("tokens"))]
         for run, r in val:
-            print("%-6s %-10s %-9s %-9s %-8s %-14s %d/%d [%d/%d]%s" % (
+            print("%-6s %-10s %-9s %-9s %-8s %-14s %d/%d [%d/%d]%s%s" % (
                 name, run, "%d/%d" % tuple(r["recall"]), "%d/%d" % tuple(r["precision"]),
                 "ok" if r["cap_ok"] else "fail",
                 "%d (cap %d)" % (r["question_count"], r["question_cap"]),
                 r["tokens"]["in"], r["tokens"]["out"],
                 r["judge_tokens"]["in"], r["judge_tokens"]["out"],
+                "" if rr.rl.current_counter(r.get("tokens")) else "  (old token counter)",
                 "  judge-invalid=%d" % r["judge_invalid"] if r["judge_invalid"] else ""))
         for run, r in inv:
             print("%-6s %-10s INVALID — %s%s"
@@ -556,8 +559,10 @@ def aggregate(sut, report):
                          "cap_pass": sum(1 for _, r in val if r["cap_ok"]),
                          "question_counts": [r["question_count"] for _, r in val],
                          "judge_invalid": sum(r["judge_invalid"] for _, r in val),
-                         "tokens": {"in": sum(r["tokens"]["in"] for _, r in val),
-                                    "out": sum(r["tokens"]["out"] for _, r in val)},
+                         "tokens": {k: sum(r["tokens"].get(k, 0) for r in counted)
+                                    for k in ("in", "out", "cache_read")},
+                         **({"tokens_old_counter": len(val) - len(counted)}
+                            if len(counted) < len(val) else {}),
                          "historical": h})
         elif inv:
             rows.append({"case": name, "runs": 0, "invalid": len(inv),

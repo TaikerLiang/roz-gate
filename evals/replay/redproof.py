@@ -47,6 +47,12 @@ throwaway state, the resume rule against staged result.json files.
   list`, `pr list` and `pr view` with no `--json` print gh's human format
   byte for byte, or UNKNOWN naming the fact the fixture does not state
   (`updatedAt`, `createdAt`, a PR's `author`, its reviewers) — never `{}`.
+- TOKENS (#308) — `session_tokens` on canned transcripts whose messages
+  stream one event per block: the result event's `modelUsage` (seats
+  included), else its `usage` summed over result events, else each message
+  once at its last usage; resumed sessions sum per transcript; `aggregate()`
+  sums only runs on the current `TOKEN_COUNTER` and counts the others in
+  `tokens_old_counter`.
 - ISOLATION (#307) — `invoke_claude` runs every SUT session with
   `--setting-sources project,local --strict-mcp-config`; the init event's
   plugin list is checked against canned transcripts: the built-ins and one
@@ -1854,6 +1860,103 @@ def plain_checks():
     return rows
 
 
+# ---- #308: a session's tokens are the runtime's own totals -----------------
+def _tok_msg(mid, blk, u, parent=None):
+    ev = {"type": "assistant", "message": {"id": mid, "content": [{"type": blk}], "usage": u}}
+    if parent:
+        ev["parent_tool_use_id"] = parent
+    return ev
+
+
+def _tok_u(i, cc, cr, out):
+    return {"input_tokens": i, "cache_creation_input_tokens": cc,
+            "cache_read_input_tokens": cr, "output_tokens": out}
+
+
+def _tok_mu(i, cc, cr, out):
+    return {"claude-haiku-5-5": {"inputTokens": i, "cacheCreationInputTokens": cc,
+                                 "cacheReadInputTokens": cr, "outputTokens": out}}
+
+
+# One API call streams one assistant event per content block, each repeating
+# the call's usage with a partial output count; a seat's calls carry
+# parent_tool_use_id; the result event holds the turn's own usage (the main
+# thread) and modelUsage, the process's running total, seats included.
+TOK_STREAM = [
+    {"type": "system", "subtype": "init"},
+    _tok_msg("m1", "thinking", _tok_u(3, 1000, 5000, 10)),
+    _tok_msg("m1", "tool_use", _tok_u(3, 1000, 5000, 10)),
+    {"type": "user", "message": {"content": [{"type": "tool_result"}]}},
+    _tok_msg("s1", "text", _tok_u(2, 300, 100, 7), parent="toolu_1"),
+    _tok_msg("m2", "text", _tok_u(1, 200, 6000, 5)),
+]
+TOK_RESULT = {"type": "result", "subtype": "success", "is_error": False, "result": "ok",
+              "usage": _tok_u(4, 1200, 11000, 900), "modelUsage": _tok_mu(6, 1500, 11100, 1400)}
+
+
+def _tok(*transcripts):
+    """session_tokens over staged transcripts (lists of events)."""
+    fn = getattr(rl, "session_tokens", None)
+    d = tempfile.mkdtemp()
+    try:
+        paths = []
+        for i, events in enumerate(transcripts):
+            paths.append(os.path.join(d, "t%d.jsonl" % i))
+            with open(paths[-1], "w") as f:
+                f.writelines(json.dumps(e) + "\n" for e in events)
+        if fn is None:   # before #308: the runner's own counter, one transcript
+            return rr.usage_and_cost(paths[0], "subscription")[0]
+        return fn(paths)
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def token_checks():
+    """#308: a session's tokens come from the result event — modelUsage, the
+    process's total with its seats, else the sum of the result events'
+    usage — never from the per-block stream events; with no result event,
+    each message once, at its last usage. `in` is input + cache creation,
+    `cache_read` apart, and every count carries the counter's version, so
+    the report never sums a run counted the old way with a new one."""
+    counter = getattr(rl, "TOKEN_COUNTER", None)
+    want = {"in": 1506, "out": 1400, "cache_read": 11100, "counter": counter}
+    one = _tok(TOK_STREAM + [TOK_RESULT])
+    # two turns in one process: per-turn usage, the same running modelUsage
+    turn2 = dict(TOK_RESULT, usage=_tok_u(1, 100, 900, 200))
+    two = _tok(TOK_STREAM + [TOK_RESULT, _tok_msg("m3", "text", _tok_u(1, 100, 900, 3)), turn2])
+    # an older runtime with no modelUsage: the result events' usage, summed
+    bare = [{k: v for k, v in e.items() if k != "modelUsage"} for e in (TOK_RESULT, turn2)]
+    nomu = _tok(TOK_STREAM + bare)
+    # resumed sessions (F6): one process per transcript, the totals summed
+    resumed = _tok(TOK_STREAM + [TOK_RESULT], TOK_STREAM + [TOK_RESULT])
+    # no result event: each message once, at its last (largest) usage
+    cut = _tok(TOK_STREAM[:3] + [_tok_msg("m1", "text", _tok_u(3, 1000, 5000, 50))])
+    s = HERE + "/cases/C5"
+    fp = rl.case_fingerprint(s)
+    new = {"valid": True, "pass": True, "case_fp": fp,
+           "tokens": {"in": 100, "out": 10, "cache_read": 1000, "counter": counter}}
+    old = {"valid": True, "pass": True, "case_fp": fp, "tokens": {"in": 7, "out": 1}}
+    row = _aggregate([new, old], key="C5") or {}
+    return [
+        ("multi-block messages and a seat: the result event's modelUsage (in = input + cache "
+         "creation, out, cache_read apart), never the stream's sum (old counter: 2509 in / 32 out)",
+         one == want),
+        ("two result events in one process: modelUsage is the running total, taken once",
+         two == want),
+        ("no modelUsage: the result events' usage summed (the main thread's turns)",
+         nomu == {"in": 4 + 1200 + 1 + 100, "out": 1100, "cache_read": 11900,
+                  "counter": counter}),
+        ("resumed sessions, one transcript each: the per-process totals summed",
+         resumed == {"in": 3012, "out": 2800, "cache_read": 22200, "counter": counter}),
+        ("no result event: each message once at its last usage, not once per block",
+         cut == {"in": 1003, "out": 50, "cache_read": 5000, "counter": counter}),
+        ("the report sums only runs on the current counter and counts the rest apart",
+         counter is not None and row.get("runs") == 2
+         and row.get("tokens") == {"in": 100, "out": 10, "cache_read": 1000}
+         and row.get("tokens_old_counter") == 1),
+    ]
+
+
 # ---- #307: a SUT session loads nothing from the operator's user scope -------
 ISO_BUILTINS = [{"name": "cc-plugin-telemetry", "path": "builtin",
                  "source": "cc-plugin-telemetry@builtin"},
@@ -2014,6 +2117,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok, why in plain_checks():
         print("%s plain: %s" % ("PASS" if ok else "FAIL", name), why)
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in token_checks():
+        print("%s tokens: %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in isolation_checks():
         print("%s isolation: %s" % ("PASS" if ok else "FAIL", name))

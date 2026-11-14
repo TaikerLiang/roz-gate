@@ -295,6 +295,59 @@ class RozConfigTest(unittest.TestCase):
                              "… and the block is not consulted again")
             self.assertNotIn("seeded", p.stderr)
 
+    # #277, ruling 4: migrate() validates with the function `set` uses. An
+    # invalid block line is not seeded and stderr says so on every run while
+    # the key is still eligible (plan review item 2): a late key not yet in the
+    # file stays eligible; any other key's one chance was the file's birth.
+    def test_migration_refuses_an_invalid_block_value(self):
+        (self.root / "CLAUDE.md").write_text(
+            "### Roz Gate config\n\n- forge: github\n- default_branch: release/1\n"
+            "- branch_template: {kind}/{ticket}\n- patrol_issues_per_pass: zero\n"
+            "- worktree_copy: ../secret.env\n")
+        p = self.run_tool("--json")
+        with self.subTest("roz-config: an invalid block branch_template / patrol_issues_per_pass "
+                          "/ worktree_copy is not seeded; the valid key seeds"):
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(self.stored(), {"default_branch": "release/1"})
+            self.assertEqual(json.loads(p.stdout)["default_branch"], "release/1")
+        with self.subTest("roz-config: stderr names each refused key and why"):
+            self.assertIn("unknown placeholder {ticket}", p.stderr)
+            self.assertIn("patrol_issues_per_pass 'zero' is invalid", p.stderr)
+            self.assertIn("'../secret.env' is not a path inside the repository", p.stderr)
+            self.assertIn("roz-config: seeded", p.stderr)
+        p = self.run_tool("--json")
+        with self.subTest("roz-config: the second run, after the valid key was written, warns "
+                          "again for the still-eligible late keys and seeds nothing"):
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(self.stored(), {"default_branch": "release/1"})
+            self.assertIn("unknown placeholder {ticket}", p.stderr)
+            self.assertIn("patrol_issues_per_pass 'zero' is invalid", p.stderr)
+            self.assertNotIn("roz-config: seeded", p.stderr)
+        with self.subTest("roz-config: …and is silent on worktree_copy — its one migration was "
+                          "the file's birth"):
+            self.assertNotIn("worktree_copy", p.stderr)
+        (self.root / "CLAUDE.md").write_text(
+            "### Roz Gate config\n\n- forge: github\n- default_branch: release/1\n"
+            "- branch_template: {kind}/{n}/{user}\n- patrol_issues_per_pass: zero\n")
+        p = self.run_tool("--json")
+        with self.subTest("roz-config: the line fixed, the next run seeds it and stops warning "
+                          "about it"):
+            self.assertEqual(self.stored()["branch_template"], "{kind}/{n}/{user}")
+            self.assertIn("roz-config: seeded", p.stderr)
+            self.assertNotIn("branch_template '", p.stderr)
+            self.assertIn("patrol_issues_per_pass 'zero' is invalid", p.stderr)
+
+    def test_migration_with_only_invalid_values_writes_nothing(self):
+        with self.subTest("roz-config: a block whose only key is invalid writes no file and "
+                          "warns on every run"):
+            (self.root / "CLAUDE.md").write_text(
+                "### Roz Gate config\n\n- branch_template: {user}/{n}\n")
+            for _ in range(2):
+                p = self.run_tool("--json")
+                self.assertEqual(p.returncode, 0, p.stderr)
+                self.assertIn("neither {kind} nor {type}", p.stderr)
+                self.assertFalse((self.root / REL).exists())
+
     def test_no_migration_without_block_keys(self):
         with self.subTest(
                 'roz-config: a block without the three keys seeds nothing'):

@@ -38,8 +38,23 @@ uv run evals/replay/run_replay.py [--sut NAME] [--k N] [--variant A|B|C] [case .
   on-demand, pre-release manual.
 - Cost: API-mode rows record dollars from response usage; subscription
   rows record tokens labeled quota, no dollar figure. Measured single-run
-  costs (fable): a quiet patrol pass ≈ 209k in / 2.7k out; a review-turn
-  pass ≈ 114k in.
+  costs (fable, on the old counter — see below): a quiet patrol pass
+  ≈ 209k in / 2.7k out; a review-turn pass ≈ 114k in.
+- **Tokens are the runtime's own totals** (#308,
+  `replaylib.session_tokens`). The last `result` event's `modelUsage` is
+  the process's running total, seats included; without it the `result`
+  events' `usage` is summed (one per turn, the main thread only); with no
+  `result` event, each message is counted once at its last usage. A
+  resumed session (F6's turns, one process each) sums its transcripts.
+  `tokens` holds `in` (input + cache creation), `out`, `cache_read` and
+  `counter` (`replaylib.TOKEN_COUNTER`, now 2). A result without `counter`
+  was counted by version 1, which summed every stream event — an API call
+  streams one event per content block, each repeating the call's usage
+  with a partial output count, so input was double-counted and output
+  about 40× low (F-51: 56,774 in / 100 out recorded, 30,177 / 4,231
+  true). `report.json` sums only runs on the current counter; the others
+  are counted in `tokens_old_counter` and their figures left out. An old
+  run cannot be re-counted from its result; its transcript can.
 
 ## Exporting runs to Langfuse
 

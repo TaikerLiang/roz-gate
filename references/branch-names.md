@@ -178,9 +178,13 @@ scanner binds through `match` now.
 
 - **guard-acceptance** decides "is HEAD a spec branch" by the template
   through `hooks/branch_names.py` (`pattern_for_kind` for the spec kind,
-  the issue number open), the template read from the local file in the
-  toplevel, else the main checkout (an edit in a linked worktree reads the
-  clone's file). Unset → `spec/*`, as before. **guard-gate** rule K parses
+  the issue number open), HEAD and the template taken from the worktree
+  that holds the edited file — the template read from the local file in
+  that toplevel, else its main checkout (an edit in a linked worktree reads
+  the clone's file; #277: never the session's cwd). Unset → `spec/*`, as
+  before. An invalid template denies every write under `<acceptance_dir>`,
+  on every branch, naming the checkout whose file to fix — it cannot tell a
+  spec branch from a qa branch (#277). **guard-gate** rule K parses
   the worktree's branch and each merged ref the same way (`parse_branch`);
   an equal `{n}` is a sibling.
 - **guard-blind** reads the forbidden implementation ref from the marker:

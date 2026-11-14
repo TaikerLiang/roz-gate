@@ -295,6 +295,13 @@ def local_key(tops, key):
     """A local key from bin/roz-config's file — the first toplevel that holds
     the key wins: a stored "" is a chosen default (→ None); a file without
     the key passes to the next (guard_acceptance's rule, PR #169)."""
+    return local_key_source(tops, key)[0]
+
+
+def local_key_source(tops, key):
+    """(value, the toplevel whose file holds the key) — local_key's lookup,
+    with where it was found (None when no file holds it): guard_acceptance
+    names the checkout to fix (#277)."""
     for top in tops:
         if not top:
             continue
@@ -305,5 +312,5 @@ def local_key(tops, key):
             continue
         if isinstance(data, dict) and key in data:
             v = data[key]
-            return v.strip() if isinstance(v, str) and v.strip() else None
-    return None
+            return (v.strip() if isinstance(v, str) and v.strip() else None), top
+    return None, None

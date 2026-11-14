@@ -213,12 +213,12 @@ def run():
     res_t = {"valid": True, "important_found": ["P1"], "important_missed": ["P2"],
              "immaterial_raised": ["N5"], "questions": 14, "question_unit": "Q-ids",
              "outcome": "gate", "human_round_trips": 1,
-             "tokens": {"in": 400000, "out": 9000},
+             "tokens": {"in": 400000, "out": 9000, "cache_read": 2000000, "counter": 2},
              "cost_counts": {"tool_calls": 120, "dispatches": 3, "suite_runs": 0}}
     res_b = dict(res_t, important_found=[], important_missed=["P1", "P2"],
                  immaterial_raised=[], questions=0, question_unit="asking comments",
                  outcome="finished", human_round_trips=0,
-                 tokens={"in": 90000, "out": 4000},
+                 tokens={"in": 90000, "out": 4000, "cache_read": 500000, "counter": 2},
                  cost_counts={"tool_calls": 40, "dispatches": 0, "suite_runs": 2})
     rev = dict(good, reviewed_by="Paul Liang", reviewed_on="2026-11-13")
     real_paired = wv.paired
@@ -237,6 +237,13 @@ def run():
           "1/2" in text and "0/2" in text)
     check("paired: no cross-issue total", "total" not in text.lower()
           and "overall" not in text.lower())
+    check("paired: tokens from the current counter, cache reads apart (#308)",
+          "tokens 90000 in / 4000 out / 500000 cache read" in text)
+    text = paired({"F-63": {"retrospective": rev, "treatment": [res_t],
+                            "baseline": [dict(res_b, tokens={"in": 56774, "out": 100})]}})
+    check("paired: a run on the old token counter shows no figure beside a new one (#308)",
+          "not comparable" in text and "56774" not in text
+          and "400000 in / 9000 out" in text)
     bad_b = {"valid": False, "invalid_reason": "forge stub hit 2 UNKNOWN route(s)"}
     text = paired({"F-63": {"retrospective": rev, "treatment": [res_t], "baseline": [bad_b]}})
     check("paired: an INVALID arm unpairs the issue and says why",
