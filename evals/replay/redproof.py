@@ -60,6 +60,11 @@ throwaway state, the resume rule against staged result.json files.
   misplaced roz-gate, an MCP server, or no init event at all is a breach;
   `run_one` (a fake `claude` on PATH) scores a clean session, makes a
   leaked one INVALID, and records `plugins` in result.json either way.
+- PATHS-READ (#279) — `path_files_read` on canned transcripts: the distinct
+  `references/next-stage-path-*.md` files Read, counted once each, in the
+  order first Read; another reference or the command itself is not
+  counted; `run_one` lists the count under `signals` and the names under
+  `details`.
 - CLI (#282) — both runners, in-process under the fake `claude` with the
   report root in a temp dir: `--help`, `--list`, `--dry-run`, an unknown
   case or fixture (alone or after a valid one), a bad `--k`, an unknown
@@ -1980,6 +1985,8 @@ with open(os.environ["FAKE_ARGV"], "w") as f:
 with open(os.environ["FAKE_ARGV"] + ".log", "a") as f:   # one line per launch (#282)
     f.write(json.dumps(sys.argv[1:]) + "\n")
 print(open(os.environ["FAKE_INIT"]).read().strip())
+if os.environ.get("FAKE_EVENTS"):   # extra transcript events (#279)
+    print(open(os.environ["FAKE_EVENTS"]).read().strip())
 print(json.dumps({"type": "assistant", "message": {"id": "m1", "content": [
     {"type": "text", "text": "XENOLITH"}],
     "usage": {"input_tokens": 5, "output_tokens": 2}}}))
@@ -2104,6 +2111,75 @@ def isolation_checks():
          leak_rc == 1 and leak.get("valid") is False and leak.get("pass") is False
          and "telegram" in reason
          and "roz-gate" in [p.get("name") for p in leak.get("plugins") or []]),
+    ]
+
+
+# ---- #279: which next-stage path files a run Read --------------------------
+def _read_ev(*paths, parent=None):
+    ev = {"type": "assistant", "message": {"id": "r", "content": [
+        {"type": "tool_use", "name": "Read", "input": {"file_path": p}} for p in paths]}}
+    if parent:
+        ev["parent_tool_use_id"] = parent
+    return ev
+
+
+def _paths_read(*events):
+    """replaylib.path_files_read over a staged transcript."""
+    fn = getattr(rl, "path_files_read", None)
+    if fn is None:
+        return "MISSING"
+    d = tempfile.mkdtemp()
+    try:
+        t = os.path.join(d, "t.jsonl")
+        with open(t, "w") as f:
+            f.writelines(json.dumps(e) + "\n" for e in events)
+        return fn(t)
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def path_read_checks():
+    """#279: the runner reports, per run, the distinct
+    `references/next-stage-path-*.md` files the transcript Read — the count
+    in `path_files_read` (a signal) and the names in `path_files_read_detail`
+    (a detail). Never a verdict: no checker reads it."""
+    p = os.path.join(rr.ROOT, "references")
+    b, c_, b2 = (os.path.join(p, "next-stage-path-%s.md" % k) for k in ("b", "c", "b2"))
+    one = _paths_read(_read_ev(b))
+    two = _paths_read(_read_ev(b), _read_ev(c_))
+    none = _paths_read({"type": "result", "result": "ok"})
+    other = _paths_read(_read_ev(os.path.join(p, "workflow.md"),
+                                 os.path.join(p, "code-review-mechanics.md"),
+                                 os.path.join(rr.ROOT, "commands", "next-stage.md"),
+                                 os.path.join(p, "next-stage-path-z.md")))
+    again = _paths_read(_read_ev(b2), _read_ev(b2, parent="toolu_1"))
+    events = [_read_ev(b)]
+    with _fake_claude(_iso_init([_iso_roz(rr.ROOT)])) as d:
+        with open(os.path.join(d, "events.jsonl"), "w") as f:
+            f.writelines(json.dumps(e) + "\n" for e in events)
+        os.environ["FAKE_EVENTS"] = os.path.join(d, "events.jsonl")
+        sut = {"name": "redproof", "mode": "subscription", "model": "m", "base_url": "",
+               "key_env": ""}
+        rdir = os.path.join(d, "run-1")
+        rc = rr.run_one(sut, os.path.join(HERE, "smoke", "S1"), rdir, "read NOTES.md", 60)
+        res = rr.load_json(os.path.join(rdir, "result.json"), {})
+    return [
+        ("one path file Read -> 1, its name in the detail",
+         one == {"path_files_read": 1, "path_files_read_detail": ["next-stage-path-b.md"]}),
+        ("two path files Read -> 2, in the order first Read",
+         two == {"path_files_read": 2,
+                 "path_files_read_detail": ["next-stage-path-b.md", "next-stage-path-c.md"]}),
+        ("no Read -> 0, an empty detail (the run acted without a path, or stopped before one)",
+         none == {"path_files_read": 0, "path_files_read_detail": []}),
+        ("another reference, the command itself, or a name outside a-b-b2-c -> not counted",
+         other == {"path_files_read": 0, "path_files_read_detail": []}),
+        ("the same file Read twice (a seat included) -> counted once",
+         again == {"path_files_read": 1, "path_files_read_detail": ["next-stage-path-b2.md"]}),
+        ("run_one records the count under `signals` and the names under `details`",
+         rc == 0 and res.get("path_files_read") == 1
+         and res.get("path_files_read_detail") == ["next-stage-path-b.md"]
+         and "path_files_read" in (res.get("signals") or [])
+         and "path_files_read_detail" in (res.get("details") or [])),
     ]
 
 
@@ -2245,6 +2321,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in isolation_checks():
         print("%s isolation: %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in path_read_checks():
+        print("%s paths-read: %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in cli_checks():
         print("%s cli: %s" % ("PASS" if ok else "FAIL", name))
