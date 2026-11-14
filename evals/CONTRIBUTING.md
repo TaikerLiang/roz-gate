@@ -157,7 +157,11 @@ real verdict.
   does not serve: every requested field is checked before anything is
   printed, one unserved field makes the whole call UNKNOWN, and the fix
   is to serve it from the fixture (`ISSUE_FIELDS` / `PR_FIELDS` /
-  `REPO_FIELDS`) — never a default the fixture cannot state. A served
+  `REPO_FIELDS`) — never a default the fixture cannot state. A call
+  with no `--json` prints gh's human format from the same facts (#259,
+  `replay/README.md` § Method); its one stated exception is a comment's
+  `association` and `edited` in `--comments`, shown as gh's zero values
+  (`none`, `false`) unless the comment states them. A served
   field that this fixture cannot answer for this PR or issue (a merged PR
   with no `mergeCommit` and no single merge commit in the sandbox, a PR
   with no `author`, an issue with no `updatedAt`) is UNKNOWN too, and its
