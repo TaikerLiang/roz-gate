@@ -255,8 +255,8 @@ list row needs its issue's `updatedAt` or its PR's `createdAt`, and a
 with reviews is UNKNOWN there (the reviewers line and review entries are
 not emulated). Lines no fixture can state — `projects`, `milestone`,
 `auto-merge` — are gh's empty values, and so are a comment's
-`association` and `edited` (`none`, `false`) unless the comment states
-them.
+`association`, `edited` and `status` (`none`, `false`, `none`) unless the
+comment states them (`CONTRIBUTING.md` § state.json, the one exception).
 Benign read-only probes (`--version`, `--help`, bare `gh`) are routed
 with canned output — a cautious SUT pokes the CLI before trusting it
 (the opus smoke gate died on a pre-flight `gh --version` around an

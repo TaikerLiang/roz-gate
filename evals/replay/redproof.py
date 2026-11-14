@@ -1756,7 +1756,8 @@ PLAIN_STATE = {
               "comments": [{"id": 1, "author": "paul", "body": "Any deadline?",
                             "createdAt": "2026-08-02T00:00:00Z"},
                            {"id": 2, "author": "sam", "association": "MEMBER", "edited": True,
-                            "body": "Friday.", "createdAt": "2026-08-02T01:00:00Z"}]},
+                            "status": "OUTDATED", "body": "Friday.",
+                            "createdAt": "2026-08-02T01:00:00Z"}]},
         "6": {"title": "Closed one", "state": "closed", "author": "sam", "labels": [],
               "assignees": [], "body": "", "updatedAt": "2026-08-01T00:00:00Z",
               "comments": []},
@@ -1781,7 +1782,7 @@ ISSUE_5_PLAIN = ("title:\tExpire  offers  soon\nstate:\tOPEN\nauthor:\tpaul\n"
                  "projects:\t\nmilestone:\t\nnumber:\t5\n--\nOffers should expire.\n")
 ISSUE_5_COMMENTS = ("author:\tpaul\nassociation:\tnone\nedited:\tfalse\nstatus:\tnone\n--\n"
                     "Any deadline?\n--\n"
-                    "author:\tsam\nassociation:\tmember\nedited:\ttrue\nstatus:\tnone\n--\n"
+                    "author:\tsam\nassociation:\tmember\nedited:\ttrue\nstatus:\toutdated\n--\n"
                     "Friday.\n--\n")
 PR_101_PLAIN = ("title:\tSpec: #5\nstate:\tDRAFT\nauthor:\troz-gatekeeper\nlabels:\t\n"
                 "assignees:\t\nreviewers:\t\nprojects:\t\nmilestone:\t\nnumber:\t101\n"
@@ -1792,7 +1793,7 @@ PLAIN_ROUTES = [
     ("issue view <n>: gh's raw preview (title … number, --, body)",
      ["issue", "view", "5"], False, "issue-view", 0, ISSUE_5_PLAIN),
     ("issue view <n> --comments: the comments alone, gh's raw comment blocks; association / "
-     "edited as stated, else gh's zero values",
+     "edited / status as stated, else gh's zero values",
      ["issue", "view", "5", "--comments"], False, "issue-view", 0, ISSUE_5_COMMENTS),
     ("issue view <n> -c on an issue with no comments: nothing", ["issue", "view", "6", "-c"],
      False, "issue-view", 0, ""),

@@ -695,12 +695,14 @@ def pr_shape(st, pr, want):
 # and the list tables' tab-separated rows — copied from real gh output.
 # A line the fixture cannot state is UNKNOWN naming it (#291); `projects`,
 # `milestone` and `auto-merge`, which no fixture can state, are gh's empty
-# values, and so are a comment's `association` / `edited` when its fixture
-# states none (`none`, `false`). Never `{}`.
+# values, and so are a comment's `association` / `edited` / `status` when
+# its fixture states none (`none`, `false`, `none`) — CONTRIBUTING's single
+# named exception to #291. Never `{}`.
 def plain_comments(comments, body=lambda b: b):
-    return "".join("author:\t%s\nassociation:\t%s\nedited:\t%s\nstatus:\tnone\n--\n%s\n--\n"
+    return "".join("author:\t%s\nassociation:\t%s\nedited:\t%s\nstatus:\t%s\n--\n%s\n--\n"
                    % (gql_login(c), str(c.get("association") or "none").lower(),
-                      "true" if c.get("edited") else "false", body(c.get("body", "")))
+                      "true" if c.get("edited") else "false",
+                      str(c.get("status") or "none").lower(), body(c.get("body", "")))
                    for c in comments)
 
 
