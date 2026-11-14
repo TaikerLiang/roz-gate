@@ -204,7 +204,9 @@ every UNKNOWN prints in the report so routes are added in one batch.
 | *historical* F-67 | | 1/1 | | 5 | fail | |
 
 Zero judge-invalid across 9 valid runs; one invalid iteration (F-67, stub
-route `gh api user`, fixed in the same week). Measured cost per run:
+route `gh api user`, fixed in the same week). Measured cost per run (on
+the old token counter, which double-counted input and missed most output —
+#308, `../replay/README.md` § Running):
 F-51 ≈ 110–120k in, F-54 ≈ 670k, F-63 ≈ 320–560k, F-67 ≈ 135–150k; judge
 ≈ 10–25k per fixture.
 
