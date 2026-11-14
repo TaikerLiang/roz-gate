@@ -62,9 +62,9 @@ throwaway state, the resume rule against staged result.json files.
   leaked one INVALID, and records `plugins` in result.json either way.
 - PATHS-READ (#279) — `path_files_read` on canned transcripts: the distinct
   `references/next-stage-path-*.md` files Read, counted once each, in the
-  order first Read; another reference or the command itself is not
-  counted; `run_one` lists the count under `signals` and the names under
-  `details`.
+  order first Read; a Read that errored or got no result, another
+  reference, or the command itself is not counted; `run_one` lists the
+  count under `signals` and the names under `details`.
 - CLI (#282) — both runners, in-process under the fake `claude` with the
   report root in a temp dir: `--help`, `--list`, `--dry-run`, an unknown
   case or fixture (alone or after a valid one), a bad `--k`, an unknown
@@ -2115,16 +2115,29 @@ def isolation_checks():
 
 
 # ---- #279: which next-stage path files a run Read --------------------------
-def _read_ev(*paths, parent=None):
+_READ_IDS = iter(range(10 ** 6))
+
+
+def _read_ev(*paths, parent=None, result="ok"):
+    """A Read of each path and its tool_result: "ok", "error" (is_error) or
+    None (no result — the session ended first)."""
+    ids = ["toolu_r%d" % next(_READ_IDS) for _ in paths]
     ev = {"type": "assistant", "message": {"id": "r", "content": [
-        {"type": "tool_use", "name": "Read", "input": {"file_path": p}} for p in paths]}}
-    if parent:
-        ev["parent_tool_use_id"] = parent
-    return ev
+        {"type": "tool_use", "id": i, "name": "Read", "input": {"file_path": p}}
+        for i, p in zip(ids, paths)]}}
+    res = {"type": "user", "message": {"content": [
+        {"type": "tool_result", "tool_use_id": i, "content": "x",
+         **({"is_error": True} if result == "error" else {})} for i in ids]}}
+    for e in (ev, res):
+        if parent:
+            e["parent_tool_use_id"] = parent
+    return [ev] + ([res] if result else [])
 
 
 def _paths_read(*events):
-    """replaylib.path_files_read over a staged transcript."""
+    """replaylib.path_files_read over a staged transcript (a list is a
+    tool_use and its result)."""
+    events = [e for x in events for e in (x if isinstance(x, list) else [x])]
     fn = getattr(rl, "path_files_read", None)
     if fn is None:
         return "MISSING"
@@ -2153,7 +2166,9 @@ def path_read_checks():
                                  os.path.join(rr.ROOT, "commands", "next-stage.md"),
                                  os.path.join(p, "next-stage-path-z.md")))
     again = _paths_read(_read_ev(b2), _read_ev(b2, parent="toolu_1"))
-    events = [_read_ev(b)]
+    failed = _paths_read(_read_ev(b, result="error"), _read_ev(c_, result=None))
+    retried = _paths_read(_read_ev(b, result="error"), _read_ev(b))
+    events = _read_ev(b)
     with _fake_claude(_iso_init([_iso_roz(rr.ROOT)])) as d:
         with open(os.path.join(d, "events.jsonl"), "w") as f:
             f.writelines(json.dumps(e) + "\n" for e in events)
@@ -2173,6 +2188,11 @@ def path_read_checks():
          none == {"path_files_read": 0, "path_files_read_detail": []}),
         ("another reference, the command itself, or a name outside a-b-b2-c -> not counted",
          other == {"path_files_read": 0, "path_files_read_detail": []}),
+        ("a Read whose result is an error, or that never got one, is not counted "
+         "(codex review, PR #316)",
+         failed == {"path_files_read": 0, "path_files_read_detail": []}),
+        ("a failed Read retried successfully -> 1",
+         retried == {"path_files_read": 1, "path_files_read_detail": ["next-stage-path-b.md"]}),
         ("the same file Read twice (a seat included) -> counted once",
          again == {"path_files_read": 1, "path_files_read_detail": ["next-stage-path-b2.md"]}),
         ("run_one records the count under `signals` and the names under `details`",

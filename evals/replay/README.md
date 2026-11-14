@@ -192,7 +192,8 @@ seed must give in `case.json`'s `check` key; the harness verifies it.
 
 One signal is the runner's own, on every valid run (#279):
 `path_files_read`, the number of distinct `references/next-stage-path-*.md`
-files the session Read (seats included), with their names, in the order
+files the session Read (seats included; a Read whose result is an error
+loaded nothing and is not counted), with their names, in the order
 first Read, in `path_files_read_detail`. Expect **1** for a
 `/roz-gate:next-stage` run that reached the hand-off, and the right one for
 its route; **0** for a legal STOP before the route (an invalid label, no
