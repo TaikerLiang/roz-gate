@@ -423,8 +423,8 @@ branch is reused — else Expand):
 
 ### B5. Code review (5) on the implementation CR
 - Dispatch the **reviewer** agent on the CR's diff
-  (`git diff <spec-branch>...<feat-branch>`), **attaching
-  `<specs_dir>/<n>/spec.md` and `technical-spec.md`** — the reviewer's
+  (`git diff <spec-branch>...<feat-branch>`), **attaching the seat's R&R
+  row, `<specs_dir>/<n>/spec.md` and `technical-spec.md`** — the reviewer's
   mandate is "does it do what it claims", so it receives the claim; it
   never reviews code against its own inference of intent. It wraps
   `/code-review` where available. Attach too the **as-built contract
@@ -613,8 +613,8 @@ writes nothing here.
   CRs while classifying is not this check.
 - Dispatch the **reviewer** seat in a **fresh context** (never a
   continuation of B5's), with
-  `${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md` as its contract,
-  in the `<qa-branch>` worktree — a branch that, since 2.0.0, carries the
+  `${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md` as its contract and
+  the seat's R&R row, in the `<qa-branch>` worktree — a branch that, since 2.0.0, carries the
   implementation, which is why the marker below is what makes the dispatch
   implementation-blind.
 - **Blindness is hook-enforced while the dispatch runs** (guard-blind,
@@ -728,7 +728,7 @@ CR-OPEN from `<fast-branch>` targeting `<default_branch>`, title
 
 ### C6. Code review (5)
 - Dispatch the **reviewer** agent on `git diff origin/<default_branch>...<fast-branch>`,
-  **attaching the issue body** (story + acceptance criteria — the claim the
+  **attaching the seat's R&R row and the issue body** (story + acceptance criteria — the claim the
   diff is reviewed against) — same inline-thread mechanics as B5, **and the
   same record**: one top-level `**[reviewer] · code-review**` comment with
   `reviewed-sha: <head>` and the counts, posted last, even with zero
