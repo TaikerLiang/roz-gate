@@ -22,7 +22,9 @@ META = {
     "ledger": "Every judgment fixture has a `retrospective.json` whose `important` / "
               "`immaterial` are exactly its P / N criteria and whose unknowns are listed; "
               "the baseline prompt carries no loop vocabulary and the baseline `CLAUDE.md` "
-              "keeps the project's commands and drops the loop's section; an INVALID arm or "
+              "keeps the project's commands and drops the loop's section; the baseline sandbox "
+              "is one root commit whose message, refs and objects hold nothing of that "
+              "section; an INVALID arm or "
               "an unreviewed record is never paired; the report prints no cross-issue total "
               "(#259: a workflow-value comparison is only as fair as its baseline and its "
               "gold).",

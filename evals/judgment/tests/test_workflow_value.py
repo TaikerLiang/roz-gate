@@ -6,7 +6,10 @@ model, no ADMC, no forge. Run directly, or by lint J3 on every push.
 """
 
 import os
+import shutil
+import subprocess
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -35,6 +38,82 @@ Use `/roz-gate:patrol` to drive every issue through the gated loop.
 - product: product
 - qa: qa
 """
+
+
+def git(work, *args):
+    return subprocess.run(["git", "-C", work] + list(args), capture_output=True,
+                          text=True).stdout
+
+
+def history_repo():
+    """A pin whose history names the loop: an earlier "Gated Loop" section,
+    then the migration to the Roz Gate section; a tag, a side branch and a
+    reflog besides — what ADMC's clone looks like at the pin (#259)."""
+    d = tempfile.mkdtemp()
+    env = dict(os.environ, GIT_AUTHOR_NAME="a", GIT_AUTHOR_EMAIL="a@a",
+               GIT_COMMITTER_NAME="a", GIT_COMMITTER_EMAIL="a@a")
+    subprocess.run(["bash", "-c",
+                    "git init -q -b main . && printf '# ADMC\\n\\n## Gated Loop\\nstages\\n' "
+                    "> CLAUDE.md && mkdir src && echo 'class A {}' > src/A.java && git add -A "
+                    "&& git commit -qm 'docs: the Gated Loop section' && git tag v0 "
+                    "&& git checkout -qb side && echo x > side.txt && git add -A "
+                    "&& git commit -qm 'side work' && git checkout -q main"],
+                   cwd=d, env=env, check=True, capture_output=True)
+    with open(os.path.join(d, "CLAUDE.md"), "w") as f:
+        f.write(CLAUDE_MD)
+    subprocess.run(["bash", "-c", "git add -A && git commit -qm "
+                    "'docs: migrate the workflow section to Roz Gate'"],
+                   cwd=d, env=env, check=True, capture_output=True)
+    return d
+
+
+def flattened_checks(check, wv):
+    """Ruling (b), 2026-11-14: the baseline sandbox is ONE root commit
+    carrying the transformed tree — nothing in its history, refs, reflog or
+    objects holds the loop's section (the F-51 calibration's seat read it
+    from `git show HEAD`)."""
+    flatten = getattr(wv, "flatten_history", None)
+    work = history_repo()
+    try:
+        cfg = wv.parse_config(CLAUDE_MD)
+        with open(os.path.join(work, "CLAUDE.md"), "w") as f:
+            f.write(wv.baseline_claude_md(CLAUDE_MD, cfg))
+        sha = flatten(work) if flatten else None
+        commits = git(work, "rev-list", "--all").split()
+        check("baseline sandbox: exactly one commit, the one returned, with no parent",
+              commits == [sha] and sha
+              and git(work, "rev-list", "--parents", "-n1", sha).split() == [sha])
+        check("baseline sandbox: main is the only ref",
+              git(work, "for-each-ref", "--format=%(refname)").split() == ["refs/heads/main"]
+              and git(work, "symbolic-ref", "HEAD").strip() == "refs/heads/main")
+        check("baseline sandbox: the tree is the transformed one (commands kept, section gone)",
+              "./mvnw -q test" in git(work, "show", "HEAD:CLAUDE.md")
+              and wv.SECTION_START not in git(work, "show", "HEAD:CLAUDE.md")
+              and git(work, "show", "HEAD:src/A.java").strip() == "class A {}"
+              and not git(work, "status", "--porcelain"))
+        meta = git(work, "log", "-1", "--format=%an %ae %cn %ce%n%B")
+        check("baseline sandbox: the commit's message and identity carry no loop vocabulary "
+              "(%s)" % ", ".join(wv.loop_words(meta)), meta.strip() and not wv.loop_words(meta))
+        every = set(git(work, "cat-file", "--batch-all-objects",
+                        "--batch-check=%(objectname)").split())
+        reach = {line.split()[0] for line in git(work, "rev-list", "--objects", "--all")
+                 .splitlines() if line.strip()}
+        check("baseline sandbox: no object the commit does not reach (no old commit, no old "
+              "CLAUDE.md, nothing for fsck --lost-found to find)", every and every == reach)
+        hits = []
+        gitdir = os.path.join(work, ".git")
+        for root, _, files in os.walk(gitdir):
+            if os.path.relpath(root, gitdir).split(os.sep)[0] == "objects":
+                continue
+            for name in files:
+                text = open(os.path.join(root, name), "rb").read().decode("utf-8", "replace")
+                low = text.lower()
+                if "roz" in low or "gated loop" in low or wv.SECTION_START in text:
+                    hits.append(os.path.relpath(os.path.join(root, name), gitdir))
+        check("baseline sandbox: no file under .git names the removed section (%s)"
+              % ", ".join(hits), not hits)
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
 
 
 def tool(name, **inp):
@@ -69,6 +148,8 @@ def run():
     check("baseline CLAUDE.md: a file with no section gains only the commands",
           wv.baseline_claude_md("# X\n", cfg).startswith("# X\n")
           and "./mvnw -q test" in wv.baseline_claude_md("# X\n", cfg))
+
+    flattened_checks(check, wv)
 
     prompt = wv.baseline_prompt(63)
     check("baseline prompt: names the issue", "#63" in prompt)
