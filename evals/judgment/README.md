@@ -148,7 +148,8 @@ the red-proof's count check on the real F-63 output caught both (18 for 8).
 ## Scoring — two numbers, never blended
 
 Per valid run (invalid exactly as replay: no result event, quota banner,
-UNKNOWN route):
+a session that loaded a user-scope plugin or MCP server or a roz-gate the
+arm does not pass (#307), UNKNOWN route):
 
 - **recall** = P items answered yes / P items in the fixture.
 - **precision** = N items NOT raised (judge says no; N10 = zero questions

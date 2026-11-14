@@ -49,6 +49,13 @@ throwaway state, the resume rule against staged result.json files.
   once at its last usage; resumed sessions sum per transcript; `aggregate()`
   sums only runs on the current `TOKEN_COUNTER` and counts the others in
   `tokens_old_counter`.
+- ISOLATION (#307) — `invoke_claude` runs every SUT session with
+  `--setting-sources project,local --strict-mcp-config`; the init event's
+  plugin list is checked against canned transcripts: the built-ins and one
+  roz-gate from --plugin-dir (or none) pass; a user plugin, a doubled or
+  misplaced roz-gate, an MCP server, or no init event at all is a breach;
+  `run_one` (a fake `claude` on PATH) scores a clean session, makes a
+  leaked one INVALID, and records `plugins` in result.json either way.
 
 Run by evals/replay/run_redproofs.py (pre-push and CI). Stdlib only,
 Python 3.9-compatible, like the hook suite.
@@ -1845,6 +1852,147 @@ def token_checks():
     ]
 
 
+# ---- #307: a SUT session loads nothing from the operator's user scope -------
+ISO_BUILTINS = [{"name": "cc-plugin-telemetry", "path": "builtin",
+                 "source": "cc-plugin-telemetry@builtin"},
+                {"name": "cc-plugin-privacy", "path": "builtin",
+                 "source": "cc-plugin-privacy@builtin"}]
+ISO_USER_ROZ = {"name": "roz-gate", "path": "/Users/op/dev/roz-gate",
+                "source": "roz-gate@roz-gate-marketplace", "version": "2.17.1"}
+ISO_TELEGRAM = {"name": "telegram", "source": "telegram@claude-plugins-official",
+                "path": "/Users/op/.claude/plugins/cache/claude-plugins-official/telegram/0.0.7"}
+FAKE_CLAUDE = r"""#!/usr/bin/env python3
+import json, os, sys
+with open(os.environ["FAKE_ARGV"], "w") as f:
+    json.dump(sys.argv[1:], f)
+print(open(os.environ["FAKE_INIT"]).read().strip())
+print(json.dumps({"type": "assistant", "message": {"id": "m1", "content": [
+    {"type": "text", "text": "XENOLITH"}],
+    "usage": {"input_tokens": 5, "output_tokens": 2}}}))
+print(json.dumps({"type": "result", "subtype": "success", "is_error": False,
+                  "result": "XENOLITH", "usage": {"input_tokens": 5, "output_tokens": 2}}))
+"""
+
+
+def _iso_init(plugins, mcp=()):
+    return {"type": "system", "subtype": "init", "plugins": ISO_BUILTINS + plugins,
+            "mcp_servers": [{"name": n, "status": "connected", "source": "plugin"} for n in mcp]}
+
+
+def _iso_roz(path):
+    return {"name": "roz-gate", "path": path, "source": "roz-gate@inline", "version": "2.17.1"}
+
+
+@contextlib.contextmanager
+def _fake_claude(init):
+    """`claude` on PATH is a script that records its argv and prints `init`,
+    one assistant event and a result event — the runner's own code runs."""
+    d = tempfile.mkdtemp()
+    bindir = os.path.join(d, "bin")
+    os.makedirs(bindir)
+    with open(os.path.join(bindir, "claude"), "w") as f:
+        f.write(FAKE_CLAUDE)
+    os.chmod(os.path.join(bindir, "claude"), 0o755)
+    with open(os.path.join(d, "init.json"), "w") as f:
+        json.dump(init, f)
+    saved = dict(os.environ)
+    os.environ["PATH"] = bindir + os.pathsep + os.environ.get("PATH", "")
+    os.environ["FAKE_ARGV"] = os.path.join(d, "argv.json")
+    os.environ["FAKE_INIT"] = os.path.join(d, "init.json")
+    for k in [k for k in os.environ if k.startswith("LANGFUSE_")]:
+        del os.environ[k]   # never export a red-proof run
+    try:
+        yield d
+    finally:
+        os.environ.clear()
+        os.environ.update(saved)
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def isolation_checks():
+    """#307: every SUT session runs with `--setting-sources project,local
+    --strict-mcp-config`, and the runner reads the session's init event: a
+    plugin other than the runtime's built-ins and the one roz-gate passed
+    with --plugin-dir, a second roz-gate, a roz-gate in a no-plugin session,
+    or any MCP server makes the iteration INVALID with a harness reason —
+    never scored. The effective plugin list rides in result.json."""
+    breach = getattr(rl, "isolation_breach", None)
+    plugin = rr.ROOT
+
+    def b(init, plugin_dir):
+        if breach is None:
+            return "MISSING"
+        d = tempfile.mkdtemp()
+        try:
+            t = os.path.join(d, "t.jsonl")
+            with open(t, "w") as f:
+                for ev in ([init] if init else []) + [{"type": "result", "result": "ok"}]:
+                    f.write(json.dumps(ev) + "\n")
+            return breach(t, plugin_dir)
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+
+    sut = {"name": "redproof", "mode": "subscription", "model": "m", "base_url": "",
+           "key_env": ""}
+    argvs = {}
+    for label, pdir in (("plugin", plugin), ("none", None)):
+        with _fake_claude(_iso_init([])) as d:
+            rr.invoke_claude(sut, d, d, "hi", 30, os.path.join(d, "t.jsonl"),
+                             os.path.join(d, "e.log"), plugin_dir=pdir)
+            argvs[label] = rr.load_json(os.path.join(d, "argv.json"), [])
+
+    def flags(argv):
+        joined = " ".join(argv)
+        return ("--setting-sources project,local" in joined and "--strict-mcp-config" in argv
+                and "--mcp-config" not in argv)
+
+    runs = {}
+    s1 = os.path.join(HERE, "smoke", "S1")
+    for label, init in (("clean", _iso_init([_iso_roz(plugin)])),
+                        ("leak", _iso_init([_iso_roz(plugin), ISO_USER_ROZ, ISO_TELEGRAM],
+                                           mcp=("plugin:telegram:telegram",)))):
+        with _fake_claude(init) as d:
+            rdir = os.path.join(d, "run-1")
+            rc = rr.run_one(sut, s1, rdir, "read NOTES.md", 60)
+            runs[label] = (rc, rr.load_json(os.path.join(rdir, "result.json"), {}))
+    clean_rc, clean = runs["clean"]
+    leak_rc, leak = runs["leak"]
+    reason = leak.get("invalid_reason") or ""
+    return [
+        ("invoke_claude restricts setting sources to project,local and runs --strict-mcp-config "
+         "with no --mcp-config, with and without --plugin-dir",
+         flags(argvs["plugin"]) and flags(argvs["none"])
+         and "--plugin-dir" in argvs["plugin"] and "--plugin-dir" not in argvs["none"]),
+        ("clean: the built-ins and exactly one roz-gate from --plugin-dir, no MCP -> no breach",
+         b(_iso_init([_iso_roz(plugin)]), plugin) is None),
+        ("clean, no plugin (the Workflow Value baseline): the built-ins alone -> no breach",
+         b(_iso_init([]), None) is None),
+        ("a user-scope plugin in the session (telegram) -> breach naming it",
+         "telegram" in (b(_iso_init([_iso_roz(plugin), ISO_TELEGRAM]), plugin) or "")
+         and b(_iso_init([_iso_roz(plugin), ISO_TELEGRAM]), plugin) != "MISSING"),
+        ("roz-gate twice (--plugin-dir and the user's install) -> breach",
+         b(_iso_init([_iso_roz(plugin), ISO_USER_ROZ]), plugin) not in (None, "MISSING")),
+        ("roz-gate in a no-plugin session -> breach",
+         b(_iso_init([ISO_USER_ROZ]), None) not in (None, "MISSING")),
+        ("one roz-gate, but not the --plugin-dir copy -> breach",
+         b(_iso_init([ISO_USER_ROZ]), plugin) not in (None, "MISSING")),
+        ("an MCP server in the session -> breach naming it",
+         "claude.ai Claude Docs" in (b(_iso_init([_iso_roz(plugin)],
+                                                 mcp=("claude.ai Claude Docs",)), plugin) or "")),
+        ("no init event -> breach (isolation unverifiable, never assumed)",
+         b(None, plugin) not in (None, "MISSING")),
+        ("run_one on a clean session scores it (S1 PASS) and records the effective plugin list",
+         clean_rc == 0 and clean.get("valid") is True
+         and [p.get("name") for p in clean.get("plugins") or []]
+         == [p["name"] for p in ISO_BUILTINS] + ["roz-gate"]),
+        ("run_one on a leaked session is INVALID with the harness reason, never scored, and "
+         "still records the plugin list",
+         leak_rc == 1 and leak.get("valid") is False and leak.get("pass") is False
+         and "telegram" in reason
+         and "roz-gate" in [p.get("name") for p in leak.get("plugins") or []]),
+    ]
+
+
 def main():
     passed = failed = 0
     for name, ok in seed_contract_checks():
@@ -1864,6 +2012,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in token_checks():
         print("%s tokens: %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in isolation_checks():
+        print("%s isolation: %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in state_checks():
         print("%s state: %s" % ("PASS" if ok else "FAIL", name))
