@@ -2,6 +2,37 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.17.1 — dispatch lists name the R&R row — 2026-11-14
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.17.1>
+
+**Behavior:** guard-gate rule K no longer denies a merge of the issue's own branch when the command carries a shell redirection or reaches the worktree through `cd "$(…)"`. Every step that lists a seat dispatch's contents now names the seat's R&R row. The replay corpus is repaired, so every earlier replay result is stale.
+
+### Behavior
+- **A step that lists a dispatch's contents names the seat's R&R row** (#294). This covers patrol's intake, code-review and fidelity dispatches; `to-issues`' relay loop; and `next-stage`'s code-review, fidelity and fast-track reviewer dispatches. Before, only the command preamble said so, and a model following the step's own list left the row out.
+
+### Hooks
+- **Rule K reads redirections and unresolved directories for what they are** (#292). A merge of the issue's own branch is no longer denied when the command carries a shell redirection (`2>&1`, `>/dev/null`, …) or reaches the worktree through `cd "$(git rev-parse --git-common-dir)/roz-gate/wt/<branch>"`.
+  - A merge after a `cd` / `git -C` to a directory the hook cannot resolve (`cd "$WT"`) is now **denied** in a repository that has loop worktrees; before, the hook judged it as if the `cd` had not happened. Use the worktree's literal path, or run the merge from inside it.
+  - The denial names its actual cause. Only a foreign branch is answered with "sync the base".
+
+### Evals
+- **Stale seeds repaired** (#293):
+  - The shared replay seed carries the system issue #5 presupposes: an offers table and a checkout service, with expiry unbuilt. Fidelity fixtures carry `## Contract deviations` and a `**Test port**` line. F4's acceptance test asserts. C26's checker no longer counts the intake lock as an action.
+  - The case fingerprint now covers the shared seed (`replaylib.SHARED_FINGERPRINT_INPUTS`). As a result, **every replay case's fingerprint moves and every earlier result is stale**, and every recorded replay batch is marked `superseded`.
+- **The forge stub serves the `--json` fields a seat asks for, from evidence only** (#291): `pr` `comments` / `reviews` / `reviewDecision` / `files` / `mergeCommit` / `author`, `issue` `updatedAt` / `stateReason` / `closedAt`, and `repo` `defaultBranchRef`. Each comes from the fixture or the sandbox; a field neither holds is UNKNOWN, naming the field. `reviewThreads` answers gh's `Unknown JSON field`, and a PR number with no pull request answers gh's GraphQL error; both are scored. The sandbox's remote HEAD is `main` on every machine.
+- **Only a count is a signal** (#290). `run_replay.py` no longer crashes when aggregating a sweep whose checkers emit shadow detail. Any non-int value is evidence, kept in the run's `result.json` under `details`.
+- **Judgment V1 gold approval is the maintainer's review of the full record** (#258). The runner refuses to spend on an unapproved item, and lint J2 rejects a half-stamped one. The V1 report gives the run-level frequency of the gold class per item, never a pass/fail.
+- **Recorded baselines are data** (#280). They live in `evals/replay/baselines.json`, and their summary is rendered into `evals/README.md`.
+- **New lints**: D21 (the R&R row inside each dispatch enumeration) and L19 (the baselines block).
+
+### Docs
+- **Catch-up to 2.0.0** (#280): README § Why describes QA blindness as enforced (hook rule E, QA-4, the fidelity audit). § How we know it works points at the recorded baselines. `docs/ROADMAP.md`'s state section is a dated snapshot.
+- `evals/CONTRIBUTING.md` and `evals/replay/README.md` now cover: a count is a column and anything else is a detail; the served-or-UNKNOWN rule; the shared fingerprint inputs; and that a seed makes true what the seat is told. `evals/judgment/v1/README.md` has a new § Approval.
+
+### Checks
+Hook tests 1180/1180 · lint 1737/1737 · red-proofs 47/47 · ruff · judgment `--check` · ledger `--check` current
+
 ## v2.17.0 — a deleted head keeps its CR — 2026-11-12
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.17.0>
