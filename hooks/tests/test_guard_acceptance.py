@@ -107,13 +107,14 @@ class AcceptanceSuiteIsNotEditableOnSpecBranch(HookTest):
         self.git(typed, "checkout", "-q", "-b", "chore/123456")
         with self.case("template (#135): {type}/{n} — chore/123456 (fast) allowed"):
             self.assertAllowed(self.edit(typed, "Edit", ACCEPTANCE_FILE))
-        # An invalid template (unknown placeholder) enforces nothing rather than everything.
+        # An invalid template (unknown placeholder) denies suite writes (#277, ruling 1);
+        # it used to match no branch and enforce nothing.
         bad = self.new_repo(
             {"CLAUDE.md": config_block(forge="github", acceptance_dir="tests/acceptance"),
              LOCAL: local_template("{kind}/{ticket}")},
             commit=True, branch="spec/63")
-        with self.case("template: an unknown placeholder matches no branch (enforces nothing)"):
-            self.assertAllowed(self.edit(bad, "Edit", ACCEPTANCE_FILE))
+        with self.case("template: an unknown placeholder denies the suite write (#277)"):
+            self.assertDenied(self.edit(bad, "Edit", ACCEPTANCE_FILE), "unknown placeholder")
         with self.case("no template line: spec/<n> still denied (the 1.11–1.28 rule, unchanged)"):
             self.assertDenied(self.edit(self.repo, "Edit", ACCEPTANCE_FILE), "acceptance suite")
         # The block's line is not read since 2.4.0 (#165): roz-config moves it
@@ -231,3 +232,118 @@ class AcceptanceSuiteIsNotEditableOnSpecBranch(HookTest):
         self.git(self.repo, "checkout", "-q", "-b", "feat/63")
         with self.case("feat branch unaffected"):
             self.assertAllowed(self.edit(self.repo, "Edit", ACCEPTANCE_FILE))
+
+
+class ThePlaceIsTheFiles(HookTest):
+    """#277: the loop's real shape — the session's cwd is the main checkout on
+    `main`, every issue branch a linked worktree under
+    `<common-dir>/roz-gate/wt/<branch>`, the tool's `file_path` absolute. Branch,
+    toplevel, config block and local file are the worktree's that holds the
+    file, never the cwd's (rulings 1, 2; plan review item 1)."""
+    guard = "guard-acceptance"
+
+    BLOCK = config_block(forge="github", acceptance_dir="tests/acceptance")
+
+    def loop_repo(self, tracked=None, untracked=None):
+        main = self.new_repo(tracked or {"CLAUDE.md": self.BLOCK}, commit=True)
+        for rel, text in (untracked or {}).items():
+            self.write(main / rel, text)
+        return main
+
+    def worktree(self, main, branch):
+        wt = main / ".git" / "roz-gate" / "wt" / branch
+        self.git(main, "worktree", "add", "-q", "-b", branch, str(wt))
+        return wt
+
+    def edit(self, path, cwd, tool="Edit"):
+        return self.call(tool, {"file_path": str(path)}, cwd)
+
+    def test_loop_shape(self):
+        main = self.loop_repo()
+        spec, qa = self.worktree(main, "spec/5"), self.worktree(main, "qa/5")
+        with self.case("place: cwd on main, Edit in the spec/5 worktree's suite — denied"):
+            self.assertDenied(self.edit(spec / ACCEPTANCE_FILE, main), "acceptance suite")
+        with self.case("place: cwd on main, Edit in the qa/5 worktree's suite — allowed"):
+            self.assertAllowed(self.edit(qa / ACCEPTANCE_FILE, main))
+        with self.case("place: cwd on main, Edit outside the suite in the spec/5 worktree — "
+                       "allowed"):
+            self.assertAllowed(self.edit(spec / "src/offers/repo.py", main))
+        with self.case("place: cwd on main, Write of a new file in a directory that does not "
+                       "exist yet in the spec/5 worktree's suite — denied"):
+            self.assertDenied(self.edit(spec / "tests/acceptance/new/deeper/test_n.py", main,
+                                        "Write"), "acceptance suite")
+        with self.case("place: cwd in the qa/5 worktree, Edit in the spec/5 worktree's suite — "
+                       "denied"):
+            self.assertDenied(self.edit(spec / ACCEPTANCE_FILE, qa), "acceptance suite")
+        with self.case("place: cwd in the spec/5 worktree, Edit on main's own suite — allowed"):
+            self.assertAllowed(self.edit(main / ACCEPTANCE_FILE, spec))
+        with self.case("place: a relative file_path resolves against cwd — from the spec/5 "
+                       "worktree, denied"):
+            self.assertDenied(self.edit(ACCEPTANCE_FILE, spec), "acceptance suite")
+        with self.case("place: a relative file_path resolves against cwd — from main into the "
+                       "spec/5 worktree, denied"):
+            self.assertDenied(self.edit(".git/roz-gate/wt/spec/5/" + ACCEPTANCE_FILE, main),
+                              "acceptance suite")
+        with self.case("place: a relative file_path resolves against cwd — main's own suite on "
+                       "main, allowed"):
+            self.assertAllowed(self.edit(ACCEPTANCE_FILE, main))
+        other = self.new_repo({"CLAUDE.md": "# elsewhere\n"}, commit=True)
+        with self.case("place: cwd in an unrelated repo, Edit in the spec/5 worktree's suite — "
+                       "denied"):
+            self.assertDenied(self.edit(spec / ACCEPTANCE_FILE, other), "acceptance suite")
+        with self.case("place: cwd in no repo, Edit in the spec/5 worktree's suite — denied"):
+            self.assertDenied(self.edit(spec / ACCEPTANCE_FILE, self.new_dir()),
+                              "acceptance suite")
+        with self.case("place: cwd in the spec/5 worktree, a target in no repo — allowed"):
+            self.assertAllowed(self.edit(self.new_dir() / ACCEPTANCE_FILE, spec))
+
+    def test_config_from_the_files_main_checkout(self):
+        # Plan review item 1: the block (CLAUDE.local.md, untracked) and the
+        # template (the local file) exist only in the target repo's own main
+        # checkout; the session's cwd is another repo — or the main checkout itself.
+        main = self.loop_repo({"CLAUDE.md": "# Project\n"},
+                              {"CLAUDE.local.md": self.BLOCK,
+                               LOCAL: local_template("{user}/{kind}/{n}")})
+        spec, qa = self.worktree(main, "pwliangc/spec/9"), self.worktree(main, "pwliangc/qa/9")
+        other = self.new_repo({"CLAUDE.md": "# elsewhere\n"}, commit=True)
+        with self.case("place: cwd on main, {user}/{kind}/{n} only in the main checkout's local "
+                       "file, Edit in the pwliangc/spec/9 worktree's suite — denied"):
+            self.assertDenied(self.edit(spec / ACCEPTANCE_FILE, main), "acceptance suite")
+        with self.case("place: cwd in another repo, the target repo's CLAUDE.local.md and "
+                       "template only in its own main checkout — denied"):
+            self.assertDenied(self.edit(spec / ACCEPTANCE_FILE, other), "acceptance suite")
+        with self.case("place: the same, the pwliangc/qa/9 worktree's suite — allowed"):
+            self.assertAllowed(self.edit(qa / ACCEPTANCE_FILE, other))
+        # The cwd's own repo carries a block and a template; neither is the target's.
+        decoy = self.new_repo({"CLAUDE.md": config_block(forge="github",
+                                                         acceptance_dir="qa/suite"),
+                               LOCAL: local_template("{kind}-{n}")}, commit=True)
+        with self.case("place: cwd in a repo with its own block and template — the target's "
+                       "still apply, denied"):
+            self.assertDenied(self.edit(spec / ACCEPTANCE_FILE, decoy), "acceptance suite")
+
+    def test_invalid_template_denies_the_suite(self):
+        # Ruling 1: a stored template validate() rejects → every suite write is
+        # denied, on every branch; the message names the checkout to fix.
+        main = self.loop_repo(untracked={LOCAL: local_template("{kind}/{ticket}")})
+        spec, qa = self.worktree(main, "spec/5"), self.worktree(main, "qa/5")
+        for name, wt in (("spec/5", spec), ("qa/5", qa)):
+            with self.case("invalid template: cwd on main, Edit in the %s worktree's suite — "
+                           "denied with validate's reason and the checkout to fix" % name):
+                r = self.edit(wt / ACCEPTANCE_FILE, main)
+                self.assertDenied(r, "unknown placeholder {ticket}")
+                self.assertIn("roz-config branch_template", r.stderr)
+                self.assertIn(str(main.resolve()), r.stderr)
+        with self.case("invalid template: main's own suite on main — denied"):
+            self.assertDenied(self.edit(main / ACCEPTANCE_FILE, main),
+                              "unknown placeholder {ticket}")
+        with self.case("invalid template: a write outside the suite — allowed"):
+            self.assertAllowed(self.edit(spec / "src/offers/repo.py", main))
+        # The worktree's own file holds the bad template: that is the checkout to fix.
+        self.write(qa / LOCAL, local_template("{user}/{n}"))
+        self.write(main / LOCAL, local_template(""))
+        with self.case("invalid template in the worktree's own local file — denied, the "
+                       "message names that worktree"):
+            r = self.edit(qa / ACCEPTANCE_FILE, main)
+            self.assertDenied(r, "neither {kind} nor {type}")
+            self.assertIn(str(qa.resolve()), r.stderr)
