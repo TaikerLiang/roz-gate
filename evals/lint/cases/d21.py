@@ -43,15 +43,15 @@ SITES = [
     ("commands/to-issues.md", "the relay loop's product dispatch",
      "in **live mode** with: the seat's R&R row, the intake brief, the raw idea, and the "
      "full Q&A so far"),
-    ("commands/next-stage.md", "B5, the code-review dispatch",
+    ("references/next-stage-path-b.md", "B5, the code-review dispatch",
      "**attaching the seat's R&R row, `<specs_dir>/<n>/spec.md` and `technical-spec.md`**"),
-    ("commands/next-stage.md", "B2.4, the QA dispatch",
+    ("references/next-stage-path-b2.md", "B2.4, the QA dispatch",
      "`${CLAUDE_PLUGIN_ROOT}/references/qa-brief.md` as its contract, the seat's R&R row, "
      "the two lists and the `Test port:` line"),
-    ("commands/next-stage.md", "B2.7, the fidelity dispatch",
+    ("references/next-stage-path-b2.md", "B2.7, the fidelity dispatch",
      "`${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md` as its contract and the seat's "
      "R&R row, in the `<qa-branch>` worktree"),
-    ("commands/next-stage.md", "the fast track's reviewer dispatch",
+    ("references/next-stage-path-c.md", "the fast track's reviewer dispatch",
      "**attaching the seat's R&R row and the issue body**"),
 ]
 

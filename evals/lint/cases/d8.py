@@ -26,9 +26,9 @@ def _write(path, text):
     finally:
         os.remove(path)
 
-src("D8: B2.4 arms the marker with seat=qa", "commands/next-stage.md",
+src("D8: B2.4 arms the marker with seat=qa", "references/next-stage-path-b2.md",
     "`seat=qa` here\n  (the hook names the dispatch in its deny message)")
-src("D8: B2.4 — QA may run, may not read", "commands/next-stage.md",
+src("D8: B2.4 — QA may run, may not read", "references/next-stage-path-b2.md",
     "QA may run `acceptance_test` in its worktree all\n  it likes; it may not read the code it "
     "runs against")
 src("D8: the QA brief states the blindness rule", "references/qa-brief.md",

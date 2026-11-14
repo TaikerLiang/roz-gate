@@ -22,6 +22,6 @@ c.expect("pattern", "B2 pattern: wrapped (measured read as present",
 must_not_match("B2 rationale: same-line-paren matching would miss it",
                r"\(measured[^)\n]*\)", fixture("b2_wrapped_measured.md"))
 src("B2 conformance: the opening-token rule names all three tokens",
-    "commands/next-stage.md", "`(unverified)`, `(assumed-empirical:`, `(measured`")
+    "references/next-stage-path-a.md", "`(unverified)`, `(assumed-empirical:`, `(measured`")
 src("B2 conformance: opening-token-only is stated as the rule",
-    "commands/next-stage.md", "matches the **opening token only**")
+    "references/next-stage-path-a.md", "matches the **opening token only**")

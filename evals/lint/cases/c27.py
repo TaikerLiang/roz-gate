@@ -39,7 +39,7 @@ src("C27: merged into the bound spec branch is the passed stage", "references/pa
 src("C27: an earlier {seq} attempt's merged CR is history (codex review, PR #212)",
     "references/patrol-scan.md",
     "under a `{seq}` template an earlier\n  attempt's merged CR targets the earlier spec branch")
-src("C27: next-stage scopes the check to the bound spec branch", "commands/next-stage.md",
+src("C27: next-stage scopes the check to the bound spec branch", "references/next-stage-path-b.md",
     "**Merged into the bound `<spec-branch>`** (its base; an earlier\n`{seq}` attempt's")
 src("C27: open is a STOP's resume, classified normally", "references/patrol-scan.md",
     "Open → classify normally: the STOP exit's resume line re-applies the\n  label over an open CR")
@@ -60,14 +60,15 @@ src("C27: patrol names it among the rows it cannot act on", "commands/patrol.md"
     "or worn\non a stage that passed, a scan that contradicts")
 src("C27: the route table points at the check", "commands/next-stage.md",
     "**B — implementation + review (3)+(5)** — its passed-stage check first")
-src("C27: next-stage's passed-stage check", "commands/next-stage.md",
+src("C27: next-stage's passed-stage check", "references/next-stage-path-b.md",
     "**Passed-stage check (first, read-only):** Lookup `<feat-branch>`")
-src("C27: next-stage — no lock, no writes, not the STOP exit", "commands/next-stage.md",
+src("C27: next-stage — no lock, no writes, not the STOP exit", "references/next-stage-path-b.md",
     "Take no lock and write nothing — **not** the STOP\nexit, whose resume line would have the "
     "holder re-apply the label this\ncheck refuses")
-src("C27: next-stage continues over an open CR (a STOP's resume)", "commands/next-stage.md",
+src("C27: next-stage continues over an open CR (a STOP's resume)",
+    "references/next-stage-path-b.md",
     "Open → continue: a STOP's resume line\nre-applies the label over an open CR")
-src("C27: next-stage's remedy", "commands/next-stage.md",
+src("C27: next-stage's remedy", "references/next-stage-path-b.md",
     "**remove\n`status: ready-for-dev`, nothing else**")
 src("C27: tip classifies it", "commands/tip.md",
     "- **`track: spec` + `ready-for-dev` with the implementation CR merged**\n"

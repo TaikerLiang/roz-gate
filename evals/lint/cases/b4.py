@@ -15,6 +15,6 @@ META = {
 }
 
 src("B4: question comments must open with the marker",
-    "commands/next-stage.md", "MUST start with `**[")
+    "references/next-stage-path-a.md", "MUST start with `**[")
 src("B4: the quote-block opening is forbidden in review replies",
     "commands/review-answers.md", "Never open with a quote block")

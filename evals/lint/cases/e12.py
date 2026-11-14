@@ -36,5 +36,5 @@ src("E12: an approved answer changes the test; observed behaviour never does",
     "(QA-4)")
 src("E12: the deliverable names why a scenario waits", "references/qa-brief.md",
     "(each with why it is undrivable)")
-src("E12: B2.5 — every drivable scenario is already written", "commands/next-stage.md",
+src("E12: B2.5 — every drivable scenario is already written", "references/next-stage-path-b2.md",
     "is already written, a questioned one included (only an undrivable scenario\nwaits)")

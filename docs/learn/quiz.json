@@ -244,7 +244,7 @@
    ],
    "a": 1,
    "why": "「a contract ambiguity mid-build is never interpreted by the contractor: it goes back through a change order」。在 code 裡自行決定是 ledger case E3 明文禁止的做法；reviewer 和 implementer 私下談定則是 E4 禁止的做法。",
-   "src": "README.md § The loop (change order) · commands/next-stage.md B3/B5",
+   "src": "README.md § The loop (change order) · references/next-stage-path-b.md B3/B5",
    "bg": "Stage (3) implementation 是 implementer 在 feat/{n} 上實作；contract 是 stage (2) spec refinement 寫好的 technical-spec.md。README 用「owner / contractor / inspector」的商業結構比喻整個 loop，而且說 loop 只有一個 backward transition。你是 implementer，寫到一半發現 contract 對某個行為沒說清楚。"
   },
   {
@@ -495,7 +495,7 @@
    ],
    "a": 3,
    "why": "(5q) fidelity review 是 (5) code review 之外的另一次 reviewer dispatch，必須是 fresh context——看過實作的 reviewer 知道測試會過，就容易判它忠實——這正是這次審查要排除的偏差。",
-   "src": "commands/next-stage.md B5b · references/fidelity-brief.md",
+   "src": "references/next-stage-path-b2.md B2.7 · references/fidelity-brief.md",
    "bg": "Stage (5) code review 是 reviewer 審 implementation code；1.9.0 加了 stage (5q) fidelity review：QA suite 本身也要被審，因為 integration verdict 是從 QA suite 算出來的，不審它，它就是 loop 裡唯一沒被檢查的環節。fidelity-brief.md 是這次 dispatch 的契約，它對「誰、在哪個 checkout、產出什麼」有明確要求。產出裡的 summary comment 以 `**[reviewer] · fidelity**` 開頭，是審計跑過的紀錄：1.33.0 起 integrate 要求它，沒有它 patrol 會補跑審計（#95）。"
   },
   {
@@ -1105,7 +1105,7 @@
    ],
    "a": 2,
    "why": "#206 的 ruling (c):fold 可以再問一輪,但「回答 fold 冒出的問題」再冒出的問題被延後——鏈長綁在深度 1。第一輪通常是答案真的揭露了新的模糊處,該問;無限遞迴則是 seat 用問題消耗你的 gate,每一層都要等一次 patrol pass。延後的問題仍在 `## Open Questions`(唯一收集點),你可以在 CR 上用 top-level 留言回答(當作 amendment 折入);不回答,貼 `ready-for-dev` 時就以建議選項為準,由此生出的規則帶 `(assumed)`。",
-   "src": "commands/spec-answers.md § 5 · commands/next-stage.md B2 · #206",
+   "src": "commands/spec-answers.md § 5 · references/next-stage-path-b.md B2 · #206",
    "bg": "(2a) 的每個問題都是 spec CR 上的一條 thread;spec-answers 把答案折回提問席位擁有的文件。ConsoleAPI #1 時折 Q6/Q7 又冒出 Q8/Q9,issue 多繞了一圈人工 gate——這題問的就是那條邊界。"
   }
  ]

@@ -10,7 +10,7 @@ META = {
     "ledger": None,
 }
 
-b3 = section(read("commands/next-stage.md"), r"^### B3\. Dispatch", r"^### B4\. ")
+b3 = section(read("references/next-stage-path-b.md"), r"^### B3\. Dispatch", r"^### B4\. ")
 c.expect("pattern", "E3: stage-(3) dispatch states the contract-gap stop route",
          "A contract gap you cannot resolve" in b3)
 c.expect("pattern", "E3: unilateral in-code decisions are forbidden explicitly",

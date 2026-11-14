@@ -20,9 +20,9 @@ c.expect("pattern", "C8: GitHub CR-FIND returns state and url (merged? which CR?
          "baseRefName,state,url" in "\n".join(
              line for line in read("references/forge-github.md").splitlines()
              if "CR-FIND" in line))
-src("C8: the spec CR body closes the issue", "commands/next-stage.md",
+src("C8: the spec CR body closes the issue", "references/next-stage-path-a.md",
     'Stage (2) spec refinement for #<n>. For review.\nCloses #<n>"')
-src("C8: the fast CR body closes the issue", "commands/next-stage.md",
+src("C8: the fast CR body closes the issue", "references/next-stage-path-c.md",
     "body ending `Closes #<n>`")
 _iur = "\n".join(line for line in read("references/patrol-scan.md").splitlines()
                  if line.startswith("| `status: in-user-review` |"))

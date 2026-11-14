@@ -20,7 +20,7 @@ pattern. Ten rules, each the mechanical form of existing protocol text:
      each time (the 1.11.0 runaway).
   D. A ``git commit`` never carries a ``technical-spec.md`` under the
      project's ``specs_dir`` that still holds an open-questions section
-     (commands/next-stage.md A6: "move it … and delete it from the source
+     (references/next-stage-path-a.md A6: "move it … and delete it from the source
      document — the section goes"). The first opus baseline measured the
      prose at 0/5 AFTER it was made explicit: every run copied the
      question into spec.md, threaded it, and left the source untouched —
@@ -28,7 +28,7 @@ pattern. Ten rules, each the mechanical form of existing protocol text:
      deny lands at the moment the agent can still act on it, and its
      message is the remedy. Working tree AND index are checked: a fixed
      file that was never re-staged would commit the stale section.
-  F. A question comment lists its options as bullets (commands/next-stage.md
+  F. A question comment lists its options as bullets (references/next-stage-path-a.md
      A3, references/intake-brief.md: "the options as (a)/(b) bullets").
      Issue #109: a (2a) thread wrote them as prose — and the forge renders
      consecutive lines as one paragraph, so even options written one per
@@ -47,7 +47,7 @@ pattern. Ten rules, each the mechanical form of existing protocol text:
      ``**[<command>] · blocked**``) and its last (``**To resume:**`` — the
      label to clear, the phase to apply, where the answer goes); a body
      carrying the title and no resume line is a deny.
-  H. A CR-OPEN declares its contract deviations (commands/next-stage.md
+  H. A CR-OPEN declares its contract deviations (references/next-stage-path-b.md
      B4; issue #140, 2.0.0). The implementer corrects ``technical-spec.md``
      on its branch as it builds, and QA — which since 2.0.0 starts after
      the implementation lands — tests the contract as built; a correction
@@ -248,7 +248,7 @@ OPTION_BULLET = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+\([a-z]\)")
 OPTIONS_MSG = (
     "Roz Gate: blocked — a question comment lists its options as bullets, "
     "one per line, and %s has none: `- (a) …` / `- (b) … ← ✅ recommended` "
-    "(commands/next-stage.md A3; references/intake-brief.md). Why: the forge "
+    "(references/next-stage-path-a.md A3; references/intake-brief.md). Why: the forge "
     "renders consecutive lines as one paragraph — options written as prose "
     "or as bare lines reach the gate holder's phone run together, and the "
     "shorthand reply (`3a`) has nothing to point at (issue #109)."
@@ -296,7 +296,7 @@ DEVIATIONS_MSG = (
     "Roz Gate: blocked — this CR changes `%s` and its body has no "
     "`## Contract deviations` section. Add the section to the body — one "
     "bullet per changed clause (`G<k>` / `C<k>` / a §5 row): what changed and "
-    "why; or the single line `none` — then retry (commands/next-stage.md B4). "
+    "why; or the single line `none` — then retry (references/next-stage-path-b.md B4). "
     "Why: the contract is corrected during implementation, and QA tests it as "
     "built; a correction nobody declared reaches QA and the reviewer as a "
     "silent edit (issue #140)."
@@ -314,7 +314,7 @@ OPEN_QUESTIONS_MSG = (
     "Roz Gate: blocked — `%s` (%s) still carries an open-questions section "
     "(`%s`). Move it to spec.md's `## Open Questions` and delete it here — "
     "the section goes; at most a one-line pointer to the Q-ID stays under "
-    "another heading (commands/next-stage.md A6) — then `git add` the file "
+    "another heading (references/next-stage-path-a.md A6) — then `git add` the file "
     "and commit. Why: a question outside the threaded surface is invisible "
     "to every gate that counts threads, and a copy left behind drifts."
 )

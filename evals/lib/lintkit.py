@@ -19,6 +19,10 @@ from lib.checkkit import Checker
 
 R = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 FX = os.path.join(R, "evals", "lint", "fx")
+# `commands/next-stage.md` and the four path files it hands off to (#279): a
+# check that held "next-stage carries no X" now holds all five.
+NEXT_STAGE = ("commands/next-stage.md",) + tuple(
+    "references/next-stage-path-%s.md" % k for k in ("a", "b", "b2", "c"))
 
 
 class Lint(Checker):

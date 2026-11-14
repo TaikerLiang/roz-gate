@@ -10,7 +10,7 @@ the mechanical form of existing protocol text:
      after the implementation landed on the spec branch, so the branch
      carries the code and the topology no longer protects) — all on
      ``qa/<n>``; references/fidelity-brief.md and references/qa-brief.md:
-     "You never read the implementation"; commands/next-stage.md B2.4 /
+     "You never read the implementation"; references/next-stage-path-b2.md B2.4 /
      B2.7 — no tool call reads ``src/`` or acts on a ``feat/`` ref. The first opus baseline measured
      the dispatch prompt's "Do NOT read src/" at 4/5: run 4's QA child ran
      ``git status --short && git rev-parse --abbrev-ref HEAD && cat
@@ -436,7 +436,7 @@ def deny(message):
 
 def marker_path():
     # The COMMON dir, not --git-dir: a dispatch runs in a linked worktree
-    # (commands/next-stage.md B5b), whose own git dir is
+    # (references/next-stage-path-b2.md B2.7), whose own git dir is
     # <common>/worktrees/<name>; the marker written from the checkout would
     # be invisible there and the rule silently OFF (codex review, PR #53).
     try:

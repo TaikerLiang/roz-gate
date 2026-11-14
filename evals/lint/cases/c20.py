@@ -17,14 +17,13 @@ META = {
     "id": 'C20',
 }
 
-_ns = read("commands/next-stage.md")
 src("C20: the route table has Path B2, read from CR state", "commands/next-stage.md",
     "| **B2 — validation (4)+(5q)** — the one route read from CR state")
-src("C20: Path B is implementation + review", "commands/next-stage.md",
+src("C20: Path B is implementation + review", "references/next-stage-path-b.md",
     "## Path B — implementation + review (3)+(5)")
-src("C20: Path B2 exists", "commands/next-stage.md",
+src("C20: Path B2 exists", "references/next-stage-path-b2.md",
     "## Path B2 — validation (4)+(5q), once the implementation has landed")
-_b2 = section(_ns, r"^## Path B2 ", r"^## Path C ")
+_b2 = section(read("references/next-stage-path-b2.md"), r"^## Path B2 ", r"^## Path C ")
 c.expect("pattern", "C20: B2.2 merges the implementation into the spec branch and pushes",
          "git merge --no-edit origin/<feat-branch>" in _b2 and "push `<spec-branch>`" in _b2)
 c.expect("pattern", "C20: B2.3 cuts the QA branch off the merged tip",
@@ -37,7 +36,8 @@ c.expect("pattern", "C20: B2 adds no gate label",
          and "no new gate label" in read("README.md").lower()
          or "No gate label" in read("references/workflow.md"))
 c.expect("pattern", "C20: Path B cuts no QA branch",
-         "No `<qa-branch>` is cut here" in section(_ns, r"^### B2\. ", r"^### B3\. "))
+         "No `<qa-branch>` is cut here" in section(read("references/next-stage-path-b.md"),
+                                                   r"^### B2\. ", r"^### B3\. "))
 src("C20: the scanner routes a review-clean implementation CR with no QA CR to B2",
     "references/patrol-scan.md",
     "**review-clean or merged**, and **no QA CR** → actionable → `/roz-gate:next-stage <n>`")

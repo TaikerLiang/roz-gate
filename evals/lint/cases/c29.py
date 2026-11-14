@@ -13,7 +13,7 @@ the prose from proposing it.
 
 import re
 
-from lib.lintkit import c, read
+from lib.lintkit import NEXT_STAGE, c, read
 
 META = {
     "id": "C29",
@@ -49,8 +49,9 @@ for _f, _t, _title in (("commands/next-stage.md", _ns, "next-stage"),
              "the base lacks a dependency" in flat(_f) and "sync `<default_branch>`" in _t)
     c.expect("pattern", "C29: %s — the STOP's title is the command's" % _f,
              "**[%s] · blocked**" % _title in _t)
+_a3 = read("references/next-stage-path-a.md")
 c.expect("pattern", "C29: next-stage.md — a seat reports the gap; the command STOPs, never merges",
-         "reports it" in _ns and "never proposes a merge" in " ".join(_ns.split()))
+         "reports it" in _a3 and "never proposes a merge" in " ".join(_a3.split()))
 for _f in ("agents/product.md", "agents/em.md"):
     c.expect("pattern", "C29: %s — never offers another branch's commits as an option" % _f,
              "never offer merging, rebasing onto or cherry-picking from another branch"
@@ -60,6 +61,6 @@ for _f in ("agents/product.md", "agents/em.md", "agents/qa.md", "agents/reviewer
            "commands/next-stage.md", "commands/spec-answers.md", "commands/integrate.md",
            "commands/review-answers.md", "commands/patrol.md", "references/workflow.md",
            "references/intake-brief.md", "references/qa-brief.md", "references/fidelity-brief.md",
-           "references/commit-brief.md", "README.md"):
+           "references/commit-brief.md", "README.md") + NEXT_STAGE[1:]:
     c.expect("pattern", "C29: %s never says to merge master" % _f,
              _banned.search(read(_f)) is None)

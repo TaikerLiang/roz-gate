@@ -19,13 +19,13 @@ src("E9: the brief gives the finding the question shape", "references/qa-brief.m
     "`**[qa] · Q<k> · <2–3-word\nlabel>**`")
 src("E9: the brief — QA does not stop on a finding", "references/qa-brief.md",
     "**A finding does not stop you**")
-src("E9: B2.5 appends the item to spec.md's Open Questions", "commands/next-stage.md",
+src("E9: B2.5 appends the item to spec.md's Open Questions", "references/next-stage-path-b2.md",
     "append each item to `spec.md`'s `## Open Questions`")
-src("E9: B2.5 posts the threads on the spec CR", "commands/next-stage.md",
+src("E9: B2.5 posts the threads on the spec CR", "references/next-stage-path-b2.md",
     "THREAD-POST-INLINE each item verbatim on the spec CR")
-src("E9: B2.5 applies the backward transition", "commands/next-stage.md",
+src("E9: B2.5 applies the backward transition", "references/next-stage-path-b2.md",
     "LABEL-ADD\n`status: in-spec-review`: the backward transition")
-src("E9: B2.6 — ready only with no [qa] thread open", "commands/next-stage.md",
+src("E9: B2.6 — ready only with no [qa] thread open", "references/next-stage-path-b2.md",
     "CR-READY only\n  if `qa` reported its suite complete **and** B2.5 posted no thread")
 src("E9: spec-answers resumes qa after a [qa] finding", "commands/spec-answers.md",
     "QA's `[qa]` contract-review findings")

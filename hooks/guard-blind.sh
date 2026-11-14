@@ -7,7 +7,7 @@
 # review, or since 2.0.0 the QA dispatch (#140) — and the dispatching
 # command says so by writing a marker file under the repo's COMMON git dir — the
 # one the checkout and every linked worktree share, so a dispatch running
-# in a worktree (commands/next-stage.md B2.4 / B2.7) is governed by it whatever its
+# in a worktree (references/next-stage-path-b2.md B2.4 / B2.7) is governed by it whatever its
 # cwd (--git-dir there would be worktrees/<name>, where the marker is
 # invisible; codex review, PR #53). One cheap git call plus one stat
 # decides it, and only then do we pay for a python startup.

@@ -132,6 +132,38 @@ def isolation_breach(transcript, plugin_dir):
                 str(m.get("name")) for m in mcp)
     return None
 
+PATH_FILE_RE = re.compile(r"(?:^|/)references/(next-stage-path-(?:a|b|b2|c)\.md)$")
+
+
+def path_files_read(transcript):
+    """The `next-stage` path files a session Read (#279): the distinct
+    `references/next-stage-path-*.md` names in the order first Read, seats
+    included, and their count — `path_files_read` is a signal (a count),
+    `path_files_read_detail` a detail. A Read counts only once its
+    tool_result came back without `is_error`: a failed or unanswered Read
+    loaded nothing (codex review, PR #316). A report, never a verdict."""
+    names, asked = [], {}
+    try:
+        for line in open(transcript, encoding="utf-8"):
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                continue
+            for b in (ev.get("message") or {}).get("content") or []:
+                if not isinstance(b, dict):
+                    continue
+                if b.get("type") == "tool_use" and b.get("name") == "Read":
+                    m = PATH_FILE_RE.search(str((b.get("input") or {}).get("file_path", "")))
+                    if m:
+                        asked[b.get("id")] = m.group(1)
+                elif b.get("type") == "tool_result" and not b.get("is_error"):
+                    name = asked.get(b.get("tool_use_id"))
+                    if name and name not in names:
+                        names.append(name)
+    except OSError:
+        pass
+    return {"path_files_read": len(names), "path_files_read_detail": names}
+
 # What the runtime (or our own timeout) writes to the SUT's stderr when the
 # session was cut short. A cut-short session can still carry result events
 # — one per turn the main agent finished — so has_result_event() cannot

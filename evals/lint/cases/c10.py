@@ -5,15 +5,15 @@ remote branch anywhere in the prose.
 
 import re
 
-from lib.lintkit import c, dir_files, read, section, src
+from lib.lintkit import NEXT_STAGE, c, dir_files, read, section, src
 
 META = {
     "id": 'C10',
 }
 
-_ns10 = read("commands/next-stage.md")
-_a2 = section(_ns10, r"^### A2\. Branch", r"^### A3\. ")
-_c2 = section(_ns10, r"^### C2\. Branch", r"^### C3\. ")
+_ns10 = "\n".join(read(_f) for _f in NEXT_STAGE)
+_a2 = section(read("references/next-stage-path-a.md"), r"^### A2\. Branch", r"^### A3\. ")
+_c2 = section(read("references/next-stage-path-c.md"), r"^### C2\. Branch", r"^### C3\. ")
 for _nm, _blk, _b in (("A2", _a2, "spec"), ("C2", _c2, "fast")):
     c.expect("pattern", "C10: %s looks the %s kind up on the remote first (1.29.0: Lookup, "
              "by template — references/branch-names.md)" % (_nm, _b),
@@ -34,10 +34,10 @@ _del_lines = [(f, ln) for f, t in _prose.items() for ln in t.splitlines()
 c.expect("pattern", "C10: every `push --delete` in the prose is addressed to the human",
          _del_lines != [] and all(any(w in ln for w in ("human", "yours", "the agent never"))
                                   for _, ln in _del_lines))
-for _b, _base in (("spec", "<default_branch>"), ("fast", "<default_branch>"),
-                  ("feat", "<spec-branch>"), ("qa", "<spec-branch>")):
+for _b, _base, _k in (("spec", "<default_branch>", "a"), ("fast", "<default_branch>", "c"),
+                      ("feat", "<spec-branch>", "b"), ("qa", "<spec-branch>", "b2")):
     src("C10: the <%s-branch> cut uses -B (a stale local ref after a re-spec cannot block it)" % _b,
-        "commands/next-stage.md",
+        "references/next-stage-path-%s.md" % _k,
         "roz-gate/wt/<%s-branch> -B <%s-branch> origin/%s" % (_b, _b, _base))
 c.expect("pattern", "C10: no cut uses -b any more",
          not any(" -b <%s-branch>" % _b in _ns10 for _b in ("spec", "fast", "feat", "qa")))

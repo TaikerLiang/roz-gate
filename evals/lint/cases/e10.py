@@ -21,16 +21,16 @@ META = {
 }
 
 _SEC = "## Contract deviations"
-src("E10: B4 names the section", "commands/next-stage.md",
+src("E10: B4 names the section", "references/next-stage-path-b.md",
     "The body carries a fixed section **`%s`**" % _SEC)
-src("E10: B4 names the hook", "commands/next-stage.md",
+src("E10: B4 names the hook", "references/next-stage-path-b.md",
     "Guard-gate rule H\n  denies a CR-OPEN whose diff touches `<specs_dir>/*/technical-spec.md`")
-src("E10: B3 returns the deviations list", "commands/next-stage.md",
+src("E10: B3 returns the deviations list", "references/next-stage-path-b.md",
     "return the list of every change (clause, what changed, why) for\n  the CR's `%s` section"
     % _SEC)
-src("E10: B5 attaches the deviations", "commands/next-stage.md",
+src("E10: B5 attaches the deviations", "references/next-stage-path-b.md",
     "and the CR's `%s`: the reviewer checks every deviation\n  against `spec.md`'s rules" % _SEC)
-src("E10: B2.4 copies the section into the QA dispatch text", "commands/next-stage.md",
+src("E10: B2.4 copies the section into the QA dispatch text", "references/next-stage-path-b2.md",
     "implementation CR's `%s` section, copied **verbatim**" % _SEC)
 src("E10: the fidelity brief receives the deviations", "references/fidelity-brief.md",
     "under\nthe heading `Contract deviations:`")

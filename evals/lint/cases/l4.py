@@ -48,18 +48,18 @@ _readers = ("commands/patrol.md", "commands/next-stage.md", "commands/integrate.
             "commands/spec-answers.md", "commands/review-answers.md")
 for _f in _readers:
     src("L4: %s binds the names through branch-names.md" % _f, _f, "references/branch-names.md")
-_ns4 = read("commands/next-stage.md")
-for _nm, _s, _e in (("A2", r"^### A2\. Branch", r"^### A3\. "),
-                    ("C2", r"^### C2\. Branch", r"^### C3\. ")):
-    _blk = section(_ns4, _s, _e)
+for _nm, _s, _e, _k in (("A2", r"^### A2\. Branch", r"^### A3\. ", "a"),
+                        ("C2", r"^### C2\. Branch", r"^### C3\. ", "c")):
+    _blk = section(read("references/next-stage-path-%s.md" % _k), _s, _e)
     c.expect("pattern",
              "L4: %s re-enters by one past the highest {seq} when the template carries it" % _nm,
              "It carries **`{seq}`**" in _blk and "1 + max" in _blk)   # #135: not a count
     c.expect("pattern", "L4: %s STOPs with the delete remedy only without {seq}" % _nm,
              "It carries **no\n`{seq}`**" in _blk and "git push origin --delete" in _blk)
-src("L4: B2 binds feat and qa by Lookup, else Expand", "commands/next-stage.md",
+src("L4: B2 binds feat and qa by Lookup, else Expand", "references/next-stage-path-b.md",
     "Lookup — a previous B run's\nbranch is reused — else Expand")
-src("L4: the dispatch marker carries the bound implementation branch", "commands/next-stage.md",
+src("L4: the dispatch marker carries the bound implementation branch",
+    "references/next-stage-path-b2.md",
     "printf 'issue=<n>\\nfeat=<feat-branch>\\nread=<path>\\nseat=<seat>\\n'")
 src("L4: patrol's fidelity dispatch names the same marker line", "commands/patrol.md",
     "feat=<feat-branch>")

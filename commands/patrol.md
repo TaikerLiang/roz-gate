@@ -154,7 +154,7 @@ workspace).
    double-dispatch).
 2. Spec track: implementation CR threads → dispatch `implementer` on
    `<feat-branch>`; QA CR fidelity threads → dispatch `qa` on `<qa-branch>` **under
-   the fidelity-dispatch procedure** (next-stage.md B2.7: marker on, carrying
+   the fidelity-dispatch procedure** (`references/next-stage-path-b2.md` B2.7: marker on, carrying
    `feat=<feat-branch>`, the test port's `read=` lines and `seat=qa`, dispatch, marker
    off — guard-blind denies any
    `src/` read outside `<acceptance_dir>` and the port, or git action on
@@ -199,7 +199,9 @@ implementation side; #140 ruling 9). Patrol runs the review alone.
    `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<branch> <branch>`
    for the CR's head branch — a refusal (the branch is checked out
    elsewhere) → the STOP exit.
-3. Dispatch the **reviewer** as next-stage B5 does (C6 on the fast track):
+3. Dispatch the **reviewer** as next-stage B5 does (C6 on the fast track —
+   `${CLAUDE_PLUGIN_ROOT}/references/next-stage-path-b.md` B5, `next-stage-path-c.md` C6;
+   both post per `references/code-review-mechanics.md`):
    the CR's diff against its base, the seat's R&R row,
    `<specs_dir>/<n>/spec.md` and `technical-spec.md` attached (the issue body on the fast track), the
    as-built contract diff and the CR's `## Contract deviations` for a
@@ -221,7 +223,7 @@ an audited one. Patrol runs the audit alone — nothing else of B2.7.
 2. `git fetch`, then
    `git worktree add $(git rev-parse --git-common-dir)/roz-gate/wt/<qa-branch> <qa-branch>`
    — a refusal (the branch is checked out elsewhere) → the STOP exit.
-3. **The fidelity-dispatch procedure** (next-stage.md B2.7, verbatim):
+3. **The fidelity-dispatch procedure** (`references/next-stage-path-b2.md` B2.7, verbatim):
    contract currency by you first — THREADS-LIST on both CRs, the
    amendment list and the implementation CR's `## Contract deviations`
    (copied verbatim under `Contract deviations:`) into the dispatch text,

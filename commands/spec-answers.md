@@ -262,7 +262,7 @@ depends on where the issue is — decided by CR-FIND for `<feat-branch>` /
   (a refusal — the branch is checked out elsewhere — is the STOP exit) and,
   in that worktree, `git merge --no-edit origin/<spec-branch>` (a conflict is
   the STOP exit, naming the files). Dispatch `qa` **into that worktree**
-  under the QA dispatch procedure (`next-stage.md` B2.4: marker on with
+  under the QA dispatch procedure (`references/next-stage-path-b2.md` B2.4: marker on with
   `seat=qa`, `feat=` and the `read=` lines, the QA brief, marker off); commit
   what it changed through the **commit** sub-agent and push `<qa-branch>`
   from the returned `sha`; then `git worktree remove --force` that worktree
