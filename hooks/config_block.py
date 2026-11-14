@@ -37,8 +37,10 @@ def git(*args):
     return out.stdout.strip() if out.returncode == 0 and out.stdout.strip() else None
 
 
-def main_checkout():
-    """The main worktree's toplevel, or None when git cannot say.
+def main_checkout(cwd=None):
+    """The main worktree's toplevel, or None when git cannot say — of the
+    repository that holds `cwd` (the hook's own cwd when None; #277: guard-
+    acceptance asks for the edited file's worktree).
 
     `core.worktree` in the common dir's config when it is set (relative
     values are relative to the git dir), else the parent of the common git
@@ -49,25 +51,28 @@ def main_checkout():
     the main checkout is unreachable from a linked worktree and the tracked
     `CLAUDE.md`, present in every worktree, is where the block must live
     (codex review, PR #100)."""
-    common = git("rev-parse", "--path-format=absolute", "--git-common-dir") \
-        or git("rev-parse", "--git-common-dir")
+    at = ("-C", cwd) if cwd else ()
+    common = git(*at, "rev-parse", "--path-format=absolute", "--git-common-dir") \
+        or git(*at, "rev-parse", "--git-common-dir")
     if not common:
         return None
-    common = os.path.abspath(common)
+    common = os.path.abspath(os.path.join(cwd or os.getcwd(), common))
     wt = git("config", "--file", os.path.join(common, "config"), "core.worktree")
     if wt:
         return os.path.normpath(wt if os.path.isabs(wt) else os.path.join(common, wt))
     return os.path.dirname(common)
 
 
-def find_block(top):
+def find_block(top, main=None):
     """The text of the first config block found — `CLAUDE.md`, then
-    `CLAUDE.local.md`, in `top`, then in the main checkout. None → not a
+    `CLAUDE.local.md`, in `top`, then in `main`, the main checkout of the
+    repository that holds `top` (#277: resolved from `top`, never from the
+    hook's cwd; a caller that has it already passes it). None → not a
     roz-gate project (no block anywhere), or no toplevel."""
     if not top:
         return None
     roots = [top]
-    main = main_checkout()
+    main = main or main_checkout(top)
     if main and os.path.realpath(main) != os.path.realpath(top):
         roots.append(main)
     for root in roots:
