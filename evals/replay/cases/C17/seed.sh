@@ -27,6 +27,8 @@ cat > docs/specs/5/technical-spec.md <<'EOF'
 
 ## Contract
 - `price(cart, now)` excludes offers with `expires_at < now`.
+
+**Test port** — src/pricing.py
 EOF
 git add -A && git -c user.email=paul@example.com -c user.name=paul commit -qm "spec docs #5"
 

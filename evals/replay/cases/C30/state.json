@@ -51,6 +51,7 @@
       "isDraft": false,
       "headRefName": "feat/5",
       "baseRefName": "spec/5",
+      "body": "## Contract deviations\n\nnone\n",
       "threads": [],
       "reviews": [],
       "comments": [
@@ -98,6 +99,7 @@
       "isDraft": false,
       "headRefName": "feat/6",
       "baseRefName": "spec/6",
+      "body": "## Contract deviations\n\nnone\n",
       "threads": [],
       "reviews": [],
       "comments": [

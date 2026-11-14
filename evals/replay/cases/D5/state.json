@@ -39,6 +39,7 @@
       "isDraft": false,
       "headRefName": "fix/paul/5/1",
       "baseRefName": "spec/paul/5/1",
+      "body": "## Contract deviations\n\nnone\n",
       "threads": [],
       "reviews": [],
       "comments": [

@@ -126,6 +126,18 @@ real verdict.
   `CLAUDE.md` config, personas and first commit every case shares.
 - Leave the repo on `main`; the runner pushes every branch to a local
   bare remote.
+- **The seed makes true what the seat is told** (#293). Whatever an issue
+  body, a spec or a CR in `state.json` says exists, exists in the sandbox:
+  the code an issue names is on the base (a seat that finds the base lacks
+  it is right to stop — #213 — and the case then measures nothing); a
+  seeded implementation CR's body carries `## Contract deviations`; an
+  as-built `technical-spec.md` carries its one `**Test port** — …` line; a
+  seeded test asserts something. The shared base has the offers table and
+  the checkout service; anything else a case's issues presuppose, its own
+  seed adds.
+- Editing `lib/seed-common.sh` moves **every** case's fingerprint
+  (`replaylib.SHARED_FINGERPRINT_INPUTS`): mark the replay batches in
+  `baselines.json` `superseded` in the same PR.
 - Override config with `sed`, then **assert it took** (`grep -q …`): a
   silent no-op seeds the wrong experiment.
 - A command in the config must be **complete** and work both as written
@@ -234,8 +246,8 @@ the same fixture and SUT; the brief's hash is in every result
 (`replay/README.md` § Variants).
 
 Each run records the fingerprint of the case that scored it (`case_fp` in
-`result.json`). Editing the checker, `case.json`, the seed or the state
-after the baseline makes those runs **stale** in `report.json` — out of the
+`result.json`). Editing the checker, `case.json`, the seed, the state or the
+shared seed (`lib/seed-common.sh`) after the baseline makes those runs **stale** in `report.json` — out of the
 rate, never silently current — until the case is re-measured
 (`evals/replay/README.md` § The case as scored).
 

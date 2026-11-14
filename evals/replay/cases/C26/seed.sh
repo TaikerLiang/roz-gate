@@ -8,6 +8,31 @@
 # report.
 set -eu
 bash "$(dirname "$0")/../../lib/seed-common.sh" "$1"
+# What #6, #8 and #9 presuppose (#293): an HTTP client pinned below 3.2, a
+# server whose responses carry no X-Request-Id, and the two ping routes. On
+# a base without them a seat that stops (#213) is right, and the N is never
+# reached.
+mkdir -p src/server
+printf 'httpclient==3.1\n' > requirements.lock
+cat > src/server/app.py <<'PY'
+"""The HTTP server: a route table and one handler."""
+
+ROUTES = {
+    "/ping": lambda: (200, "pong"),
+    "/v0/ping": lambda: (200, "pong"),  # legacy
+}
+
+
+def handle(path, headers=None):
+    """-> (status, response headers, body)."""
+    route = ROUTES.get(path)
+    if route is None:
+        return 404, {}, "not found"
+    status, body = route()
+    return status, {}, body
+PY
+git add -A
+git -c user.email=paul@example.com -c user.name=paul commit -qm "server: /ping, /v0/ping; HTTP client pinned at 3.1"
 git checkout -qb spec/5
 mkdir -p docs/specs/5
 printf '# Spec #5\n\n## Rules\n- **R1 · Expired offers do not apply**\n\n## Scenarios\n- S1 — Given an expired offer, When the cart is priced, Then it is not applied.\n' > docs/specs/5/spec.md

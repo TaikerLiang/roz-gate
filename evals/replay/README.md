@@ -112,6 +112,22 @@ cannot be re-scored: the checker needs the iteration's sandbox, which is
 deleted when the iteration ends. The harness red-proof (`redproof.py`
 § FINGERPRINT) asserts the columns.
 
+The fingerprint also covers what a case shares (#293): every file in
+`replaylib.SHARED_FINGERPRINT_INPUTS` — today `lib/seed-common.sh`, the base
+every sandbox starts from — is hashed into **every** case's fingerprint. The
+list is data, written by hand: a second shared seed file is added to the
+tuple, never inferred from a seed's shell text. Editing a listed file
+therefore makes every recorded run stale, and the batches in
+`baselines.json` that it leaves behind are marked `superseded` in the same
+change — the registry says so, not a caveat.
+
+**The shared base.** `lib/seed-common.sh` gives every sandbox the config,
+the personas, and the small system the corpus's issues talk about: the
+offers table (`src/store/offers.py`) and the checkout service
+(`src/checkout/service.py`) that issue #5 names, with the behaviour #5 asks
+for — expiry — still unbuilt. A case whose issues presuppose more (C26's
+server and pinned HTTP client) seeds it itself.
+
 ## Variants — the brief as a dimension
 
 `--variant` names the QA brief the SUT runs under, a dimension apart from
