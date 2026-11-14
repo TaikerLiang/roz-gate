@@ -17,11 +17,18 @@ whole-stack — seats ride the same endpoint as the main agent, because
 
 ```sh
 uv run evals/replay/run_replay.py [--sut NAME] [--k N] [--variant A|B|C] [case ...]   # from the repo root
+uv run evals/replay/run_replay.py --list [case ...]      # default k, baseline status, tier — no model
+uv run evals/replay/run_replay.py --dry-run --sut haiku55 D10   # k, done, pending, smoke sessions — no model
 # (plain `python3 run_replay.py` works identically — the tier is stdlib-only;
 #  uv standardizes the interpreter, python >= 3.12. The uv project root is
 #  the root pyproject.toml — one environment for evals/, hooks/, tools/.)
 ```
 
+- **Checked before spend** (#282): the SUT, the variant, every named case,
+  each checker's `# source:` citation and the driver/variant pairing are
+  checked for the whole batch before the report dir is created or the
+  smoke gate starts — a typo or `--help` costs nothing. `--list` and
+  `--dry-run` start no model, need no API key and write nothing.
 - SUT rows live in `models.yaml`. `opus` is the fixed reference baseline
   the rows published before 2026-11-08 were measured on; new baselines run
   on `haiku55` (quota); `fable` is the current operator. Rows of different

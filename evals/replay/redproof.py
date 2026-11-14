@@ -60,6 +60,13 @@ throwaway state, the resume rule against staged result.json files.
   misplaced roz-gate, an MCP server, or no init event at all is a breach;
   `run_one` (a fake `claude` on PATH) scores a clean session, makes a
   leaked one INVALID, and records `plugins` in result.json either way.
+- CLI (#282) — both runners, in-process under the fake `claude` with the
+  report root in a temp dir: `--help`, `--list`, `--dry-run`, an unknown
+  case or fixture (alone or after a valid one), a bad `--k`, an unknown
+  flag or arm, and a driver case under a variant exit with no `claude`
+  launched and no report written; the dry run reads the smoke gate as
+  fresh (3), partly passed (2) or passed (0) and counts done/pending; a
+  valid run still launches the model.
 
 Run by evals/replay/run_redproofs.py (pre-push and CI). Stdlib only,
 Python 3.9-compatible, like the hook suite.
@@ -1970,6 +1977,8 @@ FAKE_CLAUDE = r"""#!/usr/bin/env python3
 import json, os, sys
 with open(os.environ["FAKE_ARGV"], "w") as f:
     json.dump(sys.argv[1:], f)
+with open(os.environ["FAKE_ARGV"] + ".log", "a") as f:   # one line per launch (#282)
+    f.write(json.dumps(sys.argv[1:]) + "\n")
 print(open(os.environ["FAKE_INIT"]).read().strip())
 print(json.dumps({"type": "assistant", "message": {"id": "m1", "content": [
     {"type": "text", "text": "XENOLITH"}],
@@ -2098,6 +2107,119 @@ def isolation_checks():
     ]
 
 
+# ---- #282: nothing starts a model before every argument is checked ----------
+def _cli(main, argv):
+    """(exit code, output, claude launches) for one in-process runner call
+    under _fake_claude."""
+    log = os.environ["FAKE_ARGV"] + ".log"
+
+    def launches():
+        return sum(1 for _ in open(log)) if os.path.exists(log) else 0
+
+    before, out, code = launches(), io.StringIO(), 0
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
+        try:
+            main(argv)
+        except SystemExit as e:
+            code = e.code if isinstance(e.code, int) else (0 if e.code is None else 1)
+        except Exception as e:  # noqa: BLE001 — a traceback is the defect under test
+            code = "RAISED %s" % type(e).__name__
+    return code, out.getvalue(), launches() - before
+
+
+def cli_checks():
+    """#282: --help, --list, --dry-run, an unknown case (alone or after a
+    valid one), a bad --k, an unknown flag and a driver case under a
+    variant start no `claude` and write no report, in both runners; the
+    dry run's smoke estimate reads fresh / partial / passed; a valid run
+    still reaches the model."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "run_judgment", os.path.join(os.path.dirname(HERE), "judgment", "run_judgment.py"))
+    rj = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rj)
+    saved = rr.REPORT, rj.REPORT
+    rr.REPORT = rj.REPORT = tempfile.mkdtemp()
+    rows = []
+    try:
+        with _fake_claude(_iso_init([_iso_roz(rr.ROOT)])):
+            def zero(label, main, argv, want_rc, needle):
+                for name in os.listdir(rr.REPORT):   # each row on an empty report
+                    shutil.rmtree(os.path.join(rr.REPORT, name), ignore_errors=True)
+                rc, out, n = _cli(main, argv)
+                rows.append(("%s: exit %d, %r in the output, no claude launched, no report "
+                             "written" % (label, want_rc, needle),
+                             rc == want_rc and needle in out and n == 0
+                             and os.listdir(rr.REPORT) == []))
+                return out
+
+            zero("replay --help", rr.main, ["--help"], 0, "--dry-run")
+            out = zero("replay --list", rr.main, ["--list"], 0, "D10")
+            rows.append(("replay --list shows each case's default k, baseline status and tier",
+                         re.search(r"^D10\s+5\s+\S", out, re.M) is not None
+                         and re.search(r"^A1\s+5\s+superseded: opus-first-sweep", out, re.M)
+                         is not None))
+            out = zero("replay --dry-run D10", rr.main, ["--sut", "haiku55", "--dry-run", "D10"],
+                       0, "smoke gate: 3 session(s)")
+            rows.append(("replay --dry-run D10 prints its k, done, pending (5 0 5)",
+                         re.search(r"^D10\s+5\s+0\s+5$", out, re.M) is not None))
+            zero("replay unknown case", rr.main, ["--sut", "haiku55", "ZZ9"], 2,
+                 "no such case: ZZ9")
+            zero("replay valid case then unknown", rr.main, ["--sut", "haiku55", "D10", "ZZ9"],
+                 2, "no such case: ZZ9")
+            zero("replay --k 0", rr.main, ["--k", "0", "D10"], 2, "positive integer")
+            zero("replay --k x", rr.main, ["--k", "x", "D10"], 2, "positive integer")
+            zero("replay unknown flag", rr.main, ["--bogus", "D10"], 2, "unrecognized")
+            zero("replay unknown variant", rr.main, ["--variant", "Q", "D10"], 2,
+                 "unknown variant 'Q'")
+            zero("replay driver case under a variant", rr.main, ["--variant", "B", "F6"], 2,
+                 "REFUSED F6")
+            zero("judgment --help", rj.main, ["--help"], 0, "--dry-run")
+            zero("judgment --list", rj.main, ["--list"], 0, "F-63")
+            zero("judgment --dry-run", rj.main, ["--sut", "haiku55", "--dry-run", "F-63"], 0,
+                 "judge call")
+            zero("judgment unknown fixture", rj.main, ["--sut", "haiku55", "F-99"], 2,
+                 "no such fixture: F-99")
+            zero("judgment valid fixture then unknown", rj.main,
+                 ["--sut", "haiku55", "F-63", "F-99"], 2, "no such fixture: F-99")
+            zero("judgment --k 0", rj.main, ["--k", "0"], 2, "positive integer")
+            zero("judgment unknown arm", rj.main, ["--arm", "x"], 2, "invalid choice")
+
+            # the smoke estimate, and done/pending, from what is on disk
+            rep = os.path.join(rr.REPORT, "haiku55")
+
+            def smoke(argv=("D10",)):
+                return _cli(rr.main, ["--sut", "haiku55", "--dry-run"] + list(argv))
+
+            shutil.rmtree(rep, ignore_errors=True)   # whatever a red row above left
+            os.makedirs(os.path.join(rep, "smoke-S1"))
+            with open(os.path.join(rep, "smoke-S1", "result.json"), "w") as f:
+                json.dump({"valid": True, "pass": True}, f)
+            os.makedirs(os.path.join(rep, "D10", "run-1"))
+            with open(os.path.join(rep, "D10", "run-1", "result.json"), "w") as f:
+                json.dump({"valid": True, "pass": True}, f)
+            rc, out, n = smoke(["--k", "3", "D10"])
+            rows.append(("dry run, smoke partly passed: 2 sessions (S2, S3); D10 at k=3 with "
+                         "one done is 1 done, 2 pending",
+                         rc == 0 and n == 0 and "smoke gate: 2 session(s) — S2, S3" in out
+                         and re.search(r"^D10\s+3\s+1\s+2$", out, re.M) is not None))
+            open(os.path.join(rep, "smoke-pass"), "w").close()
+            rc, out, n = smoke()
+            rows.append(("dry run, smoke passed: 0 sessions",
+                         rc == 0 and n == 0 and "smoke gate: passed — 0 sessions" in out))
+
+            # a valid run is not stopped by any of this: the model starts
+            rc, out, n = _cli(rr.main, ["--sut", "haiku55", "--k", "1", "A1"])
+            rows.append(("a valid run (smoke passed, A1, k=1) launches claude once and "
+                         "records run-1",
+                         n == 1 and os.path.isfile(os.path.join(rep, "A1", "run-1",
+                                                                "result.json"))))
+    finally:
+        shutil.rmtree(rr.REPORT, ignore_errors=True)
+        rr.REPORT, rj.REPORT = saved
+    return rows
+
+
 def main():
     passed = failed = 0
     for name, ok in seed_contract_checks():
@@ -2123,6 +2245,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in isolation_checks():
         print("%s isolation: %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in cli_checks():
+        print("%s cli: %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in state_checks():
         print("%s state: %s" % ("PASS" if ok else "FAIL", name))

@@ -32,7 +32,12 @@ python3 evals/judgment/run_judgment.py --check       # fixtures frozen? no token
 python3 evals/judgment/run_judgment.py --redproof    # judge red-proof, 28 judge calls (cached; --rejudge to re-ask) — first, always
 python3 evals/judgment/run_judgment.py --sut haiku55 --k 1 F-63   # one iteration
 python3 evals/judgment/run_judgment.py --sut haiku55 --k 2     # the sweep (k=2 ruled after calibration)
+python3 evals/judgment/run_judgment.py --list                 # default k, baseline status — no model
+python3 evals/judgment/run_judgment.py --dry-run --sut haiku55 --k 2   # done, pending, judge calls, red-proof state — no model
 ```
+
+- Every named fixture is checked before the red-proof gate and the pin
+  check; `--list` and `--dry-run` start no model and write nothing (#282).
 
 - Never CI, never pre-push: a spec-refinement iteration on a real repo is
   hundreds of thousands of tokens. Local, on-demand, pre-release manual.
