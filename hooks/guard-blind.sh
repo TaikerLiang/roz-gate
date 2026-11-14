@@ -19,6 +19,7 @@ gitdir=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) \
   || gitdir=$(git rev-parse --git-common-dir 2>/dev/null) || exit 0
 [ -f "$gitdir/roz-gate/fidelity-dispatch" ] || exit 0
 
-exec python3 "${BASH_SOURCE[0]%/*}/guard_blind.py" <<EOF
+. "${BASH_SOURCE[0]%/*}/run-guard.sh"   # fails closed from here on (#281)
+run_guard guard-blind guard_blind.py <<EOF
 $input
 EOF

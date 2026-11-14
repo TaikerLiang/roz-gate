@@ -22,6 +22,7 @@ if ! printf '%s' "$input" | grep -qE '\[intake\]|ready-for-(spec|dev)|\*\*\[|✅
   exit 0
 fi
 
-exec python3 "${BASH_SOURCE[0]%/*}/guard_gate.py" <<EOF
+. "${BASH_SOURCE[0]%/*}/run-guard.sh"   # fails closed from here on (#281)
+run_guard guard-gate guard_gate.py <<EOF
 $input
 EOF
