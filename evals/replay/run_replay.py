@@ -203,7 +203,7 @@ def invoke_claude(sut, work, forge_state, prompt, timeout, transcript,
     if resume:
         args += ["--resume", resume]
     args += ["--model", sut["model"], "--output-format", "stream-json",
-             "--verbose", "--dangerously-skip-permissions"]
+             "--verbose", "--dangerously-skip-permissions"] + rl.SUT_ISOLATION_ARGS
     if plugin_dir:      # None: no plugin at all — the Workflow Value baseline (#259)
         args += ["--plugin-dir", plugin_dir]
     with open(transcript, "w") as t, open(stderr_log, "a") as e:
@@ -325,6 +325,8 @@ def _run_one(sut, cdir, rdir, prompt, timeout, variant, plugin_dir):
 
     invoke_claude(sut, work, os.path.join(rdir, "forge"), prompt, timeout,
                   transcript, os.path.join(rdir, "stderr.log"), plugin_dir=plugin_dir)
+    # What the session actually loaded (#307), on every result from here on.
+    stamp = {**stamp, "plugins": rl.session_plugins(transcript)}
 
     if not has_result_event(transcript):
         write_result(rdir, {"valid": False, "pass": False,
@@ -338,6 +340,11 @@ def _run_one(sut, cdir, rdir, prompt, timeout, variant, plugin_dir):
                             "invalid_reason": err}, stamp)
         shutil.rmtree(sbx, ignore_errors=True)
         return 3 if err == "quota-exhausted" else 1
+    leak = rl.isolation_breach(transcript, plugin_dir)
+    if leak:
+        write_result(rdir, {"valid": False, "pass": False, "invalid_reason": leak}, stamp)
+        shutil.rmtree(sbx, ignore_errors=True)
+        return 1
     short = rl.cut_short(os.path.join(rdir, "stderr.log"))
     if short:
         write_result(rdir, {"valid": False, "pass": False, "invalid_reason": short}, stamp)
