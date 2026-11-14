@@ -38,7 +38,9 @@ Upgrade (pre-1.23 repos kept these keys in CLAUDE.md's `### Roz Gate config`
 block; pre-1.28 ones kept `patrol_model` there): the first run that finds no
 local file seeds it from those lines — once, said so on stderr; a
 `patrol_model` line becomes `helper_model` — so a configured base, inbox
-filter or model survives the upgrade; the block is ignored from then on. Stdlib only, Python 3.9-compatible, like
+filter or model survives the upgrade; the block is ignored from then on. A
+line the write would refuse (`problem`, #277) is not seeded: stderr says
+which and why, on every run while the key could still seed. Stdlib only, Python 3.9-compatible, like
 the hooks: nothing here may depend on uv or a virtualenv.
 """
 
@@ -138,10 +140,20 @@ def migrate(root, path, stored):
     were seeded or deliberately left at their defaults when the file was born. "Never held" is the key's absence; removing the override
     stores "" (the default) rather than dropping the key, so a block line
     that is still there cannot seed it again.
+
+    A line `problem` refuses — the check a write makes (#277) — is not
+    seeded and is reported, on every run while the key is still eligible;
+    the valid ones seed as before.
     """
     found = block_values(root)
     if os.path.exists(path):
         found = {k: v for k, v in found.items() if k in LATE_KEYS and k not in stored}
+    for k in sorted(found):
+        why = problem(k, found[k] if isinstance(found[k], list) else [found[k]], root)
+        if why:
+            del found[k]
+            sys.stderr.write("roz-config: not seeded from CLAUDE.md's config block — %s; fix "
+                             "or delete the line\n" % why)
     if not found:
         return stored
     stored = dict(stored, **found)
@@ -252,6 +264,27 @@ def copy_problem(paths, root):
 # `{type}`, no other placeholder, each at most once.
 
 
+def problem(key, values, root):
+    """Why `values` for `key` is refused, or None — the one check a write and
+    the block migration share (#277): the template, the per-pass count, the
+    copy list. `values` as the command line gives them."""
+    if key == "branch_template" and values and values[0].strip():
+        why = template_problem(values[0].strip())
+        if why:
+            return "branch_template %r is invalid — %s (references/branch-names.md)" % (
+                values[0], why)
+    if key == "patrol_issues_per_pass" and values \
+            and not re.fullmatch(r"[1-9]\d*", values[0].strip()):
+        return ("patrol_issues_per_pass %r is invalid — an integer of 1 or more (how many "
+                "in-loop issues one pass acts on)" % values[0])
+    if key == "worktree_copy" and not all(v.strip() in NONE for v in values):
+        why = copy_problem([part.strip() for v in values for part in v.split(",")
+                            if part.strip()], root)
+        if why:
+            return "worktree_copy %s — list paths relative to the repository root" % why
+    return None
+
+
 def main(argv):
     if argv and argv[0] in ("-h", "--help"):
         print(USAGE)
@@ -269,16 +302,9 @@ def main(argv):
     if key not in LIST_KEYS and len(values) > 1:
         sys.stderr.write("roz-config: %s takes one value\n" % key)
         return 2
-    if key == "branch_template" and values and values[0].strip():
-        why = template_problem(values[0].strip())
-        if why:
-            sys.stderr.write("roz-config: branch_template %r is invalid — %s "
-                             "(references/branch-names.md)\n" % (values[0], why))
-            return 2
-    if key == "patrol_issues_per_pass" and values \
-            and not re.fullmatch(r"[1-9]\d*", values[0].strip()):
-        sys.stderr.write("roz-config: patrol_issues_per_pass %r is invalid — an integer of 1 or "
-                         "more (how many in-loop issues one pass acts on)\n" % values[0])
+    why = problem(key, values, root)
+    if why:
+        sys.stderr.write("roz-config: %s\n" % why)
         return 2
     if key == "worktree_copy" and values and all(v.strip() in NONE for v in values):
         stored[key] = ""               # chosen: nothing (absent would mean .env)
@@ -288,12 +314,6 @@ def main(argv):
     if key in LIST_KEYS:                # a label may hold spaces, never a comma
         values = [part.strip() for v in values for part in v.split(",")]
     values = [v for v in values if v.strip()]
-    if key == "worktree_copy":
-        why = copy_problem(values, root)
-        if why:
-            sys.stderr.write("roz-config: worktree_copy %s — list paths relative to the "
-                             "repository root\n" % why)
-            return 2
     if not values:
         if key in LATE_KEYS:
             stored[key] = ""           # the tombstone: see migrate()

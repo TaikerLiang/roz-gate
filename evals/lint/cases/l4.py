@@ -88,8 +88,8 @@ src("L4: roz-config validates the template through the shared module (#135)", "b
 c.expect("pattern", "L4: guard-blind keeps its exact-ref semantics — it does not import the "
          "module (#135)", "from branch_names import" not in read("hooks/guard_blind.py")
          and 'line.startswith("feat=")' in read("hooks/guard_blind.py"))
-src("L4: guard-acceptance's prefilter escalates every branch under a local template",
-    "hooks/guard-acceptance.sh", "grep -qs '\"branch_template\" *: *\"[^\"]'")
+src("L4: guard-acceptance's shim hands every call to python — no cwd-based prefilter (#277)",
+    "hooks/guard-acceptance.sh", 'exec python3 "${BASH_SOURCE[0]%/*}/guard_acceptance.py"')
 src("L4: the module reads the template from the local file, here or in the main checkout "
     "(#165, #135)", "hooks/branch_names.py", "for top in tops:")
 src("L4: hooks/README's rule E names the marker's ref", "hooks/README.md", "marker's `feat=` line")
