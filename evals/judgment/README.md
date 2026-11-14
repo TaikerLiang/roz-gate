@@ -97,7 +97,11 @@ Every comment after T contains the answer. So:
   refinement commit; a run refuses before any spend if one is missing.
   Each run clones that local clone with `--no-hardlinks`, `main` reset to the pin, every other ref and the
   reflog dropped so nothing after T is reachable by name, then one overlay
-  commit. Never network.
+  commit. Never network. The baseline arm gets no overlay commit: its tree
+  — the pin's, with the baseline `CLAUDE.md` — becomes one root commit with
+  no history, refs or unreachable objects (`workflow_value.flatten_history`,
+  #259 ruling (b)), so `git log` and `git show` show the agent nothing of
+  the loop.
 - **The overlay** restores the Roz Gate config block to `CLAUDE.md`
   (ADMC's PR #62 moved it to an untracked `CLAUDE.local.md`; the pinned
   hooks — pre-1.31.2 — read `CLAUDE.md` only), from the last commit that carried it in git,

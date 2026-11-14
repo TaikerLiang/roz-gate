@@ -54,7 +54,7 @@ Both arms, every issue, no simulated human.
 
 | held equal | |
 |---|---|
-| repository | the same pin, every later ref and object removed |
+| repository | the same pin's tree, every later ref and object removed |
 | forge | the same frozen state behind the same stub |
 | model | the same `--sut` row; a pair is never mixed across models |
 | tools | the same Claude Code tools and permissions |
@@ -64,6 +64,7 @@ Both arms, every issue, no simulated human.
 |---|---|---|
 | plugin and hooks | Roz Gate, as shipped | none |
 | `CLAUDE.md` | the loop's workflow section | the same file with that section removed and its ordinary commands kept (`## Project commands`) |
+| history | the pin's history plus the overlay commit | one root commit carrying that tree (`Initial commit`): the pin's history names the loop, and an overlay commit's diff prints the removed section (ruling (b), 2026-11-14) |
 | instruction | the fixture's command (`/roz-gate:next-stage <n>`, `/roz-gate:patrol`) | `judgment/baseline-prompt.md`: handle the issue; ask on the issue and stop if a human decision is needed; otherwise finish and open a pull request |
 | stops | at its first human gate | when it asks, or when it has opened a pull request |
 | judged surface | what it wrote on the spec CR or the issue | its comments on the issue, its pull requests' text, its final message |

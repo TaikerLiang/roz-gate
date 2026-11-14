@@ -78,7 +78,10 @@ def flattened_checks(check, wv):
         cfg = wv.parse_config(CLAUDE_MD)
         with open(os.path.join(work, "CLAUDE.md"), "w") as f:
             f.write(wv.baseline_claude_md(CLAUDE_MD, cfg))
-        sha = flatten(work) if flatten else None
+        try:        # a crash is a failed check with a name, never a dead suite
+            sha = flatten(work) if flatten else None
+        except Exception:  # noqa: BLE001
+            sha = None
         commits = git(work, "rev-list", "--all").split()
         check("baseline sandbox: exactly one commit, the one returned, with no parent",
               commits == [sha] and sha
