@@ -16,6 +16,14 @@ every Edit / Write / MultiEdit to Python, because its rule is about the
 edited file's worktree, which only the payload names — reading that once,
 in one language, costs one Python start.
 
+**When the Python side cannot decide, the call is blocked** (#281). Claude
+Code reads every exit but 2 as "allow", so a missing `python3`, one that
+cannot start or a guard that crashes would each be a silent pass. Once the
+prefilter has escalated, `run-guard.sh` turns all three into a deny whose
+message says it is a tool failure, not a protocol block (the last two rows
+of the table below). A prefilter allow never needs Python and stays an
+allow.
+
 ## Start here
 
 What a hook sees and answers:
@@ -34,6 +42,7 @@ The files:
 | `guard-gate.sh` · `guard_gate.py` | Bash commands — rules A–D, F–J |
 | `guard-blind.sh` · `guard_blind.py` | Bash / Read / Glob / Grep during an implementation-blind dispatch — the fidelity review, or QA's own since 2.0.0 — rule E |
 | `guard-acceptance.sh` · `guard_acceptance.py` | Edit / Write / MultiEdit on a spec branch (`spec/<n>`, or whatever `branch_template` renders) — the acceptance rule |
+| `run-guard.sh` | sourced by the three guard shims after their prefilter: runs the Python judge and fails closed when it cannot decide (#281) |
 | `sync-worktree.sh` · `sync_worktree.py` | PostToolUse · Bash, after a `git worktree add` — [the worktree copy](#the-worktree-copy) (#122) |
 | `config_block.py` | the config block's reader: `CLAUDE.md`, then `CLAUDE.local.md`, in the toplevel, then in the main checkout (`core.worktree` when set, else the common git dir's parent — a separate git dir without `core.worktree` is unreachable from a linked worktree: keep the block in the tracked `CLAUDE.md` there) — the first block wins, whole |
 | `tests/test_guard_*.py` | the cases, one file per guard, one class per rule: synthetic hook input in, exit code and stderr asserted |
@@ -74,6 +83,8 @@ Any "no" → a replay case, not a hook, and never prose alone.
 | **J** the loop's worktree add runs alone | `guard-gate` · Bash | a Bash call holding the loop's `git worktree add …/roz-gate/wt/…` anywhere outside quotes (a quoted single word counts as that word; a quoted string with spaces is one opaque word) that is not exactly that add and nothing else. That covers a chain (`&&`, `||`, `;`, `|`, a second line), a wrapped add (`{ …; }`, `if …; then`, a subshell) and a backgrounded one (a trailing `&`). Segments split outside quotes, `$(…)` and backticks; `2>&1` / `&>` are redirects; a shell continuation is joined and an escaped space stays part of its word. Also denied, even alone: `git -C <dir> worktree add …/roz-gate/wt/…` | run the `git worktree add` line by itself, from inside the repository, then continue in the next call | static, no API; the `sync-worktree` PostToolUse hook copies your gitignored files only once the call returns, and finds the new worktree from the call's own directory, so a chained `&& cd … && <test>` would run without `.env` (the harness red #122 exists to remove); your own worktrees, outside `roz-gate/wt`, are not judged — the add is the loop's only when `roz-gate/wt` sits in the add's own segment, or a variable the call set to it (`wt=…/roz-gate/wt/…`, then `"$wt"`) does, so your own add beside a mention elsewhere in the call (a heredoc, a later command) passes; variable indirection (`$GIT worktree add`) is out of reach. The rule guards against a model's chained call, not an adversary (codex review, PR #184) |
 | **K** the loop merges only the base or its own branches | `guard-gate` · Bash | in a loop worktree — the call runs under `<git-common-dir>/roz-gate/wt/<branch>` by the hook's cwd, a `cd` earlier in the call or `git -C` — a `git merge <ref…>` or `git pull <remote> <branch>` naming any branch other than `origin/<default_branch>` (the local key, else the remote's HEAD, else `main` — `bin/roz-config`'s resolution; a `pull` must name `origin` as its repository) or a `branch_template` branch of the **same issue** (the template's regex, `{kind}/{n}` when unset, matched against the worktree's own branch gives `{n}`; a ref rendering the same `{n}` is a sibling). A SHA, a tag, `master`, another issue's branch: denied; a plain `git pull`, `merge --abort`, `merge-base`: not a merge of a ref. A shell redirection (`2>&1`, `>f`, `2> f`) is never a ref. The place is followed through `cd` / `git -C`: a static path; a loop worktree named by a static `…/roz-gate/wt/<branch>` suffix (`cd "$(git rev-parse --git-common-dir)/roz-gate/wt/spec/5"` — never executed); otherwise **unknown** (`cd "$WT"`), where a merge is denied in a repository that has loop worktrees (#292) | by cause: a foreign branch — the base lacks code this issue needs, post the STOP comment (resume line: sync `<default_branch>`, then clear `status: blocked`), never merge another branch in; the worktree's branch does not match the template — the issue cannot be told, report the branch; a SHA or another remote — not a branch name the hook can read; an unknown place — re-issue the merge from the worktree or by its literal path. Only the first speaks of the base | static, two git reads; outside `roz-gate/wt/` the rule is silent — the person's own merges are theirs. `rebase` and `cherry-pick` are not judged (#213 scope). ConsoleAPI #1: `origin/master` merged into a spec branch brought 79 foreign commits into the CR |
 | **acceptance** | `guard-acceptance` · Edit, Write, MultiEdit | a write under `<acceptance_dir>` in a worktree on a spec branch — `spec/*`, or HEAD matching your `branch_template` (the local file, `.claude/roz-gate.local.json`, here or in the main checkout — #165) rendered for the spec kind. **The place is the file's** (#277): branch, toplevel, config block and local file come from the worktree that holds `file_path` (its nearest existing directory; a relative path resolves against the cwd), never from the session's cwd — the loop edits `<common-dir>/roz-gate/wt/spec/<n>/…` from the main checkout on `main`. A stored `branch_template` that `branch_names.validate` rejects denies every suite write, on every branch | make the change on `qa/<n>`, merge it in; for the invalid template, fix it in the checkout the message names (`roz-config branch_template <template>`, or no value for the default) | branch-and-path only; no exemption list; a path in no git work tree is allowed |
+| **no python3** | every guard · `run-guard.sh` | the prefilter escalated and `python3` is not on PATH | `roz-gate <guard>: python3 not found` — a tool failure, not a protocol block; install python3 and retry | fails **closed**. `guard-acceptance` has no prefilter, so every Edit / Write / MultiEdit is denied, everywhere the plugin is enabled — the visible direction, ruled on #281 |
+| **guard crash** | every guard · `run-guard.sh` | the guard exits with anything but 0 (allow) or 2 (deny): an interpreter that cannot start (126), an uncaught exception (1) — a forge answer of the wrong shape, say — or a signal | `roz-gate <guard>: the guard could not start or did not finish its check (exit N)` — a tool failure; Python's own traceback above it says what failed | fails **closed**; a protocol deny keeps its own message (#281) |
 
 ## The dispatch marker (rule E)
 
@@ -126,7 +137,11 @@ gitignored file such as `.env` is not in a fresh one, so a repo whose `test`
 loads it went red there for harness reasons (#122). After any Bash command
 that mentions `worktree` (`sync-worktree.sh`, the prefilter; the word alone,
 so a shell continuation inside `git worktree add` still escalates),
-`sync_worktree.py` does the following:
+`sync_worktree.py` does the following. When it cannot run — no
+`python3`, or it exits non-zero — the shim tells the agent (as
+`additionalContext`) that nothing was copied and how to recover: install
+python3, then run any `git worktree` command, or copy the files by hand
+(#281).
 
 - It reads `git worktree list --porcelain`, never the command text, whose
   path is the unexpanded `$(git rev-parse --git-common-dir)/…`.

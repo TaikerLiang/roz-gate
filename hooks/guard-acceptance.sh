@@ -7,6 +7,9 @@
 # absolute path, and the old cwd-based prefilter let every such edit
 # through. Reading the payload's path, walking to the nearest existing
 # directory and resolving the config are done once, in guard_acceptance.py,
-# rather than twice in two languages that must agree.
+# rather than twice in two languages that must agree. So with no prefilter,
+# a missing python3 blocks every edit, everywhere the plugin is enabled —
+# the visible direction, ruled on #281.
 set -u
-exec python3 "${BASH_SOURCE[0]%/*}/guard_acceptance.py"
+. "${BASH_SOURCE[0]%/*}/run-guard.sh"   # fails closed (#281)
+run_guard guard-acceptance guard_acceptance.py
