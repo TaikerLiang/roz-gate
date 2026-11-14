@@ -97,7 +97,8 @@ complement (immaterial raised / immaterial in the record). **Nothing is
 summed across issues.** An issue is UNPAIRED — listed with the reason,
 contributing no number — when its record is unreviewed, when an arm has no
 run, when an arm's run is INVALID (no result event, a session error, a
-forge call the stub cannot answer), or when a run has an unscored
+session whose init event shows a plugin or MCP server beyond what the arm
+passes (#307), a forge call the stub cannot answer), or when a run has an unscored
 criterion. Each of these is the instrument's failure, never the arm's.
 
 ## Phase B — the whole loop, on one or two issues

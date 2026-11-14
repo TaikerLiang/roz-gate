@@ -60,6 +60,78 @@ SESSION_ERR_RE = re.compile(
 # the fixture's own timeout is the bound.
 SUT_ENV = {"CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS": "0"}
 
+# The SUT's configuration scope, on every `claude -p` a SUT runs (#307).
+# Without it a session loads the operator's user scope: their plugins (a
+# second roz-gate from the installed copy, telegram), hooks, skills, MCP
+# servers (claude.ai connectors, a connected messaging server) and
+# ~/.claude/CLAUDE.md. Measured on 2.1.325: `--setting-sources
+# project,local` drops the user plugins, skills, commands, hooks, MCP
+# servers and the user CLAUDE.md; `--strict-mcp-config` (with no
+# --mcp-config) drops every MCP server on its own, a project `.mcp.json`
+# included. The plugin under test still loads from --plugin-dir, hooks
+# and all. `--bare` would need an API key.
+SUT_ISOLATION_ARGS = ["--setting-sources", "project,local", "--strict-mcp-config"]
+
+
+def init_events(transcript):
+    """Every system/init event in a transcript (one per session start)."""
+    out = []
+    try:
+        for line in open(transcript, encoding="utf-8"):
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                continue
+            if ev.get("type") == "system" and ev.get("subtype") == "init":
+                out.append(ev)
+    except OSError:
+        pass
+    return out
+
+
+def session_plugins(transcript):
+    """The effective plugin list of the session — its first init event's
+    `plugins`, as the runtime reported them — or None without one."""
+    inits = init_events(transcript)
+    return inits[0].get("plugins") or [] if inits else None
+
+
+def _builtin(p):
+    return str(p.get("name", "")).startswith("cc-plugin-") and \
+        str(p.get("source", "")).endswith("@builtin")
+
+
+def isolation_breach(transcript, plugin_dir):
+    """Why this session is not a clean measurement, or None (#307). Clean:
+    every init event lists the runtime's built-ins (`cc-plugin-*@builtin`)
+    and, when `plugin_dir` is given, exactly one roz-gate loaded from it —
+    no other plugin, no MCP server. With no init event the isolation is
+    unverifiable, which is a breach too: it is never assumed."""
+    inits = init_events(transcript)
+    if not inits:
+        return "isolation unverifiable — no init event in the transcript (#307)"
+    want = os.path.realpath(plugin_dir) if plugin_dir else None
+    for ev in inits:
+        rest = [p for p in ev.get("plugins") or [] if not _builtin(p)]
+        roz = [p for p in rest if p.get("name") == "roz-gate"]
+        other = [p for p in rest if p.get("name") != "roz-gate"]
+        if other:
+            return "user-scope plugin(s) in the SUT session: %s (#307)" % ", ".join(
+                "%s (%s)" % (p.get("name"), p.get("source")) for p in other)
+        if len(roz) > 1:
+            return "roz-gate loaded %d times: %s (#307)" % (
+                len(roz), ", ".join(str(p.get("path")) for p in roz))
+        if roz and want is None:
+            return "roz-gate loaded in a no-plugin session, from %s (#307)" % roz[0].get("path")
+        if want is not None and (not roz or os.path.realpath(str(roz[0].get("path"))) != want):
+            return "roz-gate not loaded from --plugin-dir %s (got %s) (#307)" % (
+                plugin_dir, roz[0].get("path") if roz else "none")
+        mcp = ev.get("mcp_servers") or []
+        if mcp:
+            return "MCP server(s) in the SUT session: %s (#307)" % ", ".join(
+                str(m.get("name")) for m in mcp)
+    return None
+
 # What the runtime (or our own timeout) writes to the SUT's stderr when the
 # session was cut short. A cut-short session can still carry result events
 # — one per turn the main agent finished — so has_result_event() cannot
