@@ -8,8 +8,12 @@ it for the baseline arm and the paired report; lint J3 runs its tests.
 
 import os
 import re
+import sys
 
 S = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(S), "replay"))
+from replaylib import current_counter  # noqa: E402
+
 SECTION_START = "## Development Workflow (Roz Gate)"
 BASELINE_SECTION = "## Project commands"
 # the facts the loop's config block holds that an engineer on the
@@ -160,15 +164,23 @@ def _ids(xs):
     return ", ".join(xs) if xs else "—"
 
 
+def _tokens(t):
+    """A run's tokens as the report shows them: counted by the current
+    counter, or named as not comparable (#308) — never a figure beside one
+    counted another way."""
+    if not current_counter(t):
+        return "tokens not comparable (old counter, #308)"
+    return "tokens %s in / %s out / %s cache read" % (t["in"], t["out"], t["cache_read"])
+
+
 def _row(arm, r):
-    c, t = r.get("cost_counts") or {}, r.get("tokens") or {}
+    c = r.get("cost_counts") or {}
     return ("   %-10s found %s · missed %s · immaterial raised %s\n"
             "              %s %s · %s · round trips %s\n"
-            "              cost: tokens %s in / %s out · tool calls %s · dispatches %s · "
-            "suite runs %s"
+            "              cost: %s · tool calls %s · dispatches %s · suite runs %s"
             % (arm, _ids(r["important_found"]), _ids(r["important_missed"]),
                _ids(r["immaterial_raised"]), r["questions"], r["question_unit"],
-               r["outcome"], r["human_round_trips"], t.get("in", "?"), t.get("out", "?"),
+               r["outcome"], r["human_round_trips"], _tokens(r.get("tokens")),
                c.get("tool_calls", "?"), c.get("dispatches", "?"), c.get("suite_runs", "?")))
 
 

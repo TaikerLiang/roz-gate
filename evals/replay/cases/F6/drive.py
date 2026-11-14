@@ -41,6 +41,7 @@ from replaylib import (  # noqa: E402
     isolation_breach,
     session_error,
     session_plugins,
+    session_tokens,
 )
 
 SUT = {"model": os.environ["SUT_MODEL"], "mode": os.environ["SUT_MODE"],
@@ -187,16 +188,8 @@ def main():
             print("turn %d: compliant=%s" % (turn, curve[str(turn)]))
         sid = session_id(outfile) or sid
 
-    usage = {"in": 0, "out": 0}
-    for f in glob.glob(os.path.join(RDIR, "turn-*.jsonl")):
-        for line in open(f, encoding="utf-8"):
-            try:
-                ev = json.loads(line)
-            except ValueError:
-                continue
-            u = (ev.get("message") or {}).get("usage") or {}
-            usage["in"] += u.get("input_tokens", 0) + u.get("cache_creation_input_tokens", 0)
-            usage["out"] += u.get("output_tokens", 0)
+    # one process per turn (--resume): the per-process totals summed (#308)
+    usage = session_tokens(glob.glob(os.path.join(RDIR, "turn-*.jsonl")))
     complete = (not aborted) and len(curve) == len(MEASURED)
     result = {"valid": complete, "pass": False, "instrument_only": True,
               "curve": curve, "tokens": usage,

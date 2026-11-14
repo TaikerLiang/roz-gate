@@ -89,6 +89,9 @@ nothing an engineer on the repository would know.
   trip, by construction, whether or not it asked anything. The baseline:
   `asked`, `finished`, both or neither; one round trip if it asked;
 - **cost, secondary** — tokens, tool calls, agent dispatches, suite runs.
+  Tokens are the runtime's own totals (`in`, `out`, `cache_read`); a run
+  counted by the old counter (no `counter` in its `tokens`, #308) prints
+  no figure, only "not comparable".
 
 **The report** (`run_judgment.py --paired <sut>`) is one block per issue,
 baseline above treatment, then the raw counts behind material-question

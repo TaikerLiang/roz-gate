@@ -275,6 +275,64 @@ def plugin_sha():
         return ""
 
 
+# The token counter's version, stamped into every `tokens` (#308). Version 1
+# (no `counter` key) summed message.usage over every stream event: an API
+# call streams one assistant event per content block, each repeating the
+# call's usage with a partial output count — input double-counted, output
+# about 40x low. Results counted by different versions are never summed or
+# compared; the report leaves the old ones out of the totals and counts them.
+TOKEN_COUNTER = 2
+
+
+def _process_tokens(transcript):
+    """One process's (in, out, cache_read), in = input + cache creation.
+    The last result event's modelUsage is the process's running total, its
+    seats included; without it the result events' usage (one per turn, the
+    main thread) is summed; with no result event at all, each message once
+    at its last usage."""
+    results, msgs = [], {}
+    try:
+        for line in open(transcript, encoding="utf-8"):
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                continue
+            if ev.get("type") == "result":
+                results.append(ev)
+            elif ev.get("type") == "assistant":
+                m = ev.get("message") or {}
+                if m.get("usage"):
+                    msgs[m.get("id") or len(msgs)] = m["usage"]
+    except OSError:
+        return 0, 0, 0
+    mu = next((r["modelUsage"] for r in reversed(results) if r.get("modelUsage")), None)
+    if mu:
+        return (sum(v.get("inputTokens", 0) + v.get("cacheCreationInputTokens", 0)
+                    for v in mu.values()),
+                sum(v.get("outputTokens", 0) for v in mu.values()),
+                sum(v.get("cacheReadInputTokens", 0) for v in mu.values()))
+    usages = [r.get("usage") or {} for r in results] if results else list(msgs.values())
+    return (sum(u.get("input_tokens", 0) + u.get("cache_creation_input_tokens", 0)
+                for u in usages),
+            sum(u.get("output_tokens", 0) for u in usages),
+            sum(u.get("cache_read_input_tokens", 0) for u in usages))
+
+
+def session_tokens(transcripts):
+    """A session's tokens over its transcripts — one per `claude -p`
+    process, so a resumed session (F6's turns) sums them (#308)."""
+    tin = tout = tcr = 0
+    for t in transcripts:
+        i, o, c = _process_tokens(t)
+        tin, tout, tcr = tin + i, tout + o, tcr + c
+    return {"in": tin, "out": tout, "cache_read": tcr, "counter": TOKEN_COUNTER}
+
+
+def current_counter(tokens):
+    """True when a run's `tokens` were counted by this TOKEN_COUNTER."""
+    return isinstance(tokens, dict) and tokens.get("counter") == TOKEN_COUNTER
+
+
 def session_error(transcript):
     """Result event present but the SESSION failed: the result is an
     error, its text is the limit/overload/auth family, or zero tokens
