@@ -50,10 +50,10 @@ for _f in ("references/workflow.md", "commands/next-stage.md", "commands/integra
            "commands/spec-answers.md", "commands/patrol.md"):
     src("B5 conformance: %s folds STOP evidence" % _f, _f, "<details><summary>Evidence</summary>")
 src("B5 conformance: A3 states the spec documents' must-read sections",
-    "commands/next-stage.md",
+    "references/next-stage-path-a.md",
     "`## Rules`, `## Scenarios`, `## Open Questions`, with **at most 3 lines")
 src("B5 conformance: A3 names the spec supplement block",
-    "commands/next-stage.md", "`## Supplement` section whose body is one")
+    "references/next-stage-path-a.md", "`## Supplement` section whose body is one")
 src("B5 conformance: the QA brief folds test-spec narrative (B3's text until 2.0.0)",
     "references/qa-brief.md", "`test-spec.md` keeps the **must-read on top**")
 src("B5 conformance: the patrol report keeps the table and queue as must-read",

@@ -39,12 +39,12 @@ src("C16: patrol ranks fidelity-audit after address-review", "commands/patrol.md
 src("C16: patrol has the fidelity-audit action", "commands/patrol.md",
     "### The fidelity-audit action — the audit that never ran")
 src("C16: the action is B2.7's dispatch procedure, marker with the bound ref", "commands/patrol.md",
-    "**The fidelity-dispatch procedure** (next-stage.md B2.7, verbatim)")
+    "**The fidelity-dispatch procedure** (`references/next-stage-path-b2.md` B2.7, verbatim)")
 src("C16: a re-check posts no second record", "commands/patrol.md",
     "A re-check\n   posts no second summary")
-src("C16: next-stage B5b names the marker", "commands/next-stage.md",
+src("C16: next-stage B5b names the marker", "references/next-stage-path-b2.md",
     "plus one top-level summary comment opening with `%s`" % _MARK)
-src("C16: next-stage B6 routes the unrecorded QA CR to patrol", "commands/next-stage.md",
+src("C16: next-stage B6 routes the unrecorded QA CR to patrol", "references/next-stage-path-b2.md",
     "record is patrol's `fidelity-audit`")
 src("C16: workflow (5q) calls the summary the record", "references/workflow.md",
     "is the record that the audit ran: (6) requires it")

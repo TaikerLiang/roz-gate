@@ -19,9 +19,9 @@ META = {
         'for the `3a` shorthand to point at — issue #109)',
 }
 
-src("E7: A3 states the options as bullets", "commands/next-stage.md",
+src("E7: A3 states the options as bullets", "references/next-stage-path-a.md",
     "The options as **(a)/(b) bullets**")
-src("E7: A3 names the teeth", "commands/next-stage.md",
+src("E7: A3 names the teeth", "references/next-stage-path-a.md",
     "guard-gate\n    denies a question comment without them (rule F, #109)")
 src("E7: the intake batch states the options as bullets", "references/intake-brief.md",
     "then the options as **(a)/(b) bullets**")

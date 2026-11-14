@@ -146,8 +146,8 @@ by change class:
   re-entry folded (`spec-answers` step 7), or one this readback approved —
   does not stop at the suite re-run: `qa` re-derives the affected tests on
   `<qa-branch>` from the amended text (merged back), a fresh
-  implementation-blind fidelity re-check runs (next-stage B5b's
-  fidelity-dispatch procedure), and only then does the hand-back run
+  implementation-blind fidelity re-check runs (the fidelity-dispatch
+  procedure, `references/next-stage-path-b2.md` B2.7), and only then does the hand-back run
   regenerate the cards. A suite that still asserts the previous rule turns
   green against the wrong contract.
 - **Spec semantics** — the change alters what a rule or scenario means → do

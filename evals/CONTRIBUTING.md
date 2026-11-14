@@ -82,7 +82,7 @@ UNV = r"(?i)\bunverified\b"
 must_match("B1 pattern: compound (from Q4, unverified) found", UNV, fixture("b1_compound.md"))
 must_not_match("B1 pattern: prose without the word NOT flagged", UNV, fixture("b1_negative.md"))
 src("B1 conformance: Path B check carries the whole-word grep",
-    "commands/next-stage.md", "grep -nwi unverified <specs_dir>/<n>/*.md")
+    "references/next-stage-path-b.md", "grep -nwi unverified <specs_dir>/<n>/*.md")
 ```
 
 - **Header**: the docstring's first line, `<ID> · <title>` and
@@ -97,7 +97,10 @@ src("B1 conformance: Path B check carries the whole-word grep",
   subject is the source text itself is conformance-only.
 - **Anchor on the site that reads the rule**, never where it is written or
   on release notes — B1 and C6 were "fixed" where written and never where
-  read.
+  read. A `next-stage` step lives in its path's file,
+  `references/next-stage-path-{a,b,b2,c}.md`; the command keeps §0–4, the
+  route and the STOP exit (#279). A check that the command carries **no**
+  literal covers all five files — `lintkit.NEXT_STAGE`.
 - **Anchor on a literal** — a pattern, filename, flag, marker — never a
   sentence (README § Brittleness policy).
 - **Red-proof**: mutate the source it guards, watch it fail legibly,

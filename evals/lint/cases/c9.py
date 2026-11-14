@@ -5,7 +5,7 @@ mid-edit on the checkout; commands used to checkout/merge/reset there.
 
 import re
 
-from lib.lintkit import c, read, section, src
+from lib.lintkit import NEXT_STAGE, c, read, section, src
 
 META = {
     "id": 'C9',
@@ -22,17 +22,18 @@ c.expect("pattern", "C9: workflow.md names scheduled patrol as the motivating ca
          "scheduled patrol fires" in _wf)
 c.expect("pattern", "C9: the STOP protocol's first obligation is removing the worktree",
          "(1) remove the command's worktree(s)" in _wf)
-_ns = read("commands/next-stage.md")
+_ns = {_k: read("references/next-stage-path-%s.md" % _k) for _k in ("a", "b", "c")}
 for _nm, _s, _e in (("A2", r"^### A2\. Branch", r"^### A3\. "),
                     ("B2", r"^### B2\. ", r"^### B3\. "),
                     ("C2", r"^### C2\. Branch", r"^### C3\. ")):
+    _t = _ns[_nm[0].lower()]
     c.expect("pattern", "C9: next-stage %s cuts into a worktree under %s" % (_nm, _wt),
-             "git worktree add" in section(_ns, _s, _e) and _wt in section(_ns, _s, _e))
+             "git worktree add" in section(_t, _s, _e) and _wt in section(_t, _s, _e))
 for _nm, _s, _e in (("A6c", r"^### A6c\. ", r"^### A7\. "),
                     ("B6", r"^### B6\. ", r"^---$"),
                     ("C7", r"^### C7\. ", r"^---$")):
     c.expect("pattern", "C9: next-stage %s (Done) removes the worktree" % _nm,
-             "git worktree remove --force" in section(_ns, _s, _e))
+             "git worktree remove --force" in section(_ns[_nm[0].lower()], _s, _e))
 src("C9: next-stage's STOP removes every worktree the run created",
     "commands/next-stage.md", "`git worktree remove --force` every\nworktree this run created")
 _ig = read("commands/integrate.md")
@@ -62,8 +63,8 @@ c.expect("pattern", "C9: patrol runs no git that touches the checkout (its scan 
          "calls plus one ls-remote of the remote's heads)",
          re.search(r"`git (checkout|switch|reset|stash|merge|fetch) ",
                    read("commands/patrol.md")) is None)
-for _f in ("commands/next-stage.md", "commands/integrate.md", "commands/spec-answers.md",
-           "commands/review-answers.md", "commands/patrol.md"):
+for _f in NEXT_STAGE + ("commands/integrate.md", "commands/spec-answers.md",
+                       "commands/review-answers.md", "commands/patrol.md"):
     c.expect("pattern", "C9: %s never instructs a checkout/switch/reset/stash in the user's tree"
              % _f,
              re.search(r"git (checkout|switch|reset|stash|merge --abort)\b|^- Checkout `",

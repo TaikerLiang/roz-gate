@@ -31,7 +31,7 @@ META = {
 
 REGISTRY = "references/reserved-words.json"
 RUNTIME_DIRS = ("agents", "commands", "references", "templates")
-GREP_SITES = ("commands/next-stage.md", "commands/spec-answers.md")
+GREP_SITES = ("references/next-stage-path-b.md", "commands/spec-answers.md")
 # A fence may be indented (three spaces in CommonMark, more inside a list item);
 # an indented block is code either way, so any indentation opens and closes one.
 FENCE = re.compile(r"^[ \t]*(```|~~~)[^\n]*\n.*?^[ \t]*\1[^\n]*$", re.M | re.S)

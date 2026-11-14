@@ -30,6 +30,6 @@ writes verbatim — and its ordinary English reading differs from that
 meaning (#160). A defined term is a glossary concept, not a reserved word.
 Adding a word takes one ruling by the maintainer and one entry in the
 registry; for a `spec_gate` word, the `grep -nwi` lines in
-`commands/next-stage.md` (Path B) and `commands/spec-answers.md` (promote)
+`references/next-stage-path-b.md` (Path B) and `commands/spec-answers.md` (promote)
 are extended to it too. B9 names each site that still has to change. A
 candidate is never listed.

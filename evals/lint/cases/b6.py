@@ -29,11 +29,12 @@ must_match("B6 pattern: a sentence-initial capital is a hit", UNV,
            fixture("b6_prose_capital.md"))
 must_not_match("B6 pattern: unverifiable / verified are not hits (word boundary)", UNV,
                fixture("b6_clean.md"))
-src("B6 conformance: A3 states the reserved word", "commands/next-stage.md",
+src("B6 conformance: A3 states the reserved word", "references/next-stage-path-a.md",
     "**`unverified` is a reserved word** in every\n    spec document: it appears only as this tag")
-src("B6 conformance: A3 says the whole word anywhere stops the gate", "commands/next-stage.md",
+src("B6 conformance: A3 says the whole word anywhere stops the gate",
+    "references/next-stage-path-a.md",
     "the checks match the whole word anywhere")
-src("B6 conformance: Path B names reword as the prose remedy", "commands/next-stage.md",
+src("B6 conformance: Path B names reword as the prose remedy", "references/next-stage-path-b.md",
     "the word in prose: reword\nthe sentence")
 src("B6 conformance: the promote check names reword as the prose remedy",
     "commands/spec-answers.md", "or reword prose")

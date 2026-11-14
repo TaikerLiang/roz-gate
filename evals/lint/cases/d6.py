@@ -23,18 +23,18 @@ must_not_match("D6: the retired step-zero instruction is gone",
                r"spec-CR threads, implementation-CR threads, and issue comments",
                read("references/fidelity-brief.md"))
 src("D6: B5b's procedure opens with contract currency by the dispatcher",
-    "commands/next-stage.md", "**Contract currency, by you — not blind.**")
-src("D6: B5b refuses to dispatch on a (5) breach", "commands/next-stage.md",
+    "references/next-stage-path-b2.md", "**Contract currency, by you — not blind.**")
+src("D6: B5b refuses to dispatch on a (5) breach", "references/next-stage-path-b2.md",
     "and **do not\n  dispatch**")
-src("D6: B5b gives the list its shape (codex review, PR #104)", "commands/next-stage.md",
+src("D6: B5b gives the list its shape (codex review, PR #104)", "references/next-stage-path-b2.md",
     "the heading `Amendment list:`, then one\n  line per amendment")
-src("D6: B5b names the empty declaration", "commands/next-stage.md",
+src("D6: B5b names the empty declaration", "references/next-stage-path-b2.md",
     "`Amendment list: none since <sha>`")
-src("D6: B5b says the scanner's read is not the check", "commands/next-stage.md",
+src("D6: B5b says the scanner's read is not the check", "references/next-stage-path-b2.md",
     "the scanner's read of the\n  CRs while classifying is not this check")
 src("D6: the brief names the heading", "references/fidelity-brief.md",
     "under the heading `Amendment list:`")
-src("D6: the procedure's four steps are named", "commands/next-stage.md",
+src("D6: the procedure's four steps are named", "references/next-stage-path-b2.md",
     "the contract-currency step, the marker, the dispatch, the\n  marker off")
 src("D6: patrol's re-check carries the step", "commands/patrol.md",
     "contract currency by you, marker on,\n   dispatch, marker off")

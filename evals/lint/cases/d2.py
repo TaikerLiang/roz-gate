@@ -201,7 +201,8 @@ src("D2 conformance: guard-blind reads acceptance_dir from the config block only
     "hooks/guard_blind.py", "def load_acceptance_dir(top):")
 for _f, _lit in (("references/fidelity-brief.md",
                   "every read of `src/` outside `<acceptance_dir>`"),
-                 ("commands/next-stage.md", "every read of `src/` outside\n  `<acceptance_dir>`"),
+                 ("references/next-stage-path-b2.md",
+                  "every read of `src/` outside\n  `<acceptance_dir>`"),
                  ("commands/patrol.md", "`src/` read outside `<acceptance_dir>`"),
                  ("references/workflow.md", "no read of `src/` outside the suite"),
                  ("hooks/README.md", "outside `<acceptance_dir>`"),
@@ -217,7 +218,7 @@ c.expect("hook rule E", "D2 pattern: qa/<n> work (tests/, spec docs) is untouche
          and _gb.violation("Read",
                            {"file_path": "/tmp/work/docs/specs/5/technical-spec.md"}) is None)
 src("D2 conformance: B5b states the fidelity-dispatch procedure (marker on)",
-    "commands/next-stage.md", "roz-gate/fidelity-dispatch")
+    "references/next-stage-path-b2.md", "roz-gate/fidelity-dispatch")
 src("D2 conformance: patrol's address-review cites the procedure",
     "commands/patrol.md", "fidelity-dispatch procedure")
 src("D2 conformance: the fidelity brief names the enforcement",

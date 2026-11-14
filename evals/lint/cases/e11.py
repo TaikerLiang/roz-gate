@@ -47,10 +47,10 @@ src("E11: a follow-up is not a new question", "commands/spec-answers.md",
 src("E11: §7 reports deferred items apart from threads", "commands/spec-answers.md",
     "`deferred: Q<k>, … — recommendations stand unless answered`")
 src("E11: next-stage resolves deferred items by default at ready-for-dev",
-    "commands/next-stage.md", "**Deferred questions resolve by default here**\n(#206)")
-src("E11: a rule born from a deferred item carries (assumed)", "commands/next-stage.md",
+    "references/next-stage-path-b.md", "**Deferred questions resolve by default here**\n(#206)")
+src("E11: a rule born from a deferred item carries (assumed)", "references/next-stage-path-b.md",
     "carries `(assumed)` as its\nprovenance, never `(from Q<k>)`")
-src("E11: the implementer's dispatch names the default", "commands/next-stage.md",
+src("E11: the implementer's dispatch names the default", "references/next-stage-path-b.md",
     "a `· deferred` item in `## Open Questions`")
 src("E11: the gate kit sorts open deferred items to the top", "references/gate-kit.md",
     "`· deferred`")

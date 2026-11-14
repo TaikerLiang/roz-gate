@@ -13,7 +13,7 @@ roz-config); test_branch_names.py proves it.
 
 import re
 
-from lib.lintkit import c, read
+from lib.lintkit import NEXT_STAGE, c, read
 
 META = {
     "id": "C31",
@@ -46,9 +46,10 @@ c.expect("pattern", "C31: branch-names.md — the creator checks the expanded na
 c.expect("pattern", "C31: branch-names.md — § The resolver names bin/roz-branch",
          "## The resolver" in _bn and "bin/roz-branch" in _bn)
 c.expect("pattern", "C31: next-stage A2/C2 — the cut checks the expanded name against the remote",
-         flat("commands/next-stage.md").count("1 + max") >= 1
-         and re.search(r"expanded name.{0,80}(present|exists|already).{0,40}STOP",
-                       flat("commands/next-stage.md")) is not None)
+         all(flat(_f).count("1 + max") >= 1
+             and re.search(r"expanded name.{0,80}(present|exists|already).{0,40}STOP",
+                           flat(_f)) is not None
+             for _f in ("references/next-stage-path-a.md", "references/next-stage-path-c.md")))
 c.expect("pattern", "C31: patrol §1 — the agent runs `bin/roz-branch snapshot`, hands it over",
          "bin/roz-branch snapshot" in _pt)
 c.expect("pattern", "C31: patrol §1 — a snapshot that is unknown stops the pass",
@@ -81,7 +82,7 @@ c.expect("pattern", "C31: tip names the resolver as the read-only way to answer 
 _retired = ("1 + the number of branches", "1 + the lookup count", "matches the same way")
 for _f in ("README.md", "commands/patrol.md", "commands/next-stage.md", "commands/tip.md",
            "references/branch-names.md", "references/patrol-scan.md", "references/workflow.md",
-           "hooks/README.md"):
+           "hooks/README.md") + NEXT_STAGE[1:]:
     c.expect("pattern", "C31: %s has retired the count rule and hand-matching" % _f,
              not any(w in flat(_f).lower() for w in _retired))
 c.expect("pattern", "C31: hooks/README names the shared module",

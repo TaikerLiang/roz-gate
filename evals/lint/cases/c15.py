@@ -28,7 +28,7 @@ META = {
 }
 
 _ig = read("commands/integrate.md")
-_ns = read("commands/next-stage.md")
+_ns = read("references/next-stage-path-c.md")
 _ig5 = re.sub(r"\s+", " ", section(_ig, r"^## 5\. ", r"^## 6\. "))
 _c6 = re.sub(r"\s+", " ", section(_ns, r"^### C6\. ", r"^### C7\. "))
 # codex review, PR #91: fix rounds run long — the step-3 fetch is stale by then.

@@ -22,15 +22,15 @@ src("C22: workflow (5) names the record", "references/workflow.md",
     "`%s` carrying `reviewed-sha: <CR head SHA>`" % _MARK)
 src("C22: workflow (5) — zero threads alone is not review-clean", "references/workflow.md",
     "Zero threads alone is not review-clean")
-src("C22: B5 posts the record last, even with zero findings", "commands/next-stage.md",
+src("C22: B5 posts the record last, even with zero findings", "references/code-review-mechanics.md",
     "**The record — posted last, even with zero findings**")
-src("C22: B5 names the marker", "commands/next-stage.md",
+src("C22: B5 names the marker", "references/code-review-mechanics.md",
     "CR-COMMENT opening with `%s`" % _MARK)
-src("C22: B2.1 requires the record with the head sha", "commands/next-stage.md",
+src("C22: B2.1 requires the record with the head sha", "references/next-stage-path-b2.md",
     "CR-COMMENTS-LIST carries a `%s`\n  comment whose `reviewed-sha:` equals the CR's head" % _MARK)
-src("C22: B2.1 never merges on zero threads alone", "commands/next-stage.md",
+src("C22: B2.1 never merges on zero threads alone", "references/next-stage-path-b2.md",
     "never merge on\n  zero threads alone")
-src("C22: C6 posts the same record on the fast CR", "commands/next-stage.md",
+src("C22: C6 posts the same record on the fast CR", "references/next-stage-path-c.md",
     "**and the\n  same record**: one top-level `%s` comment" % _MARK)
 src("C22: integrate §1 requires the record, open or merged", "commands/integrate.md",
     "CR-COMMENTS-LIST\n  carries a `%s` comment whose `reviewed-sha:` is\n  the CR's head" % _MARK)

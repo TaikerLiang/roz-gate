@@ -33,9 +33,9 @@ src("E2 conformance: guard-gate rule D carries the predicate literal",
 src("E2 conformance: the E2 replay checker carries the same literal",
     "evals/replay/cases/E2/check.py", OPEN_Q)
 src("E2 conformance: A6 prose states the move AND names the enforcement",
-    "commands/next-stage.md", "delete it from the source document")
+    "references/next-stage-path-a.md", "delete it from the source document")
 src("E2 conformance: A6 prose names guard-gate as the enforcement",
-    "commands/next-stage.md", "guard-gate denies the commit")
+    "references/next-stage-path-a.md", "guard-gate denies the commit")
 
 
 def specs_dir():

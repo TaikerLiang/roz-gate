@@ -26,7 +26,7 @@ must_match("B1 pattern: wrap-split compound found",
 must_not_match("B1 pattern: prose without the word NOT flagged",
                UNV, fixture("b1_negative.md"))
 src("B1 conformance: Path B check carries the whole-word grep",
-    "commands/next-stage.md", "grep -nwi unverified <specs_dir>/<n>/*.md")
+    "references/next-stage-path-b.md", "grep -nwi unverified <specs_dir>/<n>/*.md")
 src("B1 conformance: promote check carries the whole-word grep",
     "commands/spec-answers.md", "grep -nwi unverified <specs_dir>/<n>/*.md")
 c.expect("pattern", "B1 conformance: no site greps the bare literal or the tag-position form",
