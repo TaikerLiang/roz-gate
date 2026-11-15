@@ -35,7 +35,7 @@ for name in ("GIT_TOUCH", "SRC_PATH", "SRC_EXCLUDED", "SRC_MENTIONED", "HEREDOC_
 # #220: the heredoc blanking is two functions and their escape, not a regex —
 # held the same way; #326's forge-body blanking likewise.
 for name in ("Unsupported", "heredoc_words", "blank_heredoc_bodies", "shell_word",
-             "blank_forge_bodies"):
+             "skip_substitution", "blank_forge_bodies"):
     m = re.search(r"^(?:def|class) %s\b.*?(?=\n\n\n)" % name, D2_CHECK, re.M | re.S)
     if not m:
         c.fails += 1

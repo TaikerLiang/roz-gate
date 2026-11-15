@@ -228,41 +228,42 @@ def blank_heredoc_bodies(cmd):
 # and D7's reviewer its summary through `gh pr comment 103 --body '…
 # src/test/offer_port.py:13 …'` — the brief asks for `file:line` evidence —
 # and both were denied, the port's own name included; the record was never
-# posted. In a forge write's segment (`gh api`, `gh pr comment|review`, `gh
-# issue comment`, `glab api`, `glab mr|issue note|comment`) the value of
-# `--body`/`-b`, glab's `--message`/`-m` (also `--flag=value`) and the
-# `body=` field of `-f`/`-F`/`--raw-field`/`--field` is blanked, read word
-# by word the way the shell reads it: single or double quotes, an unquoted
-# word, `'it'\''s'` joined, across lines inside quotes or after a `\`
-# continuation. A real read stays visible: `--body-file src/x` is not a
-# body flag; `-F body=@src/x` reads the file (gh's `@` form, judged after
-# quotes and backslashes are dropped — `body=\@src/x` is `@` to gh — and a
-# value opening with `$` may expand to one, so it is left visible too; codex
-# review, PR #339); and a command
-# substitution (`--body "$(cat src/x)"`, a backtick) runs a command — it
-# raises Unsupported and, as #227 scoped it, the bodies already blanked
-# stay blanked while nothing from that word on is. The one substitution
-# read as text is `"$(cat <<'EOF' … EOF)"` with a QUOTED delimiter — the
-# idiom for a long body, a heredoc (#220) with no expansion inside — ended
-# by its FIRST terminator line, which `)` must follow: a command between
-# two same-word heredocs is not text, and a backslash in the delimiter is
-# refused as heredoc_words() refuses it (codex review, PR #339). A
-# chained command after the segment (`&& cat src/x`) is judged as ever.
+# posted. The command is read word by word from its start, the way the
+# shell reads it — quotes, `'it'\''s'` joined, a `\` continuation, `$(…)`
+# skipped balanced, `#` comments — and a forge write is recognized only in
+# command position (`gh api`, `gh pr comment|review`, `gh issue comment`,
+# `glab api`, `glab mr|issue note|comment`, after any `VAR=…` words), never
+# inside a quoted string (codex review, PR #339). In its segment the value
+# of `--body`/`-b`, glab's `--message`/`-m` (also `--flag=value`) and the
+# `body=` field of `-f`/`-F`/`--raw-field`/`--field` is blanked. A real read
+# stays visible: `--body-file src/x` is not a body flag; `-F body=@src/x`
+# reads the file (gh's `@` form, judged after quotes, backslashes and
+# continuations are dropped, and a value opening with `$` may expand to one,
+# so it is left as is); a body word holding a command substitution
+# (`--body "$(cat src/x)"`) is not blanked — the command runs. The one
+# substitution read as text is `"$(cat <<'EOF' … EOF)"` with a QUOTED
+# delimiter — the idiom for a long body, a heredoc (#220) with no expansion
+# inside — ended by its FIRST terminator line, which `)` must follow, and
+# with no backslash in the delimiter (heredoc_words() refuses one too). A
+# form the scanner does not read — a backtick, ANSI-C quoting, a heredoc or
+# a comment inside another substitution, a quote left open — raises
+# Unsupported and ends the scan: as #227 scoped it, the bodies already
+# blanked stay blanked and nothing after is.
 FORGE_WRITE = re.compile(
-    r"(?:^|[|;&({]|\$\()[ \t]*(?:[A-Za-z_]\w*=\S*[ \t]+)*(?:gh|glab)[ \t]+"
+    r"(?:gh|glab)[ \t]+"
     r"(?:api|pr[ \t]+(?:comment|review)|issue[ \t]+(?:comment|note)|mr[ \t]+(?:comment|note))"
-    r"(?![\w-])", re.M)
+    r"(?![\w-])")
 CAT_HEREDOC = re.compile(
     r"""\$\(cat[ \t]+<<[ \t]*(?:'([^'\n\\]+)'|"([^"\n\\]+)")[ \t]*\n"""
     r"""(?:(?!(?:\1|\2)\n).*\n)*(?:\1|\2)\n[ \t]*\)""")
 
 
 def shell_word(cmd, i):
-    """The end of the shell word that starts at `i`: quotes, backslash escapes
-    and a quoted-delimiter `$(cat <<'EOF' … EOF)` carried. Any other
-    substitution (`$(…)`, a backtick — a command runs there), ANSI-C quoting
-    or a quote left open raises Unsupported."""
-    quote = None
+    """(end, substituted) of the shell word that starts at `i`: quotes,
+    backslash escapes, a quoted-delimiter `$(cat <<'EOF' … EOF)` (text) and
+    any other `$(…)` (skipped balanced; `substituted` is then True) carried.
+    A backtick, ANSI-C quoting or a quote left open raises Unsupported."""
+    quote, sub = None, False
     while i < len(cmd):
         ch = cmd[i]
         if quote == "'":
@@ -272,12 +273,10 @@ def shell_word(cmd, i):
             continue
         elif cmd.startswith("$(", i):
             m = CAT_HEREDOC.match(cmd, i)
-            if not m:
-                raise Unsupported("a command substitution")
-            i = m.end()
+            i, sub = (m.end(), sub) if m else (skip_substitution(cmd, i + 2), True)
             continue
         elif ch == "`":
-            raise Unsupported("a command substitution")
+            raise Unsupported("a backtick substitution")
         elif quote:
             quote = None if ch == '"' else quote
         elif cmd.startswith("$'", i):
@@ -289,42 +288,77 @@ def shell_word(cmd, i):
         i += 1
     if quote:
         raise Unsupported("a quote left open")
-    return i
+    return i, sub
+
+
+def skip_substitution(cmd, i):
+    """The index after the `)` that closes the `$(` whose inside starts at
+    `i`, words read by shell_word() and parentheses counted. A heredoc, a
+    comment or a `case` inside, or no closing `)`, raises Unsupported."""
+    depth = 0
+    while True:
+        while i < len(cmd) and cmd[i] in " \t\n;&|<>(":
+            if cmd.startswith("<<", i):
+                raise Unsupported("a heredoc inside a substitution")
+            depth += cmd[i] == "("
+            i += 1
+        if i >= len(cmd):
+            raise Unsupported("a substitution left open")
+        if cmd[i] == ")":
+            if not depth:
+                return i + 1
+            depth, i = depth - 1, i + 1
+            continue
+        if cmd[i] == "#":
+            raise Unsupported("a comment inside a substitution")
+        end = shell_word(cmd, i)[0]
+        if cmd[i:end] == "case":
+            raise Unsupported("a case inside a substitution")
+        i = end
 
 
 def blank_forge_bodies(cmd):
     """Every forge write's body value blanked (same length, newlines kept), the
     flag and the rest of the segment left to be judged. An Unsupported word
     ends the scan: the bodies already blanked stay, nothing after is (#227)."""
-    i = 0
+    i, head, forge, flag = 0, True, False, None
     while True:
-        m = FORGE_WRITE.search(cmd, i)
-        if not m:
+        while i < len(cmd) and (cmd[i] in " \t<>" or cmd.startswith("\\\n", i)):
+            flag = None if cmd[i] in "<>" else flag
+            i += 2 if cmd.startswith(("\\\n", "<&", ">&"), i) else 1
+        if i >= len(cmd):
             return cmd
-        i, flag = m.end(), None
-        while True:
-            while i < len(cmd) and (cmd[i] in " \t<>" or cmd.startswith("\\\n", i)):
-                flag = None if cmd[i] in "<>" else flag
-                i += 2 if cmd.startswith(("\\\n", "<&", ">&"), i) else 1
-            if i >= len(cmd) or cmd[i] in "\n;&|()#":
-                break
-            try:
-                end = shell_word(cmd, i)
-            except Unsupported:
-                return cmd
-            word, at = cmd[i:end], None
-            inline = re.match(r"--(?:body|message)=", word)
-            field = re.match(r"""['"]?body=""", word)
-            if flag in ("--body", "-b", "--message", "-m"):
-                at = i
-            elif inline:
-                at = i + inline.end()
-            elif field and (flag in ("-f", "--raw-field") or flag in ("-F", "--field")
-                            and re.sub(r"['\"\\]", "", word[field.end():])[:1] not in "@$"):
-                at = i + field.end()
-            if at is not None:
-                cmd = cmd[:at] + re.sub(r"[^\n]", " ", cmd[at:end]) + cmd[end:]
-            i, flag = end, word
+        if cmd[i] in "\n;&|()":
+            i, head, forge, flag = i + 1, True, False, None
+            continue
+        if cmd[i] == "#":
+            j = cmd.find("\n", i)
+            i = len(cmd) if j < 0 else j
+            continue
+        m = FORGE_WRITE.match(cmd, i) if head else None
+        if m:
+            i, head, forge, flag = m.end(), False, True, None
+            continue
+        try:
+            end, sub = shell_word(cmd, i)
+        except Unsupported:
+            return cmd
+        word, at = cmd[i:end], None
+        head = head and re.match(r"[A-Za-z_]\w*=", word) is not None
+        inline = re.match(r"--(?:body|message)=", word)
+        field = re.match(r"""['"]?body=""", word)
+        if not forge or sub:
+            pass
+        elif flag in ("--body", "-b", "--message", "-m"):
+            at = i
+        elif inline:
+            at = i + inline.end()
+        elif field and (flag in ("-f", "--raw-field") or flag in ("-F", "--field") and re.sub(
+                r"\\\n|['\"\\]", "", word[field.end():])[:1] not in "@$"):
+            at = i + field.end()
+        if at is not None:
+            cmd = cmd[:at] + re.sub(r"[^\n]", " ", cmd[at:end]) + cmd[end:]
+        i, flag = end, word
 
 
 def bash_reads_src(cmd):

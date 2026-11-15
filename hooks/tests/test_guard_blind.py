@@ -134,6 +134,15 @@ BASH_DENIED = [
      "cat <<'E\\$OF'\nend\nE\\$OF\n)\"", "read of src/"),
     ("rule E #326: gh api -F body=\"${X:-@src/…}\" may expand to a file — denied",
      "gh api repos/acme/demo/issues/5/comments -F body=\"${X:-@src/app.txt}\"", "read of src/"),
+    # Codex review round 3: a forge write only in command position; a continuation.
+    ("rule E #326: forge-shaped text inside a quoted string is no forge write — denied",
+     "X=';gh pr comment --body src/x'; cat src/app.txt # '", "read of src/"),
+    ("rule E #326: a forge write inside an assignment's quotes opens no body — denied",
+     "X='a gh api -f body=' cat src/app.txt '", "read of src/"),
+    ("rule E #326: gh api -F body=\\<newline>@src/… (a continuation, then @) — denied",
+     "gh api repos/acme/demo/issues/5/comments -F body=\\\n@src/app.txt", "read of src/"),
+    ("rule E #326: a body word that also runs $(cat src/…) is not blanked — denied",
+     "gh pr comment 103 --body \"see src/x: $(cat src/app.txt)\"", "read of src/"),
     ("rule E #326: a redirect after --body is no body value (< src/… opens the file) — denied",
      "gh pr comment 103 --body < src/app.txt", "read of src/"),
     ("rule E #326: a -b outside a forge write is no body (cat -b numbers lines) — denied",
@@ -249,6 +258,11 @@ BASH_ALLOWED = [
      "see src/app.txt:1\nEOF\n)\""),
     ("rule E #326: a body, then --body \"$(cat /tmp/…)\" — the first stays blanked, allowed",
      "gh pr comment 103 -b 'see src/app.txt' && gh pr comment 103 --body \"$(cat /tmp/s.md)\""),
+    ("rule E #326: SHA=$(git rev-parse HEAD) before the write, then a -f body= mention — allowed",
+     "SHA=$(git rev-parse HEAD) && gh api repos/acme/demo/pulls/103/comments "
+     "-f body='see src/app.txt' -f commit_id=\"$SHA\""),
+    ("rule E #326: VAR=… gh api … -f body= (an env prefix) — allowed",
+     "GH_HOST=github.com gh api repos/acme/demo/issues/5/comments -f body='see src/app.txt'"),
     ("rule E #326: a -f body= mention, then 2>&1 | tail — allowed",
      "gh api repos/acme/demo/issues/5/comments -f body='see src/app.txt' 2>&1 | tail -1"),
 ]
