@@ -2094,8 +2094,14 @@ def main():
             pr_ = st.get("prs", {}).get(n) if iss is None else None
             if pr_ is not None:
                 # #325 — GitHub serves every PR here, as an issue carrying
-                # `pull_request` (C26/2); `user` as the pulls/<n> twin has it
+                # `pull_request` (C26/2). `user` is the fixture's `author`
+                # (`_pr_author`): a PR that states none answers only a --jq
+                # that never reads `user` — else UNKNOWN naming `author`, the
+                # `pr view --json author` answer (codex review, PR #338)
                 merged_at = _pr_merged_at(st, pr_)
+                expr = flag_val(argv, "--jq", "-q")
+                user = _pr_author(st, pr_) if pr_.get("author") or expr is None \
+                    or "user" in expr else None
                 journal("pr-view", pr=n, via="api-issue")
                 jq_project({"number": int(n), "title": pr_.get("title", ""),
                             "body": pr_.get("body", ""),
@@ -2103,7 +2109,7 @@ def main():
                                      else "closed",
                             "labels": [{"name": lb} for lb in pr_.get("labels", [])],
                             "assignees": [{"login": a} for a in pr_.get("assignees", [])],
-                            "user": {"login": pr_.get("author", st.get("agent_login", "paul"))},
+                            **({"user": user} if user else {}),
                             "created_at": PR_FIELDS["createdAt"](st, pr_),
                             "comments": len(pr_.get("comments", [])),
                             "html_url": web(st) + "/pull/%s" % n,
@@ -2112,7 +2118,7 @@ def main():
                                        % (repo_slug(st), n),
                                 "html_url": web(st) + "/pull/%s" % n,
                                 "merged_at": merged_at}},
-                           flag_val(argv, "--jq", "-q"))
+                           expr)
                 return
             if iss is None:
                 unknown("issue %s not in fixture" % n)

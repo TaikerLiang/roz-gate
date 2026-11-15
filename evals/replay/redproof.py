@@ -840,6 +840,17 @@ def gaps_rows():
                ["api", "repos/acme/demo/issues/102"], "pr-view", '"pull_request": {',
                '"html_url": "https://github.com/acme/demo/pull/102"', '"state": "closed"',
                '"merged_at": "2026-08-23T10:00:00Z"')
+        served("REST issues/<pr number>: user is the fixture's author",
+               ["api", "repos/acme/demo/issues/101", "--jq", ".user.login"], "pr-view",
+               exact="paul\n")
+        served("REST issues/<pr number> with no author: a --jq that never reads user",
+               ["api", "repos/acme/demo/issues/103", "--jq", ".title"], "pr-view",
+               exact="clash\n")
+        rc, out, err, j = call(["api", "repos/acme/demo/issues/103", "--jq", ".user.login"])
+        rows.append(("REST issues/<pr number> with no author: .user is UNKNOWN naming author, "
+                     "as pr view --json author is (codex review, PR #338)",
+                     rc == 64 and out == "" and [e["route"] for e in j] == ["UNKNOWN"]
+                     and "author" in j[-1].get("note", "")))
         served("issue view <pr number> --json (C10/1's call): the PR as gh 2.82 serves it",
                ["issue", "view", "101", "--json", "number,title,state,url"], "pr-view",
                '"state": "OPEN"', '"url": "https://github.com/acme/demo/pull/101"')
