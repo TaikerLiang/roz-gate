@@ -31,6 +31,9 @@ NO_CODE = PARAPHRASE.replace("Architecture, code and implementation tests",
                              "Architecture and implementation tests")
 NO_TESTS = PARAPHRASE.replace("Architecture, code and implementation tests",
                               "Architecture and code")
+# The row as a block, each column's terms opening a line (codex review, PR #340).
+MULTILINE = ("You are the product seat for issue #9.\nOwns:\nactors, scenarios, consistency, "
+             "user-facing gaps\nNever:\narchitecture, code, impl tests\n" + BRIEF)
 NO_ROW = "You are the product seat for issue #9. " + BRIEF
 BATCH = "**[intake]**\n\n**3 questions** · Discuss freely below.\n\n1. Who receives it? (a) …"
 
@@ -39,6 +42,8 @@ SHAPES = [
     ("the dispatch carries the row verbatim, the batch posted", True, ROW, [BATCH]),
     ("the Never column in prose: architecture, code and implementation tests (#330)", True,
      PARAPHRASE, [BATCH]),
+    ("the row as a block, each column's terms opening a line (codex, PR #340)", True,
+     MULTILINE, [BATCH]),
     ("no R&R row in the payload at all (D3/run-3)", False, NO_ROW, [BATCH]),
     ("only the Owns column", False, OWNS_ONLY, [BATCH]),
     ("the Never column without code", False, NO_CODE, [BATCH]),

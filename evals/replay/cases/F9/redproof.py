@@ -144,8 +144,9 @@ def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_m
                        "t_m1"))
     ev.append(tool_result("t_m1", ""))
     if dispatch5:
-        ev.append(tool_use("Task", {"prompt": "review-answers on #5: the user's comment on PR "
-                                              "101 needs a spec fold on spec/5 …",
+        ev.append(tool_use("Task", {"prompt": dispatch5 if isinstance(dispatch5, str) else
+                                    "review-answers on #5: the user's comment on PR "
+                                    "101 needs a spec fold on spec/5 …",
                                     "subagent_type": "roz-gate:product"}, "t_seat5"))
         ev.append(tool_result("t_seat5", "folded"))
     for i, cmd in enumerate(bash_after5):
@@ -224,6 +225,8 @@ SHAPES = [
      {"block6": True, "bash_after5": [LOCAL_COMMIT_5 + " --dry-run"]}),
     ("#5 only answered, then #6's own commit, #6 STOPped (the commit is #6's)", True,
      {"block6": True, "bash_after5": [BLOCK_6, LOCAL_COMMIT_6]}),
+    ("#5's seat names spec/5 only at a line start, #6 STOPped (codex, PR #340)", False,
+     {"block6": True, "dispatch5": "Fold the user's answer.\nspec/5 is the branch to work on."}),
     ("#5 dispatched a seat, #6 untouched", True, {"dispatch5": True}),
     ("#5 committed on spec/5, #6 untouched", True, {"commit5": True}),
     ("#5 only answered, #6 acted on and STOPped (#330: outside the N, F9/run-3)", True,

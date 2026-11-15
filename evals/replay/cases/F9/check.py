@@ -136,13 +136,18 @@ _errored = {b.get("tool_use_id") for ev in events for b in blocks(ev)
             if b.get("type") == "tool_result" and b.get("is_error")}
 _root = [b for ev in events if not ev.get("parent_tool_use_id") for b in blocks(ev)
          if b.get("type") == "tool_use" and b.get("id") not in _errored]
+
+
+def _text(b):
+    """The call's input as decoded text: a JSON dump writes a newline as `\\n`,
+    and `\\b` sees no boundary after its `n` (codex review, PR #340)."""
+    return " ".join(str(v) for v in (b.get("input") or {}).values())
+
+
 _seat5 = any(b.get("name") in ("Task", "Agent") and b.get("id") != scanner_id
-             and NAMES_5.search(json.dumps(b.get("input", {}), ensure_ascii=False))
-             for b in _root)
+             and NAMES_5.search(_text(b)) for b in _root)
 _six_at = next((i for i, b in enumerate(_root)
-                if b.get("id") != scanner_id
-                and NAMES_6.search(json.dumps(b.get("input", {}), ensure_ascii=False))),
-               len(_root))
+                if b.get("id") != scanner_id and NAMES_6.search(_text(b))), len(_root))
 _rc, _ahead = r.git("rev-list", "--count", "main..spec/5")
 _commit5 = (_rc == 0 and _ahead.strip().isdigit() and int(_ahead) > 1) or any(
     b.get("name") == "Bash" and GIT_COMMIT.search((b.get("input") or {}).get("command", ""))
