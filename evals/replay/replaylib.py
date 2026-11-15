@@ -161,12 +161,13 @@ GREP_SILENT = re.compile(r"^-[A-Za-z]*[qlcL]")  # -q / -l / -c / -L print no lin
 
 
 def _shell_commands(cmd):
-    """The simple commands of a Bash command line, as (words, piped) — piped
-    when its stdout feeds the next command. A small reading, not a shell:
-    quotes and backslashes are honoured; a `#` comment, a heredoc body and
-    a redirection's target are no words."""
+    """The simple commands of a Bash command line, as (words, piped, away) —
+    piped when its stdout feeds the next command, away when its stdout goes
+    to a file (`>`, `>>`, `&>`; codex review, PR #337). A small reading, not
+    a shell: quotes and backslashes are honoured; a `#` comment, a heredoc
+    body and a redirection's target are no words."""
     out, words, heredocs = [], [], []
-    cur, redirect, delim = None, False, False
+    cur, redirect, delim, away = None, False, False, False
 
     def word():
         nonlocal cur, redirect, delim
@@ -202,24 +203,27 @@ def _shell_commands(cmd):
             j = cmd.find("\n", i)
             i = n if j < 0 else j
         elif c in "<>" or cmd[i:i + 2] == "&>":
+            fd = None
             if c != "&" and cur is not None and cur.isdigit():
-                cur = None  # `2>`: a file descriptor, not a word
+                fd, cur = cur, None  # `2>`: a file descriptor, not a word
             word()
             if cmd[i:i + 3] == "<<<":
                 i, redirect = i + 3, True
             elif cmd[i:i + 2] == "<<":
                 i, delim = i + 2 + (cmd[i + 2:i + 3] == "-"), True
             else:
-                i += 1
-                while i < n and cmd[i] in ">&|":
-                    i += 1
-                redirect = True
+                j = i + 1
+                while j < n and cmd[j] in ">&|":
+                    j += 1
+                # stdout to a file — not `2>`, not `>&2` (the tool returns stderr too)
+                away |= c != "<" and fd in (None, "1") and not cmd[i:j].endswith("&")
+                i, redirect = j, True
         elif c in "\n;&|()":
             sep = cmd[i:i + 2] if cmd[i:i + 2] in ("&&", "||", "|&", ";;") else c
             word()
             if words:
-                out.append((words, sep in ("|", "|&")))
-            words = []
+                out.append((words, sep in ("|", "|&"), away))
+            words, away = [], False
             i += len(sep)
             if c == "\n":
                 for d in heredocs:  # a body runs to the line holding its delimiter
@@ -233,8 +237,46 @@ def _shell_commands(cmd):
             cur, i = (cur or "") + c, i + 1
     word()
     if words:
-        out.append((words, False))
+        out.append((words, False, away))
     return out
+
+
+# Per reader: the short options that take a value, and those whose value is
+# the pattern or script (so no operand is). grep, sed and awk take their
+# first operand as the pattern or script unless one of those was given.
+VALUE_OPTS = {"grep": ("ABCmef", "ef"), "rg": ("ABCmefgtT", "ef"), "sed": ("ef", "ef"),
+              "awk": ("Fvf", "f"), "head": ("nc", ""), "tail": ("nc", ""), "cat": ("", "")}
+VALUE_OPTS["egrep"] = VALUE_OPTS["fgrep"] = VALUE_OPTS["grep"]
+
+
+def _file_operands(prog, args):
+    """A reader's file operands: its arguments less options, option values
+    and the pattern or script (codex review, PR #337 — `grep
+    next-stage-path-b.md README.md` searches README.md)."""
+    takes, scripts = VALUE_OPTS[prog]
+    script = prog in ("grep", "egrep", "fgrep", "rg", "sed", "awk")
+    files, i, opts = [], 0, True
+    while i < len(args):
+        a = args[i]
+        if opts and a == "--":
+            opts = False
+        elif opts and a.startswith("--"):
+            if a in ("--regexp", "--file"):
+                script, i = False, i + 1
+            elif a.startswith(("--regexp=", "--file=")):
+                script = False
+        elif opts and a.startswith("-") and len(a) > 1:
+            for k, ch in enumerate(a[1:], 1):
+                if ch in takes:
+                    script = script and ch not in scripts
+                    i += k == len(a) - 1  # the value is the next argument
+                    break
+        elif script:
+            script = False  # the pattern or script
+        else:
+            files.append(a)
+        i += 1
+    return files
 
 
 def _path_file_lines(name):
@@ -279,19 +321,20 @@ def _bash_path_reads(cmd):
     """(whole, part): the path files a Bash command prints whole, and those
     it prints in part (#329). Only a reader's file operand counts — a name
     in an `echo`, a comment, a heredoc body or a `--body` text is a mention.
-    A reader piped into another command shows an excerpt."""
+    A reader piped into another command shows an excerpt; one whose stdout
+    goes to a file shows nothing."""
     whole, part = [], []
-    for words, piped in _shell_commands(cmd):
+    for words, piped, away in _shell_commands(cmd):
         while words and re.match(r"^[A-Za-z_]\w*=", words[0]):
             words = words[1:]  # VAR=value before the program
         if not words:
             continue
         prog, args = words[0].rsplit("/", 1)[-1], words[1:]
-        if prog not in WHOLE_READERS | PART_READERS:
+        if away or prog not in WHOLE_READERS | PART_READERS:
             continue
         if prog in ("grep", "egrep", "fgrep", "rg") and any(map(GREP_SILENT.match, args)):
             continue
-        for a in args:
+        for a in _file_operands(prog, args):
             name = a.rsplit("/", 1)[-1]
             if PATH_FILE_NAME_RE.match(name):
                 into = whole if not piped and _covers(prog, args, name) else part

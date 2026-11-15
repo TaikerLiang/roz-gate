@@ -2291,6 +2291,11 @@ def path_bash_checks():
         _bash_ev("cat > /tmp/notes <<'EOF'\ncat %s\nEOF\necho ok" % b),
         _bash_ev('gh pr create --title T --body "routed by references/%s"' % B),
         _bash_ev("wc -l %s; grep -c B2.7 %s" % (b, b2)))
+    # codex review, PR #337: a path name as grep's pattern; stdout sent away.
+    pattern = _paths_both(_bash_ev("grep %s README.md" % B),
+                          _bash_ev("grep -n -A 5 -e %s %s" % (B, b2)))
+    away = _paths_both(_bash_ev("cat %s > /dev/null" % b), _bash_ev("cat %s &>/tmp/x" % b),
+                       _bash_ev("cat %s >> /tmp/x" % b), _bash_ev("cat %s 2>/dev/null" % b2))
     seat = _paths_both(_bash_ev("cat %s" % b, parent="toolu_1"))
     upgraded = _paths_both(_bash_ev("grep -n B5 %s" % b), _bash_ev("cat %s" % b))
     both = _paths_both(_read_ev(b), _bash_ev("cat %s" % b))
@@ -2319,6 +2324,11 @@ def path_bash_checks():
          "run-2) -> still counted (%r)" % (late_fail,), late_fail == _want([B], [B2])),
         ("a mention — echo, printf, a comment, a heredoc body, a `--body` text — or a "
          "`wc -l` / `grep -c` -> 0 (%r)" % (mention,), mention == _want()),
+        ("a path name as grep's pattern (`grep <name> README.md`) -> 0; `grep -n -A 5 -e "
+         "<name> <path file>` -> that file partial (%r)" % (pattern,),
+         pattern == _want(partial=[B2])),
+        ("a `cat` whose stdout goes to a file (`>`, `&>`, `>>`) -> 0; `2>/dev/null` still "
+         "counts (%r)" % (away,), away == _want([B2])),
         ("a seat's `cat` (parent_tool_use_id) -> 0 (%r)" % (seat,), seat == _want()),
         ("an excerpt then a `cat` of the same file -> read 1, partial 0 (%r)" % (upgraded,),
          upgraded == _want([B])),

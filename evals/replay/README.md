@@ -205,8 +205,9 @@ whenever the command's last part exits non-zero, so one that starts
 `Exit code` still counts; a Bash call a hook denied, or whose output says
 `<file>: No such file or directory`, does not. A seat's Bash call, a name
 that is only mentioned (an `echo` or `printf` operand, a comment, a
-heredoc body, a `--body` text) and `wc` / `grep -c` / `grep -l` are not
-counted. For `path_files_read`, expect **1** for a
+heredoc body, a `--body` text, a `grep` pattern or `sed` / `awk` script), a
+reader whose stdout goes to a file (`>`, `>>`, `&>`) and `wc` / `grep -c`
+/ `grep -l` are not counted. For `path_files_read`, expect **1** for a
 `/roz-gate:next-stage` run that reached the hand-off, and the right one for
 its route; **0** for a legal STOP before the route (an invalid label, no
 gated issue) — and for a run that acted without reading its path, which is
