@@ -168,7 +168,7 @@ def path_files_read(transcript):
                 ev = json.loads(line)
             except ValueError:
                 continue
-            for b in (ev.get("message") or {}).get("content") or []:
+            for b in event_message(ev).get("content") or []:
                 if not isinstance(b, dict):
                     continue
                 if b.get("type") == "tool_use" and b.get("name") == "Read":
@@ -234,6 +234,15 @@ def iteration_done(rdir):
 # every sandbox and marked no recorded result stale. Paths relative to
 # evals/replay. A new shared seed input is added here by hand — never
 # discovered by reading a seed's shell text.
+def event_message(ev):
+    """A transcript event's `message` when it is a dict, else {}. Most events
+    carry a dict, but a `system` event can carry a string — the CLI's
+    `permission_denied` notice does — and one such event in one transcript
+    took a whole sweep down (#319)."""
+    m = ev.get("message")
+    return m if isinstance(m, dict) else {}
+
+
 SHARED_FINGERPRINT_INPUTS = ("lib/seed-common.sh",)
 
 
@@ -351,7 +360,7 @@ def _process_tokens(transcript):
             if ev.get("type") == "result":
                 results.append(ev)
             elif ev.get("type") == "assistant":
-                m = ev.get("message") or {}
+                m = event_message(ev)
                 if m.get("usage"):
                     msgs[m.get("id") or len(msgs)] = m["usage"]
     except OSError:
@@ -398,7 +407,7 @@ def session_error(transcript):
                 ev = json.loads(line)
             except ValueError:
                 continue
-            u = (ev.get("message") or {}).get("usage") or {}
+            u = event_message(ev).get("usage") or {}
             tok += (u.get("input_tokens", 0) + u.get("output_tokens", 0)
                     + u.get("cache_creation_input_tokens", 0))
             if ev.get("type") == "result":
@@ -505,7 +514,7 @@ class Run:
 
     def tool_uses(self, names=None):
         for ev in self.transcript_events():
-            for b in (ev.get("message") or {}).get("content") or []:
+            for b in event_message(ev).get("content") or []:
                 if isinstance(b, dict) and b.get("type") == "tool_use" \
                         and (names is None or b.get("name") in names):
                     yield b
@@ -724,7 +733,7 @@ class Run:
         events = list(self.transcript_events())
 
         def blocks(ev):
-            return [b for b in ((ev.get("message") or {}).get("content") or [])
+            return [b for b in (event_message(ev).get("content") or [])
                     if isinstance(b, dict)]
         sid = None
         for ev in events:

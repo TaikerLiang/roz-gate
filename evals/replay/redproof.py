@@ -69,6 +69,10 @@ throwaway state, the resume rule against staged result.json files.
   minus the launching Claude Code session's: no `CLAUDECODE`, `CLAUDE_PID`,
   `CLAUDE_EFFORT` or `CLAUDE_CODE_*` but the login/provider ones, and its
   own `TMPDIR`, which exists during the session and is gone after it.
+- SYSTEM-EVENT (#319) — a transcript holding a `system` event whose
+  `message` is a string (the CLI's `permission_denied` notice) reads as a
+  healthy session: `session_error`, `session_tokens`, `path_files_read`,
+  `Run.tool_uses` and `Run.scanner_table` skip the event, never raise.
 - CLI (#282) — both runners, in-process under the fake `claude` with the
   report root in a temp dir: `--help`, `--list`, `--dry-run`, an unknown
   case or fixture (alone or after a valid one), a bad `--k`, an unknown
@@ -2278,6 +2282,53 @@ def env_checks():
     ]
 
 
+DENIED = {"type": "system", "subtype": "permission_denied", "tool_name": "Bash",
+          "tool_use_id": "toolu_denied", "decision_reason_type": "safetyCheck",
+          "message": "Dangerous rm operation detected: the target is the output of a command "
+                     "substitution"}
+
+
+def _guarded(fn):
+    """fn() or the exception's class name — a raise is a FAIL row, never a
+    harness crash."""
+    try:
+        return fn()
+    except Exception as exc:  # noqa: BLE001 — the row records what raised
+        return "raised %s" % type(exc).__name__
+
+
+def system_event_checks():
+    """#319: a `system` event can carry `message` as a string (D8 run-3 of the
+    2026-11-14 sweep: the CLI refused an `rm $(…)`), and every transcript
+    reader assumed a dict — one event stopped a 186-iteration sweep."""
+    b = os.path.join(rr.ROOT, "references", "next-stage-path-b.md")
+    events = TOK_STREAM + _read_ev(b) + [DENIED, TOK_RESULT]
+    d = tempfile.mkdtemp()
+    try:
+        t = os.path.join(d, "transcript.jsonl")
+        with open(t, "w") as f:
+            f.writelines(json.dumps(e) + "\n" for e in events)
+        run = rl.Run(d)
+        err = _guarded(lambda: rl.session_error(t))
+        tok = _guarded(lambda: rl.session_tokens([t]))
+        paths = _guarded(lambda: rl.path_files_read(t))
+        reads = _guarded(lambda: [u["input"]["file_path"] for u in run.tool_uses(("Read",))])
+        table = _guarded(run.scanner_table)
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+    return [
+        ("session_error: a string-message system event is a healthy session (%r)" % (err,),
+         err is None),
+        ("session_tokens: the event is skipped, the result event's totals stand",
+         tok == _tok(TOK_STREAM + [TOK_RESULT])),
+        ("path_files_read: the Read beside the event still counts (%r)" % (paths,),
+         isinstance(paths, dict) and paths.get("path_files_read") == 1),
+        ("Run.tool_uses: the Read is yielded, the event skipped (%r)" % (reads,),
+         reads == [b]),
+        ("Run.scanner_table: no table, no raise (%r)" % (table,), table == ""),
+    ]
+
+
 def cli_checks():
     """#282: --help, --list, --dry-run, an unknown case (alone or after a
     valid one), a bad --k, an unknown flag and a driver case under a
@@ -2402,6 +2453,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in env_checks():
         print("%s env: %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in system_event_checks():
+        print("%s system-event: %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in cli_checks():
         print("%s cli: %s" % ("PASS" if ok else "FAIL", name))
