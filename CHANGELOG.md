@@ -2,6 +2,32 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.19.0 — next-stage loads only the routed path — 2026-11-14
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.19.0>
+
+**Behavior:** `/roz-gate:next-stage` loads only the routed path's file instead of all four paths; patrol's code-review and fidelity actions load one path file instead of the whole command. No rule changed.
+
+### Behavior
+- **`/roz-gate:next-stage` loads only the routed path** (#279, PR #316). The four paths live in `references/next-stage-path-{a,b,b2,c}.md`. The command keeps config, selection, invariants, the map, the route and the STOP exit, and its route table names the file each route reads. No rule changed.
+- **Code review's threads and record have one home** (#279, PR #316), `references/code-review-mechanics.md`, shared by B5, C6 and patrol's `code-review` action.
+- Direct text a Path B run loads, as a word-count estimate (`wc -w`): 7,488 → 2,729 (command + path B + the shared code-review file).
+
+### Hooks
+- **Deny messages name the path file** (#279, PR #316): `guard-gate`'s rule F, H and D messages point at `references/next-stage-path-a.md` A3/A6 and `-b.md` B4; `guard-blind`'s comments likewise. No logic changed.
+
+### Evals
+- **Lint `L20`** (#279, PR #316): the route table names one path file per row, every step id is a heading in exactly one file (its path's), and the hand-off instruction is present.
+- **Replay reports `path_files_read`** (#279, PR #316) for every valid run: the count under `signals`, the file names under `details`. A report, never a verdict; no checker reads it and no `case_fp` moves.
+- **Runtime prose is capped** (#278, PR #317): lint `L21` goes red when the repo's runtime prose total grows past 52,040 words or a command file past its own cap. Both were frozen with no headroom on `main` `2ee634c`, after #279's split. A cap is a ceiling: lowering it is a release-time step, and raising it happens in the PR that needs it, with a release-note line. `evals/README.md` § Prose caps renders the caps from the case's constants.
+
+### Docs
+- `evals/replay/README.md`: the `path_files_read` signal. `evals/CONTRIBUTING.md`: where a next-stage anchor lives, `lintkit.NEXT_STAGE`, and § 9 Prose caps (what to do on a red). `docs/prose-inventory.md`: anchors re-pointed, L20 and L21 rows. `references/reserved-words.md`: Path B's grep site. `docs/learn/quiz.json`: three `src` citations.
+- `README.md`: the stale "46–72 live-rules" figure is gone; it points at the cap. `docs/releasing.md`: a moved prose cap is an Evals bullet.
+
+### Checks
+Hook tests 1243/1243 · lint 1836/1836 · red-proofs 47/47 · ruff · judgment `--check` · ledger `--check` current
+
 ## v2.18.0 — guards judge the file's worktree and fail closed — 2026-11-14
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.18.0>
