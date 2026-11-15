@@ -68,17 +68,23 @@ def tool_result(uid, text, parent=None):
     return ev
 
 
+LOCAL_COMMIT_5 = ("cd .git/roz-gate/wt/spec/5 && git add -A "
+                  "&& git commit -qm 'spec: fold the checkout-time answer'")
+BLOCK_6 = ('gh issue edit 6 --remove-label "status: ready-for-dev" '
+           '--add-label "status: blocked"')
+LOCAL_COMMIT_6 = "cd .git/roz-gate/wt/fast/6 && git commit -qam 'bump the HTTP client'"
 RAW_HEADS = ("0123456789abcdef0123456789abcdef01234567\trefs/heads/main\n"
              "89abcdef0123456789abcdef0123456789abcdef\trefs/heads/spec/5\n")
 
 
 def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_mutation=False,
-               background=False, handoff="snapshot", dispatch5=False):
+               background=False, handoff="snapshot", dispatch5=False, bash_after5=()):
     """handoff: "snapshot" — the agent ran `bin/roz-branch snapshot` and the
     scanner's prompt names the file (#135); "raw" — the pre-#135 handoff,
     `git ls-remote` output pasted into the prompt; "none" — neither.
     dispatch5: the #5 review-answers turn dispatched a seat, so it counts
-    toward the N (patrol.md §3)."""
+    toward the N (patrol.md §3). bash_after5: the main agent's commands
+    after the #5 lock, in order."""
     ev = []
     if handoff == "snapshot":
         ev.append(tool_use("Bash", {"command": "python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-branch "
@@ -142,6 +148,9 @@ def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_m
                                               "101 needs a spec fold on spec/5 …",
                                     "subagent_type": "roz-gate:product"}, "t_seat5"))
         ev.append(tool_result("t_seat5", "folded"))
+    for i, cmd in enumerate(bash_after5):
+        ev.append(tool_use("Bash", {"command": cmd}, "t_a5_%d" % i))
+        ev.append(tool_result("t_a5_%d" % i, ""))
     ev.append(tool_use("Task", {"prompt": "intake brief … actors, scenarios … impl tests",
                                 "subagent_type": "roz-gate:product"}, "t_p"))
     ev.append(tool_result("t_p", "**[intake]** 1. …"))
@@ -151,7 +160,7 @@ def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_m
 
 def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=True,
               lock6=False, intake7=True, scanner_mutation=False, block6=False,
-              background=False, handoff="snapshot", dispatch5=False):
+              background=False, handoff="snapshot", dispatch5=False, bash_after5=()):
     run = os.path.join(tmp, "run")
     shutil.rmtree(run, ignore_errors=True)
     os.makedirs(os.path.join(run, "forge"))
@@ -179,7 +188,7 @@ def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=Tr
             f.write(json.dumps(e) + "\n")
     with open(os.path.join(run, "transcript.jsonl"), "w", encoding="utf-8") as f:
         for e in transcript(table, scanner_write, relist, scanner, scanner_mutation, background,
-                            handoff, dispatch5):
+                            handoff, dispatch5, bash_after5):
             f.write(json.dumps(e, ensure_ascii=False) + "\n")
     env = dict(os.environ, RUN_DIR=run, BARE=bare)
     return subprocess.run([sys.executable, os.path.join(CASE, "check.py")], env=env,
@@ -209,6 +218,10 @@ SHAPES = [
      {"block6": True, "dispatch5": True}),
     ("#5 committed on spec/5, #6 acted on and STOPped (one-issue rule broken)", False,
      {"block6": True, "commit5": True}),
+    ("#5 committed locally, never pushed, #6 acted on and STOPped (codex, PR #340)", False,
+     {"block6": True, "bash_after5": [LOCAL_COMMIT_5]}),
+    ("#5 only answered, then #6's own commit, #6 STOPped (the commit is #6's)", True,
+     {"block6": True, "bash_after5": [BLOCK_6, LOCAL_COMMIT_6]}),
     ("#5 dispatched a seat, #6 untouched", True, {"dispatch5": True}),
     ("#5 committed on spec/5, #6 untouched", True, {"commit5": True}),
     ("#5 only answered, #6 acted on and STOPped (#330: outside the N, F9/run-3)", True,

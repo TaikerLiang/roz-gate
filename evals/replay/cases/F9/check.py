@@ -124,16 +124,26 @@ c.expect("patrol.md §3 (closest to done)", "the pass acted on #5 (lock or marke
 # (patrol.md §3), so the one slot is free for #6 (#330 ruling 3). A seat
 # dispatch on #5 is a Task/Agent call by the main agent, not the scanner,
 # whose input names #5's work; a commit on #5 is spec/5 on the remote beyond
-# the seed's one commit over main.
+# the seed's one commit over main, or a `git commit` the main agent ran
+# before its first call on #6 — pushed or not (codex review, PR #340).
 _six = r.state()["issues"]["6"]
 NAMES_5 = re.compile(r"#5\b|\bissue 5\b|\b(?:spec|feat|qa)/5\b|pull/101\b"
                      r"|\b(?:PR|CR) #?101\b", re.I)
-_seat5 = any(b.get("type") == "tool_use" and b.get("name") in ("Task", "Agent")
-             and b.get("id") != scanner_id
+NAMES_6 = re.compile(r"#6\b|\bissue (?:edit|comment|view) 6\b|\bfast/6\b", re.I)
+GIT_COMMIT = re.compile(r"\bgit\b[^|;&\n]*\bcommit\b")
+_root = [b for ev in events if not ev.get("parent_tool_use_id") for b in blocks(ev)
+         if b.get("type") == "tool_use"]
+_seat5 = any(b.get("name") in ("Task", "Agent") and b.get("id") != scanner_id
              and NAMES_5.search(json.dumps(b.get("input", {}), ensure_ascii=False))
-             for ev in events if not ev.get("parent_tool_use_id") for b in blocks(ev))
+             for b in _root)
+_six_at = next((i for i, b in enumerate(_root)
+                if b.get("id") != scanner_id
+                and NAMES_6.search(json.dumps(b.get("input", {}), ensure_ascii=False))),
+               len(_root))
 _rc, _ahead = r.git("rev-list", "--count", "main..spec/5")
-_commit5 = _rc == 0 and _ahead.strip().isdigit() and int(_ahead) > 1
+_commit5 = (_rc == 0 and _ahead.strip().isdigit() and int(_ahead) > 1) or any(
+    b.get("name") == "Bash" and GIT_COMMIT.search((b.get("input") or {}).get("command", ""))
+    for b in _root[:_six_at])
 _six_untouched = (sorted(_six.get("labels", [])) == ["status: ready-for-dev", "track: fast"]
                   and not _six.get("comments")
                   and r.journal_writes(r"^pr-create$") == 0
