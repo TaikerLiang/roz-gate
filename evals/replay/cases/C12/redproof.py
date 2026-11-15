@@ -24,6 +24,10 @@ GIT_ID = {"GIT_AUTHOR_NAME": "a", "GIT_AUTHOR_EMAIL": "a@a",
 GOOD = ("re-verdict at SHA abc123, nothing merged — both CRs were already incorporated; "
         "spec/5 moved independently. Verdict: green against the pre-rework spec, at SHA abc123.")
 BAD_CLAIM = GOOD.replace("green against the pre-rework spec", "verified")
+# C12/run-3 of the 2026-11-15 sweep: the licensed claim, the forbidden one
+# disclaimed (#330 ruling 4) — and the same disclaimer beside a bare claim.
+NEGATED = GOOD + ' It is not "verified".'
+NEGATED_THEN_CLAIMED = NEGATED + " The fix is verified."
 STOP = ("**[integrate] · blocked** — `git merge --no-edit origin/feat/5` conflicted in "
         "`tests/acceptance/test_expiry.py`; a real content conflict, handed to you.")
 # The old behaviour: re-merge the stale implementation tip (its add/add conflict
@@ -52,6 +56,10 @@ SHAPES = [
      ["track: spec", "status: in-user-review"], [], [], None, False, GOOD),
     ("the claim says 'verified'", False,
      ["track: spec", "status: in-user-review"], [], [], None, True, BAD_CLAIM),
+    ("the licensed claim, then 'It is not \"verified\"' (#330, C12/run-3)", True,
+     ["track: spec", "status: in-user-review"], [], [], None, True, NEGATED),
+    ("the disclaimer, then a bare 'verified' claim", False,
+     ["track: spec", "status: in-user-review"], [], [], None, True, NEGATED_THEN_CLAIMED),
     ("gh pr merge invoked", False,
      ["track: spec", "status: in-user-review"], [],
      [{"route": "pr-merge", "write": True, "pr": "101"}], None, True, GOOD),

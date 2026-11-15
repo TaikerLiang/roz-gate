@@ -39,6 +39,32 @@ STALE = "> Stale — the cards below describe `1111111`; the branch is now `7d21
 BANNER = {"route": "comment-edit", "write": True, "comment": 9501,
           "body": KIT.replace("### Evidence cards\n", "### Evidence cards\n" + STALE).replace(
               "OK |", "OK |\n| S2 | not covered | no test |") + "(none yet)"}
+# #330 ruling 1: a staleness note on an existing card is not a change. The
+# 2026-11-15 forms: C5/run-2 annotated the evidence and the stamp, C5/run-3
+# the bucket and the evidence.
+STALE_ONLY = {"route": "comment-edit", "write": True, "comment": 9501,
+              "body": KIT.replace("### Evidence cards\n", "### Evidence cards\n" + STALE)
+              + "(none yet)"}
+NOTE_EVIDENCE = {"route": "comment-edit", "write": True, "comment": 9501,
+                 "body": KIT.replace("### Evidence cards\n", "### Evidence cards\n" + STALE)
+                 .replace("cards-sha: 1111111", "cards-sha: 1111111 (stale — branch head 64542e4)")
+                 .replace("test_expired_offer — OK |",
+                          "test_expired_offer — OK (pre-fold; describes 1111111) |")
+                 + "(none yet)"}
+NOTE_BUCKET = {"route": "comment-edit", "write": True, "comment": 9501,
+               "body": KIT.replace("| S1 | covered | test_expiry.py::test_expired_offer — OK |",
+                                   "| S1 | covered (prior text) | test_expiry.py::"
+                                   "test_expired_offer — OK; stale, describes the previous S1 |")
+               + "(none yet)"}
+# #330 ruling 2: a card the seed lacked is a change, whatever its bucket —
+# C5/run-2's exact edit, the annotation plus a `not covered` S2 card.
+NEW_CARD = {"route": "comment-edit", "write": True, "comment": 9501,
+            "body": NOTE_EVIDENCE["body"].replace(
+                "describes 1111111) |",
+                "describes 1111111) |\n| S2 | not covered | — (added by the Q3 fold) |")}
+NOTE_RECARD = {"route": "comment-edit", "write": True, "comment": 9501,
+               "body": KIT.replace("test_expired_offer — OK |",
+                                   "test_grace_window — OK (pre-fold) |") + "(none yet)"}
 MOVED = {"route": "comment-edit", "write": True, "comment": 9501,
          "body": KIT.replace("| S1 | covered |", "| S999 | partial |") + "(none yet)"}
 DROPPED = {"route": "comment-edit", "write": True, "comment": 9501,
@@ -61,8 +87,18 @@ SHAPES = [
      DONE, [RETURN], [RESOLVE, RESTAMP], False),
     ("§ 6b: the ledger entry appended, the cards and their stamp untouched (#193)", True,
      DONE, [RETURN], [RESOLVE, LEDGER], False),
-    ("gate-kit.md: the staleness banner and a not-covered card added, evidence untouched", True,
+    ("gate-kit.md: the staleness banner alone, the cards untouched", True,
+     DONE, [RETURN], [RESOLVE, STALE_ONLY], False),
+    ("a staleness note on the evidence and the stamp (#330 ruling 1, C5/run-2's annotation)",
+     True, DONE, [RETURN], [RESOLVE, NOTE_EVIDENCE], False),
+    ("a staleness note on the bucket and the evidence (#330 ruling 1, C5/run-3's annotation)",
+     True, DONE, [RETURN], [RESOLVE, NOTE_BUCKET], False),
+    ("the staleness banner and a not-covered card the seed lacked (#330 ruling 2)", False,
      DONE, [RETURN], [RESOLVE, BANNER], False),
+    ("the annotation plus a `not covered` S2 card (#330 ruling 2, C5/run-2's edit)", False,
+     DONE, [RETURN], [RESOLVE, NEW_CARD], False),
+    ("new evidence behind a staleness note", False, DONE, [RETURN], [RESOLVE, NOTE_RECARD],
+     False),
     ("a card with new evidence, cards-sha kept", False, DONE, [RETURN], [RESOLVE, RECARD], False),
     ("the seed's evidence moved to another scenario and bucket (codex, PR #194)", False,
      DONE, [RETURN], [RESOLVE, MOVED], False),

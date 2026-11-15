@@ -28,13 +28,19 @@ c.expect("integrate.md:96 (labels)", "in-user-review applied, processing removed
 c.expect("integrate.md:63", "gh pr merge was never invoked",
          r.journal_writes(r"^pr-merge$") == 0)
 
+# A negated "verified" disclaims the confident claim, it does not make it
+# (#330 ruling 4): `not "verified"`, `not verified`, `not mean verified`,
+# `never "verified"` are dropped before the search; a bare claim stays red.
+NEGATED = re.compile(r"\b(?:not|never)\s+(?:mean\s+)?[\"'“”‘’`*_]*verified\b", re.I)
+
+
 def claim_ok():
     txt = r.result_text()
     if "green against the pre-rework spec" not in txt:
         return False
     # The forbidden confident claim: "verified" standing alone ("unverified"
     # is a different word and legal). Lower bound: paraphrases evade regex.
-    return not re.search(r"(?<!un)verified", txt)
+    return not re.search(r"(?<!un)verified", NEGATED.sub("", txt))
 
 c.expect("ledger F4 + integrate.md:98-100 (the licensed claim, verbatim)",
          "report claims 'green against the pre-rework spec', never 'verified'",

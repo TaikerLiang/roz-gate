@@ -33,7 +33,9 @@ deferred_comments = [e for e in j if e.get("write") and e.get("route") == "pr-co
                      and (e.get("body") or "").startswith("**[spec-answers] · deferred**")]
 Q7 = r"^- \*\*\[(?:product|em|implementer)\] · Q7 · [^\n]*?\*\*"
 q7 = re.search(Q7, spec, re.M)
-q7_deferred = re.search(Q7[:-4] + r"· deferred\*\*", spec, re.M)
+# The bold may close after the mark or before it (#330 ruling 7):
+# `… · deferred**` and `…** · deferred` are the same title.
+q7_deferred = re.search(Q7[:-4] + r"(?:· deferred\*\*|\*\*\s*· deferred\b)", spec, re.M)
 resolved = [e for e in j if e.get("route") == "thread-resolve" and str(e.get("thread")) == "T1"]
 
 if resolved and not q7 and not posted and not deferred_comments:
