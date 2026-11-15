@@ -122,6 +122,12 @@ BASH_DENIED = [
      "grep -n demo src/app.txt\ngh pr comment 103 -b 'see src/app.txt'", "read of src/"),
     ("rule E #326: git show feat/5:… after a body — denied",
      "gh pr comment 103 --body 'see src/app.txt'; git show feat/5:src/app.txt", "feat/ ref"),
+    # Codex review, PR #339: the first terminator ends the heredoc; gh sees `@` unescaped.
+    ("rule E #326: a read between two same-word heredocs in a body substitution — denied",
+     "gh pr comment 103 --body \"$(cat <<'EOF'\nsummary\nEOF\ncat src/app.txt\n"
+     "cat <<'EOF'\nend\nEOF\n)\"", "read of src/"),
+    ("rule E #326: gh api -F body=\\@src/… (escaped @, still a file to gh) — denied",
+     "gh api repos/acme/demo/issues/5/comments -F body=\\@src/app.txt", "read of src/"),
     ("rule E #326: a redirect after --body is no body value (< src/… opens the file) — denied",
      "gh pr comment 103 --body < src/app.txt", "read of src/"),
     ("rule E #326: a -b outside a forge write is no body (cat -b numbers lines) — denied",
