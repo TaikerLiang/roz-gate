@@ -163,7 +163,8 @@ real verdict.
   does not serve: every requested field is checked before anything is
   printed, one unserved field makes the whole call UNKNOWN, and the fix
   is to serve it from the fixture (`ISSUE_FIELDS` / `PR_FIELDS` /
-  `REPO_FIELDS`) — never a default the fixture cannot state. A call
+  `REPO_FIELDS`) — never a default the fixture cannot state (timestamps
+  follow the fixture's clock, `replay/README.md` § Method, #325). A call
   with no `--json` prints gh's human format from the same facts (#259,
   `replay/README.md` § Method). **The single named exception** is the
   comment metadata lines of the plain `--comments` form: a comment's
@@ -172,15 +173,16 @@ real verdict.
   and UNKNOWN there would invalidate every plain-form read. The cost: an
   owner's comment reads `association: none` to a plain-form reader — a
   fixture where that matters states `association` on the comment. A served
-  field that this fixture cannot answer for this PR or issue (a merged PR
-  with no `mergeCommit` and no single merge commit in the sandbox, a PR
-  with no `author`, an issue with no `updatedAt`) is UNKNOWN too, and its
+  field that this fixture cannot answer for this PR or issue (a squash- or
+  rebase-merged PR with no `mergeCommit`, a PR with no `author`, a closed
+  issue with no `stateReason`) is UNKNOWN too, and its
   note names the field: the fix is the fixture's — state the fact in
   `state.json`. A field gh itself rejects goes in `GH_REJECTS` only after
   a seat asked for it and real gh was seen to refuse it. URLs name
   the fixture's `repo` (default `acme/demo`). A free-form `--jq` is fine when `jq` is
   installed (CI's ubuntu runner has it; the stub falls back to it and
-  journals `jq: system`); without it the expression is UNKNOWN.
+  journals `jq: system`); without it the expression is UNKNOWN. An
+  expression jq rejects is the command's failure (exit 1), as in gh (#325).
 
 ### check.py
 
