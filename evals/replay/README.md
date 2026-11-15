@@ -190,21 +190,33 @@ verdict on the seeded state against whether the run took the lock). A
 signal is information, never a verdict. A case may declare the verdict its
 seed must give in `case.json`'s `check` key; the harness verifies it.
 
-One signal is the runner's own, on every valid run (#279):
+Two signals are the runner's own, on every valid run (#279, #329):
 `path_files_read`, the number of distinct `references/next-stage-path-*.md`
-files the session Read (seats included; a Read whose result is an error
-loaded nothing and is not counted), with their names, in the order
-first Read, in `path_files_read_detail`. Only the Read tool counts: a
-path file loaded with Bash (`cat`, `grep -A`) reads as 0 (#329, open). Expect **1** for a
+files the session loaded whole, with their names, in the order first
+loaded, in `path_files_read_detail`. Loaded whole is a Read (seats
+included) or a main-agent Bash command that prints the file: `cat`, or
+`head -n N` / `sed -n 1,Np` / `tail -n +1` reaching the last line of the
+plugin's own copy. `path_files_read_partial` (names in
+`path_files_read_partial_detail`) counts the files a main-agent Bash
+command showed only an excerpt of — `grep`, `sed -n a,b`, `head -n`,
+`awk`, a reader piped into another command — and nothing loaded whole. A
+Read whose result is an error loaded nothing. A Bash result is an error
+whenever the command's last part exits non-zero, so one that starts
+`Exit code` still counts; a Bash call a hook denied, or whose output says
+`<file>: No such file or directory`, does not. A seat's Bash call, a name
+that is only mentioned (an `echo` or `printf` operand, a comment, a
+heredoc body, a `--body` text) and `wc` / `grep -c` / `grep -l` are not
+counted. For `path_files_read`, expect **1** for a
 `/roz-gate:next-stage` run that reached the hand-off, and the right one for
 its route; **0** for a legal STOP before the route (an invalid label, no
 gated issue) — and for a run that acted without reading its path, which is
-the defect the signal exists to show; **2 or more**, another path loaded
-too. Patrol's code-review and fidelity actions read one path file as well.
-The count says the file was loaded, not that the run followed it, nor when:
-whether the Read came before the lock is read from the run's
-`transcript.jsonl`. `report.json` sums the count per case, like every
-signal; each run's own figure and names stay in its `result.json`.
+the defect the signal exists to show (a 0 beside a `path_files_read_partial`
+of 1 is a run that read its path only in excerpts); **2 or more**, another
+path loaded too. Patrol's code-review and fidelity actions read one path
+file as well. The count says the file was loaded, not that the run followed
+it, nor when: whether the load came before the lock is read from the run's
+`transcript.jsonl`. `report.json` sums both counts per case, like every
+signal; each run's own figures and names stay in its `result.json`.
 
 The cases built for the comparison are **D10–D19**, the pilot of #199:
 ten `/roz-gate:next-stage 5` runs on four fixture shapes (an HTTP service

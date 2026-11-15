@@ -384,8 +384,9 @@ def _run_one(sut, cdir, rdir, prompt, timeout, variant, plugin_dir):
     # writes to the acceptance suite (D4) — each in its own column, never a
     # breach. `signals` names the counts so the report sums them without
     # knowing; `details` names the evidence that rides along (#290). The
-    # runner adds one of its own: the next-stage path files Read (#279).
-    attempts = {**rl.path_files_read(transcript),
+    # runner adds its own: the next-stage path files loaded whole (#279) and
+    # those only a Bash excerpt showed (#329).
+    attempts = {**rl.path_files_read(transcript), **rl.path_files_partial(transcript),
                 **(load_json(os.path.join(rdir, "attempts.json"), {}) or {})}
     result.update(attempts)
     signals, details = split_attempts(attempts)
