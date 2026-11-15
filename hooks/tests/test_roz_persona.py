@@ -121,7 +121,8 @@ class RozPersonaTest(unittest.TestCase):
 
     def test_bare_name_in_home(self):
         with self.subTest("roz-persona: a bare name found in ~/.claude/agents/ → found"):
-            (self.root / "CLAUDE.md").write_text(block(reviewer="my-reviewer"))
+            (self.root / "CLAUDE.md").write_text(block(reviewer="my-reviewer",
+                                                       implementer="implementer"))
             self.agent("my-reviewer", base=self.home)
             self.assertEqual(self.seats()["reviewer"],
                              {"seat": "reviewer", "agent_type": "my-reviewer",
