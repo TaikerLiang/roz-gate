@@ -1,0 +1,43 @@
+{
+  "repo": {
+    "owner": "acme",
+    "name": "demo"
+  },
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer expiry enforcement",
+      "body": "**User story** — As a shopper, expired offers never apply.\n\n**Acceptance criteria**\n- Expired offers are excluded from pricing.",
+      "author": "paul",
+      "assignees": [
+        "paul"
+      ],
+      "labels": [
+        "track: spec",
+        "status: ready-for-dev"
+      ],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer expiry enforcement",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [],
+      "reviews": [],
+      "comments": [
+        {
+          "id": 9501,
+          "author": "paul",
+          "body": "**Spec gate kit** — *Generated from the spec as approved; a green here is not evidence that it works.*\n\n### Evidence cards\n| scenario | bucket | evidence |\n|---|---|---|\n| S1 | pending | no suite before (4) |\n| S2 | pending | no suite before (4) |\n\n### Decision ledger\n(none yet)",
+          "createdAt": "2026-08-18T08:00:00Z"
+        }
+      ]
+    }
+  }
+}
