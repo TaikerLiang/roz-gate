@@ -236,7 +236,8 @@ def blank_heredoc_bodies(cmd):
 # word, `'it'\''s'` joined, across lines inside quotes or after a `\`
 # continuation. A real read stays visible: `--body-file src/x` is not a
 # body flag; `-F body=@src/x` reads the file (gh's `@` form, judged after
-# quotes and backslashes are dropped — `body=\@src/x` is `@` to gh; codex
+# quotes and backslashes are dropped — `body=\@src/x` is `@` to gh — and a
+# value opening with `$` may expand to one, so it is left visible too; codex
 # review, PR #339); and a command
 # substitution (`--body "$(cat src/x)"`, a backtick) runs a command — it
 # raises Unsupported and, as #227 scoped it, the bodies already blanked
@@ -244,14 +245,15 @@ def blank_heredoc_bodies(cmd):
 # read as text is `"$(cat <<'EOF' … EOF)"` with a QUOTED delimiter — the
 # idiom for a long body, a heredoc (#220) with no expansion inside — ended
 # by its FIRST terminator line, which `)` must follow: a command between
-# two same-word heredocs is not text (codex review, PR #339). A
+# two same-word heredocs is not text, and a backslash in the delimiter is
+# refused as heredoc_words() refuses it (codex review, PR #339). A
 # chained command after the segment (`&& cat src/x`) is judged as ever.
 FORGE_WRITE = re.compile(
     r"(?:^|[|;&({]|\$\()[ \t]*(?:[A-Za-z_]\w*=\S*[ \t]+)*(?:gh|glab)[ \t]+"
     r"(?:api|pr[ \t]+(?:comment|review)|issue[ \t]+(?:comment|note)|mr[ \t]+(?:comment|note))"
     r"(?![\w-])", re.M)
 CAT_HEREDOC = re.compile(
-    r"""\$\(cat[ \t]+<<[ \t]*(?:'([^'\n]+)'|"([^"\n]+)")[ \t]*\n"""
+    r"""\$\(cat[ \t]+<<[ \t]*(?:'([^'\n\\]+)'|"([^"\n\\]+)")[ \t]*\n"""
     r"""(?:(?!(?:\1|\2)\n).*\n)*(?:\1|\2)\n[ \t]*\)""")
 
 
@@ -318,7 +320,7 @@ def blank_forge_bodies(cmd):
             elif inline:
                 at = i + inline.end()
             elif field and (flag in ("-f", "--raw-field") or flag in ("-F", "--field")
-                            and not re.sub(r"['\"\\]", "", word[field.end():]).startswith("@")):
+                            and re.sub(r"['\"\\]", "", word[field.end():])[:1] not in "@$"):
                 at = i + field.end()
             if at is not None:
                 cmd = cmd[:at] + re.sub(r"[^\n]", " ", cmd[at:end]) + cmd[end:]

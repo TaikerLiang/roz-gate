@@ -128,6 +128,12 @@ BASH_DENIED = [
      "cat <<'EOF'\nend\nEOF\n)\"", "read of src/"),
     ("rule E #326: gh api -F body=\\@src/… (escaped @, still a file to gh) — denied",
      "gh api repos/acme/demo/issues/5/comments -F body=\\@src/app.txt", "read of src/"),
+    # Codex review round 2: an escaped delimiter; a typed value that expands.
+    ("rule E #326: a backslash in the body heredoc's delimiter is unsupported — the read denied",
+     "gh pr comment 103 --body \"$(cat <<\"E\\$OF\"\nnote\nE$OF\ncat src/app.txt\n"
+     "cat <<'E\\$OF'\nend\nE\\$OF\n)\"", "read of src/"),
+    ("rule E #326: gh api -F body=\"${X:-@src/…}\" may expand to a file — denied",
+     "gh api repos/acme/demo/issues/5/comments -F body=\"${X:-@src/app.txt}\"", "read of src/"),
     ("rule E #326: a redirect after --body is no body value (< src/… opens the file) — denied",
      "gh pr comment 103 --body < src/app.txt", "read of src/"),
     ("rule E #326: a -b outside a forge write is no body (cat -b numbers lines) — denied",
