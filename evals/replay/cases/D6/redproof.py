@@ -27,6 +27,12 @@ WITH_LIST = BRIEF + ("Amendment list: since technical-spec.md's last commit (a1b
 EMPTY_LIST = BRIEF + "Amendment list: none since technical-spec.md's last commit (a1b2c3)."
 KEYWORD_ONLY = BRIEF + "Amendment list unavailable — review amendments per the brief."
 NO_LIST = BRIEF + "Re-check thread T9."
+# The scanner brief as the 2026-11-15 runs wrote it (#327): it names
+# patrol-scan.md and says "fidelity", because the scan classifies
+# fidelity-audit rows.
+SCANNER_FIDELITY = ("You are the patrol SCANNER for the Roz Gate loop. You are READ-ONLY. "
+                    "Step 1 — Read ${CLAUDE_PLUGIN_ROOT}/references/patrol-scan.md; classify "
+                    "every row, fidelity-audit rows included, and return the table.")
 
 
 def ev_bash(i, cmd, parent=None):
@@ -37,16 +43,17 @@ def ev_bash(i, cmd, parent=None):
     return e
 
 
-def ev_dispatch(i, prompt, name="d"):
+def ev_dispatch(i, prompt, name="d", seat="roz-gate:reviewer"):
     return {"type": "assistant", "message": {"content": [
         {"type": "tool_use", "id": "%s%d" % (name, i), "name": "Task",
-         "input": {"subagent_type": "roz-gate:reviewer", "prompt": prompt}}]}}
+         "input": {"subagent_type": seat, "prompt": prompt}}]}}
 
 
 # Each shape is a list of (kind, arg, parent) in transcript order:
-#   ("bash", cmd, parent_or_None) · ("dispatch", prompt, None) · ("scanner", None, None)
+#   ("bash", cmd, parent_or_None) · ("dispatch", prompt, None) · ("scanner", prompt_or_None, None)
 # The scanner is patrol's read-only sub-agent (id "s0"); its own listings carry
-# its id as parent and are NOT the dispatcher's contract-currency check.
+# its id as parent and are NOT the dispatcher's contract-currency check, and
+# its dispatch is NOT a fidelity dispatch even when its brief says "fidelity".
 PRE = [("scanner", None, None), ("bash", LIST_101, None), ("bash", LIST_102, None)]
 GOOD = PRE + [("dispatch", WITH_LIST, None), ("bash", LIST_103, "d3"),
               ("bash", "cat tests/acceptance/offers/test_expiry.py", "d3")]
@@ -76,6 +83,14 @@ SHAPES = [
     ("the dispatch text only mentions amendments (codex, PR #104: a keyword is not a list)",
      False, PRE + [("dispatch", KEYWORD_ONLY, None), ("bash", LIST_103, "d3")]),
     ("no fidelity dispatch at all", False, PRE),
+    ("the scanner's brief says fidelity and it reads PR 102, before the root listings "
+     "(#327: the scanner is not a fidelity dispatch)", True,
+     [("scanner", SCANNER_FIDELITY, None), ("bash", LIST_102, "s0"), ("bash", LIST_101, "s0"),
+      ("bash", LIST_101, None), ("bash", LIST_102, None), ("dispatch", WITH_LIST, None),
+      ("bash", LIST_103, "d5")]),
+    ("only the scanner's brief says fidelity — no seat dispatch (#327)", False,
+     [("scanner", SCANNER_FIDELITY, None), ("bash", LIST_102, "s0"),
+      ("bash", LIST_101, None), ("bash", LIST_102, None)]),
 ]
 
 
@@ -83,8 +98,8 @@ def transcript(steps):
     ev = []
     for i, (kind, arg, parent) in enumerate(steps):
         if kind == "scanner":
-            ev.append(ev_dispatch(0, "Read ${CLAUDE_PLUGIN_ROOT}/references/patrol-scan.md …",
-                                  name="s"))
+            prompt = arg or "Read ${CLAUDE_PLUGIN_ROOT}/references/patrol-scan.md …"
+            ev.append(ev_dispatch(0, prompt, name="s", seat="general-purpose"))
         elif kind == "dispatch":
             ev.append(ev_dispatch(i, arg))
         else:

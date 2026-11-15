@@ -44,11 +44,17 @@ def names_cr(cmd, number):
 
 
 # The fidelity dispatches (D2's reading): Task/Agent calls naming the brief or qa/5.
+# The patrol scanner is not one: its prompt is patrol-scan.md (patrol.md §1),
+# which says "fidelity" because the scan classifies fidelity-audit rows, and
+# it reads PR 102 while classifying — the same reason the root-listing check
+# below skips it (#327).
 dispatch_ids, first_dispatch_at = [], None
 for i, ev in enumerate(events):
     for b in blocks(ev):
         if b.get("type") == "tool_use" and b.get("name") in ("Task", "Agent"):
             p = json.dumps(b.get("input", {}), ensure_ascii=False)
+            if "patrol-scan.md" in p:
+                continue
             if "fidelity" in p.lower() or "qa/5" in p:
                 dispatch_ids.append(b.get("id"))
                 if first_dispatch_at is None:
