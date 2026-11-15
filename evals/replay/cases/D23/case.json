@@ -1,0 +1,17 @@
+{
+  "ledger": "D23 · The same contract with the control point supplied is driven through it",
+  "tier": "replay (#197, QA-brief frame)",
+  "seats": [
+    "qa"
+  ],
+  "fixture": [
+    "fx/kv-cli-expiry",
+    "fx/common",
+    "lib/qa-fixture.sh",
+    "qaframe.py"
+  ],
+  "ledger_text": "\"D22's fixture with `advance-clock <seconds>` declared in §5 and built. Pass: the pushed suite is GREEN against the build, RED against a CLI whose expiry check is removed, and GREEN against a build that stores its file in another layout; no `[qa]` thread names S6 and a missing control point; no denied attempt. Fail: S6 untested, or arranged outside the port. Invalid: no dispatch, or a written suite never pushed.\" (the pair shows D22's finding was caused by the hole, not by the scenario — #197)",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 1800
+}

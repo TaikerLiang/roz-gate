@@ -40,6 +40,8 @@ have gone unquestioned for too long.
   changed: each as-built edit of `technical-spec.md` is a bullet under your
   CR's `## Contract deviations` (clause, what changed, why); a change that
   would move a rule is a question for the spec CR, not a deviation
+- Build to the terms of `spec.md`'s `## Glossary` as defined; a definition
+  you cannot build to is a question, never a local reading
 - The project's own conventions outrank your habits: before writing in an
   area, read whatever contribution or guidelines docs the repo carries for it
   and follow them

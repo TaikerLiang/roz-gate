@@ -1,0 +1,17 @@
+{
+  "ledger": "D22 · A Given with no control point is a finding, never arranged by hand",
+  "tier": "lint + replay (#197, QA-brief frame)",
+  "seats": [
+    "qa"
+  ],
+  "fixture": [
+    "fx/kv-cli-expiry",
+    "fx/common",
+    "lib/qa-fixture.sh",
+    "qaframe.py"
+  ],
+  "ledger_text": "\"CLI shape, a hole in the port: S6 is *Given a key that has expired, `get` is a missing key*; §5 lists no control point that moves the store's clock or sets an expiry, and its observability row for S6 says `observable`. Pass: QA's findings — a `[qa]` thread on the spec CR, or the report — name S6 and the missing control point; the pushed suite is GREEN against the build, RED against a CLI whose missing key exits 1 (S1–S5 asserted, not vacuous), and still GREEN against a build that stores its file in another layout — no test arranges S6 by writing or editing the store file (a test that sleeps times out); no attempt the hook denied. Fail: a test for S6 that reaches the persistence layer, a read of `src/` beyond the port, S6 silently skipped with no finding. Invalid: no dispatch, or a written suite never pushed.\" (#197: a seat that guesses a setup path hides the contract defect)",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 1800
+}
