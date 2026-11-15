@@ -49,6 +49,9 @@ agents are forbidden to guess.
 - `gh` (GitHub) **or** `glab` (GitLab) authenticated for the repo's host
 - A git repo on that forge, with issues and PRs/MRs enabled
 - A test runner invocable from the CLI
+- `python3` 3.9 or later on `PATH` — the hooks and the `bin/` tools run on
+  it, stdlib only. The guards fail closed: without it, every Edit / Write is
+  blocked wherever the plugin is enabled
 - Python ≥ 3.12 and `uv` **only to run the eval suite and dev tooling**
   (the root `pyproject.toml` covers `evals/`, `hooks/`, `tools/`; stdlib-only;
   `.venv/` is gitignored) — not to use the plugin. The hooks never depend on
@@ -101,11 +104,11 @@ template for mobile capture.
 | Stage | Who | Deliverable |
 |---|---|---|
 | (1) Intake | main agent + you | one issue = one user story, with observable acceptance criteria and a `track:` label |
-| (2) Spec | em + product + implementer | `spec.md` (scenarios; a `## Glossary` for any term two seats could read differently) + `technical-spec.md` (the contract), opened as the **spec CR** |
+| (2) Spec | em + product + implementer | `spec.md` (scenarios; a `## Glossary` for any term two seats could read differently) + `technical-spec.md` (the contract), opened as the **spec CR**; an empirical claim nobody has checked is tagged `(unverified)`, and implementation does not start while one remains |
 | (2a) Q&A | you + role agents | every open question a thread on the spec CR; your answers folded back into the spec — and a thread **you** open is an amendment, folded the same way; a fold may ask once — a question raised by answering a fold-raised question is `· deferred`, resolved to its recommendation at `ready-for-dev` unless you answer it |
 | (3) Implementation | implementer | `feat/{n}`: code + unit tests + the test port's Given-state control points; `technical-spec.md` corrected as built, each change declared under the CR's `## Contract deviations` |
 | (5) Review | reviewer | severity-graded inline threads (`blocking`/`should-fix`/`nit`/`question`) plus the `**[reviewer] · code-review**` record (`reviewed-sha`); review-clean = record current + zero threads; then the implementation lands on `spec/{n}` |
-| (4) Black-box QA | qa | `qa/{n}`, cut after the implementation landed: a contract review first (`[qa]` threads on the spec CR), then test plan + acceptance suite from spec + the as-built contract only, through the port, blind by hook rule E; QA runs its suite and clears its harness — a red is a fix or a finding, never an edited assertion |
+| (4) Black-box QA | qa | `qa/{n}`, cut after the implementation landed: a contract review first (`[qa]` threads on the spec CR: a contradiction, an untestable clause, a port gap, a term used against the Glossary), then test plan + acceptance suite from spec + the as-built contract only, through the port, blind by hook rule E; QA runs its suite and clears its harness — a red is a fix or a finding, never an edited assertion |
 | (6) Integration | main agent | the QA branch merged locally, QA's suite runs on the spec tip as the recorded run — **the verdict**; once both CRs are merged, a later run validates the current spec tip and merges nothing |
 | (7) Review | **you** + main agent | you review the spec CR (spec + code + tests + green verdict); the main agent answers your comments there and changes only what you confirm; you merge, or send it back |
 
@@ -190,7 +193,7 @@ cannot authorize it.
 | `/roz-gate:integrate [n]` | run the stage-(6) verdict: merge what is open (never what is merged), run the acceptance suite, classify red (up to `fix_rounds` rounds), finalize green |
 | `/roz-gate:review-answers [n]` | host one turn of your stage-(7) review: answer your CR comments from the artifacts, dispatch a seat when judgment is needed, change only what you confirm |
 | `/roz-gate:tip <n>` | what does #n need next? reads its labels, CRs, threads and branches and answers in the terminal — your move (with links and the `workflow.md` passage), the loop's move if you do nothing, and what is off when a label pair or a branch is wrong; read-only — no label, no comment, no commit, no lock |
-| `/roz-gate:config` | set one of your eight loop keys — the base branch, the inbox label list, the inbox assignee list, the helper model, the branch user, the branch template, the worktree copy list — from a menu; on Claude Code 2.1.287 or later the plugin's mod answers it with no model turn, the prompt is the fallback; the write is `bin/roz-config`'s, per clone, never committed |
+| `/roz-gate:config` | set one of your eight loop keys — the base branch, the inbox label list, the inbox assignee list, the helper model, the branch user, the branch template, the worktree copy list, the patrol pass size — from a menu; on Claude Code 2.1.287 or later the plugin's mod answers it with no model turn, the prompt is the fallback; the write is `bin/roz-config`'s, per clone, never committed |
 | `/roz-gate:patrol` | one supervisory pass: a read-only scanner sub-agent classifies every open issue into one table (the main agent's context never holds the forge reads); the main agent invokes whichever command the table authorizes, triages the inbox, reports what waits on you |
 | `/roz-gate:uninit` | retire the loop from this repo: verify nothing is in flight, remove the scaffolding `init` installed, keep every work product — run before `/plugin uninstall` |
 
@@ -207,7 +210,10 @@ patrol resumes from the CRs. A gated issue with an open blocker on the forge
 (GitHub's `blocked by`, GitLab's `is_blocked_by` link) reads
 `waits on #n` and is not started until the blocker closes; a lookup the
 forge refuses reads `blockers unknown` and lands in your queue. Patrol only
-reads those relationships — it never writes one.
+reads those relationships — it never writes one. The report is one fixed
+table, `| issue | state | this pass | needs you |`, one row per issue and
+none citing an earlier pass, then `Your queue:` — exactly the rows that
+need you, each with its link; anything else goes under `## Details`.
 
 ## The inbox: filing ideas from your phone
 
@@ -268,8 +274,11 @@ they never repair labels**.
 
 The rules that protect you from the agents are not just prose: bundled
 **PreToolUse hooks** enforce them at the tool layer, before the tool runs,
-fail-closed, with a message pointing back at the protocol. *Prompt
-discipline is the manners; the hook is the law.*
+fail-closed, with a message pointing back at the protocol. A guard that
+cannot finish its check — `python3` missing or unable to start, or the guard
+crashing — blocks the call as well, and says it is a tool failure, not a
+protocol block (2.18.0). *Prompt discipline is the manners; the hook is the
+law.*
 
 | rule | blocks | why | since |
 |---|---|---|---|
@@ -277,12 +286,14 @@ discipline is the manners; the hook is the law.*
 | **B** | an agent applying `status: ready-for-spec` / `ready-for-dev` | a gate label is an authorization — only the human moves it | 1.5.0 |
 | **C** | a marker-carrying comment that opens with a quote block | patrol classifies by the opening token; a quote-opening agent comment reads as a human answer and the loop replies to itself | 1.14.0 |
 | **D** | a `git commit` while `technical-spec.md` still carries an open-questions section | a question outside the threaded surface resolves by silent interpretation; the prose measured 0/5 after it was made explicit | 1.15.0 |
-| **E** | inside an implementation-blind dispatch — the fidelity review, or QA's own (`seat=qa`) — any read of `src/` outside `<acceptance_dir>` (a suite under `src/test/…` stays readable, and so does the test port the marker's `read=` lines name — `technical-spec.md`'s `**Test port**` line), or a git action on a `feat/<n>` ref — or on the implementation branch the dispatch marker names, under a `branch_template` | the blindness the integration verdict rests on — a green looks identical either way; since 2.0.0 the QA branch carries the implementation, so the hook is the blindness | 1.16.0 |
+| **E** | inside an implementation-blind dispatch — the fidelity review, or QA's own (`seat=qa`) — any read of `src/` outside `<acceptance_dir>` (a suite under `src/test/…` stays readable, and so does the test port the marker's `read=` lines name — `technical-spec.md`'s `**Test port**` line), or a git action on a `feat/<n>` ref — or on the implementation branch the dispatch marker names, under a `branch_template`; a `src/` that only appears in an echo, a comment or a heredoc body is a mention, not a read | the blindness the integration verdict rests on — a green looks identical either way; since 2.0.0 the QA branch carries the implementation, so the hook is the blindness | 1.16.0 |
 | **F** | a question comment (`**[<role>] · Q<k> · <label>**` / `**Q<n> · <label>**`) whose options are not `- (a)` / `- (b)` bullets | the forge renders consecutive lines as one paragraph — options as prose reach the holder's phone run together, and the `3a` shorthand has nothing to point at | 1.35.0 |
 | **G** | a STOP comment (`**[<command>] · blocked**`) without its **To resume:** line | the comment is what the holder reads on a phone — without the label move and the channel, they leave `blocked` on and answer where nothing listens | 1.36.0 |
 | **H** | a CR-OPEN (`gh pr create` / `glab mr create`) whose diff touches `<specs_dir>/*/technical-spec.md` and whose body has no `## Contract deviations` section | the contract is corrected during implementation; a correction nobody declared reaches QA and the reviewer as a silent edit | 2.0.0 |
-| **K** | in a loop worktree (`roz-gate/wt/…`), a `git merge` / `git pull` of any branch but `origin/<default_branch>` or a `branch_template` branch of the same issue | the base lacking code the issue needs is a STOP (sync the base), never a merge of another branch — ConsoleAPI #1 brought 79 foreign commits into a spec CR that way; your own checkout is never judged | 2.9.0 |
-| **acceptance** | editing the acceptance suite on a spec branch (`spec/<n>`, or whatever `branch_template` renders) | a weakened assertion re-runs green and turns the verdict into an echo of the implementation | 1.11.0 |
+| **I** | an `**[intake] · reply**` on an issue where no human comment follows the latest agent `**[intake]` comment, or with no human gate holder, or wearing a gate label | a reply answers a human — with nothing to answer, the loop talks to itself; once the label is on, finalize owns the issue | 2.5.0 |
+| **J** | the loop's `git worktree add …/roz-gate/wt/…` sharing its Bash call with anything else (chained, wrapped, backgrounded), or run as `git -C <dir> worktree add` | the `sync-worktree` hook copies your gitignored files (`worktree_copy`) only when the call returns — a chained `&& <test>` would run without `.env` | 2.6.0 |
+| **K** | in a loop worktree (`roz-gate/wt/…`), a `git merge` / `git pull` of any branch but `origin/<default_branch>` or a `branch_template` branch of the same issue; a merge after a `cd` the hook cannot resolve (`cd "$WT"`) is denied too, in a repository that has loop worktrees | the base lacking code the issue needs is a STOP (sync the base), never a merge of another branch — ConsoleAPI #1 brought 79 foreign commits into a spec CR that way; your own checkout is never judged | 2.9.0 |
+| **acceptance** | editing the acceptance suite on a spec branch (`spec/<n>`, or whatever `branch_template` renders) — the branch of the worktree that holds the edited file, never the session's; a stored `branch_template` that is invalid denies every suite write | a weakened assertion re-runs green and turns the verdict into an echo of the implementation | 1.11.0 |
 
 Details, the fidelity-dispatch marker, and how to add a rule: `hooks/README.md`.
 
@@ -299,7 +310,7 @@ label to swap.
 
 ## Forge support
 
-Commands are written against ~12 named forge operations (LABEL-ADD,
+Commands are written against about 30 named forge operations (LABEL-ADD,
 CR-OPEN-DRAFT, THREADS-LIST, THREAD-RESOLVE, …). Two adapters map them to
 concrete CLI:
 
@@ -394,7 +405,7 @@ runs as the menu. Either way the write is done by the plugin's
 `bin/roz-config`, a stdlib Python tool, never by the model or the mod.
 
 On Claude Code 2.1.289 or later a second mod, the **seat pane**
-(`hooks/seat-pane.tsx`), opens a `Roz Gate` side pane when the first seat
+(`hooks/seat-pane.tsx`), opens a `Roz Gate` side pane when the first sub-agent
 starts in a session: each seat running now is an animated 8-bit Roz —
 product swims, em puts its shades on, implementer surfs, qa squats,
 reviewer walks the beach — with its task and how long it has run; with no
@@ -420,7 +431,7 @@ watches: it changes nothing the loop does.
 They live in `.claude/roz-gate.local.json` (added to `.git/info/exclude` on
 first write); commands read them through `bin/roz-config --json`. An
 upgraded repo that still carries them in the block is migrated once, on the
-first run. Teams on sprint
+first run; a line `roz-config` would refuse is reported, never migrated. Teams on sprint
 release branches set `default_branch` to the current one and change it at
 handover; an issue already cut from the previous base is yours to move —
 retarget its CR and rebase — the loop never pins a base per issue. The other
@@ -445,15 +456,16 @@ before 1.29.0. Your commands and the hooks render the same names from it:
 
 `{type}/{user}/{n}/{seq}` renders `spec/pwliangc/5/1`, `fix/pwliangc/5/1`,
 `test/pwliangc/5/1`. A template needs `{n}` and one of `{kind}` / `{type}`;
-`bin/roz-config` refuses anything else, and a hand-edited one stops the
-cut. Because another person's `{user}` and an attempt's `{seq}` cannot be
+`bin/roz-config` refuses anything else, or a placeholder used twice; a
+hand-edited invalid one stops the cut and denies every acceptance-suite
+write. Because another person's `{user}` and an attempt's `{seq}` cannot be
 computed, a command **finds** an existing branch on the remote by pattern
 and never guesses its name — the branches your template renders; one cut
 under another developer's template is not found. Without
 `{seq}` a re-entered spec stage still stops and hands you the delete
 command, as before. **`bin/roz-branch`** is this contract as code (2.15.0):
 `expand`, `snapshot` (the one `ls-remote`), `match` (pure, over a snapshot),
-`lookup`; patrol's scanner binds through it, the hooks share its module,
+`lookup`, `validate`; patrol's scanner binds through it, the hooks share its module,
 and a remote that cannot be read is *unknown*, never "no branch". Your
 forge may delete a head branch when its CR merges ("automatically delete
 head branches", "delete source branch"): the snapshot also reads the head
@@ -519,7 +531,7 @@ Retirement is two steps, **in this order**:
 | directory | role | who reads it | when it takes effect |
 |---|---|---|---|
 | `commands/` | the entry points (`/roz-gate:*`) | Claude Code, then the agent | invocation |
-| `references/` | protocol docs, seat briefs, forge adapters | the agent, on every invocation | runtime |
+| `references/` | protocol docs, seat briefs, forge adapters | the agent, when a command names the file (`next-stage` reads only its routed path's, `references/next-stage-path-*.md`) | runtime |
 | `agents/` | the built-in personas (product, em, qa, reviewer) — referenced, never copied | the agent, at dispatch | dispatch |
 | `bin/` | the loop's stdlib Python tools — `roz-config`, `roz-branch`, `roz-state`, `roz-check`, `roz-persona` | the agent, through a shell call | runtime |
 | `templates/` | target-repo scaffolding, instantiated by `init` and removed by `uninit` | the target repo | install time |
@@ -553,8 +565,8 @@ by a CI step over the whole tree (one predicate: `tools/naming.py` — repo
 hygiene, deliberately not a case in the eval ledger).
 
 And the line between `references/` and `docs/`: everything in
-`references/` is agent input on every invocation, so every line there is a
-token cost on every turn (lint `L21` caps the total and each command
+`references/` is agent input, so every line there is a token cost on every
+run that loads it (lint `L21` caps the total and each command
 file: `evals/README.md` § Prose caps); `docs/` is for humans and is never
 loaded. Do not put human reading material in `references/`.
 

@@ -4,10 +4,11 @@ title: The Roz Gate wire protocol
 
 # The Roz Gate wire protocol
 
-**protocol v1** · reference client: the `roz-gate` Claude Code plugin, 2.0.0
+**protocol v1** · reference client: the `roz-gate` Claude Code plugin, 2.0.0 or later (checked against 2.19.0)
 
 Everything the loop needs lives **on the forge**: issue and change-request
-(CR) comments, labels, branches. There is no side channel. This page is the
+(CR) comments, labels, branches, issue relationships. There is no side
+channel. This page is the
 wire: what gets read and what gets written. Any agent or human that follows
 it interoperates with the loop without installing anything; `roz-gate` is
 the **reference client** of this page, not the protocol itself. The page
@@ -51,6 +52,13 @@ at the tool layer).
 - **No `status:` label means in flight or done** — the open CRs are the
   state. Which CRs exist, and on which branches, is the reference client's
   business, not the wire's.
+- **A gated issue waits on its open blockers.** While the forge records an
+  open blocker for an issue at `status: ready-for-spec` or
+  `status: ready-for-dev` (GitHub's `blocked by`, GitLab's `is_blocked_by`
+  link — never a line in a body), the driver does not start it; the last
+  blocker closing releases it. A relationship the driver cannot read is
+  reported, never taken as none. The driver reads relationships and never
+  writes one.
 - An issue may **return to the inbox**: strip its `track:` and `status:`
   labels and it is a raw idea again, its discussion intact.
 - An agent that finds an illegal state **stops and reports — it never
@@ -81,6 +89,12 @@ at the tool layer).
 - **Answers on a spec CR are read from three channels**: the inline review
   thread, the review summary body, and a top-level CR comment — the one a
   phone offers. A thread the human opened is an amendment request.
+- **Deferred questions.** A question the driver defers gets no thread: it
+  is listed, with its recommendation, in one top-level
+  `**[spec-answers] · deferred**` comment on the spec CR. Applying
+  `status: ready-for-dev` accepts the recommendation of every deferred
+  question still unanswered; to answer one first, reply with a top-level
+  CR comment.
 - **The STOP comment.** When an automated step stops, the issue carries
   `status: blocked` alone and one comment whose title is
   `**[<command>] · blocked**`; its last line before the folded evidence is
