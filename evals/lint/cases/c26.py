@@ -48,7 +48,7 @@ for _f, _needle in (("README.md", "up to `patrol_issues_per_pass` in-loop issues
     c.expect("pattern", "C26: %s says a pass acts on up to N, not one" % _f,
              _needle in read(_f))
 _retired = ("one-issue rule", "one loop issue per pass", "acts on one in-loop issue",
-            "acts on one issue per pass")
+            "acts on one issue per pass", "(one loop issue, every close-out")
 for _f in ("README.md", "commands/patrol.md", "references/workflow.md", "docs/protocol.md"):
     _t = " ".join(read(_f).split())
     c.expect("pattern", "C26: %s has retired the one-issue vocabulary" % _f,
