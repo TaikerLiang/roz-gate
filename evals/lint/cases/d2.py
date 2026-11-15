@@ -3,7 +3,7 @@ First opus baseline, 4/5: one QA child ran `cat src/app.txt` under the
 fidelity dispatch — the prose "Do NOT read src/" was the only guard and a
 GREEN looks identical either way. Teeth since 1.16.0: guard-blind rule E,
 ON while the dispatching command's marker exists. The predicate is the D2
-replay checker's five regexes; the hook carries them byte-identical, and
+replay checker's seven regexes; the hook carries them byte-identical, and
 this case proves it by extracting each `NAME = re.compile(...)` block
 from the checker and requiring the same text in the hook — then runs the
 hook's own predicate against the shapes that matter.
@@ -22,7 +22,8 @@ import importlib.util  # noqa: E402
 
 D2_CHECK = read("evals/replay/cases/D2/check.py")
 D2_HOOK = read("hooks/guard_blind.py")
-for name in ("GIT_TOUCH", "SRC_PATH", "SRC_EXCLUDED", "SRC_MENTIONED", "HEREDOC_OPEN"):
+for name in ("GIT_TOUCH", "SRC_PATH", "SRC_EXCLUDED", "SRC_MENTIONED", "HEREDOC_OPEN",
+             "FORGE_WRITE", "CAT_HEREDOC"):
     m = re.search(r"^%s = re\.compile\((?:.|\n)*?\)\n" % name, D2_CHECK, re.M)
     if not m:
         c.fails += 1
@@ -32,8 +33,9 @@ for name in ("GIT_TOUCH", "SRC_PATH", "SRC_EXCLUDED", "SRC_MENTIONED", "HEREDOC_
     src("D2 conformance: guard-blind carries the checker's %s byte-for-byte" % name,
         "hooks/guard_blind.py", m.group(0))
 # #220: the heredoc blanking is two functions and their escape, not a regex —
-# held the same way.
-for name in ("Unsupported", "heredoc_words", "blank_heredoc_bodies"):
+# held the same way; #326's forge-body blanking likewise.
+for name in ("Unsupported", "heredoc_words", "blank_heredoc_bodies", "shell_word",
+             "blank_forge_bodies"):
     m = re.search(r"^(?:def|class) %s\b.*?(?=\n\n\n)" % name, D2_CHECK, re.M | re.S)
     if not m:
         c.fails += 1
@@ -152,6 +154,25 @@ c.expect("hook rule E (Unsupported is scoped to what follows)",
                                            "gh pr comment 1 --body \"$(cat /tmp/s.md)\""}) is None
          and _gb.violation("Bash", {"command": "cat > /tmp/s.md <<'EOF'\nnever `src/x`\nEOF\n"
                                                "x=\"$(cat /tmp/s.md)\"\ncat src/app.txt"})
+         is not None)
+# #326 (the 2026-11-15 sweep, C17 and D7): a forge write's body is text.
+c.expect("hook rule E (mention is not use, fifth form: a forge write's body)",
+         "D2 pattern: src/ inside `-f body=…`, `--body …` or glab's `-m …` is NOT a read",
+         _gb.violation("Bash", {"command": "gh api -X POST repos/acme/demo/pulls/103/comments "
+                                           "-f body='Fix: assert on what src/pricing.py returns'"
+                                           " -F line=3"}) is None
+         and _gb.violation("Bash", {"command": "gh pr comment 103 --body \"see\n"
+                                               "src/test/offer_port.py:13\""}) is None
+         and _gb.violation("Bash", {"command": "glab mr note 103 -m src/app.py"}) is None)
+c.expect("hook rule E (a forge write's real reads are still reads)",
+         "D2 pattern: `--body \"$(cat src/x)\"`, `--body-file src/x`, `-F body=@src/x` and a "
+         "read chained after a body are reads",
+         _gb.violation("Bash", {"command": "gh pr comment 1 --body \"$(cat src/app.txt)\""})
+         is not None
+         and _gb.violation("Bash", {"command": "gh pr comment 1 --body-file src/app.txt"})
+         is not None
+         and _gb.violation("Bash", {"command": "gh api x -F body=@src/app.txt"}) is not None
+         and _gb.violation("Bash", {"command": "gh pr comment 1 -b 'src/x' && cat src/app.txt"})
          is not None)
 # Issue #81 (1.29.1): the suite is not the implementation. A Maven layout's
 # acceptance dir sits under src/test/…; the hook exempts it (outside the
