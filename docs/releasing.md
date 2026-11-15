@@ -3,7 +3,8 @@
 How a roz-gate version ships — for the maintainer, and for an agent
 preparing one. An agent may prepare every step. The two that publish —
 merging the release PR, and pushing "Publish" on the release — belong to
-the maintainer.
+the maintainer; since 2026-10-11 the second is delegated to the `/release`
+skill ([below](#the-release-skill)). Merging stays the maintainer's.
 
 ## Where the version moves
 
@@ -37,7 +38,7 @@ A judgment, and the release history is the guide:
    ```sh
    git fetch origin --tags
    git log --merges --format='%s' v<prev>..origin/main
-   git diff --stat v<prev> origin/main -- agents commands references templates hooks scripts .claude-plugin
+   git diff --stat v<prev> origin/main -- agents bin commands references templates hooks scripts .claude-plugin
    ```
 
 2. **Bump, with its changelog entry.** Branch `release/<x.y.z>` from
@@ -110,7 +111,7 @@ layout; the older ones stay as written.
 ### Docs
 
 ### Checks
-Hook tests N/N · lint N/N · red-proofs N/N
+Hook tests N/N · lint N/N · red-proofs N/N · ruff · judgment `--check` · ledger `--check` current
 ```
 
 - **The first line is the runtime impact**, bold, before any section: it
@@ -129,4 +130,22 @@ Hook tests N/N · lint N/N · red-proofs N/N
   maintainer's call.
 - **Checks** is one line: the counts from `hooks/tests/run_tests.py`,
   `evals/lint/run_lint.py` and `evals/replay/run_redproofs.py` on the
-  released commit.
+  released commit, then the checks that only pass or fail.
+
+## The `/release` skill
+
+`.claude/skills/release/SKILL.md` runs these steps on Haiku (#236), in a
+worktree off `origin/main`; the maintainer still merges every PR.
+
+- **`/release prepare <x.y.z>`** — steps 1 and 2: reads each merged PR's
+  `## Release note` and stops on a behaviour-path PR without one, runs the
+  full gate once on the released tree (hook tests, lint, ledger `--check`,
+  red-proofs), commits the bump and the pending entry, proves that commit
+  touches only `plugin.json` and `CHANGELOG.md` (#248), and opens the
+  release PR.
+- **`/release publish <release-pr>`** — steps 3 to 5 once the PR is
+  merged: the title and body come from the merged `CHANGELOG.md` entry,
+  never a scratch file; the release is created on the merge commit and
+  published at once, not drafted; then `changelog.py --check`, a "Shipped
+  in" comment on each issue the release closes, and the merged branches
+  removed.

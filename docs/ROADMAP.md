@@ -272,6 +272,63 @@ and the eval ledger (`evals/README.md`).
   it is kept current: `CHANGELOG.md` for what shipped, `evals/README.md`
   for the case counts and the recorded baselines (both rendered).
 
+## November 2026 (v2.7.3 → v2.19.0) — a snapshot on 2026-11-15
+
+**Shipped**, 2026-11-05 → 11-14 (each release's note in `CHANGELOG.md`):
+
+- **Hooks.** Every hook rule has a ledger row (2.7.3). Rule K: the loop
+  merges only the base or its own branches (2.9.0), reading redirections
+  and an unresolved `cd` for what they are (2.17.1). Rule E: a heredoc
+  body is a mention, not a read (2.10.0, 2.10.1); a cwd inside `.git`
+  resolves the main worktree (2.13.0). `guard-acceptance` judges the edited
+  file's worktree, and every guard fails closed through `run-guard.sh`
+  (2.18.0; #277, #281 PR 1).
+- **The loop.** The seat pane draws every spawn (2.7.4). Up to N issues
+  per pass (2.8.0). A gate label on a passed stage is illegal, and a missing
+  dependency in the base is a STOP (2.9.0). A fold may ask once (2.11.0).
+  Every unreached row is `queued:` (2.12.0). A questioned scenario still
+  gets its test (2.13.0). Patrol reads forge-native blockers (2.14.0,
+  2.14.1). One branch-name resolver, `bin/roz-branch` (2.15.0). QA-4 has
+  one definition, and `bin/roz-state` runs in shadow (2.16.0). A deleted
+  head keeps its CR, and `bin/roz-check integrate` runs in shadow (2.17.0).
+  Dispatch lists name the R&R row (2.17.1). `next-stage` loads only the
+  routed path, `references/next-stage-path-{a,b,b2,c}.md` (2.19.0).
+- **Evals.** QA-brief variants and the D10–D19 frame (2.9.0); the
+  `haiku55` SUT row for new baselines (2.12.0); the evaluation charter,
+  Judgment V1 and the Workflow Value pilot's Phase A (2.17.0); the shared
+  seed repaired, so every earlier replay result is stale (2.17.1, #293);
+  SUT isolation, the runtime's own token totals and the runner CLI —
+  `--list`, `--dry-run`, everything checked before spend (2.18.0); lint
+  L20, the `path_files_read` signal and the L21 prose caps (2.19.0).
+
+**On `main`, not yet released:** #320 (#319: a system event's string
+`message` no longer crashes the runner); #322 (#321: SUT sessions get
+`sut_base_env` and their own `TMPDIR`); #323 (#197: `spec.md` § Glossary,
+QA's *term conflict* finding, D22–D24 on `fx/kv-cli-expiry`, `TOTAL_CAP`
+52,040 → 52,231); #324 (#198: `bin/roz-persona`, an unusable seat stops
+the run, L22, D25 and D26, the `init` cap 1351 → 1358).
+
+**Still open:**
+
+- **#281 PR 2** — `guard-blind` still hard-codes `src/`; PR 1 (fail
+  closed) shipped in 2.18.0.
+- **#325–#330** — what the 2026-11-15 haiku55 sweep found: stub fields and
+  routes a real `gh` serves (#325); rule E denying a forge write whose body
+  mentions `src/` (#326); the D6 checker counting the scanner (#327); the
+  F11 fixture (#328); `path_files_read` missing a path file read with Bash
+  (#329); checkers rejecting correct wording (#330).
+- **#256** — review an unsupported guarantee before demoting it to an
+  empirical assumption.
+- **#296** — bind Judgment V1's gold approval to review evidence.
+- **#299–#303** — the executable-prose module model: define it (#299),
+  machine-readable dependencies (#300), the QA path classified with no
+  behaviour change (#301), deterministic QA dispatch composition (#302),
+  then every seat and operation (#303).
+- **#199** — the QA-seat component regression corpus and prose ablation.
+- **Baselines.** Every replay batch is `superseded` since 2.17.1, so the
+  next full sweep is the first valid baseline; it and the new cases'
+  baselines are the maintainer's quota call.
+
 ## The vision (why 2.0.0 exists)
 
 Team members join over time, each free to bring **their own agent** —
@@ -288,7 +345,7 @@ widens the compatibility surface from "plugin config" to "wire
 conventions". Once anyone implements against the page, markers and label
 semantics become breaking changes.
 
-## Design decisions (settled in assessment, awaiting release)
+## Design decisions (settled in assessment, shipped in 2.0.0)
 
 1. **Protocol version decoupled from plugin semver.** The spec carries its
    own stamp (`protocol v1`); plugin 2.0.0 would *ship* protocol v1.
@@ -324,14 +381,15 @@ semantics become breaking changes.
    - *Detection*: patrol audits gate-label events via the timeline API
      (`labeled` events carry the actor) — a bot applying a gate label is
      reported as a violation, **including foreign agents the hook can't
-     reach.** (Shipped: #144.)
+     reach.** (Shipped: #144, 2.1.0.)
    - *Honesty*: a per-client conformance disclaimer — the reference
      client self-enforces; for anything else, review its code and contain
      its token.
 5. **Counterpart guide** (`docs/participating.md` draft): humans need
    three moves — answer the numbered questions, say `summary`, apply the
    label. Batch/summary footers link to it. Open item: the canonical URL
-   (GitHub Pages vs repo blob) — **Paul has not ruled.**
+   (GitHub Pages vs repo blob) — **resolved in 2.0.0 (#142): GitHub Pages**; the intake footer
+   links `https://taikerliang.github.io/roz-gate/participating.html`.
 6. **GitLab multi-bot note**: project-bot usernames are opaque hashes —
    name the tokens meaningfully and keep the mapping in the config's
    `bot_login` list (comma-separated support already shipped in 1.7.0).

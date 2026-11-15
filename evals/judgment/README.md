@@ -50,6 +50,10 @@ python3 evals/judgment/run_judgment.py --dry-run --sut haiku55 --k 2   # done, p
   `--redproof` re-judges, and the sweep refuses until it is green again.
 - `--sut` (replay's `models.yaml`) is the SUT only; **the judge is opus on
   every row**, including the opus SUT row.
+- A SUT session starts through replay's `invoke_claude`, so it gets the
+  same isolation flags (#307) and the same environment: no `CLAUDE*`
+  variable but the login and provider ones, and its own `TMPDIR` (#321,
+  `../replay/README.md` § Method). The judge's own calls do not.
 
 ## The baseline arm — the Workflow Value pilot (#259)
 

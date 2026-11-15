@@ -4,9 +4,12 @@ Level 3 of the charter (`charter.md`): on real issues, what does the whole
 Roz Gate loop catch that a capable agent without it misses, what does it
 cost in human interruptions and compute, and was the trade worth it?
 
-A pilot, in two phases. Phase A is built; Phase B is a protocol. **Nothing
-here has been run** — the commands are in `judgment/README.md`, and the
-spend is the maintainer's.
+A pilot, in two phases. Phase A is built; Phase B is a protocol. **No
+result is claimed**: the one calibration run (F-51's baseline arm,
+2026-11-14) was void — its "no Roz Gate" arm loaded Roz Gate (#307), its
+tokens were miscounted (#308) and its history showed the removed section
+(ruling (b)). The commands are in `judgment/README.md`, and the spend is
+the maintainer's.
 
 ## The six answers (`charter.md § Rules for new eval work`)
 
