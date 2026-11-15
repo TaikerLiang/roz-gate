@@ -1,0 +1,28 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer lookup at checkout",
+      "body": "**User story** — As a shopper, my cart prices fast and never applies an expired offer.\n\n**Acceptance criteria**\n- AC-1: Expired offers are excluded from pricing.\n- AC-2: Pricing a cart answers within 1 s at p95 at production scale.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec", "status: ready-for-dev"],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer lookup at checkout",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [],
+      "reviews": [],
+      "comments": []
+    }
+  }
+}

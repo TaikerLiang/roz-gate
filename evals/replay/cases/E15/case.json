@@ -1,0 +1,8 @@
+{
+  "ledger": "E15 · A demotion answer is checked against the contract",
+  "tier": "replay (#256)",
+  "ledger_text": "\"spec-answers on C32's spec, two threads both answered *demote it*: Q1 on the G2 premise, Q2 on the debt premise. Q2's premise carries `(assumed-empirical:` and no `unverified`, its thread resolved; Q1's premise still carries `(unverified)`; G2's and S2's lines are byte-identical to the seed; one new `## Open Questions` item *raised by the fold of Q1* names G2 and its thread is posted; the report does not say ready for approval and the issue stays `in-spec-review`.\" (#256: accepting a risk is not evidence for a guarantee, and a non-blocking assumption stays legal)",
+  "prompt": "/roz-gate:spec-answers 5",
+  "k": 5,
+  "timeout": 1200
+}

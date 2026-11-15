@@ -35,8 +35,8 @@ src("B6 conformance: A3 says the whole word anywhere stops the gate",
     "references/next-stage-path-a.md",
     "the checks match the whole word anywhere")
 src("B6 conformance: Path B names reword as the prose remedy", "references/next-stage-path-b.md",
-    "the word in prose: reword\nthe sentence")
-src("B6 conformance: the promote check names reword as the prose remedy",
-    "commands/spec-answers.md", "or reword prose")
+    "or `reword` (the word in prose")
+src("B6 conformance: the promote check routes a hit to Path B's table (reword among its actions)",
+    "commands/spec-answers.md", "one row per hit in Path B's table")
 src("B6 conformance: the fold rule states the reserved word", "commands/spec-answers.md",
     "`unverified` is a\n     reserved word")

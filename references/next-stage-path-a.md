@@ -95,7 +95,10 @@ Base everything strictly on the issue body. Per the workflow's stage (2):
     accepted as an assumption with its risk stated. Distinct from
     `(assumed)`, which marks an unconfirmed *decision*; this marks an
     unmeasured *fact*, and the holder's action differs (order a
-    measurement vs confirm a choice).
+    measurement vs confirm a choice). Legal only when nothing in a
+    guarantee, scenario or acceptance criterion depends on the claim: a
+    premise one needs is measured, or the clause corrected — accepting a
+    risk is never evidence.
   Placement: one authority tag on a rule's title line; evidence tags sit
   on the empirical premise itself, in the rationale italics, with the
   measurement citation. Authority tags say *who decided*; evidence tags

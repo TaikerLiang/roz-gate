@@ -12,8 +12,8 @@ Level-1 suite does not prove Roz Gate improves engineering outcomes.
 <!-- counts -->
 | Tier | Cases | Status | Cost class |
 |---|---|---|---|
-| **lint** | 79 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
-| **replay** | 67 | built — `replay/run_replay.py` | needs a running loop and a pass rate over k repeated runs |
+| **lint** | 80 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
+| **replay** | 69 | built — `replay/run_replay.py` | needs a running loop and a pass rate over k repeated runs |
 | **hook** | 4 | built — `ledger-hook.json`, proven in `../hooks/tests/` by the same gate | rules a hook alone enforces; the other hook rules ride on a lint or replay row |
 | **judgment** | 7 items / 4 fixtures · V1: 10 decisions | built — `judgment/run_judgment.py`, k=2 baseline complete (2026-09-21) | a real repo per iteration plus an opus judge; the Level-2 seed (`charter.md`) |
 <!-- /counts -->
@@ -132,14 +132,14 @@ Set on `main` at `2ee634c`.
 
 | prose | cap (words) |
 |---|---|
-| **the repo's runtime prose total** | 52,231 |
+| **the repo's runtime prose total** | 52,338 |
 | `commands/config.md` | 540 |
 | `commands/init.md` | 1,358 |
 | `commands/integrate.md` | 2,494 |
 | `commands/next-stage.md` | 1,076 |
 | `commands/patrol.md` | 3,917 |
 | `commands/review-answers.md` | 1,822 |
-| `commands/spec-answers.md` | 3,333 |
+| `commands/spec-answers.md` | 3,373 |
 | `commands/tip.md` | 2,586 |
 | `commands/to-issues.md` | 504 |
 | `commands/uninit.md` | 444 |
@@ -154,7 +154,7 @@ read at the time. A new baseline is a new batch in that file, then the
 tool.
 
 <!-- baselines -->
-**36 of 67 replay cases have at least one recorded SUT baseline; 31 have none.** *Recorded* is not *current*: a batch below is a measurement of the case as it was then, and a later seed or checker change may have superseded it — where the record says so, the row does. **0 of 67 have a recorded baseline that is not superseded.**
+**36 of 69 replay cases have at least one recorded SUT baseline; 33 have none.** *Recorded* is not *current*: a batch below is a measurement of the case as it was then, and a later seed or checker change may have superseded it — where the record says so, the row does. **0 of 69 have a recorded baseline that is not superseded.**
 
 | batch | SUT | plugin | when | k | results | source |
 |---|---|---|---|---|---|---|
@@ -165,7 +165,7 @@ tool.
 | `qa-brief-pilot-run-1` | opus | v2.10.0–v2.10.1 | sweep 2026-11-07 → 2026-11-08 | 1 | 1/1 [27%, 100%]: D10, D11, D12, D15, D16, D17, D18 · 0/1 [0%, 73%]: D13, D14, D19 · *superseded:* the batch — PR #233 moved every D10–D19 case_fp; the k>1 top-up re-measures them (#199); #293 (2026-11-14): the shared seed (the base every case starts from) changed and entered every case's fingerprint, so no replay result recorded before it describes a case as it now stands | evals/README.md § Baseline results, "Replay, k=1, plugin v2.10.0–v2.10.1 … the #199 QA-brief pilot"; issue #199. Brief A only (references/qa-brief.md, the shipped brief); the B and C variants measured other briefs and are not baselines of these cases |
 | `qa-brief-haiku-reading` | haiku55 | main 6cc2c79 … ccfa8ef (PR #242), after v2.10.1 — the plugin sha varied across cells | 2026-11-08 | 3 | 3/3 [53%, 100%]: D10, D11, D15, D16, D18 · 2/2 [43%, 100%]: D12, D13, D14 · 1/1 [27%, 100%]: D17 · 2/3 [25%, 92%]: D19 · *superseded:* the batch — references/qa-brief.md changed after this reading (#243, #261, #262); a result is evidence about the brief it ran under; #293 (2026-11-14): the shared seed (the base every case starts from) changed and entered every case's fingerprint, so no replay result recorded before it describes a case as it now stands | issue #199, "Pilot report — Haiku reading" (https://github.com/TaikerLiang/roz-gate/issues/199#issuecomment-6719997010): brief A, 24/25 valid cells, 5 invalid. Not in evals/README.md's narrative. Brief A only; B and C measured other briefs |
 
-Wilson 90% intervals, the runner's formula. No recorded baseline (31): A9, A11, C11, C12, C13, C16, C17, C20, C22, C23, C26, C30, D4, D5, D6, D7, D8, D9, D22, D23, D24, D25, D26, E9, E11, F10, F11, F12, F13, F14, F15.
+Wilson 90% intervals, the runner's formula. No recorded baseline (33): A9, A11, C11, C12, C13, C16, C17, C20, C22, C23, C26, C30, C32, D4, D5, D6, D7, D8, D9, D22, D23, D24, D25, D26, E9, E11, E15, F10, F11, F12, F13, F14, F15.
 
 **Judgment:** the last recorded sweep is opus SUT, opus judge, plugin v1.16.2, sweep 2026-09-20 → 2026-09-21, k=2 — the only judgment sweep on record; nine valid runs over the four fixtures. Judgment V1 and the Workflow Value pilot have no recorded run.
 <!-- /baselines -->

@@ -1,0 +1,49 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "5": {
+      "title": "Offer lookup at checkout",
+      "body": "**User story** — As a shopper, my cart prices fast and never applies an expired offer.\n\n**Acceptance criteria**\n- AC-1: Expired offers are excluded from pricing.\n- AC-2: Pricing a cart answers within 1 s at p95 at production scale.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": ["track: spec", "status: in-spec-review"],
+      "createdAt": "2026-08-15T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {
+    "101": {
+      "number": 101,
+      "title": "Spec: #5 Offer lookup at checkout",
+      "state": "OPEN",
+      "isDraft": false,
+      "headRefName": "spec/5",
+      "baseRefName": "main",
+      "threads": [
+        {
+          "id": "T1",
+          "isResolved": false,
+          "path": "docs/specs/5/spec.md",
+          "line": 18,
+          "comments": [
+            {"databaseId": 9101, "author": "paul", "body": "**[em] · Q1 · production row count**\n\nR2's premise — about 2M rows in `offers` — is not yet measured. Before signing:\n- (a) measure the production row count ← ✅ recommended\n- (b) demote it to an assumed-empirical premise with its risk named\n\n*why: G2's p95 budget and S2 are sized on that count.*", "createdAt": "2026-08-23T08:00:00Z"},
+            {"databaseId": 9102, "author": "paul", "body": "demote it", "createdAt": "2026-08-23T10:00:00Z"}
+          ]
+        },
+        {
+          "id": "T2",
+          "isResolved": false,
+          "path": "docs/specs/5/spec.md",
+          "line": 25,
+          "comments": [
+            {"databaseId": 9103, "author": "paul", "body": "**[em] · Q2 · legacy view debt**\n\nR1's note — the export still reads `offers_v1` — is not yet measured. Before signing:\n- (a) demote it to an assumed-empirical premise, the risk being #7's ← ✅ recommended\n- (b) measure it now\n\n*why: nothing in this spec reads that view; #7 retires it.*", "createdAt": "2026-08-23T08:01:00Z"},
+            {"databaseId": 9104, "author": "paul", "body": "demote it", "createdAt": "2026-08-23T10:01:00Z"}
+          ]
+        }
+      ],
+      "reviews": [],
+      "comments": []
+    }
+  }
+}
