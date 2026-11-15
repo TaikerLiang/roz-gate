@@ -62,6 +62,9 @@ batch** — every finding of these kinds:
   is part of the port — you never persist entities or touch the persistence
   layer to arrange it), or a port that exposes internal state "for
   convenience";
+- a **term conflict**: a clause, a deviation or a scenario that uses a term
+  of `spec.md`'s `## Glossary` with another meaning — name the term and
+  both readings;
 - an **`unfolded` amendment** in the list, or a deviation that moves what a
   rule means.
 

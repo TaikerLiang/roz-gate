@@ -234,6 +234,7 @@ the reason.
 | id | source | anchor | question | class | why it needs a model or a human |
 |---|---|---|---|---|---|
 | B8, D9–D19, E12 | references/qa-brief.md | **The port is the only road.** | How does QA write a suite that drives the port and asserts the contract — and is a red a harness defect or a contract mismatch? | SEMANTIC JUDGMENT | reading a contract and deciding what a red means is judgment; the mechanical edge (what QA may read) is hook E |
+| D22–D24 | references/qa-brief.md | ## Step zero — the contract review | Is this a hole in the shared contract, or a term used against its Glossary definition — to report, never to resolve alone? | SEMANTIC JUDGMENT | whether a Given has a control point, or a clause means what the Glossary defines, is a reading of the contract |
 | C5 | commands/spec-answers.md | **The fold changed no behaviour** | Did the fold change behaviour? | SEMANTIC JUDGMENT | whether an amendment changes behaviour is a reading of the spec |
 | C29 | references/workflow.md | A missing dependency in the base is a STOP, never an option | Does the base lack code this issue needs? | SEMANTIC JUDGMENT | only a reader of the spec knows what the issue needs; the forbidden remedy is hook K (row C28) |
 | E3, E4 | references/next-stage-path-a.md | Dispatch `implementer` | Should the implementer / reviewer stop and ask the holder? | SEMANTIC JUDGMENT | when a question is worth the holder's time is judgment; how it reaches them is hook F |
