@@ -50,6 +50,10 @@ gate holder's hands ever touch these two labels. Something off? Reply
 corrections — end with `summary` to re-read first, or label directly: the
 final story folds in **your** words only.
 
+Must it wait for another issue? Mark it as blocked by that issue on the
+forge (GitHub's *blocked by*, GitLab's *is blocked by* link): the loop does
+not start a gated issue while a blocker is open.
+
 ## 4. The review conversation
 
 When the work has passed its verdict, the issue carries
@@ -79,7 +83,11 @@ Agents post their open questions as review threads (each starts with `**[`).
 Reply inside the thread like any code review — the agents fold answers into
 the spec and resolve the threads. A top-level comment on the pull request is
 read too, and a thread **you** open is an amendment request: the spec is
-widened to cover it.
+widened to cover it. A question raised by answering a question that was
+itself raised by an earlier answer gets no thread: it is listed in one
+`**[spec-answers] · deferred**` comment with its recommendation. Answer it
+with a top-level comment; once the gate holder applies
+`status: ready-for-dev`, every unanswered one takes its recommendation.
 
 ---
 

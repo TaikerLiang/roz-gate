@@ -1,21 +1,22 @@
 # docs/learn — the newcomer learning path
 
 Human-facing (never loaded by the agent). Source of the interactive learner
-page and its 50-question quiz. Paul's mandate 2026-09-21; rulings 2026-09-22.
+page and its quiz. Paul's mandate 2026-09-21; rulings 2026-09-22.
 
 ## Files
 
-- `quiz.json` — the bank: 50 questions across 8 modules (M1 loop → M8 how we
-  work), each with `bg` (background), `q` (stem), `o` (options), `a` (answer
-  index / indices / order), `why` (explanation), `src` (source pointer), plus
-  `_meta.stages` (the loop's stage map, rendered from README § The loop in
+- `quiz.json` — the question bank, in 8 modules (M1 loop → M8 how we
+  work), each question with `bg` (background), `q` (stem), `o` (options),
+  `a` (answer index / indices / order), `why` (explanation), `src` (source
+  pointer), plus `_meta.stages` (the loop's stage map, rendered from README § The loop in
   one page) and `_meta.glossary`.
 - `../../images/loop-stage-map.svg` — the stage map (generated, not prose;
-  the pages inline a theme-aware copy).
-- `index.html`, `content.json` — the learner page and its data (phase 2;
-  built by `tools/build_learn.py`, which also runs the real hooks to
-  precompute the hook simulator's verdict table and checks every `src`
-  pointer still resolves).
+  `docs/index.html` and `docs/onboarding.html` inline a theme-aware copy,
+  held byte-identical by lint L1).
+- `index.html`, `content.json` — the learner page and its data: phase 2,
+  **not built yet**. The plan: `tools/build_learn.py` builds them, runs the
+  real hooks to precompute the hook simulator's verdict table, and checks
+  every `src` pointer still resolves.
 
 ## Anti-leak rules (the bank must stay this way)
 
