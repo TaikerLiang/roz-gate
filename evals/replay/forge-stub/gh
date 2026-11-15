@@ -1072,6 +1072,26 @@ def jq_project(data, expr):
         print(v if isinstance(v, str) else json.dumps(v, ensure_ascii=False))
 
 
+def jq_ignores(data, key, expr):
+    """True only when `--jq expr` is proven not to read `key` of `data`: it
+    prints the same, and exits the same, with `key` absent and with a string
+    sentinel in its place. Any read of the key or below it (`.key.login`,
+    `.["k" + "ey"]`, `.`, `keys`, `has(...)`) tells the two apart. No
+    expression prints the whole object, and no `jq` on PATH proves nothing
+    (codex review, PR #338)."""
+    if not expr or not shutil.which("jq"):
+        return False
+    outs = []
+    for d in (data, dict(data, **{key: "\u0000forge-stub-sentinel"})):
+        try:
+            r = subprocess.run(["jq", "-rc", expr], input=json.dumps(d), capture_output=True,
+                               text=True, timeout=30)
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+        outs.append((r.returncode, r.stdout))
+    return outs[0] == outs[1]
+
+
 def next_id(st):
     st["_id"] = st.get("_id", 1000) + 1
     return st["_id"]
@@ -2095,30 +2115,29 @@ def main():
             if pr_ is not None:
                 # #325 — GitHub serves every PR here, as an issue carrying
                 # `pull_request` (C26/2). `user` is the fixture's `author`
-                # (`_pr_author`): a PR that states none answers only a --jq
-                # that never reads `user` — else UNKNOWN naming `author`, the
-                # `pr view --json author` answer (codex review, PR #338)
-                merged_at = _pr_merged_at(st, pr_)
+                # (`_pr_author`). A PR that states none answers only a --jq
+                # proven not to read `user` (`jq_ignores`) — else UNKNOWN
+                # naming `author`, the `pr view --json author` answer (codex
+                # review, PR #338)
                 expr = flag_val(argv, "--jq", "-q")
-                user = _pr_author(st, pr_) if pr_.get("author") or expr is None \
-                    or "user" in expr else None
-                journal("pr-view", pr=n, via="api-issue")
-                jq_project({"number": int(n), "title": pr_.get("title", ""),
-                            "body": pr_.get("body", ""),
-                            "state": "open" if pr_.get("state", "OPEN").upper() == "OPEN"
-                                     else "closed",
-                            "labels": [{"name": lb} for lb in pr_.get("labels", [])],
-                            "assignees": [{"login": a} for a in pr_.get("assignees", [])],
-                            **({"user": user} if user else {}),
-                            "created_at": PR_FIELDS["createdAt"](st, pr_),
-                            "comments": len(pr_.get("comments", [])),
+                view = {"number": int(n), "title": pr_.get("title", ""),
+                        "body": pr_.get("body", ""),
+                        "state": "open" if pr_.get("state", "OPEN").upper() == "OPEN"
+                                 else "closed",
+                        "labels": [{"name": lb} for lb in pr_.get("labels", [])],
+                        "assignees": [{"login": a} for a in pr_.get("assignees", [])],
+                        "created_at": PR_FIELDS["createdAt"](st, pr_),
+                        "comments": len(pr_.get("comments", [])),
+                        "html_url": web(st) + "/pull/%s" % n,
+                        "pull_request": {
+                            "url": "https://api.github.com/repos/%s/pulls/%s"
+                                   % (repo_slug(st), n),
                             "html_url": web(st) + "/pull/%s" % n,
-                            "pull_request": {
-                                "url": "https://api.github.com/repos/%s/pulls/%s"
-                                       % (repo_slug(st), n),
-                                "html_url": web(st) + "/pull/%s" % n,
-                                "merged_at": merged_at}},
-                           expr)
+                            "merged_at": _pr_merged_at(st, pr_)}}
+                if pr_.get("author") or not jq_ignores(view, "user", expr):
+                    view["user"] = _pr_author(st, pr_)
+                journal("pr-view", pr=n, via="api-issue")
+                jq_project(view, expr)
                 return
             if iss is None:
                 unknown("issue %s not in fixture" % n)
