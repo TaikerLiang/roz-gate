@@ -1,6 +1,6 @@
 {
  "_meta": {
-  "version": "draft-7 (2026-09-24, blocked = abnormal halt; (7)'s STOP form is a principle, not an exception); +#51 branch_template (2026-10-07)",
+  "version": "draft-7 (2026-09-24, blocked = abnormal halt; (7)'s STOP form is a principle, not an exception); +#51 branch_template (2026-10-07); +#52 a fold may ask once (2026-11-08); +#53–#60 November rules, stale src re-pointed (2026-11-15)",
   "pass": {
    "overall": 0.8,
    "per_module": 0.6,
@@ -30,24 +30,24 @@
    "L3": "判斷（干擾項是真實 near-miss）"
   },
   "distribution": {
-   "M1": 9,
+   "M1": 13,
    "M2": 7,
-   "M3": 6,
-   "M4": 7,
+   "M3": 9,
+   "M4": 9,
    "M5": 7,
    "M6": 6,
    "M7": 5,
    "M8": 4
   },
   "levels_count": {
-   "L1": 14,
-   "L2": 24,
+   "L1": 15,
+   "L2": 33,
    "L3": 12
   },
   "types_count": {
-   "single": 34,
+   "single": 43,
    "multi": 6,
-   "rule": 4,
+   "rule": 5,
    "order": 4,
    "contamination": 2
   },
@@ -67,7 +67,7 @@
    {
     "n": "2",
     "name": "spec refinement",
-    "zh": "em + product + implementer 寫 spec.md（scenarios）與 technical-spec.md（contract），開成 spec CR",
+    "zh": "em + product + implementer 寫 spec.md（scenarios，必要時加一段必讀的 ## Glossary）與 technical-spec.md（contract，含 **Test port** 那一行），開成 spec CR",
     "gate": null
    },
    {
@@ -79,31 +79,31 @@
    {
     "n": "3",
     "name": "implementation",
-    "zh": "implementer 在 feat/{n}：code + unit tests",
+    "zh": "implementer 在 feat/{n}：code + unit tests + test port；邊做邊修正 contract，每筆修正寫在 CR 的 ## Contract deviations；review-clean 後落到 spec/{n}",
     "gate": null
    },
    {
     "n": "4",
     "name": "black-box QA",
-    "zh": "qa 在 qa/{n}：實作落到 spec/{n} 之後才開工；先審 as-built 合約（發現變成 spec CR 的 [qa] threads），再只從 spec + contract、只走 port 寫 test plan + acceptance suite；看不到實作靠 hook rule E，自己跑套件，red 只能是 harness 修正或 finding，從不改 assertion",
+    "zh": "qa 在 qa/{n}：實作落到 spec/{n} 之後才開工；先審 as-built 合約（發現變成 spec CR 的 [qa] threads），再只從 spec + contract、只走 port 寫 test plan + acceptance suite；看不到實作靠 hook rule E，自己跑套件，red 只能是 harness 修正或 finding，從不改 assertion（QA-4）",
     "gate": null
    },
    {
     "n": "5",
     "name": "code review",
-    "zh": "reviewer 在 implementation CR 上留 severity-graded thread（blocking / should-fix / nit / question）",
+    "zh": "reviewer 在 implementation CR 上留 severity-graded thread（blocking / should-fix / nit / question），最後貼一則帶 reviewed-sha 的 **[reviewer] · code-review** 紀錄；review-clean = 紀錄最新 + 零 thread",
     "gate": null
    },
    {
     "n": "5q",
     "name": "fidelity review",
-    "zh": "reviewer 的另一次 fresh dispatch，在 qa/{n} 上審 QA suite 對 spec 的忠實度；產出證據，不是 verdict",
+    "zh": "reviewer 的另一次 fresh、看不到實作的 dispatch，在 qa/{n} 上審 QA suite 對 spec 的忠實度；產出證據與 **[reviewer] · fidelity** 紀錄，不是 verdict",
     "gate": null
    },
    {
     "n": "6",
     "name": "integration verdict",
-    "zh": "main agent 本機合併兩個分支，QA suite 第一次跑在 code 上——the verdict",
+    "zh": "main agent 把 QA 分支本機合進 spec/{n}（實作在 (4) 開工前就已落地），QA suite 在 tip 上跑「留底的那一次」——the verdict；這一站沒有 gate label，patrol 依 CR 狀態自己跑",
     "gate": null
    },
    {
@@ -116,7 +116,7 @@
   "glossary": [
    {
     "term": "seat / persona",
-    "zh": "seat 是固定的角色名（product、em、implementer、qa、reviewer）；persona 是 target repo 的 CLAUDE.md 把 seat 對應到哪個實際的 subagent"
+    "zh": "seat 是固定的角色名（product、em、implementer、qa、reviewer）；persona 是 target repo 的 CLAUDE.md 把 seat 對應到哪個實際的 subagent——每個 command 都經由 `bin/roz-persona` 解析，解析失敗就是 STOP"
    },
    {
     "term": "CR",
@@ -144,7 +144,7 @@
    },
    {
     "term": "fidelity dispatch",
-    "zh": "在 qa/{n} 上、看不到實作的那次 dispatch（(5q) 或 patrol 的 qa 重審）；rule E 在它期間擋 src/ 的讀取"
+    "zh": "在 qa/{n} 上、看不到實作的那次 dispatch（(5q) 或 patrol 的 qa 重審）；rule E 在它期間擋 src/ 的讀取。2.0.0 起 QA 自己的 dispatch 也帶同一個 marker（seat=qa）"
    },
    {
     "term": "ledger / tier",
@@ -169,6 +169,14 @@
    {
     "term": "checker",
     "zh": "replay case 的打分程式（`evals/replay/cases/<case>/check.py`）：讀 forge stub 的 journal、transcript 與 sandbox 狀態，用 exit code 判 PASS／FAIL"
+   },
+   {
+    "term": "QA-4",
+    "zh": "QA 的核心規則，只在 references/qa-brief.md 定義一次：紅燈從不靠改 assertion 去符合觀察到的行為——期望值只來自 spec 或 contract 原文；從 QA 第一次跑套件一路適用到 (6) integration verdict"
+   },
+   {
+    "term": "Glossary",
+    "zh": "spec.md 裡選用的必讀段落 `## Glossary`：一詞一行 `- <term> — <definition>`，只收兩個 seat 可能讀出不同意思的詞，em 負責；有人用法和定義不同，QA 回報 term conflict"
    }
   ],
   "presentation": "options are stored in a seeded-shuffled order; the learner page re-shuffles per attempt (seed = attempt id), including the presented sequence of ordering items"
@@ -266,7 +274,7 @@
     3
    ],
    "why": "processing 是 lock（可以和一個階段 label 並存）；ready-for-* 是 gate。lint C3 的 oracle 就是這個分類：processing 之外，status label 同時最多只能有一個。",
-   "src": "README.md § Labels · evals/lint/run_lint.py C3",
+   "src": "README.md § Labels · evals/lint/cases/c3.py",
    "bg": "`status:` 這個 label 前綴底下有六個值，但它們的「種類」不同：有的是人類專屬的 gate，有的是階段狀態（transient），有一個是 lock。lint 的 C3 case 把這個分類寫成可執行的 oracle，用來抓「同時掛了兩個階段 label」這類非法組合。"
   },
   {
@@ -336,7 +344,7 @@
     "`references/`——protocol docs、seat briefs、forge adapters，agent 每輪都載入。"
    ],
    "a": 3,
-   "why": "references/ 每次 invocation 都會載入 agent 的 context（roadmap 算的 46–72 條 live rules 就在這裡）。docs/ 是給人看的，agent 永遠不載入——所以「不要把給人讀的材料放進 references/」。",
+   "why": "references/ 每次 invocation 都會載入 agent 的 context（lint L21 為 runtime prose 的總字數與每個 command 檔各設上限）。docs/ 是給人看的，agent 永遠不載入——所以「不要把給人讀的材料放進 references/」。",
    "src": "README.md § Repository layout",
    "bg": "README 的 Repository layout 把每個目錄按「誰讀」和「何時生效」分類。有一個目錄是 agent 每次 invocation 都會載入的 protocol docs 與 seat briefs——roadmap 說「任一次 invocation 的 context 裡同時有 46–72 條規則在生效」，算的就是它。"
   },
@@ -512,7 +520,7 @@
    ],
    "a": 1,
    "why": "查過文件：subagent 內的 PreToolUse 確實帶 agent_id／agent_type，但兩次 dispatch 用的是同一個 seat，分不出來。marker 放在 `<git-dir>/roz-gate/fidelity-dispatch`，每個 worktree 各一份，也不會出現在 git status。",
-   "src": "hooks/README.md § The fidelity-dispatch marker",
+   "src": "hooks/README.md § The dispatch marker (rule E)",
    "bg": "Rule E（guard-blind）要在 fidelity dispatch 期間擋掉 src/ 的讀取。設計時查過 Claude Code 的文件：subagent 內的 PreToolUse hook input 確實帶 `agent_id` 和 `agent_type`。但最後的設計是讓 dispatching command 在 `<git-dir>/roz-gate/fidelity-dispatch` 寫一個 marker 檔，hook 只看檔案存不存在。"
   },
   {
@@ -528,7 +536,7 @@
     "seat 是 workflow 固定的角色名；persona 是 per-project config，對應到實際的 agent。"
    ],
    "a": 3,
-   "why": "CLAUDE.md 的 `### Roz Gate personas` 把每個 seat 映射到 `roz-gate:<role>` 或使用者自己的 agent（例如 `implementer: backend`）。workflow 的詞彙永遠不變。",
+   "why": "CLAUDE.md 的 `### Roz Gate personas` 把每個 seat 映射到 `roz-gate:<role>` 或使用者自己的 agent（例如 `implementer: backend`）。workflow 的詞彙永遠不變。每個 command 都透過 `bin/roz-persona` 讀這個對應；解析失敗（`PERSONA_UNMAPPED`、`AGENT_TYPE_UNAVAILABLE`）就是 STOP，絕不換別的 agent 頂替。",
    "src": "references/workflow.md § Seats and personas",
    "bg": "target repo 的 CLAUDE.md 有一段 `### Roz Gate personas`，內容像 `implementer: implementer`、`qa: roz-gate:qa`。workflow.md 說 role 名稱是固定的「seats」，而「who sits in a seat is per-project configuration」。"
   },
@@ -567,7 +575,7 @@
     "exit 0 放行；exit 2 擋下、stderr 餵回給 model，讓它知道下一步。"
    ],
    "a": 3,
-   "why": "「every deny message states the remedy, not just the reason, because the agent is the reader.」",
+   "why": "「every deny message states the remedy, not just the reason, because the agent is the reader.」2.18.0 起 guard 若以 0／2 以外的值結束（崩潰、python3 缺），`run-guard.sh` 一律擋下並說明是工具故障——fail closed。",
    "src": "hooks/README.md（開頭）",
    "bg": "Roz Gate 的 hooks 是 Claude Code 的 PreToolUse hook：在 tool 真正執行前被呼叫，用 exit code 決定放不放行。hooks/README 開頭把這個契約講清楚，並且解釋為什麼 deny 訊息的寫法要考慮「讀者是誰」。"
   },
@@ -738,7 +746,7 @@
    ],
    "a": 3,
    "why": "「Measurement, not a gate」。要不要設門檻，等有了 baseline 之後再決定。",
-   "src": "evals/replay/run_replay.py docstring · evals/replay/README.md § pass^k",
+   "src": "evals/replay/run_replay.py docstring · evals/replay/README.md § Method（The rate）",
    "bg": "replay tier 是把真正的 command 在 sandbox 裡用 headless Claude Code 跑起來，由 checker 打分。它的 docstring 第一句是「Measurement, not a gate」。因為模型行為是隨機的，同一個 case 跑一次和跑五次的意義不同。"
   },
   {
@@ -789,7 +797,7 @@
    ],
    "a": 3,
    "why": "replay 的 checkers 和 judgment 的 criteria.json / judge-prompt.md 都遵守：先承諾要量什麼，再看結果。",
-   "src": "evals/replay/README.md § Blindness · evals/judgment/README.md",
+   "src": "evals/replay/README.md § Method（Blindness）· evals/judgment/README.md",
    "bg": "replay README 的 Blindness 節說 checker 必須「land in a distinct commit that precedes the first recorded baseline run」；judgment tier 的 criteria.json 與 judge-prompt.md 也是先 commit 才跑第一次。這個做法有一個名字，而且它證明的是一件關於「順序」的事。"
   },
   {
@@ -850,7 +858,7 @@
     1,
     0
    ],
-   "why": "seed → invoke → validity → check。有效性判定在 check 之前：無效的 run 永遠不會被 checker 評分。",
+   "why": "seed → invoke → validity → check。有效性判定在 check 之前：無效的 run 永遠不會被 checker 評分。2.18.0 起有效性判定還包括 init event：載入了 `--plugin-dir` 以外的 plugin 或任何 MCP server 的 session 也是 INVALID。",
    "src": "evals/replay/run_replay.py run_one",
    "bg": "run_replay.py 的 `run_one()` 是一次 iteration 的骨架。理解它的順序才能理解：為什麼 checker 永遠不會看到 invalid 的 run、為什麼 quota banner 不會變成 FAIL、為什麼 result.json 是唯一的產物。"
   },
@@ -936,7 +944,7 @@
    ],
    "a": 1,
    "why": "觸發 intake summary 的是人類那則 `Summary`（summarize on demand）；少了它，fixture 重現的是「還沒被要求 summary」的 issue，patrol 會貼一批問題，N10（correct silence）就量不到。③ 是答案，必須丟——judge 永遠看不到答案。",
-   "src": "evals/judgment/README.md § Contamination · materialize.py",
+   "src": "evals/judgment/README.md § Contamination is the whole game · evals/judgment/materialize.py",
    "bg": "judgment fixture 把 forge state 凍結在時間點 T：只保留 `created_at <= T` 的內容，因為 T 之後的 comment 都含答案。F-51 量的是 patrol 的 intake，issue #51 依序有三筆：① 2026-06-17 人類寫的 issue body；② 2026-08-08 10:40:53Z 人類的 comment `Summary`；③ 10:44:27Z bot 的 `**[intake] · summary**`。"
   },
   {
@@ -953,7 +961,7 @@
    ],
    "a": 3,
    "why": "mandate 原本給的 SHA 就是 refinement commit 本身；設計階段發現後，改成它的父節點。",
-   "src": "evals/judgment/README.md § fixtures",
+   "src": "evals/judgment/README.md（開頭的 fixture 表）",
    "bg": "judgment 的 sandbox 是把 ADMC repo checkout 到某個 pin SHA。原始 mandate 給的 F-63 pin 是 `b2a0fca`——「docs: stage (2) spec refinement for #63」這個 commit；設計階段檢查 tree 時發現了問題，最後改成它的父節點 `d188a20`（main at T）。"
   },
   {
@@ -1087,8 +1095,8 @@
    "a": [
     0
    ],
-   "why": "1.29.0 起四個分支都由 `branch_template` 渲染（預設 `{kind}/{n}` 才是 `qa/<n>`）。`{type}` 對 spec 分支是 `spec`、對 qa 分支是 `test`，只有 feat / fast 分支才讀 issue 的 `type:` label；`{user}` 是本地 key `branch_user`（沒設就是你的 forge 登入名），`{seq}` 是第幾次嘗試。別人的分支靠 pattern 在 remote 上找，不會去算。",
-   "src": "references/branch-names.md · README § Branch names",
+   "why": "1.29.0 起四個分支都由 `branch_template` 渲染（預設 `{kind}/{n}` 才是 `qa/<n>`）。`{type}` 對 spec 分支是 `spec`、對 qa 分支是 `test`，只有 feat / fast 分支才讀 issue 的 `type:` label；`{user}` 是本地 key `branch_user`（沒設就是你的 forge 登入名），`{seq}` 是第幾次嘗試——重新進場時取 remote 上最高那次再加一（2.15.0，`1 + max`）。命令與 hooks 都經由同一個 resolver `bin/roz-branch` 展開與比對。別人的分支靠 pattern 在 remote 上找，不會去算。",
+   "src": "references/branch-names.md · bin/roz-branch · README § Branch names",
    "bg": "issue #75：目標 repo 有 `feat/pwliangc/BDPTOOL-779/1` 這種 server 端強制的分支慣例。Roz Gate 原本把 `spec/<n>`、`feat/<n>`、`qa/<n>`、`fast/<n>` 寫死在 22 個檔案裡。"
   },
   {
@@ -1098,15 +1106,151 @@
    "t": "single",
    "q": "`/roz-gate:spec-answers` 把你的答案折進 spec 時,被重新喚起的 role agent 又冒出新問題。loop 怎麼處理?",
    "o": [
-    "一律貼成新的 inline thread:每個模糊點一發現就問,issue 留在 `in-spec-review` 等你回答。",
-    "一律不問:fold 只負責回答,新問題寫進 spec 等下一個階段的 seat 自己判斷。",
-    "看被折入那題的深度:它來自 (2a)、intake 或 QA → 新問題貼 thread(附 *raised by the fold of Q<j>*);它本身就是 fold 冒出的 → 新問題標 `· deferred`,不開 thread,列在一則 `**[spec-answers] · deferred**` 留言,`ready-for-dev` 時照建議選項走。",
-    "交給 patrol:下一次 pass 的 scanner 決定要不要把新問題變成 thread。"
+    "一律貼成新的 inline thread:每個模糊點一發現就問,issue 留在 `in-spec-review` 等你回答——問得越早,合約的形狀就越乾淨。",
+    "一律不問:fold 只負責把答案折進去,新冒出的問題直接寫進 spec,留給下一個階段的 seat 自己判斷要不要處理它。",
+    "看原題深度:原題來自 (2a)、intake 或 QA → 照樣開 thread;原題本身是 fold 冒出的 → 標 `· deferred`,不開 thread。",
+    "交給 patrol:下一次 pass 的 scanner 看新問題的嚴重程度,決定要不要把它變成 thread、再回頭問你一次,其餘先擱著。"
    ],
    "a": 2,
-   "why": "#206 的 ruling (c):fold 可以再問一輪,但「回答 fold 冒出的問題」再冒出的問題被延後——鏈長綁在深度 1。第一輪通常是答案真的揭露了新的模糊處,該問;無限遞迴則是 seat 用問題消耗你的 gate,每一層都要等一次 patrol pass。延後的問題仍在 `## Open Questions`(唯一收集點),你可以在 CR 上用 top-level 留言回答(當作 amendment 折入);不回答,貼 `ready-for-dev` 時就以建議選項為準,由此生出的規則帶 `(assumed)`。",
+   "why": "#206 的 ruling (c):fold 可以再問一輪,但「回答 fold 冒出的問題」再冒出的問題被延後——鏈長綁在深度 1。第一輪通常是答案真的揭露了新的模糊處,該問;無限遞迴則是 seat 用問題消耗你的 gate,每一層都要等一次 patrol pass。新問題開 thread 時附 *raised by the fold of Q<j>*;延後的問題不開 thread,列在一則 `**[spec-answers] · deferred**` 留言,仍在 `## Open Questions`(唯一收集點),你可以在 CR 上用 top-level 留言回答(當作 amendment 折入);不回答,貼 `ready-for-dev` 時就以建議選項為準,由此生出的規則帶 `(assumed)`。",
    "src": "commands/spec-answers.md § 5 · references/next-stage-path-b.md B2 · #206",
    "bg": "(2a) 的每個問題都是 spec CR 上的一條 thread;spec-answers 把答案折回提問席位擁有的文件。ConsoleAPI #1 時折 Q6/Q7 又冒出 Q8/Q9,issue 多繞了一圈人工 gate——這題問的就是那條邊界。"
+  },
+  {
+   "id": 53,
+   "m": "M1",
+   "l": "L2",
+   "t": "single",
+   "q": "`patrol_issues_per_pass` 沒設（預設 1）。這一趟有三張 issue 都掛著 `status: ready-for-dev`，patrol 處理了其中一張。另外兩張在報告裡長什麼樣？",
+   "o": [
+    "`in progress`，`needs you` 是 `—`：label 已授權、patrol 也看到了，下一趟輪到它時會自動接手處理。",
+    "`queued: next-stage · ready-for-dev 4h`，`needs you` 是 `—`：已排上，尾巴是等了多久。",
+    "`waits on you: re-apply ready-for-dev`，`needs you` 是 `yes`：這趟沒處理到，要你重新貼一次授權。",
+    "不列出來：這一趟沒動到的 issue 不進表格，免得報告太長；等到真的被處理的那一趟，它才會出現在表裡。"
+   ],
+   "a": 1,
+   "why": "#204 之前一趟只處理一張：每小時排程下，已核准的 issue 一直排在上一趟衍生工作的後面。現在 N 是唯一的槓桿，順序不變（最接近完成的優先）。沒輪到的 actionable 列一律寫 `queued: <action>`、永遠不是 `in progress`（#207）；gate 列的尾巴是 label 的 `labeled` 事件算出的等待時間（一天內 `<n>h`，否則 `<n>d`）。沒看到 `queued:` 而重貼 gate label，正是 #209 那種非法狀態的來源。",
+   "src": "commands/patrol.md § 3 · § 4 · #204 #207",
+   "bg": "patrol 一趟會先讓 scanner 把每張 open issue 分類成一張表，再依表對 loop 內的 issue 動作。一趟能處理幾張由本地 key `patrol_issues_per_pass` 決定（預設 1）。報告每一列的 `this pass` 欄只能用一組固定詞彙寫一句話，`needs you` 欄只有 `yes` 或 `—`。"
+  },
+  {
+   "id": 54,
+   "m": "M1",
+   "l": "L2",
+   "t": "single",
+   "q": "你在 #16 貼了 `status: ready-for-dev`，但 GitHub 上記錄著 #16 blocked by #12，而 #12 還開著。patrol 怎麼做？",
+   "o": [
+    "照樣開始：gate label 是你的授權，blocker 只是參考資訊，在報告的 Details 底下註明一聲就好。",
+    "走 STOP：把 #16 換成 `status: blocked`，貼一則留言請你先處理 #12，處理完再清掉 blocked。",
+    "不開始 #16，報告寫 `waits on #12`、`needs you` 是 `—`；#12 關掉後，下一趟自然就放行。",
+    "拿掉 #16 的 `ready-for-dev` 並留言：blocker 還開著時授權無效，等 #12 關掉請你再貼一次。"
+   ],
+   "a": 2,
+   "why": "「A gate label authorizes; it does not make the issue ready.」關係是 forge 的，loop 只讀、從不寫；blocker 一關 issue 就自己放行，所以它既不是動作、也不排隊、不需要你。讀取被 forge 拒絕時寫 `waits on: blockers unknown`、`needs you: yes`——讀不到的關係永遠不當成「沒有」（#205）。patrol 也永遠不碰 gate label。",
+   "src": "references/workflow.md § The main agent（blocker 段）· commands/patrol.md § 4 · #205",
+   "bg": "GitHub 的 issue 可以記錄「blocked by」關係（GitLab 叫 `is_blocked_by`）。這是 forge 自己的資料，不是 label。patrol 的 scanner 讀已授權（gate）的列時會一併讀它。"
+  },
+  {
+   "id": 55,
+   "m": "M1",
+   "l": "L2",
+   "t": "single",
+   "q": "#27 的實作 CR 已經 merge 進 spec 分支，QA CR 也乾淨了。gate holder 在報告裡沒看到下一步，又貼了一次 `status: ready-for-dev`。接下來呢？",
+   "o": [
+    "重新授權施工：next-stage 從 spec 分支切一個新的實作分支重做一次，已 merge 的部分不受影響。",
+    "patrol 自己拿掉 label 再繼續 integrate：label 明顯是誤貼，修掉它是最不打擾人的做法。",
+    "當成催促訊號：patrol 把這張 issue 排到最優先，這一趟就直接跑 (6) integration verdict。",
+    "非法狀態：patrol 回報一列 `illegal:`、待辦請你拿掉它；next-stage 拒絕執行，什麼都不寫。"
+   ],
+   "a": 3,
+   "why": "Path B 收尾時（B6）已經消耗了這個 label，再貼一次就是在守一個已經過了的階段（#209，ConsoleAPI #27）。指令從不修 label：patrol 只回報，把「拿掉 label，其他什麼都不用做」放進你的待辦；拿掉之後 patrol 依 CR 狀態接手。(6) integration verdict 沒有 label，沒輪到的那一趟報告寫 `queued: integrate`（#207）。實作 CR 還開著時重貼是合法的——STOP 的 resume line 本來就會請你這樣做。",
+   "src": "references/workflow.md § Label state machine · commands/patrol.md § 4 · #209 #207",
+   "bg": "spec track 上，`ready-for-dev` 授權施工，next-stage 的 Path B 收尾時就消耗掉這個 label。實作 CR review-clean 後被 merge 進 spec 分支，接著是 (4) black-box QA 與 (6) integration verdict——這兩站都沒有 gate label，由 patrol 依 CR 狀態推進。"
+  },
+  {
+   "id": 56,
+   "m": "M4",
+   "l": "L2",
+   "t": "rule",
+   "q": "issue #5 需要的一段程式碼只在 #7 的實作分支上、還沒進 base。在 `…/roz-gate/wt/spec/5` 裡，agent 執行 `git merge origin/feat/7`。結果？",
+   "o": [
+    "rule K 擋：loop worktree 裡只能 merge base 或同一張 issue 的分支；該走 STOP，請你同步 base。",
+    "放行：`origin/` 開頭的是遠端追蹤分支，只要不 force-push，從遠端 merge 什麼都算是安全的加法。",
+    "rule J 擋：`roz-gate/wt/` 底下的 git 指令都必須單獨一次呼叫執行，而這條 merge 就跑在 worktree 裡。",
+    "放行，但之後開 CR 時 rule H 會擋：diff 裡多了別張 issue 的檔案，body 卻沒寫 Contract deviations。"
+   ],
+   "a": 0,
+   "why": "#213：ConsoleAPI #1 把 `origin/master` merge 進 spec 分支，CR 多了 79 個外來 commit、104 個檔案——人類從一個選項 bullet 看不出這個代價。所以 base 缺相依是 STOP（resume line：先同步 `<default_branch>`，再清掉 `status: blocked`），也沒有 seat 會把 merge／rebase／cherry-pick 別的分支列成選項。rule J 只管 loop 的 `git worktree add` 必須單獨執行；rule H 看的是 technical-spec.md 的修改。你自己的 checkout 從不被 rule K 檢查。",
+   "src": "hooks/README.md rule K · references/workflow.md § The main agent（missing dependency）· #213",
+   "bg": "loop 的每個指令都在 `<git-common-dir>/roz-gate/wt/<branch>` 的 linked worktree 裡做 git 操作，從不碰你的 checkout。CR 的 diff 應該只有這張 issue 自己的工作。"
+  },
+  {
+   "id": 57,
+   "m": "M3",
+   "l": "L2",
+   "t": "single",
+   "q": "一個專案的 CLAUDE.md 沒有 personas block，也沒有 `.claude/agents/implementer.md`（init 沒跑完）。有人跑 `/roz-gate:next-stage 5`。會怎樣？",
+   "o": [
+    "implementer 退回 `roz-gate:implementer`：和其他四個 seat 一樣，沒寫的 seat 一律用 plugin 的同名 persona。",
+    "`roz-persona` 對 implementer 回報 `PERSONA_UNMAPPED`（exit 2），指令走 STOP 出口，不換別的 agent 頂替。",
+    "main agent 自己實作：fast track 本來就由它直接寫 code，implementer 不在時由它代班是同一個例外。",
+    "改派 `general-purpose` agent 並附上 implementer 的 R&R row：契約跟著派工走，誰坐這個 seat 不重要。"
+   ],
+   "a": 1,
+   "why": "#198：plugin 不附 implementer——它是唯一必須吸收 target repo coding guidelines 的 seat，所以 init 才把模板複製成 `.claude/agents/implementer.md`。沒有那一行也沒有那個檔案就是 `PERSONA_UNMAPPED`；寫了 plugin 沒附的 `roz-gate:` agent 是 `AGENT_TYPE_UNAVAILABLE`。解析失敗、或 runtime 拒絕 spawn，都是 STOP 出口——never another agent。「Persona 可換」說的是你選誰坐，不是 loop 替你找人。修法：重跑 `/roz-gate:init`。",
+   "src": "bin/roz-persona · references/workflow.md § Seats and personas · #198",
+   "bg": "每個 command 載入時都先跑 `bin/roz-persona --json`：它讀 CLAUDE.md 的 `### Roz Gate personas` block，回報五個 seat 各派哪個 agent。沒寫的 seat 有預設值；plugin 的 `agents/` 只有 product、em、qa、reviewer 四個 persona。"
+  },
+  {
+   "id": 58,
+   "m": "M3",
+   "l": "L2",
+   "t": "single",
+   "q": "Glossary 寫 `expired` — `expires_at` 嚴格早於現在；contract 的 C4 卻寫「早於或等於現在」，實作照 C4 建成。qa 在 (4) black-box QA 的第一步怎麼處理？",
+   "o": [
+    "照 Glossary 寫測試、不必回報：Glossary 是必讀的定義，優先於 contract 條文，邊界就斷言嚴格早於。",
+    "照 C4 寫測試、不必回報：實作已依 C4 建成，as-built contract 才是 QA 測的對象，Glossary 只是輔助。",
+    "先私下問 implementer 當初的本意，再依答案挑一種寫進測試，並在 test-spec.md 裡註記這個決定。",
+    "回報一個 term conflict：點名 `expired` 與兩種讀法，貼成 spec CR 上的 `[qa]` thread，由你裁決。"
+   ],
+   "a": 3,
+   "why": "#197：Glossary 讓「一個詞兩種讀法」有一個家，QA 第一步（contract review）的 finding 因此多了 **term conflict**——一個條款、一筆 deviation 或一個情境，用了 Glossary 的詞卻是別的意思；finding 要寫出詞與兩種讀法。QA 不能自己選邊：選 Glossary 是替合約做決定，選 C4 是替 spec 做決定。定義不夠或被牴觸，一律走 seat 自己的管道，從不私下解決；QA 也只向 main agent 回報。",
+   "src": "references/qa-brief.md step zero · references/next-stage-path-a.md A3 · #197",
+   "bg": "`spec.md` 可以帶一段必讀的 `## Glossary`：一詞一行 `- <term> — <definition>`，只收兩個 seat 可能讀出不同意思的詞，由 em 負責、product 在辯論中提出。下游 seat 照定義使用。"
+  },
+  {
+   "id": 59,
+   "m": "M3",
+   "l": "L2",
+   "t": "single",
+   "q": "qa 對 S2 的錯誤訊息措辭提了一個 `[qa]` 問題，但 as-built contract 與宣告的 port 已足以驅動 S2、讀到結果。qa 對 S2 該怎麼做？",
+   "o": [
+    "現在就依條款原文寫 S2 的測試，與那個 `Q<k>` 並存；之後核准的答案若改了合約，再照新合約改。",
+    "等 `Q<k>` 有了答案再寫：有疑問的情境先寫測試，答案一改就得重寫，徒增 fidelity review 的負擔。",
+    "把 S2 標成 `uncovered` 寫進報告：有未決問題的情境不該算進覆蓋率，下一輪 QA 再補上它的測試。",
+    "先跑一次實作看實際訊息，照觀察到的字串寫 assertion：問題答覆前，現有行為就是最好的期望值。"
+   ],
+   "a": 0,
+   "why": "#243：#199 的 Haiku 讀數裡，15 個 FAIL 有 12 個是「只有一個情境的 spec 被留下空的 suite」——被問到的情境被當成驅動不了。現在只有驅動不了的情境（沒有可用的條款，或 port 缺 control／observation point）才等它的 `Q<k>`，報告要寫出為什麼等（#262 把這條鏈寫成四個依序的判斷）。答案改了合約就照新合約改測試，永遠不照實作回傳的值改——那就是 QA-4。",
+   "src": "references/qa-brief.md step zero（四個判斷）· § Run the suite（QA-4）· #243 #262",
+   "bg": "(4) black-box QA 開工時先審 as-built contract，把 findings 整批交給 main agent 貼成 `[qa]` threads；接著對每個情境依序判斷要不要現在寫測試。QA-4 是它跑套件時的鐵律。"
+  },
+  {
+   "id": 60,
+   "m": "M4",
+   "l": "L2",
+   "t": "single",
+   "q": "一台沒有 `python3` 的機器上，agent 想 Edit 一個檔案。guard-acceptance 怎麼處理？",
+   "o": [
+    "放行並在 stderr 警告：判斷不了就不該妨礙工作，fail open 才不會讓沒裝 Python 的人完全卡住。",
+    "只放行不在 `<acceptance_dir>` 底下的路徑：shim 自己就能比對路徑，判斷不了的只有分支名而已。",
+    "擋下：`python3 not found`，說明是工具故障、不是協定擋下；裝好 python3 前每次編輯都被拒。",
+    "Claude Code 自動改用內建的 Python：plugin 的 hooks 執行時自帶 runtime，不依賴系統的 python3。"
+   ],
+   "a": 2,
+   "why": "#281：guard 沒辦法判斷時（python3 缺、啟動失敗、以 0／2 以外的值崩潰）一律擋下——往看得見的方向失敗：多擋會被看見，漏擋什麼都看不見。guard-acceptance 沒有 prefilter，所以沒有 python3 就是處處不能編輯，這是 #281 裁定接受的代價；被 prefilter 放行的呼叫不受影響。hooks 一律經由 `.sh` shim 用系統的 plain `python3` 跑。",
+   "src": "hooks/README.md（no python3、guard crash 兩列）· hooks/run-guard.sh · CHANGELOG v2.18.0",
+   "bg": "每個 guard 的 `.sh` shim 先跑一個便宜的 prefilter，需要細判時才交給 Python；2.18.0 起這一步都經過 `run-guard.sh`。guard-acceptance 沒有 prefilter，每次 Edit / Write / MultiEdit 都要呼叫 Python。"
   }
  ]
 }
