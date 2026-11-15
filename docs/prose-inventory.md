@@ -238,6 +238,8 @@ the reason.
 | C5 | commands/spec-answers.md | **The fold changed no behaviour** | Did the fold change behaviour? | SEMANTIC JUDGMENT | whether an amendment changes behaviour is a reading of the spec |
 | C29 | references/workflow.md | A missing dependency in the base is a STOP, never an option | Does the base lack code this issue needs? | SEMANTIC JUDGMENT | only a reader of the spec knows what the issue needs; the forbidden remedy is hook K (row C28) |
 | E3, E4 | references/next-stage-path-a.md | Dispatch `implementer` | Should the implementer / reviewer stop and ask the holder? | SEMANTIC JUDGMENT | when a question is worth the holder's time is judgment; how it reaches them is hook F |
+| C32 | references/next-stage-path-b.md | `accept a bounded risk` | What does each reserved-word hit do to the contract, and which of the four actions does it get? | SEMANTIC JUDGMENT | whether a guarantee, scenario or acceptance criterion depends on a claim is a reading of the spec; the gate itself is the grep (B6, B9) |
+| E15 | commands/spec-answers.md | **A demotion a guarantee needs is not folded** | Does a demotion answer leave a guarantee resting on an unmeasured premise? | SEMANTIC JUDGMENT | which clauses depend on a premise is a reading of the spec; the promote grep keeps blocking either way |
 | E5, E6, E8 | commands/spec-answers.md | folded into <document> | Which document owns this answer or amendment, and how does it read once folded? | SEMANTIC JUDGMENT | folding prose into the document that owns it is writing |
 | F2 | commands/review-answers.md | **[review] · answer** | What does the human's review comment ask, and what answers it? | SEMANTIC JUDGMENT | answering a human is the model's job |
 | — | references/workflow.md | **The gate label is the confirmation** | Ship it, change it, or send it back? | AUTHORITY | the gate holder's call; the loop's part is to never apply a gate label (hook B) |
@@ -269,7 +271,7 @@ a single rule and has its own row above.
 | id | why it is not classified |
 |---|---|
 | A6, E1 | deferred cases — no prose rule to classify |
-| A8, B3, D20, E13, E14 | rules about the prose itself (one scan sub-agent; one marker convention; the blindness rule's clause structure; step zero's decision chain; the QA persona carries no procedure that contradicts the brief) — checked statically, never answered at runtime |
+| A8, B3, B10, D20, E13, E14 | rules about the prose itself (one scan sub-agent; one marker convention; the reserved-word STOP's per-hit table; the blindness rule's clause structure; step zero's decision chain; the QA persona carries no procedure that contradicts the brief) — checked statically, never answered at runtime |
 | J1 | the judgment tier's own instrument |
 | L1, L7, L9, L10, L11, L12 | human-facing pages, not executable prose |
 | L8 | the `/roz-gate:config` mod's implementation, not a question the loop answers |

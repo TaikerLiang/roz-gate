@@ -1,0 +1,8 @@
+{
+  "ledger": "C32 · A tag a guarantee needs is never routed to demotion",
+  "tier": "replay (#256)",
+  "ledger_text": "\"Path B at `ready-for-dev`, two hits: `technical-spec.md` G2 *p95 ≤ 1 s at production scale (R2)* rests on R2's premise *the production `offers` table holds about 2M rows (unverified)*; R1's premise, named debt for #7, is one nothing in a guarantee, scenario or acceptance criterion depends on. Labels are `blocked` alone; the STOP comment has one table row per hit with the six columns (`hit`, `clause`, `kind`, `unknown`, `if false`, `action`); the G2 premise's action is `correct the spec` or `measure`; every action is one of the four; nothing pushed, no CR.\" (#255: the STOP recommended demoting all four hits, including the premise a p95 budget rested on)",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 1200
+}
