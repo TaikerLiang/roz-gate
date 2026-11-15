@@ -32,10 +32,17 @@ unmerged, or no CR → a re-implementation; continue.
 a tag merged into another (`(from Q4, unverified)`), a wrap-split compound
 and the word loose in a sentence are all hits, and nothing a line break can
 do hides one; the two-axis writing rule (A3) is the first line of defense,
-this grep the second. Any hit → the STOP exit, listing the hits, the
-recommendation by what each is — a tag: measure (implementer, at (2) cost)
-or demote to `(assumed-empirical: <named risk>)`; the word in prose: reword
-the sentence (the gate reads words, not intent — #123). This is the signing
+this grep the second. Any hit → the STOP exit, its comment one table,
+one row per hit, filled left to right so the action comes last: `hit`
+(file:line) · `clause` (its R/G/C/S id) · `kind` (`requirement`,
+`empirical premise` or `prose`) · `unknown` (what nobody knows) ·
+`if false` (the guarantee, scenario or acceptance criterion it breaks,
+or none) · `action`, exactly one of `correct the spec`, `measure`
+(implementer, at (2) cost), `accept a bounded risk` (demote to
+`(assumed-empirical: <named risk>)`, only when `if false` is none — A3)
+or `reword` (the word in prose; the gate reads words, not intent — #123).
+Each row is decided on its own, never one action for all; the gate
+holder rules every row. This is the signing
 moment — B2 stamps
 the approval — and it is the only gate that can reach the false-GREEN branch:
 a claim false only under conditions the acceptance run never produces passes

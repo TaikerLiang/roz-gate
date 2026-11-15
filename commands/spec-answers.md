@@ -112,7 +112,13 @@ half-done:
      all stop; convention first line of defense, grep the second; the
      registry is `${CLAUDE_PLUGIN_ROOT}/references/reserved-words.json`). The
      ruling part is the
-     holder's; the claim about the world still needs measuring or demoting.
+     holder's; the claim about the world still needs measuring or a legal
+     demotion (the next rule).
+   - **A demotion a guarantee needs is not folded**: an answer that
+     demotes, or accepts the risk of, a premise a guarantee, scenario or
+     acceptance criterion depends on leaves the premise `(unverified)` and
+     that clause byte-identical; the fold asks once (below) — keep
+     `<id>` and measure, or correct `<id>`.
    - **A fold touching an evidence-tagged sentence re-derives the tag**: the
      measurement still covers the edited claim, or the tag downgrades to
      `(unverified)`. A stale `(measured, <date>, <scope>)` certifying a claim
@@ -233,7 +239,8 @@ depends on where the issue is — decided by CR-FIND for `<feat-branch>` /
     `unverified` is reserved for the tag, so a merged or wrapped tag and
     the word in prose are all hits) — any hit is an unresolved blocker:
     the report lists the hits and does **not** say "ready for approval"
-    (measure, demote to `(assumed-empirical: <risk>)`, or reword prose).
+    (one row per hit in Path B's table,
+    `references/next-stage-path-b.md` § Reserved-word check).
     Zero hits in a pre-vocabulary spec (no evidence tags anywhere) is
     absence of the vocabulary, not verification — say which the report
     means.
