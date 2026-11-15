@@ -201,7 +201,7 @@ def build_sandbox(cdir):
 
 
 def claude_env(sut, forge_state):
-    env = dict(os.environ)
+    env = rl.sut_base_env()
     env["PATH"] = os.path.join(S, "forge-stub") + os.pathsep + env["PATH"]
     env["FORGE_STATE"] = forge_state
     env.update(rl.SUT_ENV)
@@ -220,14 +220,17 @@ def invoke_claude(sut, work, forge_state, prompt, timeout, transcript,
              "--verbose", "--dangerously-skip-permissions"] + rl.SUT_ISOLATION_ARGS
     if plugin_dir:      # None: no plugin at all — the Workflow Value baseline (#259)
         args += ["--plugin-dir", plugin_dir]
+    env = claude_env(sut, forge_state)
+    env["TMPDIR"] = tempfile.mkdtemp(prefix="roz-sut-")   # no two sessions share one (#321)
     with open(transcript, "w") as t, open(stderr_log, "a") as e:
         try:
-            sh(args, cwd=work, env=claude_env(sut, forge_state),
-               timeout=timeout, out=t, err=e)
+            sh(args, cwd=work, env=env, timeout=timeout, out=t, err=e)
         except subprocess.TimeoutExpired:
             # A killed session may still hold result events (one per
             # finished turn): say so in stderr, where cut_short() reads it.
             e.write("\n" + rl.TIMEOUT_NOTE % timeout + "\n")
+        finally:
+            shutil.rmtree(env["TMPDIR"], ignore_errors=True)
 
 
 def usage_and_cost(transcript, mode):
@@ -725,7 +728,7 @@ def main(argv):
                 continue
             print("run  %s run-%d ..." % (case_key(case, variant), i))
             if driver:
-                env = dict(os.environ)
+                env = rl.sut_base_env()   # the driver's sessions inherit it (#321)
                 env.update({"ROOT": ROOT, "S": S, "SUT_NAME": sut["name"],
                             "SUT_MODEL": sut["model"], "SUT_MODE": sut["mode"],
                             "SUT_BASE_URL": sut["base_url"],
