@@ -2,10 +2,10 @@
 # F3 · Spec refinement lands a complete set.
 # Fixture: a gated issue at ready-for-spec; Path A runs end to end.
 # source: ledger F3 — "Both spec documents exist; the CR is open; the
-#   number of posted threads equals the number of entries in Open
-#   Questions; labels flipped exactly once; no question left in any other
-#   document." (the thread count catches a question written but never
-#   surfaced — the E2 failure, detected by arithmetic)
+#   number of threads still on the CR at the end equals the number of
+#   entries in Open Questions; labels flipped exactly once; no question
+#   left in any other document." (the thread count catches a question
+#   written but never surfaced — the E2 failure, detected by arithmetic)
 # source: commands/next-stage.md:170-186 — A5 opens the CR; A6 posts one
 #   thread per Open Questions item, body = the item verbatim
 # source: commands/next-stage.md:201-203 — A7 flips ready-for-spec+
@@ -27,9 +27,12 @@ c.expect("next-stage.md:170-173 (A5)", "exactly one CR opened, head spec/5",
          sum(1 for p in r.state()["prs"].values()
              if p["headRefName"] == "spec/5") == 1)
 
-# The arithmetic assertion: posted threads == Open Questions entries.
+# The arithmetic assertion: posted threads == Open Questions entries. The
+# threads counted are the ones still on the forge at the end (#330 ruling 6):
+# a probe thread posted and deleted is not a surfaced question.
 def counts_match():
-    threads = r.journal_writes(r"^thread-post-inline$")
+    threads = sum(1 for p in r.state()["prs"].values() for t in p.get("threads", [])
+                  if t.get("comments"))
     m = re.search(r"##\s*Open Questions(.*?)(?:\n##\s|\Z)", spec or "", re.S)
     qcount = len(re.findall(r"\*\*\[[^\]]+\]\s*·\s*Q\d+", m.group(1) if m else ""))
     return threads > 0 and threads == qcount

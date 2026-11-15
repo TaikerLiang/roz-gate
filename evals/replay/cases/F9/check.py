@@ -5,9 +5,12 @@
 # questions batch yet.
 # source: ledger F9 — "The scanner's table has a row per issue with the
 #   right verdict; the pass acts on the top actionable row, locks no other
-#   loop issue, posts every intake batch; the scanner writes nothing; the
-#   main agent lists nothing after the table." (the scan used to live in
-#   the main agent's context — #59)
+#   loop issue unless that turn only answered (a review-answers turn with no
+#   seat dispatch and no commit is outside the N), posts every intake batch;
+#   the scanner writes nothing; the main agent lists nothing after the
+#   table." (the scan used to live in the main agent's context — #59)
+# source: commands/patrol.md §3 — a review-answers turn that only answers
+#   is outside the N; one that dispatches or commits counts toward it
 # source: commands/patrol.md §1 — one read-only scanner sub-agent, prompt =
 #   references/patrol-scan.md
 # source: commands/patrol.md §2 — never re-read the forge to confirm a row
@@ -116,13 +119,29 @@ c.expect("patrol.md §3 (closest to done)", "the pass acted on #5 (lock or marke
 # One loop issue per pass: #6 is untouched — its labels as seeded, no comment,
 # no lock, no branch, no CR. (The first sweep's run-2 ran next-stage on #6
 # after review-answers on #5, STOPped it to `blocked`, and the narrower
-# "not locked" check let it through.)
+# "not locked" check let it through.) Unless the #5 turn only answered: a
+# review-answers turn with no seat dispatch and no commit is outside the N
+# (patrol.md §3), so the one slot is free for #6 (#330 ruling 3). A seat
+# dispatch on #5 is a Task/Agent call by the main agent, not the scanner,
+# whose input names #5's work; a commit on #5 is spec/5 on the remote beyond
+# the seed's one commit over main.
 _six = r.state()["issues"]["6"]
-c.expect("patrol.md §3 (one loop issue per pass)", "#6 was not touched at all",
-         sorted(_six.get("labels", [])) == ["status: ready-for-dev", "track: fast"]
-         and not _six.get("comments")
-         and r.journal_writes(r"^pr-create$") == 0
-         and r.git("rev-parse", "--verify", "-q", "refs/heads/fast/6")[0] != 0)
+NAMES_5 = re.compile(r"#5\b|\bissue 5\b|\b(?:spec|feat|qa)/5\b|pull/101\b"
+                     r"|\b(?:PR|CR) #?101\b", re.I)
+_seat5 = any(b.get("type") == "tool_use" and b.get("name") in ("Task", "Agent")
+             and b.get("id") != scanner_id
+             and NAMES_5.search(json.dumps(b.get("input", {}), ensure_ascii=False))
+             for ev in events if not ev.get("parent_tool_use_id") for b in blocks(ev))
+_rc, _ahead = r.git("rev-list", "--count", "main..spec/5")
+_commit5 = _rc == 0 and _ahead.strip().isdigit() and int(_ahead) > 1
+_six_untouched = (sorted(_six.get("labels", [])) == ["status: ready-for-dev", "track: fast"]
+                  and not _six.get("comments")
+                  and r.journal_writes(r"^pr-create$") == 0
+                  and r.git("rev-parse", "--verify", "-q", "refs/heads/fast/6")[0] != 0)
+c.expect("patrol.md §3 (one loop issue per pass; an answer-only (7) turn is outside the N)",
+         "#6 was not touched at all — unless the #5 turn only answered "
+         "(no seat dispatch, no commit)",
+         _six_untouched or not (_seat5 or _commit5))
 c.expect("patrol.md §3 (the whole inbox)", "#7 got its **[intake]** questions batch",
          any(b.startswith("**[intake]**") for b in r.issue_comment_bodies("7")))
 # #135: the agent takes the resolver's snapshot before the scanner runs and

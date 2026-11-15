@@ -13,6 +13,7 @@
 #   Never: "architecture, code, impl tests"
 import json
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -20,10 +21,18 @@ from replaylib import Checker, Run
 
 r, c = Run(), Checker()
 
+# The row is matched by its terms, not its punctuation (#330 ruling 5): a
+# dispatch that writes "Architecture, code and implementation tests are NOT
+# yours" carries the Never column as surely as "Never: architecture, code,
+# impl tests".
+OWNS = (r"\bactors\b", r"\bscenarios\b")
+NEVER = (r"\barchitecture\b", r"\bcode\b", r"\b(?:impl|implementation) tests\b")
+
+
 def dispatch_carries_rr():
     for b in r.tool_uses(("Task", "Agent")):
         p = json.dumps(b.get("input", {}), ensure_ascii=False)
-        if "actors, scenarios" in p and "impl tests" in p:
+        if all(re.search(t, p, re.I) for t in OWNS + NEVER):
             return True
     return False
 

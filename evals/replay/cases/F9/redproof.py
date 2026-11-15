@@ -73,10 +73,12 @@ RAW_HEADS = ("0123456789abcdef0123456789abcdef01234567\trefs/heads/main\n"
 
 
 def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_mutation=False,
-               background=False, handoff="snapshot"):
+               background=False, handoff="snapshot", dispatch5=False):
     """handoff: "snapshot" — the agent ran `bin/roz-branch snapshot` and the
     scanner's prompt names the file (#135); "raw" — the pre-#135 handoff,
-    `git ls-remote` output pasted into the prompt; "none" — neither."""
+    `git ls-remote` output pasted into the prompt; "none" — neither.
+    dispatch5: the #5 review-answers turn dispatched a seat, so it counts
+    toward the N (patrol.md §3)."""
     ev = []
     if handoff == "snapshot":
         ev.append(tool_use("Bash", {"command": "python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-branch "
@@ -135,6 +137,11 @@ def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_m
     ev.append(tool_use("Bash", {"command": 'gh issue edit 5 --add-label "status: processing"'},
                        "t_m1"))
     ev.append(tool_result("t_m1", ""))
+    if dispatch5:
+        ev.append(tool_use("Task", {"prompt": "review-answers on #5: the user's comment on PR "
+                                              "101 needs a spec fold on spec/5 …",
+                                    "subagent_type": "roz-gate:product"}, "t_seat5"))
+        ev.append(tool_result("t_seat5", "folded"))
     ev.append(tool_use("Task", {"prompt": "intake brief … actors, scenarios … impl tests",
                                 "subagent_type": "roz-gate:product"}, "t_p"))
     ev.append(tool_result("t_p", "**[intake]** 1. …"))
@@ -144,7 +151,7 @@ def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_m
 
 def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=True,
               lock6=False, intake7=True, scanner_mutation=False, block6=False,
-              background=False, handoff="snapshot"):
+              background=False, handoff="snapshot", dispatch5=False):
     run = os.path.join(tmp, "run")
     shutil.rmtree(run, ignore_errors=True)
     os.makedirs(os.path.join(run, "forge"))
@@ -172,7 +179,7 @@ def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=Tr
             f.write(json.dumps(e) + "\n")
     with open(os.path.join(run, "transcript.jsonl"), "w", encoding="utf-8") as f:
         for e in transcript(table, scanner_write, relist, scanner, scanner_mutation, background,
-                            handoff):
+                            handoff, dispatch5):
             f.write(json.dumps(e, ensure_ascii=False) + "\n")
     env = dict(os.environ, RUN_DIR=run, BARE=bare)
     return subprocess.run([sys.executable, os.path.join(CASE, "check.py")], env=env,
@@ -193,19 +200,45 @@ SHAPES = [
     ("the scanner sent a graphql mutation", False, {"scanner_mutation": True}),
     ("the main agent re-listed issues after the table", False, {"relist": True}),
     ("no scanner at all (the old in-context scan)", False, {"scanner": False}),
-    ("#6 locked too (one-issue rule broken)", False, {"lock6": True}),
-    ("#6 acted on and STOPped to blocked (one-issue rule broken)", False, {"block6": True}),
+    # #330 ruling 3: the #5 turn counts toward the N only when it dispatched a
+    # seat or committed; then #6 must stay as seeded. An answer-only turn is
+    # outside the N, and acting on #6 is the one slot (F9/run-3).
+    ("#5 dispatched a seat, #6 locked too (one-issue rule broken)", False,
+     {"lock6": True, "dispatch5": True}),
+    ("#5 dispatched a seat, #6 acted on and STOPped (one-issue rule broken)", False,
+     {"block6": True, "dispatch5": True}),
+    ("#5 committed on spec/5, #6 acted on and STOPped (one-issue rule broken)", False,
+     {"block6": True, "commit5": True}),
+    ("#5 dispatched a seat, #6 untouched", True, {"dispatch5": True}),
+    ("#5 committed on spec/5, #6 untouched", True, {"commit5": True}),
+    ("#5 only answered, #6 acted on and STOPped (#330: outside the N, F9/run-3)", True,
+     {"block6": True}),
+    ("#5 only answered, #6 locked (#330: outside the N)", True, {"lock6": True}),
     ("#7 never asked", False, {"intake7": False}),
 ]
+
+
+def committed_sandbox():
+    """The sandbox after the #5 turn committed: spec/5 one commit further."""
+    tmp, work, bare = sandbox()
+    p = sh("git checkout -q spec/5 && echo '- S2 — folded.' >> docs/specs/5/spec.md "
+           "&& git commit -qam 'spec: fold' && git push -q origin spec/5", work)
+    if p.returncode != 0:
+        raise RuntimeError("commit step failed:\n%s" % p.stderr)
+    return tmp, work, bare
 
 
 def main():
     passed = failed = 0
     tmp, work, bare = sandbox()
+    tmp_c, _, bare_c = committed_sandbox()
     try:
         for name, want_pass, kw in SHAPES:
             table = kw.pop("table", GOOD_TABLE)
-            p = run_check(tmp, bare, table, **kw)
+            if kw.pop("commit5", False):
+                p = run_check(tmp_c, bare_c, table, **kw)
+            else:
+                p = run_check(tmp, bare, table, **kw)
             ok = (p.returncode == 0) == want_pass
             verdict = "pass" if want_pass else "fail"
             print("%s F9 %s → %s%s" % ("PASS" if ok else "FAIL", name, verdict,
@@ -213,6 +246,7 @@ def main():
             passed, failed = passed + ok, failed + (not ok)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+        shutil.rmtree(tmp_c, ignore_errors=True)
     print("\n%d passed, %d failed" % (passed, failed))
     return 0 if failed == 0 else 1
 

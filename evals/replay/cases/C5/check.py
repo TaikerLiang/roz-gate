@@ -19,6 +19,7 @@
 #   COMMENT-EDIT of the kit; only the cards and their stamp stay put (#193)
 import json
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -51,11 +52,21 @@ c.expect("spec-answers.md step 7 (the fold changed behaviour: no run as evidence
 # § 6b's ledger append edits the same comment, and gate-kit.md opens a stale
 # cards block with a banner, so the edit itself is allowed. What may not
 # change is a card: every seeded card keeps its scenario, bucket and evidence,
-# and no covered or partial card appears that the seed lacked (#193; rows,
-# not evidence strings alone — codex review, PR #194). A note after the
-# scenario ID ("S1 (pre-amendment sentence)") is not a change.
+# and no card appears that the seed lacked, whatever its bucket — a
+# `not covered` card for the scenario the fold added is the partial
+# regeneration step 7 forbids (#193; rows, not evidence strings alone —
+# codex review, PR #194; #330 ruling 2). A staleness note on a card is not a
+# change (#330 ruling 1): a note after the scenario ID ("S1 (pre-amendment
+# sentence)"), or a trailing parenthetical or `; stale…` suffix on the
+# bucket or evidence ("covered (prior text)", "… — OK (pre-fold; …)",
+# "… — OK; stale, describes the previous S1").
 KIT_ID = 9501
 CARDS = "### Evidence cards"
+NOTE = re.compile(r"\s*(?:\([^()]*\)|;\s*stale\b.*)\s*$", re.I)
+
+
+def bare(cell):
+    return NOTE.sub("", cell).strip()
 
 
 def evidence(body):
@@ -64,8 +75,9 @@ def evidence(body):
     block = body.split(CARDS, 1)[1].split("\n###", 1)[0]
     cells = [[x.strip() for x in ln.strip().strip("|").split("|")]
              for ln in block.splitlines() if ln.strip().startswith("|")]
-    return {((cl[0].split() or [""])[0], cl[1], cl[2]) for cl in cells
-            if len(cl) >= 3 and cl[1] in ("covered", "partial")}
+    return {((cl[0].split() or [""])[0], bare(cl[1]), bare(cl[2])) for cl in cells
+            if len(cl) >= 3 and cl[0].lower() != "scenario"
+            and not re.match(r"^:?-+:?$", cl[1])}
 
 
 def kit_body(st):
@@ -79,7 +91,8 @@ with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "state.json")
           encoding="utf-8") as f:
     SEED_EVIDENCE = evidence(kit_body(json.load(f)))
 c.expect("spec-answers.md step 7 (no regeneration, no re-stamp)",
-         "the gate kit's cards-sha is still 1111111 and its evidence cards are the seed's",
+         "the gate kit's cards-sha is still 1111111 and its cards are exactly the seed's "
+         "(staleness notes aside, none added)",
          "cards-sha: 1111111" in kit_body(r.state())
          and evidence(kit_body(r.state())) == SEED_EVIDENCE)
 c.expect("spec-answers.md step 7 (post-integration: the fold raises no new thread)",

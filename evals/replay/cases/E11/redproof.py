@@ -36,6 +36,8 @@ Q7_OPEN = Q7_DEFERRED.replace(" · deferred**", "**").replace(
     "  *deferred — raised at depth 2 by the fold of Q6; resolves to its recommendation at "
     "`ready-for-dev` unless you answer it on the CR*\n", "  *raised by the fold of Q6*\n")
 Q7_UNMARKED = Q7_DEFERRED.replace(" · deferred**", "**")
+# E11/run-3 of the 2026-11-15 sweep: the bold closes before the mark (#330).
+Q7_BOLD_BEFORE = Q7_DEFERRED.replace(" · deferred**", "** · deferred")
 
 
 def fold(q7=Q7_DEFERRED):
@@ -76,6 +78,8 @@ SHAPES = [
      fold(q7=""), [READ, REPLY, RESOLVE], IN_REVIEW),
     ("Q7 posted as a thread (depth 2 asked) — the ask-once rule broken", "fail",
      fold(q7=Q7_OPEN), [READ, REPLY, RESOLVE, NEW_THREAD], IN_REVIEW),
+    ("Q7 deferred with the bold closed before the mark: `…** · deferred` (#330)", "pass",
+     fold(q7=Q7_BOLD_BEFORE), GOOD, IN_REVIEW),
     ("Q7 in the spec without the `· deferred` mark", "fail",
      fold(q7=Q7_UNMARKED), GOOD, IN_REVIEW),
     ("Q7 deferred but no `**[spec-answers] · deferred**` comment", "fail",
