@@ -918,6 +918,18 @@ def gaps_rows():
                      rc == 1 and "syntax error" in err
                      and [e["route"] for e in j] == ["review-comments-list"]
                      and "jq_error" in (j[0] if j else {})))
+        # F1/2 and F6/1 asked for the CR's author: their fixtures state it
+        # now (the loop opened it — agent_login). The sweep's own calls,
+        # against each case's own state.json.
+        for case, argv, route in (
+                ("F1", ["pr", "view", "101", "--json", "number,state,isDraft,createdAt,"
+                        "updatedAt,headRefName,baseRefName,url,author"], "pr-view"),
+                ("F6", ["pr", "list", "--state", "all", "--json", "number,title,isDraft,"
+                        "baseRefName,headRefName,state,url,author"], "pr-list")):
+            with open(os.path.join(HERE, "cases", case, "state.json")) as f:
+                fixture = json.load(f)
+            served("%s's fixture answers its sweep call's author" % case, argv, route,
+                   '"author": {"login": "paul"}', state=fixture)
         served("pr view --json --jq: the projection, not the JSON",
                V + ["number,state", "--jq", ".state"], "pr-view", exact="OPEN\n")
         served("issue view --json --jq", ["issue", "view", "5", "--json", "title", "--jq",
