@@ -2,6 +2,8 @@
 """F11's red-proof: check.py scores staged reports correctly. No model, no
 sandbox — the checker reads the pass's final text, so each shape is a
 transcript whose result event carries one report, over the case's state.
+One more row seeds the case's repo: #6's row is scored as queued machine
+work, so the seed must hold what #6 bumps (#328).
 
     python3 evals/replay/cases/F11/redproof.py
 
@@ -10,12 +12,16 @@ Run by evals/replay/run_redproofs.py (pre-push and CI). Stdlib only.
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 
 CASE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(CASE))))
+GIT_ID = {"GIT_AUTHOR_NAME": "a", "GIT_AUTHOR_EMAIL": "a@a",
+          "GIT_COMMITTER_NAME": "a", "GIT_COMMITTER_EMAIL": "a@a"}
 
 TABLE = [
     "| issue | state | this pass | needs you |",
@@ -152,8 +158,31 @@ def run_check(tmp, text, acted5=True, asked7=True):
                           capture_output=True, text=True)
 
 
+def seed_holds_six():
+    """#6 is "Bump the HTTP client to 3.2" with "Lockfile updated": the seeded
+    main must pin the client below 3.2 in a lockfile, or a seat rightly
+    STOPs and #6 becomes the human's (#328)."""
+    work = tempfile.mkdtemp()
+    try:
+        env = dict(os.environ, **GIT_ID)
+        for cmd in ("git init -q -b main", "bash %s %s" % (os.path.join(CASE, "seed.sh"), ROOT)):
+            if subprocess.run(["bash", "-c", cmd], cwd=work, env=env,
+                              capture_output=True).returncode != 0:
+                return False
+        p = subprocess.run(["git", "show", "main:requirements.lock"], cwd=work,
+                           capture_output=True, text=True)
+        m = re.search(r"^httpclient==3\.(\d+)", p.stdout, re.M)
+        return p.returncode == 0 and m is not None and int(m.group(1)) < 2
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main():
     passed = failed = 0
+    ok = seed_holds_six()
+    print("%s F11 the seed pins the HTTP client below 3.2 in requirements.lock on main "
+          "(#6 is doable) → pass" % ("PASS" if ok else "FAIL"))
+    passed, failed = passed + ok, failed + (not ok)
     tmp = tempfile.mkdtemp()
     try:
         for name, want_pass, text, *kw in SHAPES:
