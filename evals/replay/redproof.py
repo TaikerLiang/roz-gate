@@ -2285,6 +2285,15 @@ def path_bash_checks():
                           _bash_ev("cat %s; echo done" % os.path.join(p, C),
                                    out="cat: %s: No such file or directory\ndone"
                                    % os.path.join(p, C)))
+    # codex review, PR #337: GNU head/tail word a missing file differently.
+    gone = "/missing/references/"
+    missing = _paths_both(
+        _bash_ev("head -n 1000 %s%s" % (gone, B), result="error",
+                 out="Exit code 1\nhead: cannot open '%s%s' for reading: No such file or "
+                     "directory" % (gone, B)),
+        _bash_ev("tail -n 5 %s%s; echo done" % (gone, B2),
+                 out="tail: cannot open '%s%s' for reading: No such file or directory\ndone"
+                     % (gone, B2)))
     mention = _paths_both(
         _bash_ev('echo "cat %s"' % b), _bash_ev("printf '%%s\\n' %s" % b2),
         _bash_ev("ls %s  # then cat %s" % (p, b)),
@@ -2320,6 +2329,8 @@ def path_bash_checks():
         ("`head -n N` with N past the file's last line -> read 1", head == _want([B])),
         ("a `cat` a hook denied, one never answered, or one whose output says No such file "
          "-> 0 (%r)" % (errored,), errored == _want()),
+        ("`head -n 1000` / `tail -n 5` of a missing path file (GNU `cannot open '…' for "
+         "reading: No such file or directory`) -> 0 (%r)" % (missing,), missing == _want()),
         ("an `Exit code 1` result — the reader ran, a later command failed (C1 run-3, D2 "
          "run-2) -> still counted (%r)" % (late_fail,), late_fail == _want([B], [B2])),
         ("a mention — echo, printf, a comment, a heredoc body, a `--body` text — or a "

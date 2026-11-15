@@ -354,11 +354,13 @@ def _bash_loaded(name, block):
     """A Bash result showed `name`: the command ran — no `is_error`, or one
     whose text starts `Exit code` (the exit code is the last command's, so
     `cat <file>; false` errs too); a hook's denial or a vanished working
-    directory did not run it — and its output does not say `<name>: No such
-    file or directory`."""
+    directory did not run it — and no output line names the file and says
+    `No such file or directory` (`cat: <f>: …` and GNU `head: cannot open
+    '<f>' for reading: …` alike; codex review, PR #337)."""
     text = _result_text(block)
     ran = not block.get("is_error") or text.startswith("Exit code")
-    return ran and name + ": No such file or directory" not in text
+    return ran and not any(name in ln and "No such file or directory" in ln
+                           for ln in text.splitlines())
 
 
 def _path_reads(transcript):

@@ -202,8 +202,8 @@ command showed only an excerpt of — `grep`, `sed -n a,b`, `head -n`,
 `awk`, a reader piped into another command — and nothing loaded whole. A
 Read whose result is an error loaded nothing. A Bash result is an error
 whenever the command's last part exits non-zero, so one that starts
-`Exit code` still counts; a Bash call a hook denied, or whose output says
-`<file>: No such file or directory`, does not. A seat's Bash call, a name
+`Exit code` still counts; a Bash call a hook denied, or whose output has a
+line naming the file and saying `No such file or directory`, does not. A seat's Bash call, a name
 that is only mentioned (an `echo` or `printf` operand, a comment, a
 heredoc body, a `--body` text, a `grep` pattern or `sed` / `awk` script), a
 reader whose stdout goes to a file (`>`, `>>`, `&>`) and `wc` / `grep -c`
