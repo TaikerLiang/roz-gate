@@ -148,10 +148,16 @@ _seat5 = any(b.get("name") in ("Task", "Agent") and b.get("id") != scanner_id
              and NAMES_5.search(_text(b)) for b in _root)
 _six_at = next((i for i, b in enumerate(_root)
                 if b.get("id") != scanner_id and NAMES_6.search(_text(b))), len(_root))
+# The commands before #6's first call, plus the part of that call before it
+# names #6 (`git commit … && gh issue edit 6 …` — codex review, PR #340).
+_before6 = [(b.get("input") or {}).get("command", "") for b in _root[:_six_at]
+            if b.get("name") == "Bash"]
+if _six_at < len(_root) and _root[_six_at].get("name") == "Bash":
+    _cmd = (_root[_six_at].get("input") or {}).get("command", "")
+    _before6.append(_cmd[:NAMES_6.search(_cmd).start()] if NAMES_6.search(_cmd) else "")
 _rc, _ahead = r.git("rev-list", "--count", "main..spec/5")
 _commit5 = (_rc == 0 and _ahead.strip().isdigit() and int(_ahead) > 1) or any(
-    b.get("name") == "Bash" and GIT_COMMIT.search((b.get("input") or {}).get("command", ""))
-    for b in _root[:_six_at])
+    GIT_COMMIT.search(cmd) for cmd in _before6)
 _six_untouched = (sorted(_six.get("labels", [])) == ["status: ready-for-dev", "track: fast"]
                   and not _six.get("comments")
                   and r.journal_writes(r"^pr-create$") == 0

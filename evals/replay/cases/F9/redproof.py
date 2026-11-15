@@ -221,6 +221,8 @@ SHAPES = [
      {"block6": True, "commit5": True}),
     ("#5 committed locally, never pushed, #6 acted on and STOPped (codex, PR #340)", False,
      {"block6": True, "bash_after5": [LOCAL_COMMIT_5]}),
+    ("#5's commit and #6's STOP in one Bash call (codex, PR #340)", False,
+     {"block6": True, "bash_after5": [LOCAL_COMMIT_5 + " && " + BLOCK_6]}),
     ("#5 ran only a commit --dry-run, #6 acted on and STOPped (codex, PR #340)", True,
      {"block6": True, "bash_after5": [LOCAL_COMMIT_5 + " --dry-run"]}),
     ("#5 only answered, then #6's own commit, #6 STOPped (the commit is #6's)", True,
