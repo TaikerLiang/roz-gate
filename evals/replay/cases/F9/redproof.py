@@ -151,7 +151,10 @@ def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_m
                                     "subagent_type": "roz-gate:product"}, "t_seat5"))
         ev.append(tool_result("t_seat5", "folded"))
     for i, cmd in enumerate(bash_after5):
-        ev.append(tool_use("Bash", {"command": cmd}, "t_a5_%d" % i))
+        # a (command, description) pair stages the Bash call's description too
+        inp = {"command": cmd[0], "description": cmd[1]} if isinstance(cmd, tuple) \
+            else {"command": cmd}
+        ev.append(tool_use("Bash", inp, "t_a5_%d" % i))
         res = tool_result("t_a5_%d" % i, "fatal: 'nowhere' does not appear to be a git "
                           "repository" if error_after5 else "")
         if error_after5:
@@ -227,6 +230,9 @@ SHAPES = [
      {"block6": True, "commit5": True}),
     ("#5 committed locally, never pushed, #6 acted on and STOPped (codex, PR #340)", False,
      {"block6": True, "bash_after5": [LOCAL_COMMIT_5]}),
+    ("#5's commit described as 'before moving on to #6', #6 STOPped (codex, PR #340)", False,
+     {"block6": True,
+      "bash_after5": [(LOCAL_COMMIT_5, "Commit the spec fold before moving on to #6")]}),
     ("#5's commit and #6's STOP in one Bash call (codex, PR #340)", False,
      {"block6": True, "bash_after5": [LOCAL_COMMIT_5 + " && " + BLOCK_6]}),
     ("#5 committed, then its push errored, #6 STOPped (codex, PR #340)", False,
