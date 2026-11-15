@@ -65,6 +65,10 @@ throwaway state, the resume rule against staged result.json files.
   order first Read; a Read that errored or got no result, another
   reference, or the command itself is not counted; `run_one` lists the
   count under `signals` and the names under `details`.
+- ENV (#321) — a SUT session (and a driver) gets the runner's environment
+  minus the launching Claude Code session's: no `CLAUDECODE`, `CLAUDE_PID`,
+  `CLAUDE_EFFORT` or `CLAUDE_CODE_*` but the login/provider ones, and its
+  own `TMPDIR`, which exists during the session and is gone after it.
 - CLI (#282) — both runners, in-process under the fake `claude` with the
   report root in a temp dir: `--help`, `--list`, `--dry-run`, an unknown
   case or fixture (alone or after a valid one), a bad `--k`, an unknown
@@ -1984,6 +1988,9 @@ with open(os.environ["FAKE_ARGV"], "w") as f:
     json.dump(sys.argv[1:], f)
 with open(os.environ["FAKE_ARGV"] + ".log", "a") as f:   # one line per launch (#282)
     f.write(json.dumps(sys.argv[1:]) + "\n")
+with open(os.environ["FAKE_ARGV"] + ".env", "w") as f:   # the session's environment (#321)
+    json.dump({"env": dict(os.environ),
+               "tmpdir_exists": os.path.isdir(os.environ.get("TMPDIR", ""))}, f)
 print(open(os.environ["FAKE_INIT"]).read().strip())
 if os.environ.get("FAKE_EVENTS"):   # extra transcript events (#279)
     print(open(os.environ["FAKE_EVENTS"]).read().strip())
@@ -2223,6 +2230,54 @@ def _cli(main, argv):
     return code, out.getvalue(), launches() - before
 
 
+LEAK_ENV = {"CLAUDECODE": "1", "CLAUDE_PID": "12080", "CLAUDE_EFFORT": "medium",
+            "CLAUDE_CODE_SESSION_ID": "f4e642bf-0000", "CLAUDE_CODE_CHILD_SESSION": "1",
+            "CLAUDE_CODE_MESSAGING_SOCKET": "/tmp/cc-socks/12080.sock",
+            "CLAUDE_CODE_MESSAGING_TOKEN": "secret",
+            "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1", "CLAUDE_CODE_ENTRYPOINT": "cli"}
+KEEP_ENV = {"CLAUDE_CODE_OAUTH_TOKEN": "tok", "CLAUDE_CONFIG_DIR": "/cfg"}
+
+
+def env_checks():
+    """#321: the 2026-11-14 sweep's SUT sessions carried the launching
+    session's id (their scratchpad was the operator's), its messaging socket
+    and token, its effort and its experimental flags."""
+    saved = dict(os.environ)
+    os.environ.update(LEAK_ENV)
+    os.environ.update(KEEP_ENV)
+    os.environ["TMPDIR"] = tempfile.gettempdir()
+    try:
+        sut = {"name": "redproof", "mode": "subscription", "model": "m", "base_url": "",
+               "key_env": ""}
+        with _fake_claude(_iso_init([])) as d:
+            rr.invoke_claude(sut, d, d, "hi", 30, os.path.join(d, "t.jsonl"),
+                             os.path.join(d, "e.log"), plugin_dir=None)
+            got = rr.load_json(os.path.join(d, "argv.json.env"), {})
+        env = got.get("env") or {}
+        tmp = env.get("TMPDIR", "")
+        fn = getattr(rl, "sut_base_env", None)   # before #321: absent
+        base = fn(dict(LEAK_ENV, **KEEP_ENV, HOME="/h")) if fn else "MISSING"
+    finally:
+        os.environ.clear()
+        os.environ.update(saved)
+    leaked = sorted(k for k in LEAK_ENV if k in env)
+    return [
+        ("invoke_claude: none of the launching session's variables reach the SUT (leaked: %s)"
+         % (", ".join(leaked) or "none"), bool(env) and not leaked),
+        ("invoke_claude: the login and provider variables stay (CLAUDE_CODE_OAUTH_TOKEN, "
+         "CLAUDE_CONFIG_DIR), and SUT_ENV is still applied",
+         all(env.get(k) == v for k, v in KEEP_ENV.items())
+         and env.get("CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS") == "0"),
+        ("invoke_claude: the session's TMPDIR is its own — not the runner's, present during "
+         "the session, removed after it",
+         bool(tmp) and tmp != tempfile.gettempdir() and got.get("tmpdir_exists") is True
+         and not os.path.exists(tmp)),
+        ("sut_base_env (the driver's environment): the launching session's variables dropped, "
+         "the login kept, the rest untouched",
+         base == dict(KEEP_ENV, HOME="/h")),
+    ]
+
+
 def cli_checks():
     """#282: --help, --list, --dry-run, an unknown case (alone or after a
     valid one), a bad --k, an unknown flag and a driver case under a
@@ -2344,6 +2399,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in path_read_checks():
         print("%s paths-read: %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in env_checks():
+        print("%s env: %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in cli_checks():
         print("%s cli: %s" % ("PASS" if ok else "FAIL", name))

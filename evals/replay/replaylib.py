@@ -60,6 +60,25 @@ SESSION_ERR_RE = re.compile(
 # the fixture's own timeout is the bound.
 SUT_ENV = {"CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS": "0"}
 
+# The launching session's identity and settings (#321). A runner started
+# from inside Claude Code inherits that session's environment, and passed it
+# whole to every SUT session: its session id with CLAUDE_CODE_CHILD_SESSION
+# (the SUT's scratchpad resolved to the operator's), its messaging socket
+# and token (a route into the operator's live session), its effort level and
+# experimental flags. Every CLAUDE* variable is dropped except the ones that
+# say where the login lives or which provider to use.
+SUT_ENV_KEEP = ("CLAUDE_CONFIG_DIR", "CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_USE_BEDROCK",
+                "CLAUDE_CODE_USE_VERTEX")
+
+
+def sut_base_env(environ=None):
+    """The environment a SUT session (or the driver that starts one) gets:
+    the runner's, minus the launching Claude Code session's (#321)."""
+    env = dict(os.environ if environ is None else environ)
+    for k in [k for k in env if k.startswith("CLAUDE") and k not in SUT_ENV_KEEP]:
+        del env[k]
+    return env
+
 # The SUT's configuration scope, on every `claude -p` a SUT runs (#307).
 # Without it a session loads the operator's user scope: their plugins (a
 # second roz-gate from the installed copy, telegram), hooks, skills, MCP

@@ -284,6 +284,18 @@ operator's configuration. One thing stays: the runtime's auto-memory
 directory for the sandbox's path (`~/.claude/projects/<path>/memory/`) —
 a fresh temp path each run, so it starts empty.
 
+**The environment** is the second way in (#321). A runner started from
+inside Claude Code inherits that session's variables, and until #321 passed
+them whole to the SUT. The SUT got the session id with
+`CLAUDE_CODE_CHILD_SESSION`, so its scratchpad was the operator's. It also
+got the messaging socket and token, the effort level and the experimental
+flags. `replaylib.sut_base_env` now drops every `CLAUDE*` variable except
+the login and provider ones (`SUT_ENV_KEEP`), for each SUT session and for
+a driver. Each session also gets its own `TMPDIR`, removed after it. A
+literal `/tmp/...` path is still shared: the sandbox is a directory, not a
+jail. Results recorded before #321 may carry the launching session's
+settings; the 2026-11-14 haiku55 sweep did (`CLAUDE_EFFORT=medium`).
+
 **The forge** is a stateful stub (`forge-stub/gh`) shadowing the real CLI
 via PATH. Fixtures seed `state.json`; writes mutate state (commands read
 back their own writes mid-run) and append to `journal.jsonl` — the
