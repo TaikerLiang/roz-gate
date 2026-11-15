@@ -171,15 +171,16 @@ def mentions_port(b):
 def reads_port(b):
     """A read-capable operation ON the port, by the hook's own resolution: a
     Read/Grep/Glob value that resolves under the port, or a Bash operand that
-    does after echo/printf operands and comments are blanked — `echo
-    src/test/offer_port.py` is a mention, never a read (codex review, PR #137)."""
+    does after echo/printf operands, comments and forge-write bodies are
+    blanked — `echo src/test/offer_port.py` and a `gh pr comment --body`
+    naming it are mentions, never reads (codex review, PR #137; #326)."""
     inp = b.get("input", {})
     top = WORK or None
     if b.get("name") in ("Read", "Grep", "Glob"):
         return any(isinstance(v, str) and _gb.under_suite(v, PORT, top, TOPS)
                    for v in inp.values())
     if b.get("name") == "Bash":
-        cmd = _gb.SRC_MENTIONED.sub(" ", inp.get("command") or "")
+        cmd = _gb.SRC_MENTIONED.sub(" ", _gb.blank_forge_bodies(inp.get("command") or ""))
         return any(_gb.resolves_under_suite(m.group(0), PORT, top, TOPS)
                    for m in _gb.suite_operand_re(PORT, top).finditer(cmd))
     return False

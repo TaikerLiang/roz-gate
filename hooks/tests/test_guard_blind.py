@@ -99,6 +99,54 @@ BASH_DENIED = [
     # Codex review round 6: bash joins `EO\` + newline + `F` in an unquoted body.
     ("rule E: an unquoted body line ending in a backslash is unsupported — the read denied",
      "cat <<EOF\nEO\\\nF\ncat src/app.txt\ncat <<EOF\nnote\nEOF", "read of src/"),
+    # #326: a forge write's body is text — its real reads are not.
+    ("rule E #326: a substitution inside a double-quoted --body is a read — denied",
+     'gh pr comment 103 --body "Summary: $(cat src/app.txt)"', "read of src/"),
+    ("rule E #326: an unquoted $(cat src/…) as the body is a read — denied",
+     "gh pr comment 103 --body $(cat src/app.txt)", "read of src/"),
+    ("rule E #326: a backtick inside a -f body= is a read — denied",
+     'gh api repos/acme/demo/issues/5/comments -f body="`cat src/app.txt`"', "read of src/"),
+    ("rule E #326: an unquoted-delimiter heredoc inside the body expands a read — denied",
+     'gh pr comment 103 --body "$(cat <<EOF\n$(cat src/app.txt)\nEOF\n)"', "read of src/"),
+    ("rule E #326: --body-file src/… reads the file — denied",
+     "gh pr comment 103 --body-file src/app.txt", "read of src/"),
+    ("rule E #326: --body-file=src/… reads the file — denied",
+     "gh issue comment 5 --body-file=src/app.txt", "read of src/"),
+    ("rule E #326: gh api -F body=@src/… reads the file — denied",
+     "gh api repos/acme/demo/issues/5/comments -F body=@src/app.txt", "read of src/"),
+    ("rule E #326: a cat chained after a body — denied",
+     "gh pr comment 103 --body 'see src/app.txt' && cat src/app.txt", "read of src/"),
+    ("rule E #326: a sed piped after a glab note — denied",
+     "glab mr note 103 -m 'see src/app.txt' | sed -n 1p src/app.txt", "read of src/"),
+    ("rule E #326: a grep before a body, on the next line — denied",
+     "grep -n demo src/app.txt\ngh pr comment 103 -b 'see src/app.txt'", "read of src/"),
+    ("rule E #326: git show feat/5:… after a body — denied",
+     "gh pr comment 103 --body 'see src/app.txt'; git show feat/5:src/app.txt", "feat/ ref"),
+    # Codex review, PR #339: the first terminator ends the heredoc; gh sees `@` unescaped.
+    ("rule E #326: a read between two same-word heredocs in a body substitution — denied",
+     "gh pr comment 103 --body \"$(cat <<'EOF'\nsummary\nEOF\ncat src/app.txt\n"
+     "cat <<'EOF'\nend\nEOF\n)\"", "read of src/"),
+    ("rule E #326: gh api -F body=\\@src/… (escaped @, still a file to gh) — denied",
+     "gh api repos/acme/demo/issues/5/comments -F body=\\@src/app.txt", "read of src/"),
+    # Codex review round 2: an escaped delimiter; a typed value that expands.
+    ("rule E #326: a backslash in the body heredoc's delimiter is unsupported — the read denied",
+     "gh pr comment 103 --body \"$(cat <<\"E\\$OF\"\nnote\nE$OF\ncat src/app.txt\n"
+     "cat <<'E\\$OF'\nend\nE\\$OF\n)\"", "read of src/"),
+    ("rule E #326: gh api -F body=\"${X:-@src/…}\" may expand to a file — denied",
+     "gh api repos/acme/demo/issues/5/comments -F body=\"${X:-@src/app.txt}\"", "read of src/"),
+    # Codex review round 3: a forge write only in command position; a continuation.
+    ("rule E #326: forge-shaped text inside a quoted string is no forge write — denied",
+     "X=';gh pr comment --body src/x'; cat src/app.txt # '", "read of src/"),
+    ("rule E #326: a forge write inside an assignment's quotes opens no body — denied",
+     "X='a gh api -f body=' cat src/app.txt '", "read of src/"),
+    ("rule E #326: gh api -F body=\\<newline>@src/… (a continuation, then @) — denied",
+     "gh api repos/acme/demo/issues/5/comments -F body=\\\n@src/app.txt", "read of src/"),
+    ("rule E #326: a body word that also runs $(cat src/…) is not blanked — denied",
+     "gh pr comment 103 --body \"see src/x: $(cat src/app.txt)\"", "read of src/"),
+    ("rule E #326: a redirect after --body is no body value (< src/… opens the file) — denied",
+     "gh pr comment 103 --body < src/app.txt", "read of src/"),
+    ("rule E #326: a -b outside a forge write is no body (cat -b numbers lines) — denied",
+     "cat -b src/app.txt", "read of src/"),
 ]
 # (name, command) -- Bash calls under the marker that name src/ without reading it.
 BASH_ALLOWED = [
@@ -150,6 +198,73 @@ BASH_ALLOWED = [
      "gh pr comment 103 --body \"$(cat /tmp/summary.md)\""),
     ("rule E: a QUOTED body's line ending in a backslash is literal — still blanked, allowed",
      "cat > tests/run.sh <<'EOF'\npython3 -m pytest \\\n  tests/ # never src/\nEOF"),
+    # Mention is not use, fifth form (#326, the 2026-11-15 sweep): a forge
+    # write's body is text. C17's fidelity seat and D7's reviewer cited a
+    # src/ path as evidence and the record was never posted.
+    ("rule E #326: C17's inline finding (gh api -f body='…', two calls) allowed",
+     "SHA=f3c2376 && \\\ngh api -X POST \"repos/acme/demo/pulls/103/comments\" -f body='"
+     "**[reviewer] · blocking**\n\nThis assertion cannot fail. Fix: replace the line with an "
+     "assertion on the value price(cart, now) returns from src/pricing.py.' -f commit_id=$SHA "
+     "-f path=tests/acceptance/offers/test_expiry.py -F line=3 -f side=RIGHT --jq '.html_url' "
+     "&& \\\ngh api -X POST \"repos/acme/demo/pulls/103/comments\" -f body='**[reviewer] · "
+     "blocking**\n\nThe test does not import src/pricing.py.' -f commit_id=$SHA "
+     "-f path=tests/acceptance/offers/test_expiry.py -F line=2 -f side=RIGHT"),
+    ("rule E #326: D7's summary (gh pr comment --body '…', multi-line) allowed",
+     "cd .git/roz-gate/wt/spec/5 && gh pr comment 103 -R acme/demo --body '**[reviewer] · "
+     "fidelity** 0/1 faithful.\n\n- P1 src/test/offer_port.py:13 raises ValueError.'"),
+    ("rule E #326: gh api -f body=\"…\" (double quotes) allowed",
+     'gh api repos/acme/demo/issues/5/comments -f body="see src/app.txt:1"'),
+    ("rule E #326: gh api -f body=… (unquoted) allowed",
+     "gh api repos/acme/demo/issues/5/comments -f body=src/app.txt"),
+    ("rule E #326: gh api -F body='…' (single quotes, multi-line) allowed",
+     "gh api repos/acme/demo/issues/5/comments -F body='first\nsee src/app.txt\nlast'"),
+    ("rule E #326: gh api -F body=\"…\" (double quotes, multi-line) allowed",
+     'gh api repos/acme/demo/issues/5/comments -F body="first\nsee src/app.txt\nlast"'),
+    ("rule E #326: gh api -F body=… (unquoted) allowed",
+     "gh api repos/acme/demo/issues/5/comments -F body=src/app.txt"),
+    ("rule E #326: gh api --raw-field 'body=…' (the whole field quoted) allowed",
+     "gh api repos/acme/demo/issues/5/comments --raw-field 'body=see src/app.txt'"),
+    ("rule E #326: gh pr comment --body \"…\" (double quotes, multi-line) allowed",
+     'gh pr comment 103 --body "first\nsee src/app.txt\nlast"'),
+    ("rule E #326: gh pr comment --body … (unquoted) allowed",
+     "gh pr comment 103 --body src/app.txt"),
+    ("rule E #326: gh pr comment -b '…' (single quotes) allowed",
+     "gh pr comment 103 -b 'see src/app.txt'"),
+    ("rule E #326: gh pr comment -b … (unquoted, after a \\ continuation) allowed",
+     "gh pr comment 103 \\\n  -b src/app.txt"),
+    ("rule E #326: gh pr review --comment --body '…' (multi-line) allowed",
+     "gh pr review 103 --comment --body 'first\nsee src/app.txt\nlast'"),
+    ("rule E #326: gh pr review -b \"…\" allowed",
+     'gh pr review 103 --request-changes -b "see src/app.txt"'),
+    ("rule E #326: gh issue comment --body='…' (inline) allowed",
+     "gh issue comment 5 --body='see src/app.txt'"),
+    ("rule E #326: gh issue comment -b \"…\" allowed",
+     'gh issue comment 5 -b "see src/app.txt"'),
+    ("rule E #326: glab mr note -m '…' (single quotes) allowed",
+     "glab mr note 103 -m 'see src/app.txt'"),
+    ("rule E #326: glab mr note -m … (unquoted) allowed", "glab mr note 103 -m src/app.txt"),
+    ("rule E #326: glab mr note --message \"…\" (double quotes, multi-line) allowed",
+     'glab mr note 103 --message "first\nsee src/app.txt\nlast"'),
+    ("rule E #326: glab mr note --message='…' (inline, multi-line) allowed",
+     "glab mr note 103 --message='first\nsee src/app.txt\nlast'"),
+    ("rule E #326: glab api -f body='…' allowed",
+     "glab api projects/1/merge_requests/103/notes -f body='see src/app.txt'"),
+    ("rule E #326: a body joined with '\\'' (an apostrophe) allowed",
+     "gh pr comment 103 --body 'the port'\\''s caller is src/app.txt'"),
+    ("rule E #326: a $VAR inside a double-quoted body is no read — allowed",
+     'gh pr comment 103 --body "at $SHA: see src/app.txt"'),
+    ("rule E #326: \"$(cat <<'EOF' … EOF)\" (quoted delimiter) is a heredoc body — allowed",
+     "gh pr comment 103 --body \"$(cat <<'EOF'\n**[reviewer] · fidelity**\n\n"
+     "see src/app.txt:1\nEOF\n)\""),
+    ("rule E #326: a body, then --body \"$(cat /tmp/…)\" — the first stays blanked, allowed",
+     "gh pr comment 103 -b 'see src/app.txt' && gh pr comment 103 --body \"$(cat /tmp/s.md)\""),
+    ("rule E #326: SHA=$(git rev-parse HEAD) before the write, then a -f body= mention — allowed",
+     "SHA=$(git rev-parse HEAD) && gh api repos/acme/demo/pulls/103/comments "
+     "-f body='see src/app.txt' -f commit_id=\"$SHA\""),
+    ("rule E #326: VAR=… gh api … -f body= (an env prefix) — allowed",
+     "GH_HOST=github.com gh api repos/acme/demo/issues/5/comments -f body='see src/app.txt'"),
+    ("rule E #326: a -f body= mention, then 2>&1 | tail — allowed",
+     "gh api repos/acme/demo/issues/5/comments -f body='see src/app.txt' 2>&1 | tail -1"),
 ]
 
 
@@ -596,6 +711,19 @@ class RuleE_TestPortIsReadable(HookTest):
             self.assertAllowed(self.tool("Glob", pattern=str(repo / kit) + "/**/*.java"))
         with self.case("port: the suite stays readable beside the port"):
             self.assertAllowed(self.run_bash("cat %s/ExpiryTest.java" % self.SUITE))
+        # #326: D7's reviewer named the port in its summary body and was denied.
+        for name, cmd in [
+            ("port #326: a --body naming the port allowed",
+             "gh pr comment 103 --body 'P1 %s:13 raises ValueError'" % port),
+            ("port #326: a -f body= naming src/main (a mention) allowed",
+             "gh api repos/acme/demo/pulls/103/comments -f body='see %s'" % self.MAIN),
+            ("port #326: a substitution reading the port in a body allowed (the port is "
+             "readable)", 'gh pr comment 103 --body "$(cat %s)"' % port),
+            ("port #326: --body-file of the port allowed",
+             "gh pr comment 103 --body-file %s" % port),
+        ]:
+            with self.case(name):
+                self.assertAllowed(self.run_bash(cmd))
 
     def test_cwd_inside_the_git_dir(self):
         """#245: a session that cd'd into the common dir to write the marker
@@ -625,6 +753,10 @@ class RuleE_TestPortIsReadable(HookTest):
             ("port: a sibling spelled with the port's name as a prefix denied",
              "cat src/test/java/acme/port/OfferPortTestX.java"),
             ("port: a stale copy of the port (.bak) denied", "cat %s.bak" % port),
+            ("port #326: a substitution reading src/main in a body denied",
+             'gh pr comment 103 --body "$(cat %s)"' % self.MAIN),
+            ("port #326: a body naming the port, then a cat of src/main, denied",
+             "gh pr comment 103 --body 'see %s' && cat %s" % (port, self.MAIN)),
         ]:
             with self.case(name):
                 self.assertDenied(self.run_bash(cmd), "read of src/")

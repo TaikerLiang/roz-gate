@@ -184,8 +184,8 @@ class Frame:
         if tool == "Bash":
             # a heredoc's body and an echo/printf operand are content, not a
             # read: `cat > test.py <<'EOF' … src/kv/cli.py … EOF` writes the
-            # suite (codex review, PR #217)
-            text = HEREDOC.sub(" ", text)
+            # suite (codex review, PR #217); so is a forge write's body (#326)
+            text = _gb.blank_forge_bodies(HEREDOC.sub(" ", text))
             text = _gb.SRC_MENTIONED.sub(" ", text)
         return any(re.search(r"(^|[\s/\"'])" + re.escape(p) + r"(?![\w.-])", text)
                    for p in self.ports)
