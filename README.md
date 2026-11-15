@@ -474,6 +474,12 @@ Link it — your file stays yours, unmoved and unrenamed:
 - reviewer: roz-gate:reviewer
 ```
 
+Every command reads the block through one tool, `bin/roz-persona --json`: a
+seat with no line takes `roz-gate:<seat>`, the implementer `implementer` only
+when `.claude/agents/implementer.md` exists. A seat with no usable agent
+(`PERSONA_UNMAPPED`, `AGENT_TYPE_UNAVAILABLE`) stops the run — the loop never
+picks a stand-in.
+
 **Persona is swappable; the contract never is.** Every dispatch attaches the
 seat's Owns/Never contract (qa never reads the implementation, the reviewer
 never writes code, …) — and at link time `init` reads your agent against its
@@ -515,6 +521,7 @@ Retirement is two steps, **in this order**:
 | `commands/` | the entry points (`/roz-gate:*`) | Claude Code, then the agent | invocation |
 | `references/` | protocol docs, seat briefs, forge adapters | the agent, on every invocation | runtime |
 | `agents/` | the built-in personas (product, em, qa, reviewer) — referenced, never copied | the agent, at dispatch | dispatch |
+| `bin/` | the loop's stdlib Python tools — `roz-config`, `roz-branch`, `roz-state`, `roz-check`, `roz-persona` | the agent, through a shell call | runtime |
 | `templates/` | target-repo scaffolding, instantiated by `init` and removed by `uninit` | the target repo | install time |
 | `hooks/` | deterministic enforcement, the `/roz-gate:config` mod and the seat pane (one entry, `hooks/mods.tsx`), and their tests ([hooks/README.md](hooks/README.md)) | the machine, before a tool runs or a command answers | tool time |
 | `evals/` | the eval ledger — lint, replay, judgment ([evals/README.md](evals/README.md)) | developers of the plugin | dev time; lint on pre-push and CI |

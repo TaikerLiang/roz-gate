@@ -25,8 +25,9 @@ import subprocess
 
 HOMES = ("CLAUDE.md", "CLAUDE.local.md")
 # The block only — a `- key:` bullet in a later Notes section is
-# documentation, not config (codex review, PR #82).
-BLOCK = re.compile(r"^###\s+(?:Roz Gate|Gated Loop) config\s*$(.*?)(?=^#|\Z)", re.M | re.S)
+# documentation, not config (codex review, PR #82). `%s` is the heading's
+# last word: `config`, or `personas` for bin/roz-persona (#198).
+BLOCK = r"^###\s+(?:Roz Gate|Gated Loop) %s\s*$(.*?)(?=^#|\Z)"
 
 
 def git(*args):
@@ -63,8 +64,8 @@ def main_checkout(cwd=None):
     return os.path.dirname(common)
 
 
-def find_block(top, main=None):
-    """The text of the first config block found — `CLAUDE.md`, then
+def find_block(top, main=None, title="config"):
+    """The text of the first `### Roz Gate <title>` block found — `CLAUDE.md`, then
     `CLAUDE.local.md`, in `top`, then in `main`, the main checkout of the
     repository that holds `top` (#277: resolved from `top`, never from the
     hook's cwd; a caller that has it already passes it). None → not a
@@ -75,6 +76,7 @@ def find_block(top, main=None):
     main = main or main_checkout(top)
     if main and os.path.realpath(main) != os.path.realpath(top):
         roots.append(main)
+    block = re.compile(BLOCK % re.escape(title), re.M | re.S)
     for root in roots:
         for name in HOMES:
             try:
@@ -82,7 +84,7 @@ def find_block(top, main=None):
                     text = f.read()
             except OSError:
                 continue
-            m = BLOCK.search(text)
+            m = block.search(text)
             if m:
                 return m.group(1)
     return None

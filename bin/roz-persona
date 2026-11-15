@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+"""roz-persona — which agent type sits in each seat (#198).
+
+    roz-persona --json        # the five seats, in order, as a JSON list
+    roz-persona <seat>        # one seat — product, em, implementer, qa, reviewer
+
+The seats are fixed (`SEATS`, the one definition); who sits in each is the
+`### Roz Gate personas` block that `/roz-gate:init` writes, read through
+`hooks/config_block.py` — `CLAUDE.md`, then `CLAUDE.local.md`, in this
+toplevel, then in the main checkout; the first block found wins, whole.
+Each seat prints `seat`, `agent_type`, `source` (`block` | `default`) and
+`checked` (`found` | `unverified`).
+
+A seat with no line takes its default: `roz-gate:<seat>`, except the
+implementer, which the plugin does not ship — `implementer` only when the
+project holds `.claude/agents/implementer.md` (the file init creates).
+`roz-gate:<x>` is checked against the plugin's `agents/`; a bare name
+against `.claude/agents/` (this toplevel, the main checkout) and
+`~/.claude/agents/`. A name found nowhere — another plugin's agent, a
+runtime built-in — is `unverified`, never refused: this tool cannot list
+the runtime's agents. A line for a name that is not a seat is ignored and
+named on stderr: a custom agent does not create a seat.
+
+Exit codes:
+  0   every seat resolved
+  2   a seat has no usable agent — its entry carries `failure`
+      (`PERSONA_UNMAPPED`: no implementer line and no implementer.md;
+      `AGENT_TYPE_UNAVAILABLE`: a `roz-gate:` type the plugin does not
+      ship) and `detail`, in place of `checked`
+  64  usage
+Read-only. Stdlib only, Python 3.9-compatible, like the hooks.
+"""
+
+import json
+import os
+import re
+import sys
+
+PLUGIN = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(PLUGIN, "hooks"))
+from config_block import find_block, git, main_checkout  # noqa: E402
+
+SEATS = ("product", "em", "implementer", "qa", "reviewer")
+LINE = re.compile(r"^- ([\w-]+):[ \t]*(\S+)[ \t]*$", re.M)
+USAGE = __doc__.split("\n\n")[1]
+
+
+def resolve(seat, lines, roots):
+    def agent_file(name, dirs):
+        return any(os.path.isfile(os.path.join(d, name + ".md")) for d in dirs)
+
+    project = [os.path.join(r, ".claude", "agents") for r in roots]
+    if seat in lines:
+        agent_type, source = lines[seat], "block"
+    elif seat != "implementer":
+        agent_type, source = "roz-gate:" + seat, "default"
+    elif agent_file("implementer", project):
+        return {"seat": seat, "agent_type": "implementer", "source": "default",
+                "checked": "found"}
+    else:
+        return {"seat": seat, "agent_type": None, "source": "default",
+                "failure": "PERSONA_UNMAPPED",
+                "detail": "no `implementer` line in the `### Roz Gate personas` block and no "
+                          ".claude/agents/implementer.md — run /roz-gate:init"}
+    out = {"seat": seat, "agent_type": agent_type, "source": source}
+    if agent_type.startswith("roz-gate:"):
+        if agent_file(agent_type[len("roz-gate:"):], [os.path.join(PLUGIN, "agents")]):
+            return dict(out, checked="found")
+        return dict(out, failure="AGENT_TYPE_UNAVAILABLE",
+                    detail="the roz-gate plugin ships no agent `%s` — fix the seat's line in "
+                           "the `### Roz Gate personas` block" % agent_type)
+    found = agent_file(agent_type, project + [os.path.expanduser("~/.claude/agents")])
+    return dict(out, checked="found" if found else "unverified")
+
+
+def main(argv):
+    if argv == ["--json"]:
+        wanted = SEATS
+    elif len(argv) == 1 and argv[0] in SEATS:
+        wanted = (argv[0],)
+    else:
+        sys.stderr.write("usage:%s\n" % USAGE)
+        return 64
+    top = git("rev-parse", "--show-toplevel") or os.getcwd()
+    main_top = main_checkout(top)
+    roots = [top] + ([main_top] if main_top and os.path.realpath(main_top)
+                     != os.path.realpath(top) else [])
+    lines = {}
+    for name, value in LINE.findall(find_block(top, main_top, title="personas") or ""):
+        if name not in SEATS:
+            sys.stderr.write("roz-persona: ignored `- %s: %s` — not a seat (%s)\n"
+                             % (name, value, ", ".join(SEATS)))
+        else:
+            lines.setdefault(name, value)
+    out = [resolve(seat, lines, roots) for seat in wanted]
+    for s in out:
+        if "failure" in s:
+            sys.stderr.write("roz-persona: %s: %s — %s\n" % (s["seat"], s["failure"], s["detail"]))
+    print(json.dumps(out if argv == ["--json"] else out[0], indent=1, ensure_ascii=False))
+    return 2 if any("failure" in s for s in out) else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

@@ -32,12 +32,9 @@ cheaper model does; absent (`""`) → the runtime's default. Seats (`product`,
 configures them. It never changes the model this command itself runs on —
 that is the session's.
 
-**Personas**: every role dispatch below (`product`, `implementer`,
-`reviewer`) resolves through the `### Roz Gate personas` block — dispatch the
-mapped subagent, attaching the seat's R&R row from
-`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` as its contract. Block missing
-→ plugin defaults (`roz-gate:<role>`; implementer = the project's
-`implementer` agent).
+**Personas**: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-persona --json` and dispatch
+each seat as the `agent_type` it prints, attaching the seat's R&R row
+(`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` § Seats and personas).
 
 **Version check**: compare the workflow section's
 `<!-- roz-gate workflow-template vN -->` stamp against the one in

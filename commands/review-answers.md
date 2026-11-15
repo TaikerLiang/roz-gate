@@ -26,10 +26,10 @@ remote's HEAD branch, empty lists, empty strings). **Branch names**: bind `<spec
 Lookup, never guessed). Nothing below spells a branch name. Then
 `${CLAUDE_PLUGIN_ROOT}/references/forge-<forge>.md` for the concrete CLI behind
 every CAPITALIZED-OP. Missing config → stop; tell the user to run
-`/roz-gate:init`. **Personas**: the seat dispatches below resolve through the
-`### Roz Gate personas` block — dispatch the mapped subagent, attaching the
-seat's R&R row from `${CLAUDE_PLUGIN_ROOT}/references/workflow.md` as its
-contract. Block missing → plugin defaults.
+`/roz-gate:init`. **Personas**: run
+`python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-persona --json` and dispatch each seat as
+the `agent_type` it prints, attaching the seat's R&R row
+(`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` § Seats and personas).
 
 ## 1. Find the conversation (read-only)
 - Issue `<n>` from `$ARGUMENTS`, or every issue labelled

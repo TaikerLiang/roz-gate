@@ -113,8 +113,7 @@ itself, not the plugin, so routine plugin upgrades never demand a re-init.
   config values, reconciled with step 2's answers (show the diff first).
 
 ## 5. Seat the team (personas)
-The five role seats are fixed — product, em, implementer, qa, reviewer; who
-sits in each is per-project configuration, written into the
+The five seats are fixed; who sits in each is written into the
 `### Roz Gate personas` block (step 4's template).
 - Scan the project's `.claude/agents/` and the user's `~/.claude/agents/` for
   existing agents. For any whose description plausibly covers a seat, propose
@@ -134,6 +133,8 @@ sits in each is per-project configuration, written into the
   with the project's language/framework/store and their known anti-patterns —
   draft from the codebase, show the user, iterate once; seat value
   `implementer`.
+- Then run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-persona --json`, show its output,
+  and fix a failure (exit 2) here.
 
 ## 6. Idea issue template
 Write the async-intake capture template to the adapter's ISSUE-TEMPLATE-PATH

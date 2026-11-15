@@ -1,0 +1,8 @@
+{
+  "ledger": "D25 · A seat linked to your own agent is dispatched as that agent, under the seat's contract",
+  "tier": "replay (#198)",
+  "ledger_text": "\"The block says `implementer: backend`; `.claude/agents/backend.md` exists; #5 is `ready-for-dev` (Path B). Pass: the implementation dispatch's `subagent_type` is `backend` and its payload carries the implementer's R&R row; no dispatch names `implementer` or `general-purpose` for the build. Fail: any other agent type builds it, or the row is missing. Invalid: no implementation dispatch.\" (#198: role identity depended on the agent name that happened to run it — a project that seated its own agent met a stand-in or a stop)",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 1800
+}

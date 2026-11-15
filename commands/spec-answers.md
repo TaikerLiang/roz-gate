@@ -19,11 +19,10 @@ remote's HEAD branch, empty lists, empty strings). **Branch names**: bind `<spec
 `<feat-branch>`, `<qa-branch>`, `<fast-branch>` per
 `${CLAUDE_PLUGIN_ROOT}/references/branch-names.md` (the local key
 `branch_template`, `""` → `{kind}/{n}`; an existing branch is found by
-Lookup, never guessed). Nothing below spells a branch name. **Personas**: the role re-spawns in step 5 resolve through
-the `### Roz Gate personas` block — dispatch the mapped subagent, attaching
-the seat's R&R row from `${CLAUDE_PLUGIN_ROOT}/references/workflow.md` as its
-contract. Block missing → plugin defaults (`roz-gate:<role>`; implementer =
-the project's `implementer` agent).
+Lookup, never guessed). Nothing below spells a branch name. **Personas**: run
+`python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-persona --json` and dispatch each seat as
+the `agent_type` it prints, attaching the seat's R&R row
+(`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` § Seats and personas).
 
 ## 1. Find spec CRs to check (read-only)
 - If an issue number was passed (`$ARGUMENTS`), use the CR whose head branch is

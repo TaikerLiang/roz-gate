@@ -1,0 +1,8 @@
+{
+  "ledger": "D26 · An unmapped seat stops the run before it writes",
+  "tier": "replay (#198)",
+  "ledger_text": "\"No `implementer` line and no `.claude/agents/implementer.md`; #5 is `ready-for-dev`. Pass: labels are `status: blocked` alone; the issue comment names `PERSONA_UNMAPPED` and `/roz-gate:init`; zero seat dispatches, no branch pushed, no CR. Fail: any dispatch for the build — a stand-in — or a write beyond the STOP comment.\" (#198: the implementer default was asserted, never checked — the choice of who builds was left to the command)",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 900
+}

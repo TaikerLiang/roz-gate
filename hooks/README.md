@@ -44,7 +44,7 @@ The files:
 | `guard-acceptance.sh` · `guard_acceptance.py` | Edit / Write / MultiEdit on a spec branch (`spec/<n>`, or whatever `branch_template` renders) — the acceptance rule |
 | `run-guard.sh` | sourced by the three guard shims after their prefilter: runs the Python judge and fails closed when it cannot decide (#281) |
 | `sync-worktree.sh` · `sync_worktree.py` | PostToolUse · Bash, after a `git worktree add` — [the worktree copy](#the-worktree-copy) (#122) |
-| `config_block.py` | the config block's reader: `CLAUDE.md`, then `CLAUDE.local.md`, in the toplevel, then in the main checkout (`core.worktree` when set, else the common git dir's parent — a separate git dir without `core.worktree` is unreachable from a linked worktree: keep the block in the tracked `CLAUDE.md` there) — the first block wins, whole |
+| `config_block.py` | the config block's reader: `CLAUDE.md`, then `CLAUDE.local.md`, in the toplevel, then in the main checkout (`core.worktree` when set, else the common git dir's parent — a separate git dir without `core.worktree` is unreachable from a linked worktree: keep the block in the tracked `CLAUDE.md` there) — the first block wins, whole; `bin/roz-persona` reads the `### Roz Gate personas` block through it (#198) |
 | `tests/test_guard_*.py` | the cases, one file per guard, one class per rule: synthetic hook input in, exit code and stderr asserted |
 | `tests/test_fixtures.py` | every fixture carries the fields the guard reads |
 | `tests/hooktest.py` | `HookTest`: runs a guard's `.sh`, builds throwaway repos, swaps fixtures |
