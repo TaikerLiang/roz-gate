@@ -34,8 +34,11 @@ always dispatch through this mapping, and every dispatch attaches the seat's
 **contract**: its R&R row above (Owns / Never) plus the stage's instructions.
 **Persona is swappable; the contract never is.** A persona whose own text
 fights its seat's Never column is a misconfiguration — init flags it when
-linking. Personas block missing (pre-1.2 project) → plugin defaults
-(`roz-gate:<role>`; implementer = the project's `implementer` agent).
+linking. The commands resolve seats by running `bin/roz-persona`: a seat with
+no line defaults to `roz-gate:<role>`, the implementer to `implementer` only
+when `.claude/agents/implementer.md` exists. Its failure (`PERSONA_UNMAPPED`,
+`AGENT_TYPE_UNAVAILABLE`), or a spawn the runtime refuses, is the STOP exit —
+never another agent.
 
 ## The loop
 

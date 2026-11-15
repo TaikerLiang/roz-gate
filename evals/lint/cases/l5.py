@@ -28,7 +28,7 @@ META = {
 
 _HOMES = ("hooks/guard_blind.py", "hooks/guard_acceptance.py", "hooks/guard_gate.py")
 src("L5: config_block.py is the one reader", "hooks/config_block.py",
-    "def find_block(top, main=None):")
+    'def find_block(top, main=None, title="config"):')
 src("L5: the reader's order is CLAUDE.md, then CLAUDE.local.md", "hooks/config_block.py",
     'HOMES = ("CLAUDE.md", "CLAUDE.local.md")')
 src("L5: the reader falls back to the main checkout", "hooks/config_block.py",
