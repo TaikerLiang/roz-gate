@@ -1,5 +1,5 @@
 ---
-description: One patrol pass — a read-only scanner sub-agent classifies every issue into one table; the main agent acts on it (one loop issue, every close-out, the whole inbox) and reports what waits on the user
+description: One patrol pass — a read-only scanner sub-agent classifies every issue into one table; the main agent acts on it (up to N loop issues, every close-out, the whole inbox) and reports what waits on the user
 ---
 
 One **patrol pass** over the loop (see
