@@ -46,7 +46,7 @@ refuses a rule that lands unindexed (#189).
 | **E** | a question reaches the gate holder; an answer lands where it belongs |
 | **F** | the loop end to end — whole commands, whole sessions |
 | **J** | the judgment tier's own instrument (lint only) |
-| **L** | the human-facing pages (lint only) |
+| **L** | the repository's own surfaces — pages, documents, tools and the shape of the prose (lint only) |
 
 ## Cases
 

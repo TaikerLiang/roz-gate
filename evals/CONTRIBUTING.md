@@ -112,7 +112,7 @@ A directory `replay/cases/<ID>/` with five files:
 
 | file | what it is |
 |---|---|
-| `case.json` | `ledger` (ID · title), `tier` and `ledger_text` (the ledger row's last two columns — the quoted outcome and its parenthetical), `prompt` (the command `claude -p` runs), `k` (default 5), `timeout` (seconds, default 900); optionally `fixture` — a path or list of paths under `replay/` (fixture trees the seed copies in, the frame the checker imports), hashed into `case_fp` with the case's own files |
+| `case.json` | `ledger` (ID · title), `tier` and `ledger_text` (the ledger row's last two columns — the quoted outcome and its parenthetical), `prompt` (the command `claude -p` runs), `k` (default 5), `timeout` (seconds, default 900); optionally `fixture` — a path or list of paths under `replay/` (fixture trees the seed copies in, the frame the checker imports), hashed into `case_fp` with the case's own files; `seats` — `["qa"]` makes a run under another QA persona stale (`replay/README.md` § Variants); `check` — the verdict an integrate seed must give (§ 7); `driver` — a script that runs its own sessions and scores them, in place of `prompt` and `check.py` (F6) |
 | `seed.sh` | builds the sandbox repo — branches, files, config — as it stands when the command starts |
 | `state.json` | the forge (issues, labels, PRs) the stub `gh` serves |
 | `check.py` | scores one run: exit 0 PASS, exit 3 INVALID (`replaylib.invalid(reason)` — the rule was never exercised; never red), any other exit FAIL (`replay/README.md` § Verdicts) |
@@ -142,7 +142,10 @@ real verdict.
   (`replaylib.SHARED_FINGERPRINT_INPUTS`): mark the replay batches in
   `baselines.json` `superseded` in the same PR.
 - Override config with `sed`, then **assert it took** (`grep -q …`): a
-  silent no-op seeds the wrong experiment.
+  silent no-op seeds the wrong experiment. A seed that changes the
+  personas block asserts what `bin/roz-persona` answers for it (D25, D26):
+  every command resolves its seats through that tool and stops on its
+  exit 2 (#198).
 - A command in the config must be **complete** and work both as written
   and with a path appended; it must **fail on finding nothing**, never
   report a vacuous OK; its verdict must sit on the **last stdout line**,
@@ -209,7 +212,7 @@ real verdict.
   (exit 3) instead of failing; a FAIL means the rule was exercised and
   broken. A do-nothing run is a FAIL, not an INVALID: the rule was
   reachable and nothing was done.
-- **A case under a brief variant** (#199): the D10–D19 checkers build on
+- **A case under a brief variant** (#199): the D10–D19 and D22–D24 checkers build on
   `replay/qaframe.py` — the shared verdict (INVALID gate, the attempt
   rule, the blindness predicate, the outcome oracle that runs the pushed
   suite against the build and against a one-line mutant) — and add the
@@ -251,15 +254,20 @@ if a case has none. `cases/D4/redproof.py` is the template:
       (`docs/releasing.md`).
 
 Then measure: `python3 evals/replay/run_replay.py --sut <sut> --k <k> <ID>`
-— minutes and real tokens per iteration; the operator decides when. A
+— minutes and real tokens per iteration; the operator decides when. Run it
+with `--dry-run` first: every argument is checked for the whole batch
+before any session, and it prints what would run, with no model (#282). A
 QA-brief case is measured once per variant (`--variant A`, `B`, `C`), on
 the same fixture and SUT; the brief's hash is in every result
 (`replay/README.md` § Variants).
 
 Each run records the fingerprint of the case that scored it (`case_fp` in
-`result.json`). Editing the checker, `case.json`, the seed, the state or the
+`result.json`). Editing the checker, `case.json`, the seed, the state, a
+file under its `fixture` or the
 shared seed (`lib/seed-common.sh`) after the baseline makes those runs **stale** in `report.json` — out of the
-rate, never silently current — until the case is re-measured
+rate, never silently current — and so does a changed QA brief (every
+result carries `brief_sha256`), or a changed QA persona for a case that
+declares `"seats": ["qa"]` — until the case is re-measured
 (`evals/replay/README.md` § The case as scored).
 
 A baseline that is to be cited is **recorded**: one batch in
@@ -400,6 +408,8 @@ leaves room, and lowering a cap is the maintainer's, at release.
 | judgment F-54 | headless `claude -p` killed background seats after 600 s; the session still ended on a result event and scored recall 0 from an empty surface | a session cut short, read as finished |
 | D2 / rule E | a Maven layout's acceptance suite under `src/test/…` read as a read of the implementation; the fidelity dispatch could not read what it audits (#81) | a path is not provenance — the block says where the suite is |
 | C5 | the post-integration re-run was green against the suite the fold had just outdated, and the cards were regenerated from it (#97) | a green against the wrong contract — ask what the suite derives from before taking its colour as evidence |
-| C12 / C13 / F4 — integrate's precondition | "zero open fidelity threads" was true of an audit that found nothing and of an audit that never ran; a B5b that stopped before the reviewer posted left a thread-clean suite that integrated (#95) | an absence read as a pass — require the record of the act, not the absence of its findings |
+| C12 / C13 / F4 — integrate's precondition | "zero open fidelity threads" was true of an audit that found nothing and of an audit that never ran; a B5b (now B2.7) that stopped before the reviewer posted left a thread-clean suite that integrated (#95) | an absence read as a pass — require the record of the act, not the absence of its findings |
 | D2 / rule E | the brief itself sent the blind reviewer to the implementation CR's threads — code in the comments, reached through a forge call the hook saw as a listing (#96) | a read through the forge is a read — the instrument sees tool paths, not what comes back |
 | every hook | four loaders opened `CLAUDE.md` only; a block kept in `CLAUDE.local.md` made the repo "not a roz-gate project" to the hooks while the commands ran it (#94) | a location is not presence — read every home the prose reads |
+| every SUT session | the session loaded the operator's plugins, hooks, MCP servers and `~/.claude/CLAUDE.md` — the F-51 "no Roz Gate" arm ran with Roz Gate (#307) — and inherited the launching session's environment: its scratchpad, messaging socket and effort (#321) | the sandbox is a directory, not a jail — isolate the settings scope and the environment, and read the init event |
+| every token figure | summing per-block stream events counted input twice and output about 40× low (#308) | a total rebuilt from partial events — read the runtime's own totals |

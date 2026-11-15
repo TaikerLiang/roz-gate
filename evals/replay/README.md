@@ -171,7 +171,7 @@ variant file's current one is `stale` and out of the rate; a run without
 one (recorded before the stamp) stays in. `persona_sha256` (#267) is the
 QA persona (`agents/qa.md`), read back the same way and treated the same
 way — but only for a case whose `case.json` declares `"seats": ["qa"]`
-(D9–D19), so a persona edit retires the runs made under the old persona and
+(D9–D19, D22–D24), so a persona edit retires the runs made under the old persona and
 leaves every other case alone; `--variant` never changes it. A variant's
 runs live in
 `report/<sut>/<case>@<V>/run-<i>/` and report as the row `<case>@<V>` with
@@ -194,7 +194,8 @@ One signal is the runner's own, on every valid run (#279):
 `path_files_read`, the number of distinct `references/next-stage-path-*.md`
 files the session Read (seats included; a Read whose result is an error
 loaded nothing and is not counted), with their names, in the order
-first Read, in `path_files_read_detail`. Expect **1** for a
+first Read, in `path_files_read_detail`. Only the Read tool counts: a
+path file loaded with Bash (`cat`, `grep -A`) reads as 0 (#329, open). Expect **1** for a
 `/roz-gate:next-stage` run that reached the hand-off, and the right one for
 its route; **0** for a legal STOP before the route (an invalid label, no
 gated issue) — and for a run that acted without reading its path, which is
@@ -211,7 +212,11 @@ through `bin/serve`, a CLI through `src/kv/cli.py`, the port under `src/`
 beside a file the seat may not read, a sequenced contract — and D8/D9
 re-cut as D18/D19), whose seeds copy a shared tree under `fx/` (hashed
 into `case_fp` through case.json's `"fixture"` key). They share one
-checker frame, `qaframe.py`.
+checker frame, `qaframe.py`. D22–D24 (#197) use the same frame on
+`fx/kv-cli-expiry`, a copy of `fx/kv-cli` whose keys expire on a
+per-store clock: a Given with no control point (D22), the same contract
+with the control point built (D23), a Glossary term used against its
+definition (D24).
 
 ## Verdicts — PASS, FAIL, INVALID
 
@@ -243,7 +248,10 @@ read as "did the work, broke the rule" or "did nothing".
 The eval suite is Python end to end (evals/README.md § Language — an
 ownership constraint, and it superseded this tier's original "lint
 stays bash" boundary): `run_replay.py`, `replaylib.py` (the ONE place
-that parses journal/state/transcript/results), per-case `check.py`,
+that parses journal/state/transcript/results — a transcript event's
+`message` is read through `event_message`, which returns it only when it
+is a dict: a system event's string `message` stopped the 2026-11-14 sweep
+at 122 of 186, #319), per-case `check.py`,
 the forge stub, and the lint tier's `run_lint.py`. Shared mechanics
 live thin in `evals/lib/checkkit.py` (tally, probe-error guard,
 citation guard) — the lint tier never inherits replay's Run/artifact
@@ -409,8 +417,9 @@ and fails on a case that has none.
 D4 is the first: eight end states and eight verdict-run shapes, found
 necessary when D4's two instrument gaps (an incomplete `acceptance_test`,
 a verdict trimmed by `| tail`) were each proven only in a scratch script.
-The 18 older cases are red-proofed in their commit messages and exempt by
-name (`LEGACY` in `run_redproofs.py`) — a list that only shrinks.
+The 17 older cases still without one were red-proofed in their commit
+messages and are exempt by name (`LEGACY` in `run_redproofs.py`) — a list
+that only shrinks.
 
 **The rate**: every case runs k times — `k` is the case's own, in its
 `case.json` (5 for every case today; F6's 3 is sessions) — and reports the
@@ -424,7 +433,7 @@ three-step fixture measures nothing).
 ## What this tier cannot see
 
 1. **A6 (notification) is deferred, untested** — the headless sandbox has
-   no messaging channel connected, and patrol.md:148 makes silent skip
+   no messaging channel connected, and `commands/patrol.md` § 5 makes silent skip
    *correct* there: the case measures nothing until a channel stub
    exists. An observability gap, not a spec gap.
 2. **Semantic paraphrase**: text-shaped assertions (F4's claim wording)
