@@ -32,6 +32,7 @@
       "isDraft": false,
       "headRefName": "spec/5",
       "baseRefName": "main",
+      "author": "paul",
       "threads": [
         {"id": "T1", "isResolved": false,
          "comments": [

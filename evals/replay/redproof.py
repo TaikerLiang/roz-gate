@@ -46,7 +46,17 @@ throwaway state, the resume rule against staged result.json files.
 - PLAIN (#259) — `issue view` (with and without `--comments`), `issue
   list`, `pr list` and `pr view` with no `--json` print gh's human format
   byte for byte, or UNKNOWN naming the fact the fixture does not state
-  (`updatedAt`, `createdAt`, a PR's `author`, its reviewers) — never `{}`.
+  (a PR's `author`, its reviewers) — never `{}`.
+- STUB-GAPS (#325) — the 2026-11-15 sweep's UNKNOWNs, each answered as
+  real gh would: a fast-forwarded PR's `mergeCommit` is its head;
+  `reviewDecision` from the reviews ("" with none); `closedAt`,
+  `mergedAt`, `createdAt`, `updatedAt`, `mergeable`, `additions`,
+  `deletions`, `commits`; gh's `Unknown JSON field` for `merged`; the
+  fixture's clock for an issue's `updatedAt` / `closedAt` and a plain
+  list row; a PR's number on the issues endpoint and in `issue view`;
+  `repos/<o>/<r>`; GitHub's 404 for a reply without the PR number; the
+  GraphQL thread reply; `pr view --comments` with reviews; `--jq` on the
+  `--json` commands; a `--jq` jq rejects is the command's failure.
 - TOKENS (#308) — `session_tokens` on canned transcripts whose messages
   stream one event per block: the result event's `modelUsage` (seats
   included), else its `usage` summed over result events, else each message
@@ -366,10 +376,11 @@ REPO_ROUTES = [
      ["api", "repos/{owner}/{repo}/issues/7/dependencies/blocked_by", "--jq", ".[0].html_url"],
      "issue-blocked-by", ["%s/issues/5" % OCTO]),
     # one unserved field makes the whole command UNKNOWN — no partial JSON
-    ("issue view --json url,updatedAt (served beside unserved)",
-     ["issue", "view", "5", "--json", "url,updatedAt"], "UNKNOWN", ["updatedAt"]),
-    ("issue list --json number,updatedAt",
-     ["issue", "list", "--json", "number,updatedAt"], "UNKNOWN", ["updatedAt"]),
+    ("issue view --json url,stateReason (served beside unserved: closed, no reason stated)",
+     ["issue", "view", "6", "--json", "url,stateReason"], "UNKNOWN", ["stateReason"]),
+    ("issue list --json number,stateReason",
+     ["issue", "list", "--state", "closed", "--json", "number,stateReason"], "UNKNOWN",
+     ["stateReason"]),
     ("pr view --json url,statusCheckRollup",
      ["pr", "view", "101", "--json", "url,statusCheckRollup"], "UNKNOWN", ["statusCheckRollup"]),
     ("pr list --json number,statusCheckRollup",
@@ -477,11 +488,9 @@ def fields_rows():
                st({"101": pr(reviews=[rv("ann", "CHANGES_REQUESTED", "24")])}), V + ["reviews"],
                "pr-view", '"state": "CHANGES_REQUESTED"', '"author": {"login": "ann"}',
                '"submittedAt": "2026-08-24T10:00:00Z"')
-        # codex review, PR #297 (third pass) — the reviews alone do not settle
-        # the decision: GitHub answers REVIEW_REQUIRED when the repository
-        # requires a review, and nothing here says whether it does. So: the
-        # fixture's stated `reviewDecision`; else an outstanding change
-        # request (which blocks whatever the requirement); else UNKNOWN.
+        # codex review, PR #297 (third pass) — a review requirement is the
+        # fixture's to state; #325: unstated, the repository requires none,
+        # and the reviews settle it (STUB-GAPS has those rows).
         RD = V + ["reviewDecision"]
         for name, extra, want in (
                 ("the fixture states REVIEW_REQUIRED", {"reviewDecision": "REVIEW_REQUIRED"},
@@ -501,12 +510,7 @@ def fields_rows():
             served("pr view --json reviewDecision: %s" % name, st({"101": pr(**extra)}), RD,
                    "pr-view", '"reviewDecision": %s' % want)
         for name, reviews in (
-                ("no reviews — \"\" and REVIEW_REQUIRED cannot be told apart", []),
-                ("an approval — approved or still short of the requirement",
-                 [rv("ann", "APPROVED", "24")]),
-                ("a change request the same author later approved",
-                 [rv("ann", "CHANGES_REQUESTED", "24"), rv("ann", "APPROVED", "25")]),
-                ("a review state the stub does not interpret", [rv("ann", "DISMISSED", "24")])):
+                ("a review state the stub does not interpret", [rv("ann", "DISMISSED", "24")]),):
             unknown("pr view --json reviewDecision: %s → UNKNOWN" % name,
                     st({"101": pr(reviews=reviews)}), RD, "reviewDecision")
         served("pr view --json mergeCommit: an open PR has none", st(), V + ["mergeCommit"],
@@ -564,8 +568,6 @@ def fields_rows():
         finally:
             shutil.rmtree(d, ignore_errors=True)
         IV = ["issue", "view", "5", "--json"]
-        unknown("issue view --json updatedAt: not derived from other timestamps", st(),
-                IV + ["updatedAt"], "updatedAt")
         served("issue view --json updatedAt: the fixture states it",
                st(issues={"5": {"title": "x", "labels": [], "updatedAt": "2026-08-22T09:00:00Z"}}),
                IV + ["updatedAt"], "issue-view", '"updatedAt": "2026-08-22T09:00:00Z"')
@@ -647,6 +649,301 @@ def fields_rows():
                      rc == 1 and out == "" and [e["route"] for e in j] == ["graphql-error"]
                      and "GraphQL: Could not resolve to a PullRequest with the number of 5. "
                          "(repository.pullRequest)" in err))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return rows
+
+
+# #325 — the 2026-11-15 sweep's UNKNOWNs (33 of 186 iterations). Each group
+# is answered the way real gh answers it, from the fixture, the sandbox, or
+# the fixture's clock (the latest moment it records; RUN_NOW for the stub's
+# own writes; CORPUS_EPOCH for a createdAt no fixture states).
+def gaps_sandbox():
+    """origin (HEAD → main): spec/5 open against main (docs/spec.md +2, then
+    feat/5's impl.txt +1 — two commits); feat/5 fast-forwarded into spec/5,
+    as every D-family seed merges it; clash/6 edits app.txt, which main
+    also edited after it branched."""
+    tmp = tempfile.mkdtemp()
+    work = os.path.join(tmp, "work")
+    env = dict(os.environ, GIT_AUTHOR_NAME="a", GIT_AUTHOR_EMAIL="a@a",
+               GIT_COMMITTER_NAME="a", GIT_COMMITTER_EMAIL="a@a")
+    for cmd, cwd in (
+            ("git init -q --bare -b main origin.git", tmp),
+            ("git init -q -b main work", tmp),
+            ("echo demo > app.txt && git add -A && git commit -qm seed"
+             " && git checkout -qb clash/6 && echo theirs > app.txt && git commit -qam clash"
+             " && git checkout -q main && echo ours > app.txt && git commit -qam main"
+             " && git checkout -qb spec/5 && mkdir -p docs && printf 'a\\nb\\n' > docs/spec.md"
+             " && git add -A && git commit -qm 'spec docs' -m 'the body'"
+             " && git checkout -qb feat/5 && echo impl > impl.txt && git add -A"
+             " && git commit -qm impl && git checkout -q spec/5 && git merge -q --no-edit feat/5"
+             " && git checkout -q main && git remote add origin ../origin.git"
+             " && git push -q origin --all", work)):
+        subprocess.run(["bash", "-c", cmd], cwd=cwd, env=env, check=True, capture_output=True)
+    return tmp, work
+
+
+def gaps_state(**prs):
+    """101 open (a thread T1, one comment); 102 merged by fast-forward (the
+    D-family's PR 102, nothing timed but its code-review comment); 103 open
+    and conflicting; 104 closed with nothing timed (C2's PR 101). Issue 5
+    open with a comment, issue 6 closed — neither states updatedAt or
+    closedAt."""
+    base = {
+        "101": {"number": 101, "title": "Spec: #5", "state": "OPEN", "isDraft": False,
+                "headRefName": "spec/5", "baseRefName": "main", "author": "paul",
+                "reviews": [],
+                "comments": [{"id": 1, "author": "paul", "body": "first",
+                              "created_at": "2026-08-22T10:00:00Z"}],
+                "threads": [{"id": "T1", "isResolved": False, "path": "docs/spec.md", "line": 1,
+                             "comments": [{"databaseId": 9101, "author": "paul", "body": "q",
+                                           "createdAt": "2026-08-23T08:00:00Z"}]}]},
+        "102": {"number": 102, "title": "feat: implement #5", "state": "MERGED",
+                "isDraft": False, "headRefName": "feat/5", "baseRefName": "spec/5",
+                "author": "paul", "body": "Closes #5.", "threads": [], "reviews": [],
+                "comments": [{"id": 2, "author": "paul", "body": "code-review",
+                              "created_at": "2026-08-23T10:00:00Z"}]},
+        "103": {"number": 103, "title": "clash", "state": "OPEN", "isDraft": False,
+                "headRefName": "clash/6", "baseRefName": "main", "threads": [], "reviews": [],
+                "comments": []},
+        "104": {"number": 104, "title": "Spec: #6", "state": "CLOSED", "isDraft": False,
+                "headRefName": "spec/5", "baseRefName": "main", "threads": [], "reviews": [],
+                "comments": []}}
+    for n, over in prs.items():
+        base[n] = dict(base[n], **over)
+    return {"agent_login": "paul", "prs": base, "issues": {
+        "5": {"title": "x", "labels": [], "createdAt": "2026-08-15T09:00:00Z",
+              "comments": [{"id": 3, "author": "paul", "body": "hi",
+                            "createdAt": "2026-08-20T09:00:00Z"}]},
+        "6": {"title": "y", "labels": ["track: spec"], "state": "closed",
+              "createdAt": "2026-08-15T09:00:00Z", "comments": []}}}
+
+
+def gaps_rows():
+    """[(name, ok)] — #325: each row is red on the stub before the fix."""
+    rows = []
+    tmp, work = gaps_sandbox()
+
+    def call(argv, state=None, state_dir=None):
+        return stub(argv, state if state is not None else gaps_state(), cwd=work,
+                    state_dir=state_dir)
+
+    def served(name, argv, route, *needles, state=None, exact=None):
+        rc, out, err, j = call(argv, state)
+        ok = rc == 0 and [e["route"] for e in j] == [route] \
+            and all(n in out for n in needles) and (exact is None or out == exact)
+        rows.append((name, ok))
+
+    def rv(author, state, day, body=""):
+        return {"id": int(day), "author": author, "state": state, "body": body,
+                "submitted_at": "2026-08-%sT10:00:00Z" % day}
+
+    try:
+        feat5 = subprocess.check_output(["git", "-C", work, "rev-parse", "feat/5"],
+                                        text=True).strip()
+        V = ["pr", "view", "101", "--json"]
+        V2 = ["pr", "view", "102", "--json"]
+        # mergeCommit — D4 D11 D12 D15 D17 D18 D19
+        served("mergeCommit: a fast-forward merge (the D-family seed) is the head commit",
+               V2 + ["mergeCommit"], "pr-view", '"mergeCommit": {"oid": "%s"}' % feat5)
+        served("mergeCommit through --jq (D15/3's call shape)",
+               V2 + ["number,mergeCommit", "--jq", ".mergeCommit.oid"], "pr-view",
+               exact=feat5 + "\n")
+        # reviewDecision — C22 D12 D13 E9: the repository requires no review
+        for name, reviews, want in (
+                ("no reviews is \"\"", [], '""'),
+                ("comments only is \"\"", [rv("ann", "COMMENTED", "24", "hm")], '""'),
+                ("an approval is APPROVED", [rv("ann", "APPROVED", "24")], '"APPROVED"'),
+                ("a change request its author later approved is APPROVED",
+                 [rv("ann", "CHANGES_REQUESTED", "24"), rv("ann", "APPROVED", "25")],
+                 '"APPROVED"')):
+            served("reviewDecision: %s" % name, V + ["reviewDecision"], "pr-view",
+                   '"reviewDecision": %s' % want,
+                   state=gaps_state(**{"101": {"reviews": reviews}}))
+        served("reviewDecision in pr list (E9's call shape)",
+               ["pr", "list", "--state", "all", "--json", "number,reviewDecision"], "pr-list",
+               '"reviewDecision": ""')
+        # pr view fields — C2 C20 D12 D8 F1
+        served("closedAt: an open PR's is null", V + ["closedAt"], "pr-view", '"closedAt": null')
+        served("closedAt: a closed PR with nothing timed is its createdAt (C2's PR)",
+               ["pr", "view", "104", "--json", "state,closedAt"], "pr-view",
+               '"closedAt": "2026-08-01T00:00:00Z"')
+        served("closedAt = mergedAt: a merged PR's latest recorded moment",
+               V2 + ["closedAt,mergedAt"], "pr-view", '"closedAt": "2026-08-23T10:00:00Z"',
+               '"mergedAt": "2026-08-23T10:00:00Z"')
+        rc, out, err, j = call(V2 + ["state,merged"])
+        rows.append(("merged: gh's Unknown JSON field, exit 1 (gh 2.82)",
+                     rc == 1 and out == "" and 'Unknown JSON field: "merged"' in err
+                     and [e["route"] for e in j] == ["json-field-rejected"]))
+        for n, want in (("101", "MERGEABLE"), ("103", "CONFLICTING"), ("102", "UNKNOWN")):
+            served("mergeable: pr %s is %s" % (n, want), ["pr", "view", n, "--json", "mergeable"],
+                   "pr-view", '"mergeable": "%s"' % want)
+        served("createdAt,updatedAt: CORPUS_EPOCH and the latest recorded moment",
+               V + ["createdAt,updatedAt"], "pr-view", '"createdAt": "2026-08-01T00:00:00Z"',
+               '"updatedAt": "2026-08-23T08:00:00Z"')
+        rc, out, err, j = call(V + ["additions,deletions,commits"])
+        try:
+            got = json.loads(out)
+        except ValueError:
+            got = {}
+        commits = got.get("commits") or [{}, {}]
+        rows.append(("additions,deletions,commits: the open PR's diff and base..head",
+                     rc == 0 and got.get("additions") == 3 and got.get("deletions") == 0
+                     and [c.get("messageHeadline") for c in commits] == ["spec docs", "impl"]
+                     and commits[0].get("messageBody") == "the body"
+                     and commits[1].get("oid") == feat5
+                     and commits[0].get("authors") == [{"name": "a", "email": "a@a"}]))
+        d = tempfile.mkdtemp()
+        try:
+            call(["pr", "comment", "101", "--body", "hi"], state_dir=d)
+            rc, out, err, j = call(V + ["updatedAt"], state_dir=d)
+            rows.append(("updatedAt: a PR written to in this run → UNKNOWN saying so",
+                         rc == 64 and out == "" and "written to in this run"
+                         in j[-1].get("note", "")))
+            call(["pr", "merge", "103"], state_dir=d)
+            rc, out, err, j = call(["pr", "view", "103", "--json", "mergedAt,closedAt"],
+                                   state_dir=d)
+            rows.append(("mergedAt: merged in this run is the stub's write clock",
+                         rc == 0 and '"mergedAt": "2026-08-24T12:00:00Z"' in out
+                         and '"closedAt": "2026-08-24T12:00:00Z"' in out))
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+        # pr list default fields; issue updatedAt / closedAt — D13 D16 D12 A2 A7 C26
+        served("pr list (no --json): a row with no createdAt is CORPUS_EPOCH",
+               ["pr", "list"], "pr-list",
+               exact="101\tSpec: #5\tspec/5\tOPEN\t2026-08-01T00:00:00Z\n"
+                     "103\tclash\tclash/6\tOPEN\t2026-08-01T00:00:00Z\n")
+        served("issue list (no --json): updatedAt is the issue's latest recorded moment",
+               ["issue", "list"], "issue-list", exact="5\tOPEN\tx\t\t2026-08-20T09:00:00Z\n")
+        served("issue view --json updatedAt: the latest recorded moment",
+               ["issue", "view", "5", "--json", "updatedAt"], "issue-view",
+               '"updatedAt": "2026-08-20T09:00:00Z"')
+        served("issue view --json closedAt: closed as seeded, nothing timed after createdAt",
+               ["issue", "view", "6", "--json", "closedAt"], "issue-view",
+               '"closedAt": "2026-08-15T09:00:00Z"')
+        served("REST issues/<n> --jq (A2/3's call): an unprinted field cannot refuse it",
+               ["api", "repos/:owner/:repo/issues/5", "--jq", "[.labels[].name]"],
+               "issue-view", exact="[]\n")
+        served("REST issues/<n> of a closed issue with no stateReason (C26/2's call)",
+               ["api", "repos/acme/demo/issues/6", "--jq", ".title"], "issue-view", exact="y\n")
+        # a PR's number on the issues API — C26/2, C10/1
+        rc, out, err, j = call(["api", "repos/acme/demo/issues/101", "--jq",
+                                "{state, title, labels: [.labels[].name]}"])
+        try:
+            got = json.loads(out)
+        except ValueError:
+            got = None
+        rows.append(("REST issues/<pr number>: GitHub serves the PR as an issue",
+                     rc == 0 and [e["route"] for e in j] == ["pr-view"]
+                     and got == {"state": "open", "title": "Spec: #5", "labels": []}))
+        served("REST issues/<pr number> carries pull_request and the /pull/ URL",
+               ["api", "repos/acme/demo/issues/102"], "pr-view", '"pull_request": {',
+               '"html_url": "https://github.com/acme/demo/pull/102"', '"state": "closed"',
+               '"merged_at": "2026-08-23T10:00:00Z"')
+        served("REST issues/<pr number>: user is the fixture's author",
+               ["api", "repos/acme/demo/issues/101", "--jq", ".user.login"], "pr-view",
+               exact="paul\n")
+        served("REST issues/<pr number> with no author: a --jq that never reads user",
+               ["api", "repos/acme/demo/issues/103", "--jq", ".title"], "pr-view",
+               exact="clash\n")
+        served("REST issues/<pr number> with no author: C26/2's projection never reads user",
+               ["api", "repos/acme/demo/issues/103", "--jq",
+                "{state, title, labels: [.labels[].name]}"], "pr-view",
+               exact='{"state":"open","title":"clash","labels":[]}\n')
+        # codex review, PR #338 (two passes): a read of `user` by any spelling
+        # — or of the whole object — is UNKNOWN naming author, as `pr view
+        # --json author` is; never an absent author passed off as an answer
+        for expr in (".user.login", '.["us" + "er"].login', ".", "keys"):
+            rc, out, err, j = call(["api", "repos/acme/demo/issues/103", "--jq", expr])
+            rows.append(("REST issues/<pr number> with no author: --jq %s is UNKNOWN naming "
+                         "author" % expr,
+                         rc == 64 and out == "" and [e["route"] for e in j] == ["UNKNOWN"]
+                         and "author" in j[-1].get("note", "")))
+        served("issue view <pr number> --json (C10/1's call): the PR as gh 2.82 serves it",
+               ["issue", "view", "101", "--json", "number,title,state,url"], "pr-view",
+               '"state": "OPEN"', '"url": "https://github.com/acme/demo/pull/101"')
+        served("issue view <merged pr number>: state MERGED, gh's plain issue preview",
+               ["issue", "view", "102"], "pr-view",
+               exact="title:\tfeat: implement #5\nstate:\tMERGED\nauthor:\tpaul\nlabels:\t\n"
+                     "comments:\t1\nassignees:\t\nprojects:\t\nmilestone:\t\nnumber:\t102\n"
+                     "--\nCloses #5.\n")
+        # routes — C12 E6 E11
+        served("api repos/<o>/<r> --jq .full_name (C12/2)",
+               ["api", "repos/acme/demo", "--jq", ".full_name"], "repo-view", exact="acme/demo\n")
+        rc, out, err, j = call(["api", "-X", "POST", "repos/acme/demo/pulls/comments/9101/replies",
+                                "-f", "body=r"])
+        rows.append(("POST pulls/comments/<id>/replies (E6): GitHub has no such route — 404",
+                     rc == 1 and [e["route"] for e in j] == ["http-404"]
+                     and "Not Found (HTTP 404)" in err))
+        d = tempfile.mkdtemp()
+        try:
+            rc, out, err, j = call(
+                ["api", "graphql", "-f", "query=mutation($t:ID!,$b:String!){ "
+                 "addPullRequestReviewThreadReply(input:{pullRequestReviewThreadId:$t, body:$b})"
+                 "{ comment{ id } } }", "-F", "t=T1", "-F", "b=✅ [product] resolved",
+                 "--jq", ".data.addPullRequestReviewThreadReply.comment.id"], state_dir=d)
+            rc2, out2, err2, j2 = call(["api", "repos/acme/demo/pulls/101/comments", "--jq",
+                                        ".[1].in_reply_to_id"], state_dir=d)
+            first = j[0] if j else {}
+            rows.append(("graphql addPullRequestReviewThreadReply (E11/2): a thread-reply write",
+                         rc == 0 and out.startswith("PRRC_") and [e["route"] for e in j]
+                         == ["thread-reply"] and first.get("write") and first.get("base") == 9101
+                         and first.get("body") == "✅ [product] resolved" and out2 == "9101\n"))
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+        # pr view --comments with reviews — D13 D16 E9
+        served("pr view --comments with reviews: gh's comments and reviews, in time order",
+               ["pr", "view", "101", "--comments"], "pr-view",
+               state=gaps_state(**{"101": {"reviews": [
+                   rv("ann", "CHANGES_REQUESTED", "21", "fix it"),
+                   rv("bob", "COMMENTED", "23"), rv("ann", "APPROVED", "24", "ok")]}}),
+               exact="author:\tann\nassociation:\tnone\nedited:\tfalse\n"
+                     "status:\tchanges requested\n--\nfix it\n--\n"
+                     "author:\tpaul\nassociation:\tnone\nedited:\tfalse\nstatus:\tnone\n--\n"
+                     "first\n--\n"
+                     "author:\tann\nassociation:\tnone\nedited:\tfalse\nstatus:\tapproved\n--\n"
+                     "ok\n--\n")
+        # --jq — D8/3, E2/1; and the --json commands honour it
+        d = tempfile.mkdtemp()
+        try:
+            rc, out, err, j = call(["api", "-X", "POST", "repos/acme/demo/pulls/101/comments",
+                                    "-f", "body=b", "-f", "path=docs/spec.md", "-F", "line=1",
+                                    "--jq", '.id + " " + .html_url'], state_dir=d)
+            with open(os.path.join(d, "state.json")) as f:
+                threads = json.load(f)["prs"]["101"]["threads"]
+            first = j[0] if j else {}
+            rows.append(("--jq jq rejects on the data (D8/3): exit 1, the write kept, no UNKNOWN",
+                         rc == 1 and "cannot be added" in err
+                         and [e["route"] for e in j] == ["thread-post-inline"]
+                         and first.get("write") and first.get("exit") == 1
+                         and "cannot be added" in first.get("jq_error", "")
+                         and len(threads) == 2))
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+        rc, out, err, j = call(["api", "repos/acme/demo/pulls/101/comments", "--jq",
+                                'length as $n | "threads=\\($n)"; .[] | .line'])
+        rows.append(("--jq with a syntax error (E2/1): exit 1 with jq's message, no UNKNOWN",
+                     rc == 1 and "syntax error" in err
+                     and [e["route"] for e in j] == ["review-comments-list"]
+                     and "jq_error" in (j[0] if j else {})))
+        # F1/2 and F6/1 asked for the CR's author: their fixtures state it
+        # now (the loop opened it — agent_login). The sweep's own calls,
+        # against each case's own state.json.
+        for case, argv, route in (
+                ("F1", ["pr", "view", "101", "--json", "number,state,isDraft,createdAt,"
+                        "updatedAt,headRefName,baseRefName,url,author"], "pr-view"),
+                ("F6", ["pr", "list", "--state", "all", "--json", "number,title,isDraft,"
+                        "baseRefName,headRefName,state,url,author"], "pr-list")):
+            with open(os.path.join(HERE, "cases", case, "state.json")) as f:
+                fixture = json.load(f)
+            served("%s's fixture answers its sweep call's author" % case, argv, route,
+                   '"author": {"login": "paul"}', state=fixture)
+        served("pr view --json --jq: the projection, not the JSON",
+               V + ["number,state", "--jq", ".state"], "pr-view", exact="OPEN\n")
+        served("issue view --json --jq", ["issue", "view", "5", "--json", "title", "--jq",
+                                          ".title"], "issue-view", exact="x\n")
+        served("pr list --json --jq", ["pr", "list", "--json", "number", "--jq", ".[].number"],
+               "pr-list", exact="101\n103\n")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return rows
@@ -1835,13 +2132,9 @@ PLAIN_ROUTES = [
      "5\tOPEN\tExpire offers soon\tbug, track: spec\t2026-08-02T00:00:00Z\n"),
     ("issue list --state closed: the closed row", ["issue", "list", "--state", "closed"],
      False, "issue-list", 0, "6\tCLOSED\tClosed one\t\t2026-08-01T00:00:00Z\n"),
-    ("issue list with a row whose fixture states no updatedAt -> UNKNOWN naming it",
-     ["issue", "list"], False, "UNKNOWN", 64, "updatedAt"),
     ("pr list --head: tab-separated number, title, head, DRAFT/STATE, createdAt",
      ["pr", "list", "--head", "spec/5"], True, "pr-list", 0,
      "101\tSpec: #5\tspec/5\tDRAFT\t2026-08-03T00:00:00Z\n"),
-    ("pr list with a row whose fixture states no createdAt -> UNKNOWN naming it",
-     ["pr", "list"], True, "UNKNOWN", 64, "createdAt"),
     ("pr view <n>: gh's raw preview, additions / deletions from the sandbox's diff",
      ["pr", "view", "101"], True, "pr-view", 0, PR_101_PLAIN),
     ("pr view <n> --comments: the comments alone", ["pr", "view", "101", "--comments"], True,
@@ -1851,7 +2144,8 @@ PLAIN_ROUTES = [
      ["pr", "view", "102"], True, "UNKNOWN", 64, "author"),
     ("pr view <n> with reviews -> UNKNOWN (the reviewers line is not rendered)",
      ["pr", "view", "103"], True, "UNKNOWN", 64, "reviewers"),
-    ("pr view <n> --comments with reviews -> UNKNOWN (review entries are not rendered)",
+    ("pr view <n> --comments with a review that states no time -> UNKNOWN (gh's order is "
+     "not known)",
      ["pr", "view", "103", "--comments"], True, "UNKNOWN", 64, "review"),
 ]
 
@@ -2622,9 +2916,10 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     finally:
         shutil.rmtree(d, ignore_errors=True)
+    # #325: what jq rejects is the command's failure, as in gh — exit 1, no UNKNOWN
     rc, out, routes = run_route(["api", "repos/acme/demo/pulls/101/comments", "--jq", '.[] | "'])
-    ok = rc == 64 and routes == ["review-comments-list", "UNKNOWN"]
-    print("%s route: a malformed --jq with jq present -> UNKNOWN (jq rejected it)"
+    ok = rc == 1 and routes == ["review-comments-list"]
+    print("%s route: a malformed --jq with jq present -> exit 1, the command's failure"
           % ("PASS" if ok else "FAIL"), "" if ok else "(got rc=%d routes=%s)" % (rc, routes))
     passed, failed = passed + ok, failed + (not ok)
     for name, argv, route, want in JQ_EXACT:
@@ -2653,6 +2948,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in fields_rows():
         print("%s route: #291 %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in gaps_rows():
+        print("%s route: #325 %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     octo = dict(STATE, repo={"owner": "octo", "name": "widgets"})
     for name, argv, route, needles in REPO_ROUTES:

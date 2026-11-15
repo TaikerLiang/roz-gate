@@ -55,17 +55,46 @@ def save(st):
 SEEDED = os.path.join(STATE_DIR, "seeded-issues.json")
 STATED_FACTS = ("updatedAt", "stateReason", "closedAt")
 
+# #325 — the fixture's clock. Every write the stub performs is stamped
+# RUN_NOW (a comment's, a thread reply's, a PR created or merged in the
+# run); an item whose fixture states no createdAt was created at
+# CORPUS_EPOCH. GitHub's updatedAt / closedAt / mergedAt, when the fixture
+# states none, are the latest moment the fixture records for the item as
+# seeded (`_latest`, kept in the seed snapshot so a write in the run never
+# moves them).
+RUN_NOW = "2026-08-24T12:00:00Z"
+CORPUS_EPOCH = "2026-08-01T00:00:00Z"
+
 
 def issue_digest(iss):
     body = {k: v for k, v in iss.items() if k not in STATED_FACTS}
     return hashlib.sha256(json.dumps(body, sort_keys=True).encode("utf-8")).hexdigest()[:16]
 
 
+def _latest(item):
+    """The latest moment the fixture records for an issue or PR: its
+    createdAt (CORPUS_EPOCH when unstated), a stated closedAt / mergedAt,
+    and each comment's, review's, review-thread comment's and timeline
+    event's time. A fixture where something happened later than all of
+    them (a close after the last comment, say) states the fact itself."""
+    times = [item.get("createdAt") or CORPUS_EPOCH, item.get("closedAt"), item.get("mergedAt")]
+    times += [c.get("createdAt") or c.get("created_at") for c in item.get("comments", [])]
+    times += [r.get("submittedAt") or r.get("submitted_at") for r in item.get("reviews", [])]
+    times += [c.get("createdAt") for t in item.get("threads", []) for c in t.get("comments", [])]
+    times += [e.get("created_at") for e in item.get("timeline", [])]
+    return max(t for t in times if t)
+
+
 def remember_seed(st):
     if os.path.exists(SEEDED):
         return
-    snap = {n: {"digest": issue_digest(i), "state": i.get("state", "open").lower()}
+    snap = {n: {"digest": issue_digest(i), "state": i.get("state", "open").lower(),
+                "latest": _latest(i)}
             for n, i in st.get("issues", {}).items()}
+    # #325 — each PR as seeded too, keyed `pr:<n>` (no issue number has a colon)
+    snap.update({"pr:%s" % n: {"digest": issue_digest(p), "state": p.get("state", "OPEN").lower(),
+                               "latest": _latest(p)}
+                 for n, p in st.get("prs", {}).items()})
     try:
         fd = os.open(SEEDED, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
     except FileExistsError:      # another invocation of the same run got there first
@@ -302,13 +331,13 @@ ISSUE_FIELDS = {
     "labels": lambda st, n, iss: [{"name": l} for l in iss.get("labels", [])],
     "assignees": lambda st, n, iss: [{"login": a} for a in iss.get("assignees", [])],
     "author": lambda st, n, iss: {"login": iss.get("author", "")},
-    "createdAt": lambda st, n, iss: iss.get("createdAt", "2026-08-01T00:00:00Z"),
-    # #291 — stated by the fixture or not served. `updatedAt` is never the
-    # latest of the timestamps the fixture happens to carry: that is a
-    # lower bound, not GitHub's value.
+    "createdAt": lambda st, n, iss: iss.get("createdAt", CORPUS_EPOCH),
+    # #291 — stated by the fixture, else (#325) the latest moment the
+    # fixture records for the issue as seeded; never after a write in the run
     "updatedAt": lambda st, n, iss: _updated_at(n, iss),
     # gh's struct zero values for an open issue (api/queries_issue.go:
     # `StateReason string`, `ClosedAt *time.Time`); a closed one needs the fact
+    # (#325: its closedAt, unstated, is the fixture's clock)
     "stateReason": lambda st, n, iss: _closed_fact(n, iss, "stateReason", ""),
     "closedAt": lambda st, n, iss: _closed_fact(n, iss, "closedAt", None),
     "comments": lambda st, n, iss: [
@@ -318,22 +347,22 @@ ISSUE_FIELDS = {
 }
 
 def _updated_at(n, iss):
-    if not iss.get("updatedAt"):
-        return unserved("updatedAt", "issue %s's fixture states none" % n)
     seed = seeded(n)
     if not seed or seed["digest"] != issue_digest(iss):
-        # the stub keeps no clock: after a write in this run the seeded
-        # timestamp is stale, and a fresh one would be invented
+        # after a write in this run the seeded timestamp is stale, and the
+        # write's own time (the stub stamps only some writes) is not known
         return unserved("updatedAt", "issue %s was written to in this run; its seeded "
                         "updatedAt no longer describes it" % n)
-    return iss["updatedAt"]
+    return iss.get("updatedAt") or seed.get("latest") or _latest(iss)
 
 
 def _closed_fact(n, iss, key, when_open):
     """`stateReason` / `closedAt`: the fixture's stated value while the
     issue is in the state it was seeded in — an open issue may state
     `REOPENED` (GitHub's IssueStateReason) — else gh's zero value for an
-    open issue, else UNKNOWN. A state the run itself changed has no stated
+    open issue, else — closedAt of an issue closed as seeded — the latest
+    moment the fixture records (#325), else UNKNOWN. A state the run itself
+    changed has no stated
     reason or time: the seeded one is the old state's."""
     state = iss.get("state", "open").lower()
     seed = seeded(n)
@@ -345,6 +374,9 @@ def _closed_fact(n, iss, key, when_open):
         return iss[key]
     if state == "open":
         return when_open
+    if key == "closedAt" and seed:
+        # #325 — closed as seeded: the latest moment the fixture records
+        return seed.get("latest") or _latest(iss)
     return unserved(key, "issue %s is closed and its fixture states no %s" % (n, key))
 
 
@@ -407,7 +439,9 @@ def json_want(cmd, argv, served):
 #   reviewThreads — haiku55 sweep 2026-11-12; `gh pr view --json reviewThreads`
 #   on gh 2.89.0. gh prints its whole field list after the first line; the
 #   stub prints the fields it serves, which is what is available here.
-GH_REJECTS = {"pr view": {"reviewThreads"}, "pr list": {"reviewThreads"}}
+#   merged — haiku55 sweep 2026-11-15 (C20/1); `gh pr view --json merged` on
+#   gh 2.82.0 (#325). gh's field is `mergedAt` / `state`.
+GH_REJECTS = {"pr view": {"reviewThreads", "merged"}, "pr list": {"reviewThreads", "merged"}}
 
 
 def unserved(field, why):
@@ -577,13 +611,16 @@ REVIEW_DECISIONS = ("", "APPROVED", "CHANGES_REQUESTED", "REVIEW_REQUIRED")
 
 
 def _review_decision(st, pr):
-    """The fixture's stated `reviewDecision`, when it states one. Otherwise
-    only what the reviews settle on their own: a change request still
-    outstanding from some author's latest APPROVED / CHANGES_REQUESTED
-    review (COMMENTED ignored) is CHANGES_REQUESTED whatever the repository
-    requires. Everything else — no reviews, approvals only — is UNKNOWN:
-    GitHub answers "", APPROVED or REVIEW_REQUIRED there according to a
-    review requirement the fixture does not state (codex review, PR #297)."""
+    """The fixture's stated `reviewDecision`, when it states one — a fixture
+    whose repository requires a review states it (REVIEW_REQUIRED, or
+    APPROVED once met). Otherwise (#325) the fixture's repository requires
+    none: no fixture states a branch protection and no route serves one.
+    GitHub's decision there is what the reviews settle: each author's
+    latest APPROVED / CHANGES_REQUESTED review counts (COMMENTED ignored);
+    CHANGES_REQUESTED while any is outstanding, else APPROVED when any
+    approves, else "" — no reviews, or comments only, is "" on a repository
+    with no required review (this repository's own PRs on gh 2.82). A
+    review state the stub does not interpret stays UNKNOWN."""
     n = pr.get("number")
     if "reviewDecision" in pr:
         if pr["reviewDecision"] not in REVIEW_DECISIONS:
@@ -601,17 +638,18 @@ def _review_decision(st, pr):
         latest[r.get("author", "")] = state
     if "CHANGES_REQUESTED" in latest.values():
         return "CHANGES_REQUESTED"
-    return unserved("reviewDecision", "pr %s's fixture states no reviewDecision and its "
-                    "reviews do not settle one (the repository's review requirement is "
-                    "not a fixture fact)" % n)
+    return "APPROVED" if "APPROVED" in latest.values() else ""
 
 
 def _merge_commit(st, pr):
     """null while unmerged. Merged: the fixture's `mergeCommit`, else the
-    ONE merge commit on the base that has the PR's head as a parent — the
-    only history shape where the sandbox states what GitHub's
-    `mergeCommit` is. A squash, a rebase, a head that moved, or two
-    candidates are not guessed."""
+    ONE merge commit on the base that has the PR's head as a parent, else
+    (#325) — no such commit — the head itself when it sits on the base's
+    first-parent line: the seed fast-forwarded the base to the head (the
+    D-family's `git merge feat/5` onto spec/5), and the commit that merge
+    left on the base is the head. Those are the history shapes where the
+    sandbox states what GitHub's `mergeCommit` is. A squash, a rebase, a
+    head that moved, or two candidates are not guessed."""
     if pr.get("state", "OPEN").upper() != "MERGED":
         return None
     if pr.get("mergeCommit"):
@@ -624,6 +662,10 @@ def _merge_commit(st, pr):
         return unserved("mergeCommit", "pr %s is merged, its fixture states no mergeCommit "
                         "and its head or base does not resolve" % n)
     found = [line.split()[0] for line in log.splitlines() if head.strip() in line.split()[2:]]
+    if not found:
+        line = _git("rev-list", "--first-parent", resolve_ref(pr.get("baseRefName", "")))
+        if line is not None and head.strip() in line.split():
+            return {"oid": head.strip()}
     if len(found) != 1:
         return unserved("mergeCommit", "pr %s is merged, its fixture states no mergeCommit "
                         "and the base has %d merge commits with its head as a parent"
@@ -655,6 +697,113 @@ def _pr_files(st, pr):
              "changeType": CHANGE_TYPES.get(r["status"], "CHANGED")} for r in rows]
 
 
+# ---- #325 — the PR facts gh serves that a fixture rarely states ------------
+def _pr_seed(pr):
+    return seeded("pr:%s" % pr.get("number"))
+
+
+def _pr_updated_at(st, pr):
+    """Stated, else the latest moment the fixture records for the PR as
+    seeded; after a write in the run, UNKNOWN (the issue rule, #291)."""
+    seed = _pr_seed(pr)
+    if not seed or seed["digest"] != issue_digest(pr):
+        return unserved("updatedAt", "pr %s was written to in this run; its seeded "
+                        "updatedAt no longer describes it" % pr.get("number"))
+    return pr.get("updatedAt") or seed.get("latest") or _latest(pr)
+
+
+def _pr_merged_at(st, pr):
+    """null unless merged. Stated (`pr merge` states RUN_NOW), else the
+    closedAt the fixture states (GitHub's two are one moment on a merge),
+    else — merged as seeded — the latest moment the fixture records."""
+    if pr.get("state", "OPEN").upper() != "MERGED":
+        return None
+    seed = _pr_seed(pr)
+    if pr.get("mergedAt") or pr.get("closedAt"):
+        return pr.get("mergedAt") or pr.get("closedAt")
+    if seed and seed["state"] == "merged":
+        return seed.get("latest") or _latest(pr)
+    return unserved("mergedAt", "pr %s was merged in this run with no time" % pr.get("number"))
+
+
+def _pr_closed_at(st, pr):
+    """null while open; a merged PR's mergedAt; a closed one's stated
+    closedAt, else — closed as seeded — the latest moment the fixture
+    records."""
+    state = pr.get("state", "OPEN").upper()
+    if state == "OPEN":
+        return None
+    if state == "MERGED":
+        return _pr_merged_at(st, pr)
+    seed = _pr_seed(pr)
+    if pr.get("closedAt"):
+        return pr["closedAt"]
+    if seed and seed["state"] == "closed":
+        return seed.get("latest") or _latest(pr)
+    return unserved("closedAt", "pr %s was closed in this run with no time" % pr.get("number"))
+
+
+def _mergeable(st, pr):
+    """gh's MERGEABLE / CONFLICTING from the sandbox (`git merge-tree` of
+    base and head) for an open or closed PR; a merged one is UNKNOWN, the
+    value GitHub gives (gh 2.82 on a merged PR). A merge git cannot try is
+    not guessed."""
+    if pr.get("state", "OPEN").upper() == "MERGED":
+        return "UNKNOWN"
+    try:
+        r = subprocess.run(["git", "merge-tree", "--write-tree",
+                            resolve_ref(pr.get("baseRefName", "")),
+                            resolve_ref(pr.get("headRefName", ""))],
+                           capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired):
+        r = None
+    if r is not None and r.returncode in (0, 1):
+        return "MERGEABLE" if r.returncode == 0 else "CONFLICTING"
+    return unserved("mergeable", "pr %s's base and head do not merge-tree in the sandbox"
+                    % pr.get("number"))
+
+
+def _pr_diffstat(key):
+    """additions / deletions: the sums over an OPEN PR's files (the rows
+    `files` serves); not served once the sandbox's diff is no longer its."""
+    def total(st, pr):
+        if pr.get("state", "OPEN").upper() != "OPEN":
+            return unserved(key, "pr %s is not open; the sandbox's diff is no longer its "
+                            "diff" % pr.get("number"))
+        return sum(f[key] for f in _pr_files(st, pr))
+    return total
+
+
+def _iso(epoch):
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(epoch)))
+
+
+def _pr_commits(st, pr):
+    """An OPEN PR's commits, base..head in the sandbox, oldest first, in
+    gh's shape (oid, messageHeadline, messageBody, authoredDate,
+    committedDate, authors) — an author is the commit's name and email:
+    the GitHub login a forge maps them to is not the sandbox's to state."""
+    n = pr.get("number")
+    if pr.get("state", "OPEN").upper() != "OPEN":
+        return unserved("commits", "pr %s is not open; base..head is no longer its "
+                        "commits" % n)
+    log = _git("log", "--reverse", "--format=%H%x00%an%x00%ae%x00%at%x00%ct%x00%s%x00%b%x1e",
+               "%s..%s" % (resolve_ref(pr.get("baseRefName", "")),
+                           resolve_ref(pr.get("headRefName", ""))))
+    if log is None:
+        return unserved("commits", "pr %s's base or head does not resolve in the sandbox" % n)
+    rows = []
+    for rec in log.split("\x1e"):
+        rec = rec.strip("\n")
+        if rec:
+            oid, name, email, at, ct, subject, body = rec.split("\x00", 6)
+            rows.append({"oid": oid, "messageHeadline": subject,
+                         "messageBody": body.strip("\n"), "authoredDate": _iso(at),
+                         "committedDate": _iso(ct),
+                         "authors": [{"name": name, "email": email}]})
+    return rows
+
+
 PR_FIELDS = {
     "number": lambda st, pr: pr.get("number"),
     "url": lambda st, pr: web(st) + "/pull/%s" % pr.get("number"),
@@ -666,7 +815,15 @@ PR_FIELDS = {
     "baseRefName": lambda st, pr: pr.get("baseRefName", ""),
     "body": lambda st, pr: pr.get("body", ""),
     "labels": lambda st, pr: [{"name": l} for l in pr.get("labels", [])],
-    "mergedAt": lambda st, pr: pr.get("mergedAt"),
+    "mergedAt": _pr_merged_at,
+    # #325 — gh's facts a seat asked for in the 2026-11-15 sweep
+    "closedAt": _pr_closed_at,
+    "createdAt": lambda st, pr: pr.get("createdAt") or CORPUS_EPOCH,
+    "updatedAt": _pr_updated_at,
+    "mergeable": _mergeable,
+    "additions": _pr_diffstat("additions"),
+    "deletions": _pr_diffstat("deletions"),
+    "commits": _pr_commits,
     "headRefOid": _head_oid,
     # #291 — each from the fixture or the sandbox, or UNKNOWN naming itself
     # `{{sha:<ref>}}` expanded exactly as `issues/<n>/comments` expands it:
@@ -687,6 +844,20 @@ PR_FIELDS = {
 
 def pr_shape(st, pr, want):
     return project(PR_FIELDS, want, st, pr)
+
+
+# #325 — `gh issue view <a PR's number>`: gh 2.82 serves the pull request as
+# an issue (cli/cli#12000: `state` MERGED, `url` …/pull/12000, `stateReason`
+# ""), the issue fields from the PR's own facts.
+PR_AS_ISSUE = {
+    "number": PR_FIELDS["number"], "url": PR_FIELDS["url"], "title": PR_FIELDS["title"],
+    "body": PR_FIELDS["body"], "state": lambda st, pr: pr.get("state", "OPEN").upper(),
+    "closed": PR_FIELDS["closed"], "labels": PR_FIELDS["labels"],
+    "assignees": lambda st, pr: [{"login": a} for a in pr.get("assignees", [])],
+    "author": _pr_author, "createdAt": PR_FIELDS["createdAt"],
+    "updatedAt": _pr_updated_at, "stateReason": lambda st, pr: "",
+    "closedAt": _pr_closed_at, "comments": PR_FIELDS["comments"],
+}
 
 
 # ---- #259 — gh's human format, for a call with no --json --------------------
@@ -722,16 +893,38 @@ def pr_state_plain(pr):
     return "DRAFT" if state == "OPEN" and pr.get("isDraft") else state
 
 
+def plain_comments_and_reviews(pr):
+    """#325 — gh's RawCommentList for `pr view --comments`: the comments and
+    the displayable reviews (not PENDING, not a COMMENTED review with an
+    empty body — the one an inline comment rides in), in time order; a
+    review's status line is its state (`approved`, `changes requested`,
+    `commented`, else `none`). Review threads print nothing here, as in gh."""
+    def status(state):
+        return state.replace("_", " ") if state in (
+            "APPROVED", "CHANGES_REQUESTED", "COMMENTED") else "none"
+    reviews = [dict(r, status=status(r.get("state", "")))
+               for r in pr.get("reviews", [])
+               if r.get("state") != "PENDING"
+               and not (r.get("state") == "COMMENTED" and not r.get("body"))]
+    if not reviews:
+        return plain_comments(pr.get("comments", []), expand_shas)
+    entries = [(c.get("createdAt") or c.get("created_at"), c) for c in pr.get("comments", [])]
+    entries += [(r.get("submittedAt") or r.get("submitted_at"), r) for r in reviews]
+    if not all(t for t, _ in entries):
+        return unserved("review entries", "pr %s: a comment or review states no time, so "
+                        "gh's order is not known" % pr.get("number"))
+    return plain_comments([e for _, e in sorted(entries, key=lambda x: x[0])], expand_shas)
+
+
 def plain_pr(st, pr, comments):
     n = pr.get("number")
-    if pr.get("reviews") or pr.get("threads"):
-        # gh lists each reviewer's latest state and interleaves the reviews
-        # with the comments; neither is emulated
-        return unserved("review entries" if comments else "reviewers",
-                        "pr %s has reviews; the plain-text form does not render them — "
-                        "ask with --json" % n)
     if comments:
-        return plain_comments(pr.get("comments", []), expand_shas)
+        return plain_comments_and_reviews(pr)
+    if pr.get("reviews") or pr.get("threads"):
+        # gh lists each reviewer's latest state on the reviewers line; not
+        # emulated
+        return unserved("reviewers", "pr %s has reviews; the plain-text form does not render "
+                        "them — ask with --json" % n)
     author = _pr_author(st, pr)["login"]
     files = _pr_files(st, pr)
     return ("title:\t%s\nstate:\t%s\nauthor:\t%s\nlabels:\t%s\nassignees:\t%s\n"
@@ -845,8 +1038,13 @@ def jq_project(data, expr):
     JSON, one output per line); no expression → the JSON itself. An
     expression outside the evaluated subset goes to the system `jq -rc`
     (the same output convention) when one is on PATH, and the journal's
-    entry gains `jq: system`; a malformed expression, or no `jq`,
-    invalidates the iteration (#219)."""
+    entry gains `jq: system`; no `jq` invalidates the iteration (#219).
+    An expression jq itself rejects — malformed, or an error on this data
+    — is the command's failure, as in gh (#325): gh made the request
+    first, so a write stays performed and journalled; the call prints what
+    jq printed before failing, exits 1 with jq's message, and its journal
+    entry gains `jq_error` and `exit: 1`. The iteration stays valid: the
+    seat's recovery is behaviour under measurement."""
     if not expr:
         out(data)
         return
@@ -861,13 +1059,37 @@ def jq_project(data, expr):
         except (OSError, subprocess.TimeoutExpired) as e:
             unknown("system jq failed: %s" % e)
         if r.returncode != 0:
-            unknown("jq rejected the expression: %s"
-                    % ((r.stderr.strip().splitlines() or ["?"])[0]))
+            err = r.stderr.strip() or "jq: error"
+            sys.stdout.write(r.stdout)
+            annotate_last(jq="system", jq_error=err.splitlines()[0][:300], exit=1)
+            flush_journal()
+            sys.stderr.write(err + "\n")
+            sys.exit(1)
         annotate_last(jq="system")
         sys.stdout.write(r.stdout)
         return
     for v in vals:
         print(v if isinstance(v, str) else json.dumps(v, ensure_ascii=False))
+
+
+def jq_ignores(data, key, expr):
+    """True only when `--jq expr` is proven not to read `key` of `data`: it
+    prints the same, and exits the same, with `key` absent and with a string
+    sentinel in its place. Any read of the key or below it (`.key.login`,
+    `.["k" + "ey"]`, `.`, `keys`, `has(...)`) tells the two apart. No
+    expression prints the whole object, and no `jq` on PATH proves nothing
+    (codex review, PR #338)."""
+    if not expr or not shutil.which("jq"):
+        return False
+    outs = []
+    for d in (data, dict(data, **{key: "\u0000forge-stub-sentinel"})):
+        try:
+            r = subprocess.run(["jq", "-rc", expr], input=json.dumps(d), capture_output=True,
+                               text=True, timeout=30)
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+        outs.append((r.returncode, r.stdout))
+    return outs[0] == outs[1]
 
 
 def next_id(st):
@@ -929,8 +1151,9 @@ def main():
     if argv[:2] == ["repo", "view"]:
         want = json_want("repo view", argv, REPO_FIELDS)
         journal("repo-view")
-        # no --json: owner and name, as before #250
-        out(project(REPO_FIELDS, want or ["owner", "name"], st))
+        # no --json: owner and name, as before #250; #325: --jq honoured
+        jq_project(project(REPO_FIELDS, want or ["owner", "name"], st),
+                   flag_val(argv, "--jq", "-q") if want else None)
         return
 
     # ---- gh auth status
@@ -956,19 +1179,39 @@ def main():
                             n, ISSUE_FIELDS["state"](st, n, iss), one_line(iss.get("title")),
                             ", ".join(iss.get("labels", [])), _updated_at(n, iss)))
         if want:
-            out(rows)
+            jq_project(rows, flag_val(argv, "--jq", "-q"))   # #325: --jq honoured
         else:
             sys.stdout.write("".join(rows))
         return
 
     if argv[:2] == ["issue", "view"]:
         n = argv[2]
+        if n not in st.get("issues", {}) and n in st.get("prs", {}):
+            # #325 — a PR's number: gh 2.82 serves the pull request as an
+            # issue (PR_AS_ISSUE); journalled as the PR read it is
+            pr = st["prs"][n]
+            want = json_want("issue view", argv, PR_AS_ISSUE)
+            journal("pr-view", pr=n, via="issue-view")
+            if want:
+                jq_project(project(PR_AS_ISSUE, want, st, pr), flag_val(argv, "--jq", "-q"))
+                return
+            comments = "--comments" in argv or "-c" in argv
+            view = {"title": pr.get("title", ""), "state": pr.get("state", "OPEN"),
+                    "labels": pr.get("labels", []), "assignees": pr.get("assignees", []),
+                    "body": pr.get("body", ""),
+                    "comments": [dict(c, body=expand_shas(c.get("body", "")))
+                                 for c in pr.get("comments", [])]}
+            if not comments:
+                view["author"] = _pr_author(st, pr)["login"]
+            sys.stdout.write(plain_issue(st, n, view, comments))
+            return
         if n not in st.get("issues", {}):
             unknown("issue %s not in fixture" % n)
         want = json_want("issue view", argv, ISSUE_FIELDS)
         journal("issue-view", issue=n)
         if want:
-            out(issue_shape(st, n, st["issues"][n], want))
+            jq_project(issue_shape(st, n, st["issues"][n], want),
+                       flag_val(argv, "--jq", "-q"))   # #325: --jq honoured
         else:
             sys.stdout.write(plain_issue(st, n, st["issues"][n],
                                          "--comments" in argv or "-c" in argv))
@@ -1058,13 +1301,12 @@ def main():
             if want:
                 rows.append(pr_shape(st, pr, want))
                 continue
-            created = pr.get("createdAt") or unserved(
-                "createdAt", "pr %s's fixture states no createdAt" % pr.get("number"))
+            created = PR_FIELDS["createdAt"](st, pr)   # #325: stated, else CORPUS_EPOCH
             rows.append("%s\t%s\t%s\t%s\t%s\n" % (
                 pr.get("number"), one_line(pr.get("title")), pr.get("headRefName", ""),
                 pr_state_plain(pr), created))
         if want:
-            out(rows)
+            jq_project(rows, flag_val(argv, "--jq", "-q"))   # #325: --jq honoured
         else:
             sys.stdout.write("".join(rows))
         return
@@ -1088,7 +1330,7 @@ def main():
             sys.exit(1)
         journal("pr-view", pr=n)
         if want:
-            out(pr_shape(st, pr, want))
+            jq_project(pr_shape(st, pr, want), flag_val(argv, "--jq", "-q"))   # #325
         else:
             sys.stdout.write(plain_pr(st, pr, "--comments" in argv or "-c" in argv))
         return
@@ -1122,7 +1364,7 @@ def main():
             "threads": [], "reviews": [], "comments": [],
             # recorded creation evidence (#291): who opened it, as the
             # stub already records for an issue or a comment it creates
-            "author": st.get("agent_login", "paul")}
+            "author": st.get("agent_login", "paul"), "createdAt": RUN_NOW}
         journal("pr-create", write=True, pr=n,
                 head=flag_val(argv, "--head"), draft="--draft" in argv)
         save(st)
@@ -1216,6 +1458,7 @@ def main():
         if n is None:
             unknown("pr %s not in fixture" % argv[2])
         st["prs"][n]["state"] = "MERGED"
+        st["prs"][n].setdefault("mergedAt", RUN_NOW)   # #325: the stub's write clock
         journal("pr-merge", write=True, pr=n)
         save(st)
         return
@@ -1387,7 +1630,7 @@ def main():
             jq_project({"number": int(n_), "title": pr_.get("title", ""), "body": pr_.get("body", ""),
                         "state": "open" if pr_state == "open" else "closed",
                         "draft": pr_.get("isDraft", False),
-                        "merged_at": "2026-08-24T12:00:00Z" if pr_state == "merged" else None,
+                        "merged_at": _pr_merged_at(st, pr_),   # #325: --json mergedAt's
                         "html_url": web(st) + "/pull/%s" % n_,
                         "head": {"ref": head_ref, "sha": sha or "0" * 40},
                         "base": {"ref": pr_.get("baseRefName", "")},
@@ -1448,6 +1691,18 @@ def main():
                 jq_project(view, flag_val(argv, "--jq", "-q"))
                 return
 
+        # ---- #325 — gh api repos/o/r: the repository itself, `gh repo view
+        # --json`'s twin (C12/2 on the 2026-11-15 sweep: `--jq .full_name`).
+        # The fields the fixture and the sandbox state; GET only.
+        if re.match(r"repos/[^/]+/[^/]+$", target) and method == "GET":
+            branch = _default_branch(st)["name"]
+            journal("repo-view", via="api")
+            owner, name = repo_slug(st).split("/")
+            jq_project({"name": name, "full_name": repo_slug(st), "owner": {"login": owner},
+                        "html_url": web(st), "default_branch": branch},
+                       flag_val(argv, "--jq", "-q"))
+            return
+
         # ---- gh api repos/o/r/pulls[?state=…&head=…] — REST PR list, the
         # `gh pr list` twin (D2 re-run on 1.16.2). Same filters, REST shape
         # (`state` lower-case, `head.ref`/`base.ref`, `draft`).
@@ -1467,7 +1722,7 @@ def main():
                     continue
                 rows.append({"number": pr.get("number"), "title": pr.get("title", ""),
                              "state": rest_state, "draft": pr.get("isDraft", False),
-                             "merged_at": "2026-08-24T12:00:00Z" if pr_state == "merged" else None,
+                             "merged_at": _pr_merged_at(st, pr),   # #325
                              "head": {"ref": pr.get("headRefName", "")},
                              "base": {"ref": pr.get("baseRefName", "")},
                              "user": {"login": st.get("agent_login", "paul")},
@@ -1555,6 +1810,35 @@ def main():
                 jq_project({"data": {"repository": repo}},
                            flag_val(argv, "--jq", "-q"))   # codex, PR #238: --jq honoured
                 return
+            # #325 — a reply to a review thread by its node id (E11/2 on the
+            # 2026-11-15 sweep), the REST replies route's twin: journalled
+            # `thread-reply` with `base` the thread's first comment. Each
+            # argument is a literal or the variable the mutation names.
+            if "addPullRequestReviewThreadReply" in q:
+                def gql_arg(name):
+                    m_ = re.search(r'\b%s\s*:\s*(?:\$(\w+)|("(?:[^"\\]|\\.)*"))' % name, q)
+                    if not m_:
+                        return None
+                    return fields.get(m_.group(1)) if m_.group(1) else json.loads(m_.group(2))
+                tid, body = gql_arg("pullRequestReviewThreadId"), gql_arg("body") or ""
+                for n, prd in st.get("prs", {}).items():
+                    for t in prd.get("threads", []):
+                        if t.get("id") != tid:
+                            continue
+                        cid = next_id(st)
+                        root = (t.get("comments") or [{}])[0].get("databaseId")
+                        t.setdefault("comments", []).append(
+                            {"databaseId": cid, "author": st.get("agent_login", "paul"),
+                             "body": body, "createdAt": RUN_NOW})
+                        journal("thread-reply", write=True, pr=n, base=root, body=body,
+                                via="graphql")
+                        save(st)
+                        jq_project({"data": {"addPullRequestReviewThreadReply": {"comment": {
+                            "id": "PRRC_%d" % cid, "databaseId": cid, "body": body,
+                            "url": web(st) + "/pull/%s#discussion_r%d" % (n, cid)}}}},
+                            flag_val(argv, "--jq", "-q"))
+                        return
+                unknown("thread reply: thread %s not in fixture" % tid)
             if "resolveReviewThread" in q:
                 tid = fields.get("t") or fields.get("threadId")
                 for pr in st.get("prs", {}).values():
@@ -1718,6 +2002,13 @@ def main():
                        flag_val(argv, "--jq", "-q"))   # codex, PR #238: --jq honoured
             return
 
+        # #325 — GitHub's reply route names the PR (`pulls/<n>/comments/<id>/
+        # replies`); without the number there is no route (GitHub's OpenAPI
+        # description has none), and gh answers GitHub's 404 (E6 on the
+        # 2026-11-15 sweep). The seat recovers from gh's error, as it would.
+        if re.match(r"repos/[^/]+/[^/]+/pulls/comments/\d+/replies$", target):
+            http_error(404, "Not Found", target=target[:120])
+
         m = re.match(r"repos/[^/]+/[^/]+/pulls/(\d+)/comments/(\d+)/replies$",
                      target)
         if m:
@@ -1820,10 +2111,41 @@ def main():
         if m and method == "GET":
             n = m.group(1)
             iss = st.get("issues", {}).get(n)
+            pr_ = st.get("prs", {}).get(n) if iss is None else None
+            if pr_ is not None:
+                # #325 — GitHub serves every PR here, as an issue carrying
+                # `pull_request` (C26/2). `user` is the fixture's `author`
+                # (`_pr_author`). A PR that states none answers only a --jq
+                # proven not to read `user` (`jq_ignores`) — else UNKNOWN
+                # naming `author`, the `pr view --json author` answer (codex
+                # review, PR #338)
+                expr = flag_val(argv, "--jq", "-q")
+                view = {"number": int(n), "title": pr_.get("title", ""),
+                        "body": pr_.get("body", ""),
+                        "state": "open" if pr_.get("state", "OPEN").upper() == "OPEN"
+                                 else "closed",
+                        "labels": [{"name": lb} for lb in pr_.get("labels", [])],
+                        "assignees": [{"login": a} for a in pr_.get("assignees", [])],
+                        "created_at": PR_FIELDS["createdAt"](st, pr_),
+                        "comments": len(pr_.get("comments", [])),
+                        "html_url": web(st) + "/pull/%s" % n,
+                        "pull_request": {
+                            "url": "https://api.github.com/repos/%s/pulls/%s"
+                                   % (repo_slug(st), n),
+                            "html_url": web(st) + "/pull/%s" % n,
+                            "merged_at": _pr_merged_at(st, pr_)}}
+                if pr_.get("author") or not jq_ignores(view, "user", expr):
+                    view["user"] = _pr_author(st, pr_)
+                journal("pr-view", pr=n, via="api-issue")
+                jq_project(view, expr)
+                return
             if iss is None:
                 unknown("issue %s not in fixture" % n)
             journal("issue-view", issue=n, via="api")
-            shape = issue_shape(st, n, iss, None)
+            # #325 — only the fields this answer prints: an unprinted one
+            # (`updatedAt`, a closed issue's `stateReason`) cannot refuse it
+            shape = issue_shape(st, n, iss, ["title", "body", "labels", "assignees",
+                                             "createdAt", "comments"])
             jq_project({"number": int(n), "title": shape["title"], "body": shape["body"],
                         "state": iss.get("state", "open"),
                         "labels": shape["labels"], "assignees": shape["assignees"],

@@ -318,19 +318,28 @@ prints names the fixture's `repo`. Optional fixture facts the `--json`
 fields read (#291): a PR's `author`, `mergeCommit` and `reviewDecision`; an issue's
 `updatedAt`, `closedAt`, `stateReason`; `repo.default_branch`. Unstated,
 each is derived only where the sandbox proves it (a PR opened in the run;
-the one merge commit with the head as a parent; the remote's HEAD) and is
-otherwise UNKNOWN. A stated issue fact is served only while it still
-describes the issue: the stub records each issue as seeded
-(`seeded-issues.json`, beside `state.json`), and once the run writes to an
-issue its `updatedAt` — or, after a state change, its `stateReason` and
-`closedAt` — is UNKNOWN. The stub keeps no clock and invents no timestamp.
+the one merge commit with the head as a parent, or the head itself when
+the seed fast-forwarded the base to it; the remote's HEAD) or the fixture
+settles it — a repository that states no review requirement requires none,
+so `reviewDecision` is what the reviews settle, `""` with none (#325) —
+and is otherwise UNKNOWN. Timestamps follow the fixture's clock (#325): an
+unstated `createdAt` is the corpus epoch (2026-08-01), the stub's own
+writes are stamped 2026-08-24T12:00Z, and an unstated `updatedAt`, or a
+closed item's `closedAt` / `mergedAt`, is the latest moment the fixture
+records for the item as seeded. A stated or derived fact is served only
+while it still describes the item: the stub records each issue and PR as
+seeded (`seeded-issues.json`, beside `state.json`), and once the run
+writes to one its `updatedAt` — or, after an issue's state change, its
+`stateReason` and `closedAt` — is UNKNOWN. A `--jq` that jq rejects is the
+command's failure, as in gh: exit 1, `jq_error` on the journal entry, the
+iteration valid (#325).
 A call with no `--json` (#259) — `issue view` (with or without
 `--comments`), `issue list`, `pr view`, `pr list` — prints gh's human
 format as gh 2.82 prints it to a pipe, never `{}`: the same facts, so a
-list row needs its issue's `updatedAt` or its PR's `createdAt`, and a
-`pr view` its `author` and an open head (for additions / deletions); a PR
-with reviews is UNKNOWN there (the reviewers line and review entries are
-not emulated). Lines no fixture can state — `projects`, `milestone`,
+`pr view` needs its `author` and an open head (for additions / deletions);
+a PR with reviews is UNKNOWN there (the reviewers line is not emulated),
+while `--comments` interleaves its reviews with the comments in time
+order, as gh does. Lines no fixture can state — `projects`, `milestone`,
 `auto-merge` — are gh's empty values, and so are a comment's
 `association`, `edited` and `status` (`none`, `false`, `none`) unless the
 comment states them (`CONTRIBUTING.md` § state.json, the one exception).
