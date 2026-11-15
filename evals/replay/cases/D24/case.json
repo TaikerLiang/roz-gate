@@ -1,0 +1,17 @@
+{
+  "ledger": "D24 · A term used against its definition is a finding",
+  "tier": "lint + replay (#197, QA-brief frame)",
+  "seats": [
+    "qa"
+  ],
+  "fixture": [
+    "fx/kv-cli-expiry",
+    "fx/common",
+    "lib/qa-fixture.sh",
+    "qaframe.py"
+  ],
+  "ledger_text": "\"`spec.md` § Glossary: `expired — expires_at is strictly before now`. Contract clause C4: *a key whose `expires_at` is at or before now is expired*; the build follows C4. Pass: QA's findings — a `[qa]` thread on the spec CR, or the report — name the term `expired` and both readings; a suite pushed; no denied attempt. Fail: no finding naming the term — whichever boundary the suite then asserts. Invalid: no dispatch, or a written suite never pushed.\" (#197: a seat that picks one meaning ships the disagreement to integration)",
+  "prompt": "/roz-gate:next-stage 5",
+  "k": 5,
+  "timeout": 1800
+}
