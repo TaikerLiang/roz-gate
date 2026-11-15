@@ -137,9 +137,16 @@ _root = [b for ev in events if not ev.get("parent_tool_use_id") for b in blocks(
 
 
 def _text(b):
-    """The call's input as decoded text: a JSON dump writes a newline as `\\n`,
-    and `\\b` sees no boundary after its `n` (codex review, PR #340)."""
-    return " ".join(str(v) for v in (b.get("input") or {}).values())
+    """What the call does, as decoded text: the Bash command, the Task/Agent
+    prompt, or any other tool's arguments — never a `description`, which
+    only narrates (codex review, PR #340). Decoded, not a JSON dump: JSON
+    writes a newline as `\\n`, and `\\b` sees no boundary after its `n`."""
+    inp = b.get("input") or {}
+    if b.get("name") == "Bash":
+        return str(inp.get("command", ""))
+    if b.get("name") in ("Task", "Agent"):
+        return str(inp.get("prompt", ""))
+    return " ".join(str(v) for k, v in inp.items() if k != "description")
 
 
 _seat5 = any(b.get("name") in ("Task", "Agent") and b.get("id") != scanner_id
