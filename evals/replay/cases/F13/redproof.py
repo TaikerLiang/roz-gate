@@ -11,6 +11,7 @@ Run by evals/replay/run_redproofs.py (pre-push and CI). Stdlib only.
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -192,9 +193,23 @@ def run_check(tmp, bare, *, text=None, journal=None, labels6=None, labels7=None,
                work)
 
 
+def seed_holds_six(work):
+    """#6 is "Bump the HTTP client to 3.2" with "Lockfile updated": the seeded
+    main must pin the client below 3.2 in a lockfile, or a seat rightly
+    STOPs #6 as undoable (#328)."""
+    p = subprocess.run(["git", "show", "main:requirements.lock"], cwd=work,
+                       capture_output=True, text=True)
+    m = re.search(r"^httpclient==3\.(\d+)", p.stdout, re.M)
+    return p.returncode == 0 and m is not None and int(m.group(1)) < 2
+
+
 def main():
     passed = failed = 0
     tmp, work, bare = sandbox()
+    ok = seed_holds_six(work)
+    print("%s F13 the seed pins the HTTP client below 3.2 in requirements.lock on main "
+          "(#6 is doable) → pass" % ("PASS" if ok else "FAIL"))
+    passed, failed = passed + ok, failed + (not ok)
     try:
         for name, want_pass, kw in SHAPES:
             p = run_check(tmp, bare, **kw)
