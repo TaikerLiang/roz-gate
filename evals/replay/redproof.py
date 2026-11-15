@@ -75,6 +75,11 @@ throwaway state, the resume rule against staged result.json files.
   order first Read; a Read that errored or got no result, another
   reference, or the command itself is not counted; `run_one` lists the
   count under `signals` and the names under `details`.
+- PATHS-BASH (#329) — a main-agent Bash `cat` of a path file counts in
+  `path_files_read`; a `grep`, `sed -n a,b` or `head -n` excerpt is
+  `path_files_read_partial` instead; an errored `cat`, a mention (echo,
+  printf, comment, heredoc body, `--body` text) and a seat's `cat` are not
+  counted; `run_one` lists the partial count under `signals`.
 - ENV (#321) — a SUT session (and a driver) gets the runner's environment
   minus the launching Claude Code session's: no `CLAUDECODE`, `CLAUDE_PID`,
   `CLAUDE_EFFORT` or `CLAUDE_CODE_*` but the login/provider ones, and its
@@ -2508,6 +2513,141 @@ def path_read_checks():
     ]
 
 
+# ---- #329: a path file loaded with Bash --------------------------------------
+def _bash_ev(command, parent=None, result="ok", out="# next-stage — Path\n"):
+    """A Bash call and its tool_result: "ok", "error" (is_error) or None."""
+    i = "toolu_b%d" % next(_READ_IDS)
+    ev = {"type": "assistant", "message": {"id": "b", "content": [
+        {"type": "tool_use", "id": i, "name": "Bash", "input": {"command": command}}]}}
+    res = {"type": "user", "message": {"content": [
+        {"type": "tool_result", "tool_use_id": i, "content": out,
+         **({"is_error": True} if result == "error" else {})}]}}
+    for e in (ev, res):
+        if parent:
+            e["parent_tool_use_id"] = parent
+    return [ev] + ([res] if result else [])
+
+
+def _paths_both(*events):
+    """{**path_files_read, **path_files_partial} over a staged transcript."""
+    events = [e for x in events for e in (x if isinstance(x, list) else [x])]
+    partial = getattr(rl, "path_files_partial", None)
+    d = tempfile.mkdtemp()
+    try:
+        t = os.path.join(d, "t.jsonl")
+        with open(t, "w") as f:
+            f.writelines(json.dumps(e) + "\n" for e in events)
+        return {**rl.path_files_read(t),
+                **(partial(t) if partial else {"path_files_read_partial": "MISSING"})}
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def _want(read=(), partial=()):
+    return {"path_files_read": len(read), "path_files_read_detail": list(read),
+            "path_files_read_partial": len(partial),
+            "path_files_read_partial_detail": list(partial)}
+
+
+def path_bash_checks():
+    """#329: the 2026-11-15 sweep loaded the routed path file with Bash in 38
+    of 153 valid runs and `path_files_read` said 0. A main-agent Bash
+    command that prints a path file whole counts; one that prints an
+    excerpt is reported apart; a mention, a failed call or a seat's call is
+    not counted. Still a report: no checker reads it."""
+    p = os.path.join(rr.ROOT, "references")
+    b, b2 = (os.path.join(p, "next-stage-path-%s.md" % k) for k in ("b", "b2"))
+    B, B2, C = "next-stage-path-b.md", "next-stage-path-b2.md", "next-stage-path-c.md"
+    # C1 run-1 event 13; C26 run-1 event 97; C17 run-1 event 51.
+    c1 = _paths_both(_bash_ev("cd %s && cat %s" % (p, B)))
+    c26 = _paths_both(_bash_ev("S=%s; cat $S/references/%s" % (rr.ROOT, C)))
+    c17 = _paths_both(_bash_ev(
+        'S=%s; gh issue edit 5 --add-label "status: processing" && echo LOCKED; echo; '
+        'grep -n "B2.7" -A60 $S/references/%s | head -150' % (rr.ROOT, B2)))
+    sed = _paths_both(_bash_ev("sed -n 135,200p %s" % b2), _bash_ev("head -n 40 %s" % b))
+    head = _paths_both(_bash_ev("head -n 1000 %s" % b))
+    # C1 run-3 event 12, D2 run-2 event 75: the reader printed, a later
+    # command exited 1 — the result is an error that starts `Exit code`.
+    late_fail = _paths_both(
+        _bash_ev("S=%s; cat $S/references/%s; echo ======; cat $S/references/branch-names.md"
+                 % (rr.ROOT, B), result="error", out="Exit code 1\n# next-stage — Path B\n…"),
+        _bash_ev("cat %s | sed -n '/B2.7/,$p' | head -120; cat %s/fidelity-brief.md"
+                 % (b2, p), result="error", out="Exit code 1\n### B2.7 QA fidelity review…"))
+    errored = _paths_both(_bash_ev("cat %s" % b, result="error",
+                                   out='PreToolUse:Bash hook error: ["hooks/guard-blind.sh"]'),
+                          _bash_ev("cat %s" % b2, result=None),
+                          _bash_ev("cat %s; echo done" % os.path.join(p, C),
+                                   out="cat: %s: No such file or directory\ndone"
+                                   % os.path.join(p, C)))
+    # codex review, PR #337: GNU head/tail word a missing file differently.
+    gone = "/missing/references/"
+    missing = _paths_both(
+        _bash_ev("head -n 1000 %s%s" % (gone, B), result="error",
+                 out="Exit code 1\nhead: cannot open '%s%s' for reading: No such file or "
+                     "directory" % (gone, B)),
+        _bash_ev("tail -n 5 %s%s; echo done" % (gone, B2),
+                 out="tail: cannot open '%s%s' for reading: No such file or directory\ndone"
+                     % (gone, B2)))
+    mention = _paths_both(
+        _bash_ev('echo "cat %s"' % b), _bash_ev("printf '%%s\\n' %s" % b2),
+        _bash_ev("ls %s  # then cat %s" % (p, b)),
+        _bash_ev("cat > /tmp/notes <<'EOF'\ncat %s\nEOF\necho ok" % b),
+        _bash_ev('gh pr create --title T --body "routed by references/%s"' % B),
+        _bash_ev("wc -l %s; grep -c B2.7 %s" % (b, b2)))
+    # codex review, PR #337: a path name as grep's pattern; stdout sent away.
+    pattern = _paths_both(_bash_ev("grep %s README.md" % B),
+                          _bash_ev("grep -n -A 5 -e %s %s" % (B, b2)))
+    away = _paths_both(_bash_ev("cat %s > /dev/null" % b), _bash_ev("cat %s &>/tmp/x" % b),
+                       _bash_ev("cat %s >> /tmp/x" % b), _bash_ev("cat %s 2>/dev/null" % b2))
+    seat = _paths_both(_bash_ev("cat %s" % b, parent="toolu_1"))
+    upgraded = _paths_both(_bash_ev("grep -n B5 %s" % b), _bash_ev("cat %s" % b))
+    both = _paths_both(_read_ev(b), _bash_ev("cat %s" % b))
+    events = _bash_ev("cat %s" % b) + _bash_ev("sed -n 135,200p %s" % b2)
+    with _fake_claude(_iso_init([_iso_roz(rr.ROOT)])) as d:
+        with open(os.path.join(d, "events.jsonl"), "w") as f:
+            f.writelines(json.dumps(e) + "\n" for e in events)
+        os.environ["FAKE_EVENTS"] = os.path.join(d, "events.jsonl")
+        sut = {"name": "redproof", "mode": "subscription", "model": "m", "base_url": "",
+               "key_env": ""}
+        rdir = os.path.join(d, "run-1")
+        rc = rr.run_one(sut, os.path.join(HERE, "smoke", "S1"), rdir, "read NOTES.md", 60)
+        res = rr.load_json(os.path.join(rdir, "result.json"), {})
+    return [
+        ("`cd references && cat <path file>` (C1 run-1) -> read 1 (%r)" % (c1,),
+         c1 == _want([B])),
+        ("`cat $S/references/<path file>` (C26 run-1) -> read 1", c26 == _want([C])),
+        ("`grep -n … -A60 <path file> | head -150` (C17 run-1) -> partial 1, read 0 (%r)"
+         % (c17,), c17 == _want(partial=[B2])),
+        ("`sed -n 135,200p`, `head -n 40` -> partial, in the order first shown (%r)" % (sed,),
+         sed == _want(partial=[B2, B])),
+        ("`head -n N` with N past the file's last line -> read 1", head == _want([B])),
+        ("a `cat` a hook denied, one never answered, or one whose output says No such file "
+         "-> 0 (%r)" % (errored,), errored == _want()),
+        ("`head -n 1000` / `tail -n 5` of a missing path file (GNU `cannot open '…' for "
+         "reading: No such file or directory`) -> 0 (%r)" % (missing,), missing == _want()),
+        ("an `Exit code 1` result — the reader ran, a later command failed (C1 run-3, D2 "
+         "run-2) -> still counted (%r)" % (late_fail,), late_fail == _want([B], [B2])),
+        ("a mention — echo, printf, a comment, a heredoc body, a `--body` text — or a "
+         "`wc -l` / `grep -c` -> 0 (%r)" % (mention,), mention == _want()),
+        ("a path name as grep's pattern (`grep <name> README.md`) -> 0; `grep -n -A 5 -e "
+         "<name> <path file>` -> that file partial (%r)" % (pattern,),
+         pattern == _want(partial=[B2])),
+        ("a `cat` whose stdout goes to a file (`>`, `&>`, `>>`) -> 0; `2>/dev/null` still "
+         "counts (%r)" % (away,), away == _want([B2])),
+        ("a seat's `cat` (parent_tool_use_id) -> 0 (%r)" % (seat,), seat == _want()),
+        ("an excerpt then a `cat` of the same file -> read 1, partial 0 (%r)" % (upgraded,),
+         upgraded == _want([B])),
+        ("a Read and a `cat` of the same file -> counted once", both == _want([B])),
+        ("run_one records `path_files_read_partial` under `signals`, its names under "
+         "`details`",
+         rc == 0 and res.get("path_files_read") == 1
+         and res.get("path_files_read_partial") == 1
+         and res.get("path_files_read_partial_detail") == [B2]
+         and "path_files_read_partial" in (res.get("signals") or [])
+         and "path_files_read_partial_detail" in (res.get("details") or [])),
+    ]
+
+
 # ---- #282: nothing starts a model before every argument is checked ----------
 def _cli(main, argv):
     """(exit code, output, claude launches) for one in-process runner call
@@ -2744,6 +2884,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in path_read_checks():
         print("%s paths-read: %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in path_bash_checks():
+        print("%s paths-bash: %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in env_checks():
         print("%s env: %s" % ("PASS" if ok else "FAIL", name))

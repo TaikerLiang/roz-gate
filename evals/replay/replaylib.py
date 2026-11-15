@@ -152,16 +152,225 @@ def isolation_breach(transcript, plugin_dir):
     return None
 
 PATH_FILE_RE = re.compile(r"(?:^|/)references/(next-stage-path-(?:a|b|b2|c)\.md)$")
+PATH_FILE_NAME_RE = re.compile(r"^next-stage-path-(?:a|b|b2|c)\.md$")
+# Bash programs that print a file's lines (#329): `cat` the whole file, the
+# others a part of it unless their arguments cover the whole file.
+WHOLE_READERS = {"cat"}
+PART_READERS = {"grep", "egrep", "fgrep", "rg", "awk", "sed", "head", "tail"}
+GREP_SILENT = re.compile(r"^-[A-Za-z]*[qlcL]")  # -q / -l / -c / -L print no line
 
 
-def path_files_read(transcript):
-    """The `next-stage` path files a session Read (#279): the distinct
-    `references/next-stage-path-*.md` names in the order first Read, seats
-    included, and their count — `path_files_read` is a signal (a count),
-    `path_files_read_detail` a detail. A Read counts only once its
-    tool_result came back without `is_error`: a failed or unanswered Read
-    loaded nothing (codex review, PR #316). A report, never a verdict."""
-    names, asked = [], {}
+def _shell_commands(cmd):
+    """The simple commands of a Bash command line, as (words, piped, away) —
+    piped when its stdout feeds the next command, away when its stdout goes
+    to a file (`>`, `>>`, `&>`; codex review, PR #337). A small reading, not
+    a shell: quotes and backslashes are honoured; a `#` comment, a heredoc
+    body and a redirection's target are no words."""
+    out, words, heredocs = [], [], []
+    cur, redirect, delim, away = None, False, False, False
+
+    def word():
+        nonlocal cur, redirect, delim
+        if cur is None:
+            return
+        if delim:
+            heredocs.append(cur)
+        elif not redirect:
+            words.append(cur)
+        cur, redirect, delim = None, False, False
+
+    i, n = 0, len(cmd)
+    while i < n:
+        c = cmd[i]
+        if c == "\\":
+            if cmd[i + 1:i + 2] != "\n":
+                cur = (cur or "") + cmd[i + 1:i + 2]
+            i += 2
+        elif c == "'":
+            j = cmd.find("'", i + 1)
+            j = n if j < 0 else j
+            cur, i = (cur or "") + cmd[i + 1:j], j + 1
+        elif c == '"':
+            j, text = i + 1, ""
+            while j < n and cmd[j] != '"':
+                j += cmd[j] == "\\" and j + 1 < n
+                text, j = text + cmd[j], j + 1
+            cur, i = (cur or "") + text, j + 1
+        elif c in " \t":
+            word()
+            i += 1
+        elif c == "#" and cur is None:
+            j = cmd.find("\n", i)
+            i = n if j < 0 else j
+        elif c in "<>" or cmd[i:i + 2] == "&>":
+            fd = None
+            if c != "&" and cur is not None and cur.isdigit():
+                fd, cur = cur, None  # `2>`: a file descriptor, not a word
+            word()
+            if cmd[i:i + 3] == "<<<":
+                i, redirect = i + 3, True
+            elif cmd[i:i + 2] == "<<":
+                i, delim = i + 2 + (cmd[i + 2:i + 3] == "-"), True
+            else:
+                j = i + 1
+                while j < n and cmd[j] in ">&|":
+                    j += 1
+                # stdout to a file — not `2>`, not `>&2` (the tool returns stderr too)
+                away |= c != "<" and fd in (None, "1") and not cmd[i:j].endswith("&")
+                i, redirect = j, True
+        elif c in "\n;&|()":
+            sep = cmd[i:i + 2] if cmd[i:i + 2] in ("&&", "||", "|&", ";;") else c
+            word()
+            if words:
+                out.append((words, sep in ("|", "|&"), away))
+            words, away = [], False
+            i += len(sep)
+            if c == "\n":
+                for d in heredocs:  # a body runs to the line holding its delimiter
+                    while i < n:
+                        j = cmd.find("\n", i)
+                        line, i = cmd[i:n if j < 0 else j], n if j < 0 else j + 1
+                        if line.strip() == d:
+                            break
+                heredocs = []
+        else:
+            cur, i = (cur or "") + c, i + 1
+    word()
+    if words:
+        out.append((words, False, away))
+    return out
+
+
+# Per reader: the short options that take a value, and those whose value is
+# the pattern or script (so no operand is). grep, sed and awk take their
+# first operand as the pattern or script unless one of those was given.
+VALUE_OPTS = {"grep": ("ABCmef", "ef"), "rg": ("ABCmefgtT", "ef"), "sed": ("ef", "ef"),
+              "awk": ("Fvf", "f"), "head": ("nc", ""), "tail": ("nc", ""), "cat": ("", "")}
+VALUE_OPTS["egrep"] = VALUE_OPTS["fgrep"] = VALUE_OPTS["grep"]
+
+
+def _file_operands(prog, args):
+    """A reader's file operands: its arguments less options, option values
+    and the pattern or script (codex review, PR #337 — `grep
+    next-stage-path-b.md README.md` searches README.md)."""
+    takes, scripts = VALUE_OPTS[prog]
+    script = prog in ("grep", "egrep", "fgrep", "rg", "sed", "awk")
+    files, i, opts = [], 0, True
+    while i < len(args):
+        a = args[i]
+        if opts and a == "--":
+            opts = False
+        elif opts and a.startswith("--"):
+            if a in ("--regexp", "--file"):
+                script, i = False, i + 1
+            elif a.startswith(("--regexp=", "--file=")):
+                script = False
+        elif opts and a.startswith("-") and len(a) > 1:
+            for k, ch in enumerate(a[1:], 1):
+                if ch in takes:
+                    script = script and ch not in scripts
+                    i += k == len(a) - 1  # the value is the next argument
+                    break
+        elif script:
+            script = False  # the pattern or script
+        else:
+            files.append(a)
+        i += 1
+    return files
+
+
+def _path_file_lines(name):
+    """The line count of the plugin's own copy of a path file, or None."""
+    try:
+        with open(os.path.join(ROOT, "references", name), encoding="utf-8") as f:
+            return sum(1 for _ in f)
+    except OSError:
+        return None
+
+
+def _covers(prog, args, name):
+    """These arguments print the whole of `name`: `cat`; `tail -n +1`; `head
+    -n N`, or `sed -n a,bp` from line 1, when N (or b) reaches the last line
+    of the plugin's own copy. Anything else is an excerpt."""
+    if prog == "cat":
+        return True
+    if prog == "tail":
+        return any(a in ("+1", "-n+1") for a in args) or ("-n", "+1") in zip(args, args[1:])
+    lines = _path_file_lines(name)
+    if not lines:
+        return False
+    if prog == "head":
+        if any(a.startswith(("-c", "--bytes")) for a in args):
+            return False
+        count = 10
+        for a, b in zip(args, args[1:] + [""]):
+            m = re.match(r"^(?:-n|--lines=|-)(\d+)$", a) or \
+                (a == "-n" and re.match(r"^(\d+)$", b))
+            if m:
+                count = int(m.group(1))
+        return count >= lines
+    if prog == "sed" and "-n" in args:
+        for a in args:
+            m = re.match(r"^(\d+),(\d+|\$)p$", a)
+            if m and int(m.group(1)) <= 1 and (m.group(2) == "$" or int(m.group(2)) >= lines):
+                return True
+    return False
+
+
+def _bash_path_reads(cmd):
+    """(whole, part): the path files a Bash command prints whole, and those
+    it prints in part (#329). Only a reader's file operand counts — a name
+    in an `echo`, a comment, a heredoc body or a `--body` text is a mention.
+    A reader piped into another command shows an excerpt; one whose stdout
+    goes to a file shows nothing."""
+    whole, part = [], []
+    for words, piped, away in _shell_commands(cmd):
+        while words and re.match(r"^[A-Za-z_]\w*=", words[0]):
+            words = words[1:]  # VAR=value before the program
+        if not words:
+            continue
+        prog, args = words[0].rsplit("/", 1)[-1], words[1:]
+        if away or prog not in WHOLE_READERS | PART_READERS:
+            continue
+        if prog in ("grep", "egrep", "fgrep", "rg") and any(map(GREP_SILENT.match, args)):
+            continue
+        for a in _file_operands(prog, args):
+            name = a.rsplit("/", 1)[-1]
+            if PATH_FILE_NAME_RE.match(name):
+                into = whole if not piped and _covers(prog, args, name) else part
+                if name not in into:
+                    into.append(name)
+    return whole, part
+
+
+def _result_text(block):
+    c = block.get("content")
+    if isinstance(c, list):
+        return "\n".join(str(x.get("text", "")) for x in c if isinstance(x, dict))
+    return str(c or "")
+
+
+def _bash_loaded(name, block):
+    """A Bash result showed `name`: the command ran — no `is_error`, or one
+    whose text starts `Exit code` (the exit code is the last command's, so
+    `cat <file>; false` errs too); a hook's denial or a vanished working
+    directory did not run it — and no output line names the file and says
+    `No such file or directory` (`cat: <f>: …` and GNU `head: cannot open
+    '<f>' for reading: …` alike; codex review, PR #337)."""
+    text = _result_text(block)
+    ran = not block.get("is_error") or text.startswith("Exit code")
+    return ran and not any(name in ln and "No such file or directory" in ln
+                           for ln in text.splitlines())
+
+
+def _path_reads(transcript):
+    """(read, partial): the path files a session loaded whole — by the Read
+    tool (seats included) or by a main-agent Bash command (#329) — in the
+    order first loaded, and those only a main-agent Bash command printed in
+    part. A Read counts only once its tool_result came back without
+    `is_error` (codex review, PR #316); a Bash command as `_bash_loaded`
+    says."""
+    read, partial, asked = [], [], {}
     try:
         for line in open(transcript, encoding="utf-8"):
             try:
@@ -171,17 +380,50 @@ def path_files_read(transcript):
             for b in event_message(ev).get("content") or []:
                 if not isinstance(b, dict):
                     continue
+                inp = b.get("input") or {}
                 if b.get("type") == "tool_use" and b.get("name") == "Read":
-                    m = PATH_FILE_RE.search(str((b.get("input") or {}).get("file_path", "")))
+                    m = PATH_FILE_RE.search(str(inp.get("file_path", "")))
                     if m:
-                        asked[b.get("id")] = m.group(1)
-                elif b.get("type") == "tool_result" and not b.get("is_error"):
-                    name = asked.get(b.get("tool_use_id"))
-                    if name and name not in names:
-                        names.append(name)
+                        asked[b.get("id")] = ([m.group(1)], [], False)
+                elif b.get("type") == "tool_use" and b.get("name") == "Bash" \
+                        and not ev.get("parent_tool_use_id"):
+                    whole, part = _bash_path_reads(str(inp.get("command", "")))
+                    if whole or part:
+                        asked[b.get("id")] = (whole, part, True)
+                elif b.get("type") == "tool_result" and b.get("tool_use_id") in asked:
+                    whole, part, bash = asked[b.get("tool_use_id")]
+                    for names, into in ((whole, read), (part, partial)):
+                        for name in names:
+                            if name not in into and (
+                                    _bash_loaded(name, b) if bash
+                                    else not b.get("is_error")):
+                                into.append(name)
     except OSError:
         pass
-    return {"path_files_read": len(names), "path_files_read_detail": names}
+    return read, [n for n in partial if n not in read]
+
+
+def path_files_read(transcript):
+    """The `next-stage` path files a session loaded whole (#279): the
+    distinct `references/next-stage-path-*.md` names in the order first
+    loaded, and their count — `path_files_read` is a signal (a count),
+    `path_files_read_detail` a detail. A Read counts, seats included; so
+    does a main-agent Bash command printing the whole file, `cat` (#329).
+    A failed or unanswered call loaded nothing (codex review, PR #316). A
+    report, never a verdict."""
+    read, _ = _path_reads(transcript)
+    return {"path_files_read": len(read), "path_files_read_detail": read}
+
+
+def path_files_partial(transcript):
+    """The path files only a main-agent Bash excerpt showed — `grep`, `sed -n
+    a,b`, `head -n`, a reader piped onward — and nothing loaded whole
+    (#329): `path_files_read_partial` (a signal) and
+    `path_files_read_partial_detail` (the names). A report, never a
+    verdict."""
+    _, partial = _path_reads(transcript)
+    return {"path_files_read_partial": len(partial),
+            "path_files_read_partial_detail": partial}
 
 # What the runtime (or our own timeout) writes to the SUT's stderr when the
 # session was cut short. A cut-short session can still carry result events
