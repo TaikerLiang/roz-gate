@@ -113,7 +113,7 @@ Base everything strictly on the issue body. Per the workflow's stage (2):
   `## Rules`, `## Scenarios`, `## Open Questions`, with **at most 3 lines
   per rule** (title line + rationale italics); for `technical-spec.md`:
   the numbered clauses (`G<k>`/`C<k>`) and the §5 port table. Everything
-  else — background, current-state surveys, glossary, design notes,
+  else — background, current-state surveys, design notes,
   alternatives considered, worked examples — is the **supplement**: a
   trailing `## Supplement` section whose body is one
   `<details><summary>Supplement — <what it holds></summary>` block, and
@@ -122,6 +122,12 @@ Base everything strictly on the issue body. Per the workflow's stage (2):
   scrolls past it. Section headings, rule and clause IDs, tags and the
   §5 table keep their exact shapes — the fold changes placement, never
   the things the hooks and checkers parse.
+- **Glossary** (#197): `spec.md` may carry a must-read `## Glossary`, one
+  line per term, `- <term> — <definition>`, only for a term two seats could
+  read differently. `em` owns it; `product` proposes terms in the debate.
+  Downstream seats use a term as defined; a definition found insufficient or
+  contradicted goes through the seat's own channel (the implementer's
+  question, QA's step-zero finding), never settled locally.
 - **Scenario boundary:** scenario text states observable behaviour from
   an actor's observation surface — Given/When/Then only. Content
   addressed to another seat (test guidance, review guidance, "recorded so

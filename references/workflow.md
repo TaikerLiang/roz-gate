@@ -544,7 +544,16 @@ denies the merge itself in a loop worktree (`hooks/README.md`).
   promised observation point is the same defect in the other direction** —
   QA reports it, never works around it or silently downgrades the scenario
   to `uncovered`. (In hexagonal-architecture terms: a driving port whose actor
-  is the acceptance suite.)
+  is the acceptance suite.) **Where a shared fact lives** (#197) — one home
+  each; seats read it there, never re-decide it:
+
+  | fact | home |
+  |---|---|
+  | test commands, suite location | the config block: `test`, `acceptance_dir`, `acceptance_test` |
+  | a domain term | `spec.md` § Glossary |
+  | the test port | the `**Test port**` line |
+  | control and observation points, per-scenario observability | `technical-spec.md` §5 |
+  | service prerequisites | the project's own docs |
 - **The verdict lives at integration, by design.** Since 2.0.0 (4) starts
   after (3) has landed, and the verdict stays honest for three reasons that
   do not depend on timing: QA never reads the implementation (guard-blind
