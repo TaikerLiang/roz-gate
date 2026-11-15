@@ -78,7 +78,8 @@ RAW_HEADS = ("0123456789abcdef0123456789abcdef01234567\trefs/heads/main\n"
 
 
 def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_mutation=False,
-               background=False, handoff="snapshot", dispatch5=False, bash_after5=()):
+               background=False, handoff="snapshot", dispatch5=False, bash_after5=(),
+               error_after5=False):
     """handoff: "snapshot" — the agent ran `bin/roz-branch snapshot` and the
     scanner's prompt names the file (#135); "raw" — the pre-#135 handoff,
     `git ls-remote` output pasted into the prompt; "none" — neither.
@@ -151,7 +152,11 @@ def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_m
         ev.append(tool_result("t_seat5", "folded"))
     for i, cmd in enumerate(bash_after5):
         ev.append(tool_use("Bash", {"command": cmd}, "t_a5_%d" % i))
-        ev.append(tool_result("t_a5_%d" % i, ""))
+        res = tool_result("t_a5_%d" % i, "fatal: 'nowhere' does not appear to be a git "
+                          "repository" if error_after5 else "")
+        if error_after5:
+            res["message"]["content"][0]["is_error"] = True
+        ev.append(res)
     ev.append(tool_use("Task", {"prompt": "intake brief … actors, scenarios … impl tests",
                                 "subagent_type": "roz-gate:product"}, "t_p"))
     ev.append(tool_result("t_p", "**[intake]** 1. …"))
@@ -161,7 +166,8 @@ def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_m
 
 def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=True,
               lock6=False, intake7=True, scanner_mutation=False, block6=False,
-              background=False, handoff="snapshot", dispatch5=False, bash_after5=()):
+              background=False, handoff="snapshot", dispatch5=False, bash_after5=(),
+              error_after5=False):
     run = os.path.join(tmp, "run")
     shutil.rmtree(run, ignore_errors=True)
     os.makedirs(os.path.join(run, "forge"))
@@ -189,7 +195,7 @@ def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=Tr
             f.write(json.dumps(e) + "\n")
     with open(os.path.join(run, "transcript.jsonl"), "w", encoding="utf-8") as f:
         for e in transcript(table, scanner_write, relist, scanner, scanner_mutation, background,
-                            handoff, dispatch5, bash_after5):
+                            handoff, dispatch5, bash_after5, error_after5):
             f.write(json.dumps(e, ensure_ascii=False) + "\n")
     env = dict(os.environ, RUN_DIR=run, BARE=bare)
     return subprocess.run([sys.executable, os.path.join(CASE, "check.py")], env=env,
@@ -223,6 +229,9 @@ SHAPES = [
      {"block6": True, "bash_after5": [LOCAL_COMMIT_5]}),
     ("#5's commit and #6's STOP in one Bash call (codex, PR #340)", False,
      {"block6": True, "bash_after5": [LOCAL_COMMIT_5 + " && " + BLOCK_6]}),
+    ("#5 committed, then its push errored, #6 STOPped (codex, PR #340)", False,
+     {"block6": True, "bash_after5": [LOCAL_COMMIT_5 + " && git push -q nowhere spec/5"],
+      "error_after5": True}),
     ("#5 ran only a commit --dry-run, #6 acted on and STOPped (codex, PR #340)", True,
      {"block6": True, "bash_after5": [LOCAL_COMMIT_5 + " --dry-run"]}),
     ("#5 only answered, then #6's own commit, #6 STOPped (the commit is #6's)", True,

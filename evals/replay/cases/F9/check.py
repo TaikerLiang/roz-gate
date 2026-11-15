@@ -125,17 +125,15 @@ c.expect("patrol.md §3 (closest to done)", "the pass acted on #5 (lock or marke
 # dispatch on #5 is a Task/Agent call by the main agent, not the scanner,
 # whose input names #5's work; a commit on #5 is spec/5 on the remote beyond
 # the seed's one commit over main, or a `git commit` the main agent ran
-# before its first call on #6 — pushed or not; a `--dry-run` or a call that
-# errored is not one (codex review, PR #340).
+# before its first call on #6 — pushed or not, even in a call that later
+# errored; a `--dry-run` is not one (codex review, PR #340).
 _six = r.state()["issues"]["6"]
 NAMES_5 = re.compile(r"#5\b|\bissue 5\b|\b(?:spec|feat|qa)/5\b|pull/101\b"
                      r"|\b(?:PR|CR) #?101\b", re.I)
 NAMES_6 = re.compile(r"#6\b|\bissue (?:edit|comment|view) 6\b|\bfast/6\b", re.I)
 GIT_COMMIT = re.compile(r"\bgit\b[^|;&\n]*\bcommit\b(?![^|;&\n]*--dry-run)")
-_errored = {b.get("tool_use_id") for ev in events for b in blocks(ev)
-            if b.get("type") == "tool_result" and b.get("is_error")}
 _root = [b for ev in events if not ev.get("parent_tool_use_id") for b in blocks(ev)
-         if b.get("type") == "tool_use" and b.get("id") not in _errored]
+         if b.get("type") == "tool_use"]
 
 
 def _text(b):
