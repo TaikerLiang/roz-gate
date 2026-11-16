@@ -401,6 +401,61 @@ class RuleE_QuotedOperands(HookTest):
                 self.assertDenied(self.call("Bash", {"command": cmd}, repo), "read of lib/")
 
 
+# The `src/` table of test_guard_blind.py, replayed under a custom list: the
+# same commands with `src/` spelled `impl/`, in the same fixture with the
+# directory renamed. One engine means one verdict — a command the default
+# predicate denies or allows gets the same answer for a listed directory.
+# (Codex review, PR #345, round 3: `gh api -F body=@lib/x.py` passed while
+# its `src/` form was denied; found one finding at a time until this.)
+# A case is exempt only where the two predicates differ BY CONTRACT, and
+# the reason is written beside it.
+PARITY_EXEMPT = {}
+
+
+class RuleE_ParityWithTheSrcTable(HookTest):
+    guard = "guard-blind"
+
+    def setUp(self):
+        super().setUp()
+        self.repo = self.new_repo(
+            {"CLAUDE.md": config_block(forge="github", implementation_dirs="impl"),
+             "impl/app.txt": "demo\n", "tests/acceptance/test_expiry.py": "# S1\n"},
+            commit=True)
+        (self.repo / "sub").mkdir()
+        self.git(self.repo, "branch", "-q", "feat/5")
+        self.git(self.repo, "checkout", "-q", "-b", "qa/5")
+        self.git(self.repo, "worktree", "add", "-q",
+                 str(self.repo / ".git/roz-gate/wt/spec/5"), "-b", "spec/5")
+        self.write(self.repo / ".git/roz-gate/fidelity-dispatch", "issue=5\n")
+
+    def test_the_same_verdicts(self):
+        import test_guard_blind as default
+
+        def custom(text):
+            return text.replace("src/", "impl/")
+
+        ran = 0
+        for name, cmd, says in default.BASH_DENIED:
+            if name in PARITY_EXEMPT:
+                continue
+            ran += 1
+            with self.case("parity: " + custom(name)):
+                self.assertDenied(self.call("Bash", {"command": custom(cmd)}, self.repo,
+                                            agent_type="roz-gate:qa"), custom(says))
+        for name, cmd in default.BASH_ALLOWED:
+            if name in PARITY_EXEMPT:
+                continue
+            ran += 1
+            with self.case("parity: " + custom(name)):
+                self.assertAllowed(self.call("Bash", {"command": custom(cmd)}, self.repo,
+                                             agent_type="roz-gate:qa"))
+        with self.case("parity: the src/ table was replayed (%d commands), exemptions are "
+                       "named cases of it" % ran):
+            self.assertGreater(ran, 100)
+            names = {c[0] for c in default.BASH_DENIED + default.BASH_ALLOWED}
+            self.assertEqual(set(PARITY_EXEMPT) - names, set())
+
+
 class RuleE_ImplementationDirsWithSrc(ImplementationDirsBase):
     DIRS = "lib, src"
 
