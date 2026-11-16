@@ -313,6 +313,94 @@ class RuleE_ImplementationDirs(ImplementationDirsBase):
             self.assertDenied(self.call("Read", {"file_path": "real/x.py"}, repo), "under code/")
 
 
+class RuleE_QuotedOperands(HookTest):
+    """Codex review, PR #345 (round 2): operands were split on whitespace
+    with no regard for quotes, so a path holding a space — a listed
+    directory `my lib`, a checkout under `checkout with spaces` — was judged
+    as pieces that are not the file Bash reads, and passed."""
+
+    guard = "guard-blind"
+
+    def repo_with(self, dirs, files, name=None):
+        files = dict(files)
+        files["CLAUDE.md"] = config_block(forge="github", implementation_dirs=dirs)
+        files["README.md"] = "my lib is where the code lives\n"
+        repo = self.new_repo(files, commit=True, branch="qa/5")
+        if name:
+            moved = repo.parent / name
+            repo.rename(moved)
+            repo = moved
+        self.write(repo / ".git/roz-gate/fidelity-dispatch", "issue=5\nread=my lib/port.py\n")
+        return repo
+
+    def test_a_listed_directory_with_a_space(self):
+        repo = self.repo_with("my lib", {"my lib/x.py": "x\n", "my lib/port.py": "p\n",
+                                         "my library/x.py": "other\n"})
+        with self.case("quoted: the tool prints `Implementation: my lib`"):
+            self.assertEqual(tool(repo).stdout, "Implementation: my lib\n")
+        for name, cmd in [
+            ('quoted: cat "my lib/x.py" denied', 'cat "my lib/x.py"'),
+            ("quoted: cat 'my lib/x.py' denied", "cat 'my lib/x.py'"),
+            ("quoted: cat my\\ lib/x.py denied (an escaped space)", "cat my\\ lib/x.py"),
+            ('quoted: cat "my lib"/x.py denied (a word of two parts)', 'cat "my lib"/x.py'),
+            ('quoted: cat "./my lib/x.py" denied', 'cat "./my lib/x.py"'),
+            ('quoted: grep -r foo "my lib/" denied', 'grep -r foo "my lib/"'),
+            ('quoted: --file="my lib/x.py" denied', 'python3 t.py --file="my lib/x.py"'),
+            ('quoted: an absolute quoted path denied', 'cat "%s/my lib/x.py"' % repo),
+            ('quoted: the port and its sibling in one command denied',
+             'cat "my lib/port.py" "my lib/x.py"'),
+        ]:
+            with self.case(name):
+                self.assertDenied(self.call("Bash", {"command": cmd}, repo), "read of my lib/")
+        with self.case('quoted: Read "my lib/x.py" denied (it always was)'):
+            self.assertDenied(self.call("Read", {"file_path": "my lib/x.py"}, repo),
+                              "under my lib/")
+        for name, cmd in [
+            ('quoted: cat "my library/x.py" allowed (a look-alike)', 'cat "my library/x.py"'),
+            ('quoted: grep "my lib" README.md allowed (a quoted pattern, no path)',
+             'grep "my lib" README.md'),
+            ('quoted: cat "my lib/port.py" allowed (the read= port)', 'cat "my lib/port.py"'),
+            ("quoted: cat 'my lib/port.py' allowed (the port, single quotes)",
+             "cat 'my lib/port.py'"),
+            ('quoted: an unterminated quote does not crash the guard', 'echo "my lib'),
+        ]:
+            with self.case(name):
+                self.assertAllowed(self.call("Bash", {"command": cmd}, repo))
+
+    def test_a_checkout_whose_path_has_spaces(self):
+        repo = self.repo_with("lib", {"lib/x.py": "x\n", "docs/n.md": "n\n"},
+                              name="checkout with spaces")
+        for name, cmd in [
+            ("spaces: a quoted absolute read of lib/ denied", 'cat "%s/lib/x.py"' % repo),
+            ("spaces: the same, single-quoted, denied", "cat '%s/lib/x.py'" % repo),
+            ("spaces: the same with escaped spaces denied",
+             "cat %s/lib/x.py" % str(repo).replace(" ", "\\ ")),
+            ('spaces: "$(git rev-parse --show-toplevel)/lib/x.py" denied',
+             'cat "$(git rev-parse --show-toplevel)/lib/x.py"'),
+            ("spaces: a relative read is still denied", "cat lib/x.py"),
+        ]:
+            with self.case(name):
+                self.assertDenied(self.call("Bash", {"command": cmd}, repo), "read of lib/")
+        for name, cmd in [
+            ("spaces: a quoted absolute read of docs/ allowed", 'cat "%s/docs/n.md"' % repo),
+            ('spaces: "$(git rev-parse --show-toplevel)/docs/n.md" allowed',
+             'cat "$(git rev-parse --show-toplevel)/docs/n.md"'),
+        ]:
+            with self.case(name):
+                self.assertAllowed(self.call("Bash", {"command": cmd}, repo))
+
+    def test_a_command_inside_a_quoted_word_is_still_seen(self):
+        # Keeping quoted words whole must not hide what splitting used to
+        # catch: the pieces of a quoted word stay candidates too.
+        repo = self.repo_with("lib", {"lib/x.py": "x\n"})
+        for name, cmd in [
+            ('quoted: bash -c "cat lib/x.py" denied', 'bash -c "cat lib/x.py"'),
+            ("quoted: sh -c 'grep -r foo lib/' denied", "sh -c 'grep -r foo lib/'"),
+        ]:
+            with self.case(name):
+                self.assertDenied(self.call("Bash", {"command": cmd}, repo), "read of lib/")
+
+
 class RuleE_ImplementationDirsWithSrc(ImplementationDirsBase):
     DIRS = "lib, src"
 
