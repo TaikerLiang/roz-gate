@@ -230,14 +230,83 @@ class RuleE_ImplementationDirs(ImplementationDirsBase):
         with self.case("symlink: the port reached through tools/impl is still the port"):
             self.assertAllowed(self.tool("Read", file_path="tools/impl/port.py"))
 
+    def test_relative_operands_resolve_against_the_cwd(self):
+        # Codex review, PR #345: the hook joined a relative operand to the
+        # toplevel, so from a subdirectory it judged a file the command does
+        # not read — `cat ../lib/x.py` from tests/ and `cat ./x.py` from lib/
+        # both passed.
+        repo = self.repo
+        tests, lib = repo / "app/tests", repo / "lib"
+        for name, cwd, cmd in [
+            ("cwd: from app/tests, cat ../../lib/x.py denied", tests, "cat ../../lib/x.py"),
+            ("cwd: from lib/, cat ./x.py denied", lib, "cat ./x.py"),
+            ("cwd: from lib/, cat x.py denied (a bare word in an implementation cwd)", lib,
+             "cat x.py"),
+            ("cwd: from lib/, grep -n x other.py denied", lib, "grep -n x other.py"),
+            ("cwd: from lib/, cat lib/x.py is lib/lib/x.py — still the implementation", lib,
+             "cat lib/x.py"),
+        ]:
+            with self.case(name):
+                self.assertDenied(self.run_bash(cmd, cwd), "read of lib/")
+        for name, cwd, kw in [
+            ("cwd: from app/tests, Read ../../lib/x.py denied", tests,
+             dict(file_path="../../lib/x.py")),
+            ("cwd: from lib/, Read x.py denied", lib, dict(file_path="x.py")),
+        ]:
+            with self.case(name):
+                self.assertDenied(self.tool("Read", cwd, **kw), "under lib/")
+        with self.case("cwd: from lib/, Glob *.py (no path) denied"):
+            self.assertDenied(self.tool("Glob", lib, pattern="*.py"), "under lib/")
+        with self.case("cwd: from lib/, Grep with no path denied"):
+            self.assertDenied(self.tool("Grep", lib, pattern="x"), "under lib/")
+        for name, cwd, cmd in [
+            ("cwd: from lib/, cat ./port.py allowed (the port)", lib, "cat ./port.py"),
+            ("cwd: from lib/, cat port.py allowed (the port, a bare word)", lib, "cat port.py"),
+            ("cwd: from lib/, cat ../README.md allowed", lib, "cat ../README.md"),
+            ("cwd: from docs/, cat lib/x.py is docs/lib/x.py — not the implementation",
+             repo / "docs", "cat lib/x.py"),
+            ("cwd: from the suite, cat test_a.py allowed", repo / SUITE, "cat ./test_a.py"),
+            ("cwd: from lib/, $(git rev-parse --show-toplevel)/README.md allowed", lib,
+             "cat $(git rev-parse --show-toplevel)/README.md"),
+        ]:
+            with self.case(name):
+                self.assertAllowed(self.run_bash(cmd, cwd))
+        with self.case("cwd: from docs/, $(git rev-parse --show-toplevel)/lib/x.py denied"):
+            self.assertDenied(self.run_bash(
+                "cat $(git rev-parse --show-toplevel)/lib/x.py", repo / "docs"), "read of lib/")
+        with self.case("cwd: from lib/, Read port.py allowed (the port)"):
+            self.assertAllowed(self.tool("Read", lib, file_path="port.py"))
+
     def test_a_listed_directory_that_is_itself_a_symlink(self):
         repo = self.new_repo(
-            {"CLAUDE.md": config_block(forge="github", implementation_dirs="code"),
-             "real/x.py": "x = 1\n"})
+            {"CLAUDE.md": config_block(forge="github", implementation_dirs="code",
+                                       acceptance_dir="code/tests/acceptance"),
+             "real/x.py": "x = 1\n", "real/port.py": "# the port\n",
+             "real/tests/acceptance/test_a.py": "# S1\n"})
         os.symlink("real", repo / "code")
         self.git(repo, "add", "-A")
         self.git(repo, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init")
-        self.write(repo / ".git/roz-gate/fidelity-dispatch", "issue=5\n")
+        self.write(repo / ".git/roz-gate/fidelity-dispatch", "issue=5\nread=code/port.py\n")
+        # Codex review, PR #345: membership resolved `code` to its real
+        # place, the readable roots did not — the declared port was denied
+        # by the message that named it readable.
+        for name, t, inp in [
+            ("symlink: `code` → real, Read of the read= port code/port.py allowed", "Read",
+             {"file_path": "code/port.py"}),
+            ("symlink: `code` → real, the port by its real path allowed", "Read",
+             {"file_path": "real/port.py"}),
+            ("symlink: `code` → real, cat code/port.py allowed", "Bash",
+             {"command": "cat code/port.py"}),
+            ("symlink: `code` → real, the suite under it allowed", "Read",
+             {"file_path": "code/tests/acceptance/test_a.py"}),
+            ("symlink: `code` → real, cat of the suite allowed", "Bash",
+             {"command": "cat code/tests/acceptance/test_a.py"}),
+        ]:
+            with self.case(name):
+                self.assertAllowed(self.call(t, inp, repo))
+        with self.case("symlink: `code` → real, cat code/x.py beside the port denied"):
+            self.assertDenied(self.call("Bash", {"command": "cat code/port.py code/x.py"}, repo),
+                              "read of code/")
         with self.case("symlink: `code` → real, Read code/x.py denied"):
             self.assertDenied(self.call("Read", {"file_path": "code/x.py"}, repo), "under code/")
         with self.case("symlink: `code` → real, Read real/x.py denied (the same real place)"):
