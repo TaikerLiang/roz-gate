@@ -420,10 +420,15 @@ class SrcMembership:
     def root(self, path):
         return suite_under_src(path)
 
-    def text_hits(self, cmd, top, trees):
+    def root_at(self, tree, root):
+        """Where a readable root is in one tree: joined lexically — a suite
+        that is itself a symlink out of src/ exempts nothing."""
+        return os.path.join(os.path.realpath(tree), root)
+
+    def text_hits(self, cmd, top, trees, base=None):
         return [(None, "src/")] if SRC_PATH.search(cmd) else []
 
-    def tool_hits(self, tool, inp, top, trees):
+    def tool_hits(self, tool, inp, top, trees, base=None):
         hits = []
         for v in inp.values():
             text = v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)
@@ -454,11 +459,27 @@ class DirMembership:
         norm = "/".join(segs)
         return norm if any(norm.startswith(d + "/") for d in self.dirs) else None
 
-    def member(self, path, top, trees):
-        """The listed directory `path` really is in, or None."""
+    def root_at(self, tree, root):
+        """Where a readable root is in one tree. The listed directory it
+        sits under is taken at its REAL place, as membership takes it (codex
+        review, PR #345: with `code → real` listed, `read=code/port.py`
+        named a path no resolved read could match); the rest of the root is
+        joined lexically — a root that is itself a link out exempts nothing."""
+        tree = os.path.realpath(tree)
+        for d in self.dirs:
+            if root.startswith(d + "/"):
+                return os.path.join(os.path.realpath(os.path.join(tree, d)), root[len(d) + 1:])
+        return os.path.join(tree, root)
+
+    def member(self, path, top, trees, base=None):
+        """The listed directory `path` really is in, or None. A relative
+        path is the cwd's (`base`) — where the command reads it — never the
+        toplevel's (codex review, PR #345: from `tests/`, `cat ../lib/x.py`
+        was judged as `<top>/../lib/x.py` and passed)."""
         if not top or not path:
             return None
-        rp = os.path.realpath(path if os.path.isabs(path) else os.path.join(top, path))
+        rp = os.path.realpath(path if os.path.isabs(path)
+                              else os.path.join(base or top, path))
         for tree in trees or [top]:
             base = os.path.realpath(tree)
             for d in self.dirs:
@@ -467,24 +488,34 @@ class DirMembership:
                     return d + "/"
         return None
 
-    def text_hits(self, cmd, top, trees):
+    def text_hits(self, cmd, top, trees, base=None):
+        here = base or top
+        # In a cwd that is itself the implementation every word naming a
+        # file there is a read of it — `cat x.py` from `lib/`.
+        inside = bool(here) and self.member(here, top, trees) is not None
         hits = []
         for m in OPERAND.finditer(cmd):
             word = m.group(0)
-            for cand in {word, word.rsplit("=", 1)[-1]}:
-                if cand.startswith("/") and m.start() and cmd[m.start() - 1] == ")":
-                    cand = cand.lstrip("/")  # `$(git rev-parse --show-toplevel)/lib/x`
-                if "/" not in cand and not (
-                        top and cand and os.path.islink(os.path.join(top, cand))):
+            for cand in sorted({word, word.rsplit("=", 1)[-1]}):
+                if not cand:
                     continue
-                name = self.member(cand, top, trees)
+                if cand.startswith("/") and m.start() and cmd[m.start() - 1] == ")" and top:
+                    # `$(git rev-parse --show-toplevel)/lib/x` — the toplevel's
+                    cand = os.path.join(top, cand.lstrip("/"))
+                elif "/" not in cand and not (here and (
+                        os.path.islink(os.path.join(here, cand))
+                        or inside and os.path.lexists(os.path.join(here, cand)))):
+                    continue
+                name = self.member(cand, top, trees, base)
                 if name:
                     hits.append((cand, name))
         return hits
 
-    def tool_hits(self, tool, inp, top, trees):
+    def tool_hits(self, tool, inp, top, trees, cwd=None):
         cands = [inp[k] for k in PATH_KEYS if isinstance(inp.get(k), str) and inp[k]]
-        base = inp.get("path") if isinstance(inp.get("path"), str) else None
+        base = inp.get("path") if isinstance(inp.get("path"), str) and inp["path"] else None
+        if tool in ("Glob", "Grep") and not base:
+            cands.append(".")  # no `path`: the search is the cwd's
         # A Glob's `pattern` and a Grep's `glob` are paths up to their first
         # wildcard segment, relative to `path`; a Grep's `pattern` is a regex.
         glob = inp.get({"Glob": "pattern", "Grep": "glob"}.get(tool, ""))
@@ -500,7 +531,7 @@ class DirMembership:
                              else os.path.join(base, prefix))
         hits = []
         for cand in cands:
-            name = self.member(cand, top, trees)
+            name = self.member(cand, top, trees, cwd)
             if name:
                 hits.append((cand, name))
         return hits
@@ -509,28 +540,29 @@ class DirMembership:
 SRC = SrcMembership()
 
 
-def exempt(value, roots, top, tops):
+def exempt(value, roots, top, tops, base=None, member=None):
     return isinstance(value, str) and any(
-        resolves_under_suite(value, root, top, tops) for root in roots)
+        resolves_under_suite(value, root, top, tops, base, member) for root in roots)
 
 
-def bash_reads(cmd, member, roots, top, tops, trees=None):
+def bash_reads(cmd, member, roots, top, tops, trees=None, base=None):
     """The directory a command reads the implementation under, or None."""
     cmd = blank_forge_bodies(blank_heredoc_bodies(cmd))
     cmd = SRC_MENTIONED.sub(" ", member.excluded.sub(" ", cmd))
     for root in roots:
-        cmd = suite_operand_re(root, top).sub(suite_blanker(root, top, tops), cmd)
-    for value, name in member.text_hits(cmd, top, trees):
-        if not exempt(value, roots, top, tops):
+        cmd = suite_operand_re(root, top).sub(
+            suite_blanker(root, top, tops, base, member), cmd)
+    for value, name in member.text_hits(cmd, top, trees, base):
+        if not exempt(value, roots, top, tops, base, member):
             return name
     return None
 
 
-def tool_reads(tool, inp, member, roots, top, tops, trees=None):
+def tool_reads(tool, inp, member, roots, top, tops, trees=None, base=None):
     """The directory a Read/Glob/Grep input names the implementation under —
     unless every such value is under a readable root — or None."""
-    for value, name in member.tool_hits(tool, inp, top, trees):
-        if not exempt(value, roots, top, tops):
+    for value, name in member.tool_hits(tool, inp, top, trees, base):
+        if not exempt(value, roots, top, tops, base, member):
             return name
     return None
 
@@ -618,7 +650,7 @@ def suite_operand_re(suite, top):
     return re.compile("|".join(forms))
 
 
-def resolves_under_suite(path, suite, top, tops=None):
+def resolves_under_suite(path, suite, top, tops=None, base=None, member=None):
     """The operand's REAL location is at or under the suite of one of the
     readable trees (`tops`, from `tree_tops()`; `top` alone when None — a
     relative operand is `top`'s, the toplevel the hook fired in, whether or
@@ -632,17 +664,21 @@ def resolves_under_suite(path, suite, top, tops=None):
     exempts nothing."""
     if not top:
         return False
-    rp = os.path.realpath(path if os.path.isabs(path) else os.path.join(top, path))
+    # `base` and `member` are the custom list's (#281): a relative path is
+    # the cwd's, and the listed directory a root sits under is taken at its
+    # real place. Unset — the `src/` predicate — both are as they were.
+    rp = os.path.realpath(path if os.path.isabs(path) else os.path.join(base or top, path))
     for tree in [top] if tops is None else tops:
-        want = os.path.join(os.path.realpath(tree), suite)
+        want = (member or SRC).root_at(tree, suite)
         if rp == want or rp.startswith(want + "/"):
             return True
     return False
 
 
-def suite_blanker(suite, top, tops=None):
+def suite_blanker(suite, top, tops=None, base=None, member=None):
     def blank(m):
-        return " " if resolves_under_suite(m.group(0), suite, top, tops) else m.group(0)
+        return " " if resolves_under_suite(
+            m.group(0), suite, top, tops, base, member) else m.group(0)
     return blank
 
 
@@ -831,7 +867,8 @@ def ref_touch_re(ref):
         r"|worktree)\b[^|;&\n]*(?<![\w-])" + re.escape(ref) + r"(?![\w-])")
 
 
-def violation(tool, inp, ref=None, suite=None, top=None, tops=None, member=None, trees=None):
+def violation(tool, inp, ref=None, suite=None, top=None, tops=None, member=None, trees=None,
+              base=None):
     """The D2 checker's dispatch_blind(), per call: what it names. `suite`
     is the acceptance dir when it sits under src/ (never a read) — or the
     list `readable_roots()` builds, the suite plus the marker's `read=`
@@ -845,11 +882,11 @@ def violation(tool, inp, ref=None, suite=None, top=None, tops=None, member=None,
             return "a git action on a feat/ ref"
         if ref and ref_touch_re(ref).search(cmd):
             return "a git action on %s, the implementation branch" % ref
-        name = bash_reads(cmd, member or SRC, roots_of(suite), top, tops, trees)
+        name = bash_reads(cmd, member or SRC, roots_of(suite), top, tops, trees, base)
         if name:
             return "a read of %s" % name
     elif tool in ("Read", "Glob", "Grep"):
-        name = tool_reads(tool, inp, member or SRC, roots_of(suite), top, tops, trees)
+        name = tool_reads(tool, inp, member or SRC, roots_of(suite), top, tops, trees, base)
         if name:
             return "a %s under %s" % (tool, name)
     return None
@@ -900,7 +937,8 @@ def main():
     ports = readable_roots(None, marker_reads(marker), member)
     roots = readable_roots(suite, ports, member)
     what = violation(tool, inp, ref, roots, top, tree_tops(top, ref) if roots else None,
-                     member, all_trees(top) if member.custom else None)
+                     member, all_trees(top) if member.custom else None,
+                     os.getcwd() if member.custom else None)
     if not what:
         return
     seat = marker_seat(marker)

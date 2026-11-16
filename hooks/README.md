@@ -165,11 +165,22 @@ config block:
   does not exist resolves lexically. `lib/notes → ../docs/notes` is not a
   read of the implementation; `tools/impl → ../lib` is, and so is a link
   inside the suite that points there. Tools: `file_path`, `path`, and the
-  fixed prefix of a Glob `pattern` / Grep `glob`. Bash: every operand
-  holding a `/`, and every word that is itself a symlink.
+  fixed prefix of a Glob `pattern` / Grep `glob`; a Glob or Grep with no
+  `path` searches the cwd. Bash: every operand holding a `/`, every word
+  that is itself a symlink, and — when the cwd is itself inside a listed
+  directory — every word naming a file there (`cat x.py` from `lib/`).
+- **A relative path is the cwd's**, where the command reads it, never the
+  toplevel's: from `tests/`, `cat ../lib/x.py` is `lib/x.py`. (`$(git
+  rev-parse --show-toplevel)/…` is the toplevel's.)
+- **A readable root under a listed directory** — the suite, a `read=` port
+  — is taken at that directory's real place too, so `code → real` with
+  `read=code/port.py` exempts the port by either spelling. The rest of the
+  root is joined lexically: a root that is itself a link out exempts
+  nothing.
 - **Cannot see** (the same line `src/` sits on): a bare word (`ls lib`,
-  `grep -r foo lib`), a `cd lib && cat x.py`, a wildcard before the
-  directory (`*/x.py`).
+  `grep -r foo lib`) from outside the directory, a `cd lib && cat x.py`
+  in one call, a wildcard before the directory (`*/x.py`), a Glob or Grep
+  with no `path` from the repo root.
 
 ## The worktree copy
 
