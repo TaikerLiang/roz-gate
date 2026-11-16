@@ -170,7 +170,9 @@ config block:
   quotes and backslash escapes honoured, so `"my lib/x.py"` is one path and
   a directory or a checkout whose name holds a space is judged as the file
   Bash reads; the pieces of a quoted word stay candidates too (`bash -c
-  "cat lib/x.py"`). Then: every word holding a `/`, every word
+  "cat lib/x.py"`), and so does a listed directory spelled inside a word
+  after a character that is no part of a path — `-F body=@lib/x.py`,
+  `"${X:-@lib/x.py}"`. Then: every word holding a `/`, every word
   that is itself a symlink, and — when the cwd is itself inside a listed
   directory — every word naming a file there (`cat x.py` from `lib/`).
 - **A relative path is the cwd's**, where the command reads it, never the
@@ -181,6 +183,11 @@ config block:
   `read=code/port.py` exempts the port by either spelling. The rest of the
   root is joined lexically: a root that is itself a link out exempts
   nothing.
+- **Held to the `src/` table.** `hooks/tests/test_implementation_dirs.py`
+  replays every Bash command of the default predicate's deny and allow
+  tables with `src/` spelled as a listed directory and requires the same
+  verdict; an exemption has to name the case and the contract that
+  differs. There are none.
 - **Cannot see** (the same line `src/` sits on): a bare word (`ls lib`,
   `grep -r foo lib`) from outside the directory, a `cd lib && cat x.py`
   in one call, a wildcard before the directory (`*/x.py`), a Glob or Grep

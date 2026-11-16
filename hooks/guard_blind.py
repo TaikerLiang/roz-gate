@@ -494,6 +494,13 @@ class DirMembership:
         self.excluded = re.compile(SRC_EXCLUDED.pattern.replace(
             "src/", "(?:%s)/" % "|".join(re.escape(d) for d in self.dirs)))
         self.label = ", ".join("`%s/`" % d for d in self.dirs)
+        # A listed directory spelled inside a word, at a boundary that is
+        # no path character: `body=@lib/x.py`, `"${X:-@lib/x.py}"`, `\@lib/…`
+        # (#326's file-valued forge fields; codex review, PR #345). The path
+        # runs from there to the end of the word and is then RESOLVED like
+        # any other candidate — spelling alone denies nothing.
+        self.spelled = re.compile(r"(?<![\w./-])(?:\./)?(?:%s)/[^\s'\"<>|;&(){}]*"
+                                  % "|".join(re.escape(d) for d in self.dirs))
 
     def root(self, path):
         """A readable root needs an exemption only below a listed directory."""
@@ -555,6 +562,9 @@ class DirMembership:
                 # were kept whole
                 for piece in OPERAND.findall(word):
                     cands += [piece, piece.rsplit("=", 1)[-1]]
+            cands += self.spelled.findall(word)
+            if "/" in word and not word.startswith("/"):
+                cands.append(word[word.index("/"):])  # `@/abs/…`, `x=/abs/…`
             seen = set()
             for cand in cands:
                 if not cand or cand in seen:

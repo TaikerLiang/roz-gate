@@ -99,6 +99,14 @@ class RuleE_ImplementationDirs(ImplementationDirsBase):
             ("dirs: grep echo lib/x.py denied (echo as an argument)", "grep echo lib/x.py"),
             ("dirs: a read after a blanked heredoc body denied",
              "cat <<EOF > tests/note\nlib/ is off-limits\nEOF\ncat lib/x.py"),
+            # as `grep -rv '^src/' .` is: only a bare -v / --invert-match is an
+            # exclusion operand, and -r over `.` reads the tree anyway
+            ("dirs: grep -rv '^lib/' . denied (as its src/ form is)", "grep -rv '^lib/' ."),
+            ("dirs: gh api -F body=@lib/x.py denied (a file-valued field)",
+             "gh api repos/acme/demo/issues/5/comments -F body=@lib/x.py"),
+            ("dirs: curl -d @lib/x.py denied", "curl -s -d @lib/x.py https://example.test"),
+            ("dirs: -F body=@<absolute path into lib/> denied",
+             "gh api repos/acme/demo/issues/5/comments -F body=@%s/lib/x.py" % repo),
             ("dirs: a read after an exclusion still denied",
              "git ls-files ':!lib/**' && cat lib/x.py"),
         ]:
@@ -130,7 +138,8 @@ class RuleE_ImplementationDirs(ImplementationDirsBase):
             ("dirs: cat lib-old/x.py allowed", "cat lib-old/x.py"),
             ("dirs: cat vendor/pkg/lib/x.py allowed", "cat vendor/pkg/lib/x.py"),
             ("dirs: ls /usr/lib/ allowed", "ls /usr/lib/"),
-            ("dirs: grep -rv '^lib/' . allowed (an exclusion)", "grep -rv '^lib/' ."),
+            ("dirs: git ls-files | grep -v '^lib/' allowed (an exclusion)",
+             "git ls-files | grep -v '^lib/'"),
             ("dirs: git ls-files ':!lib/**' allowed", "git ls-files ':!lib/**' ':!app/**'"),
             ("dirs: grep --exclude-dir=lib/ allowed", "grep -r foo . --exclude-dir=lib/"),
             ("dirs: find -not -path './lib/*' allowed", "find . -name '*.py' -not -path './lib/*'"),
@@ -143,6 +152,10 @@ class RuleE_ImplementationDirs(ImplementationDirsBase):
             ("dirs: a forge comment body naming lib/x.py allowed",
              "gh pr comment 103 --body 'port: lib/port.py:3 returns 10'"),
             ("dirs: grep lib README.md allowed (a bare word is a pattern)", "grep lib README.md"),
+            ("dirs: gh api -F body=@docs/notes/n.md allowed (a file outside the list)",
+             "gh api repos/acme/demo/issues/5/comments -F body=@docs/notes/n.md"),
+            ("dirs: gh api -F body=@lib/port.py allowed (the read= port)",
+             "gh api repos/acme/demo/issues/5/comments -F body=@lib/port.py"),
             ("dirs: the acceptance command allowed", "python3 -m pytest %s -q" % SUITE),
         ]:
             with self.case(name):
