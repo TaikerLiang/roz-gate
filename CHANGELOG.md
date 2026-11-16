@@ -2,7 +2,57 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
-## v2.19.0 — next-stage loads only the routed path — 2026-11-14
+## v2.20.0 — seats resolve through roz-persona — 2026-11-15
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.20.0>
+
+**Behavior:** every command resolves its seats through `bin/roz-persona` and stops when a seat has no usable agent; `spec.md` may carry a `## Glossary` that QA checks terms against; the reserved-word STOP reviews each `(unverified)` hit against the contract, and a fold refuses a demotion a guarantee needs; guard-blind no longer denies a forge write whose body mentions a `src/` path.
+
+### Behavior
+- **Seats resolve through `bin/roz-persona`** (#198, PR #324): every command reads the personas block through this one tool.
+  - **A seat with no usable agent stops the run** (`PERSONA_UNMAPPED`, `AGENT_TYPE_UNAVAILABLE`) instead of leaving the choice to the command. A spawn the runtime refuses is the STOP exit too.
+  - Projects that have a personas block, or `.claude/agents/implementer.md`, behave as before.
+- **`spec.md` may carry a `## Glossary`** (#197, PR #323): one line per term that two seats could read differently, owned by `em`. Downstream seats build and test to it, and a definition found wanting is raised through the seat's own channel, never settled locally.
+- **QA reports a *term conflict*** at step zero (#197, PR #323): a clause, a deviation or a scenario that uses a Glossary term with another meaning.
+- **Where each shared fact lives** is one table in `references/workflow.md` (#197, PR #323): the config block, `spec.md` § Glossary, the `**Test port**` line, §5, and the project's own docs.
+- **The reserved-word STOP reviews each hit** (#256, PR #341). One table row per `unverified` hit: `hit`, `clause`, `kind`, `unknown`, `if false`, `action`. The action is one of `correct the spec`, `measure`, `accept a bounded risk`, `reword` — demotion is no longer the default.
+- **A demotion a guarantee needs is not folded** (#256, PR #341). The premise keeps `(unverified)`, the guarantee is unchanged, and the fold asks once.
+- **`(assumed-empirical: <named risk>)` is legal only when nothing in a guarantee, scenario or acceptance criterion depends on the claim** (#256, PR #341; A3).
+
+### Evals
+- **D22, D23, D24** (#197, PR #323; replay, QA-brief frame, on the new `fx/kv-cli-expiry`): a Given with no control point is a finding; the same contract, with the control point, is driven through the port; a term used against its definition is a finding. Lint D22 and D24 hold the prose.
+- **L22, D25, D26** (#198, PR #324): lint L22 and replay D25 and D26 for the seat resolver.
+- **B10, C32, E15** (#256, PR #341): lint B10 holds the per-hit table, the four actions and the demotion condition; replay C32 (the Path B STOP table) and E15 (the fold). **F5's remedy check** accepts the four actions, ships a red-proof and needs a re-baseline.
+- **Prose caps** (lint `L21`): `TOTAL_CAP` 52,040 → 52,231 (+191, PR #323) → 52,338 (+107, PR #341); `commands/init.md` 1,351 → 1,358 (+7, PR #324); `commands/spec-answers.md` 3,333 → 3,373 (+40, PR #341).
+- **SUT sessions no longer inherit the launching Claude Code session** (#321, PR #322). The runner drops every `CLAUDE*` variable except the login and provider ones: the session id, messaging socket and token, effort, and experimental flags. Each session also gets its own `TMPDIR`. Results recorded before this may carry the launching session's settings; the 2026-11-14 haiku55 sweep did.
+- **The forge stub answers the 2026-11-15 sweep's UNKNOWN reads as gh does** (#325, PR #338) — those reads cost 33 of 186 iterations:
+  - a fast-forwarded PR's `mergeCommit`; `reviewDecision` from the reviews; `closedAt` / `mergedAt` / `createdAt` / `updatedAt` / `mergeable` / `additions` / `deletions` / `commits`;
+  - a PR number through `issues/<n>` and `gh issue view`; `repos/<o>/<r>`; the GraphQL thread reply; `pr view --comments` with reviews;
+  - timestamps a fixture does not state follow the fixture's clock; `merged` gets gh's `Unknown JSON field`, and a reply without the PR number gets GitHub's 404;
+  - the `--json` commands honour `--jq`, and an expression jq rejects fails the command (exit 1) instead of invalidating the iteration;
+  - F1's and F6's fixtures state their CR's `author`, which moves those two cases' `case_fp`.
+- **D6 no longer counts the patrol scanner as a fidelity dispatch** (#327, PR #335). Results recorded before this are instrument FAILs.
+- **F11's seed holds the HTTP client #6 bumps** (#328, PR #336), and so do **F9's and F13's** (PR #343): each repo pins `httpclient==3.1` in `requirements.lock`, so #6 is machine work a pass can queue or act on. F11 results recorded before this are instrument FAILs.
+- **`path_files_read` counts a path file loaded with Bash** (#329, PR #337): `cat`, or `head -n` / `sed -n` covering the file. A new signal, `path_files_read_partial`, reports a path file seen only in excerpts. Both are reports, never verdicts; no `case_fp` moves.
+- **Seven replay checkers accept correct wording** (#330, PR #340; rulings delegated 2026-11-15): F4 and C12 accept a negated "verified"; C5 accepts a staleness note on a card but rejects any card the seed lacked; D3 matches the R&R row by its terms; F3 counts the threads still present; E11 accepts either bold placement; F9 lets an answer-only (7) turn free the slot for the next row. D3, F3 and F4 ship red-proofs and leave the legacy exemption list.
+- **F9 ignores a call's `description` when locating #5 and #6 work** (#330 follow-up, PR #342).
+- **Lint D2** (#326, PR #339) holds `FORGE_WRITE`, `CAT_HEREDOC`, `shell_word()`, `skip_substitution()` and `blank_forge_bodies()` byte-identical between the hook and the D2 checker. The D7 checker and `qaframe` no longer count a comment naming the port as a port read.
+
+### Hooks
+- **Rule E — a forge write's body is a mention** (#326, PR #339): the 2026-11-15 sweep lost C17's and D7's fidelity records because the seat cited `src/` paths as the brief's `file:line` evidence. The body value of `--body`/`-b`, `--message`/`-m` and `-f`/`-F body=` is now blanked like a heredoc body: quoted, unquoted or multi-line, plus a quoted-delimiter `"$(cat <<'EOF' … EOF)"`. Substitutions, `--body-file`, `-F body=@…` and chained reads are still judged.
+
+### Tooling
+- **`roz-persona --json`** (#198, PR #324).
+
+### Docs
+- **`/roz-gate:patrol`'s description says up to N loop issues** per pass, matching #204 (PR #333).
+- **November refresh** (PRs #331, #332, #334): `README.md`, `docs/protocol.md`, `docs/participating.md`, `docs/learn/README.md`; `docs/index.html`, `docs/onboarding.html` and the quiz bank (eight new questions, #53–#60); `hooks/README.md`, `docs/ROADMAP.md`, `docs/releasing.md`, `evals/CONTRIBUTING.md`, `evals/replay/README.md`, `evals/judgment/README.md`, `evals/workflow-value.md`, `evals/charter.md`, `evals/ledger-template.md`.
+- **`evals/replay/README.md` § Method**: the SUT environment rule, and what stays shared (PR #322).
+
+### Checks
+Hook tests 1313/1313 · lint 1906/1906 · red-proofs 58/58 · ruff · judgment `--check` · ledger `--check` current
+
+## v2.19.0 — next-stage loads only the routed path — 2026-11-15
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.19.0>
 
