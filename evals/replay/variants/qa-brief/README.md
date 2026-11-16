@@ -9,7 +9,7 @@ on the same fixture, the same command and the same model
 
 | variant | file | what it is | sha256 (frozen 2026-11-07) |
 |---|---|---|---|
-| **A** | `references/qa-brief.md` (the checkout's) | the brief as shipped — never copied here, so there is one A | `6132b36ae3123f4756321a0c1b489411f1463ba0cdd1f5ca5eb7ee03eaadfe4c` |
+| **A** | `references/qa-brief.md` (the checkout's) | the brief as shipped — never copied here, so there is one A | `6bc2fd61403424a7737a6e285decfd4c01cf6284fad46e7bbeb636c9d8675e0d` |
 | **B** | `B.md` | the STE *rule* rewrite from #139 (2026-11-06): the blindness paragraph split into a list, the red's two dispositions as separate sentences | `ae6003c95d5dd57f188f8cdf73f13119465ef095b45f1855958dcd5a194464ce` |
 | **C** | `C.md` | the STE *full* rewrite from #139 (2026-11-06): B plus lexical substitution in the same two sections — with one sentence corrected before freezing: "after the implementation is merged" → "after the implementation lands on `<spec-branch>`" (QA is stage (4); the merge is after (7); the drift was not STE's and would have been a confound) | `5fd7c7faba77a132958ceb7686f703a9b94d4b165e5a220d9eb3131e478ec5f1` |
 | **A0** | `A0.md` | the shipped brief **before #261** (post-#243, `main` at aa72c3d), frozen 2026-11-10 as #261's control: A vs A0 differs only by the blindness rule's split into **Invariant.** / **Allowed.** / **Forbidden.** — the same permissions, the same semantics (#261 rulings) | `f015f592ad6646425009bd41f11f273fc9e26ef9252b9390c1a35e945cf4b026` |

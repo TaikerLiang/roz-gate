@@ -242,6 +242,14 @@ two are counted in a rate:
 | **FAIL** | an expectation did not hold in a valid run — a rule broken, a required behaviour missing | `check.py`, exit ≠ 0 and ≠ 3 |
 | **INVALID** | no meaningful verdict: the seed failed, the session never completed or was cut short, a quota or session error, a session that loaded something beyond the plugin under test (#307), an unrouted forge call — or the checker found the rule was never exercised (`replaylib.invalid(reason)`, exit 3: for D10–D19, the QA dispatch never ran, or the seat's suite was never pushed so its work is unobservable) | the runner; or the checker, with its reason in `invalid_reason` |
 
+A blind read is judged by the hook's own predicate. The checkers that
+judge one — D2's, D7's, `qaframe.py`'s — run on `src/` fixtures with
+`implementation_dirs` unset. A fixture that sets the key calls
+`guard_blind.violation(…, member, trees)` with the membership the hook
+builds (`DirMembership(implementation_dirs.load(top))`), never a pattern
+of its own: the runtime and the report must not disagree about one read
+(#281).
+
 Invalid is never red (§ Method): a rate is computed over valid runs only
 and `report.json` counts the invalid ones beside it. Under the QA-brief
 frame two rulings sharpen the vocabulary (#199): a forbidden read the
