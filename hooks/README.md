@@ -166,7 +166,11 @@ config block:
   read of the implementation; `tools/impl → ../lib` is, and so is a link
   inside the suite that points there. Tools: `file_path`, `path`, and the
   fixed prefix of a Glob `pattern` / Grep `glob`; a Glob or Grep with no
-  `path` searches the cwd. Bash: every operand holding a `/`, every word
+  `path` searches the cwd. Bash: the command is read as shell words —
+  quotes and backslash escapes honoured, so `"my lib/x.py"` is one path and
+  a directory or a checkout whose name holds a space is judged as the file
+  Bash reads; the pieces of a quoted word stay candidates too (`bash -c
+  "cat lib/x.py"`). Then: every word holding a `/`, every word
   that is itself a symlink, and — when the cwd is itself inside a listed
   directory — every word naming a file there (`cat x.py` from `lib/`).
 - **A relative path is the cwd's**, where the command reads it, never the

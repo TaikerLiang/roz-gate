@@ -410,6 +410,53 @@ OPERAND = re.compile(r"""[^\s'"<>|;&()]+""")
 PATH_KEYS = ("file_path", "path", "notebook_path")
 
 
+def shell_words(cmd):
+    """The words of a command as the shell would hand them over — quotes and
+    backslash escapes honoured, so `"my lib/x.py"` is ONE word (codex
+    review, PR #345: split on whitespace, a path holding a space was judged
+    as pieces that are not the file read). Yields (word, quoted, glued):
+    `quoted` when any part of it was quoted or escaped, `glued` when the
+    word starts right after a `)` — the tail of `$(…)/lib/x`. Unquoted `<>|;&()` and
+    whitespace end a word; an unterminated quote runs to the end. No
+    expansion is attempted — `$(…)` inside double quotes stays in the word."""
+    word, quoted, i, n = [], False, 0, len(cmd)
+    started = glued = False
+    while i < n:
+        ch = cmd[i]
+        if not started and not (ch.isspace() or ch in "<>|;&()"):
+            glued = i > 0 and cmd[i - 1] == ")"
+        if ch == "'":
+            j = cmd.find("'", i + 1)
+            j = n if j < 0 else j
+            word.append(cmd[i + 1:j])
+            quoted = started = True
+            i = j + 1
+        elif ch == '"':
+            i += 1
+            while i < n and cmd[i] != '"':
+                if cmd[i] == "\\" and i + 1 < n and cmd[i + 1] in '"\\$`':
+                    i += 1
+                word.append(cmd[i])
+                i += 1
+            quoted = started = True
+            i += 1
+        elif ch == "\\" and i + 1 < n:
+            word.append(cmd[i + 1])
+            quoted = started = True
+            i += 2
+        elif ch.isspace() or ch in "<>|;&()":
+            if started:
+                yield "".join(word), quoted, glued
+            word, quoted, started = [], False, False
+            i += 1
+        else:
+            word.append(ch)
+            started = True
+            i += 1
+    if started:
+        yield "".join(word), quoted, glued
+
+
 class SrcMembership:
     """The default: a `src/` segment anywhere — the D2 predicate."""
 
@@ -494,15 +541,26 @@ class DirMembership:
         # file there is a read of it — `cat x.py` from `lib/`.
         inside = bool(here) and self.member(here, top, trees) is not None
         hits = []
-        for m in OPERAND.finditer(cmd):
-            word = m.group(0)
-            for cand in sorted({word, word.rsplit("=", 1)[-1]}):
-                if not cand:
+        for word, quoted, glued in shell_words(cmd):
+            cands = [word, word.rsplit("=", 1)[-1]]
+            # `$(git rev-parse --show-toplevel)/lib/x` — the toplevel's,
+            # bare (the `)` ended a word) or inside double quotes
+            if glued and word.startswith("/") and top:
+                cands = [os.path.join(top, word.lstrip("/"))]
+            elif ")/" in word and top:
+                cands.append(os.path.join(top, word.rsplit(")/", 1)[-1]))
+            if quoted:
+                # a command inside a quoted word (`bash -c "cat lib/x.py"`):
+                # its pieces stay candidates, as they were before words
+                # were kept whole
+                for piece in OPERAND.findall(word):
+                    cands += [piece, piece.rsplit("=", 1)[-1]]
+            seen = set()
+            for cand in cands:
+                if not cand or cand in seen:
                     continue
-                if cand.startswith("/") and m.start() and cmd[m.start() - 1] == ")" and top:
-                    # `$(git rev-parse --show-toplevel)/lib/x` — the toplevel's
-                    cand = os.path.join(top, cand.lstrip("/"))
-                elif "/" not in cand and not (here and (
+                seen.add(cand)
+                if "/" not in cand and not (here and (
                         os.path.islink(os.path.join(here, cand))
                         or inside and os.path.lexists(os.path.join(here, cand)))):
                     continue
