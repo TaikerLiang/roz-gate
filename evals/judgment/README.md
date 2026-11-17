@@ -54,7 +54,11 @@ python3 evals/judgment/run_judgment.py --dry-run --sut haiku55 --k 2   # done, p
   same isolation flags (#307) and the same environment: no `CLAUDE*`
   variable but the login and provider ones, its own `TMPDIR` (#321,
   `../replay/README.md` § Method), and its own plugin copy, sandbox `HOME`
-  and tool deny-list (#359). The judge's own calls do not.
+  and tool deny-list (#359). The judge's own calls do not. Like replay,
+  a SUT run requires `CLAUDE_CODE_OAUTH_TOKEN` in the environment
+  (`claude setup-token` once; `../replay/README.md` § Running): the
+  keychain login does not reach the sandbox HOME, and the run stops
+  before any spend without it.
 
 ## The baseline arm — the Workflow Value pilot (#259)
 

@@ -24,6 +24,11 @@ uv run evals/replay/run_replay.py --dry-run --sut haiku55 D10   # k, done, pendi
 #  the root pyproject.toml — one environment for evals/, hooks/, tools/.)
 ```
 
+- **Required once per machine** (#359): SUT sessions run under a sandbox
+  `HOME`, which the keychain login does not reach. Run `claude
+  setup-token` once, then `export CLAUDE_CODE_OAUTH_TOKEN=<the token>`
+  in the shell that runs replay or judgment; without it a subscription
+  row stops before any spend (exit 2).
 - **Checked before spend** (#282): the SUT, the variant, every named case,
   each checker's `# source:` citation and the driver/variant pairing are
   checked for the whole batch before the report dir is created or the
@@ -338,10 +343,11 @@ identity, `XDG_*` dropped. `--disallowedTools` denies `ScheduleWakeup`,
 `CronCreate`, `CronDelete`, `RemoteTrigger` and `ListAgents`
 (`SUT_DISALLOWED_TOOLS`); `SendMessage` stays, because continuing the
 session's own scanner is scored (D7, F9) and the flag cannot tell it from
-a cross-session send. Before any spend the runners ask
-`claude auth status` under the sandbox HOME (subscription rows); a login
-it cannot see stops the run — export `CLAUDE_CODE_OAUTH_TOKEN` (`claude
-setup-token`), which the SUT keeps. `plugin_sha` and `case_fp` still name
+a cross-session send. The keychain login does not reach the sandbox
+HOME (`HOME=$(mktemp -d) claude auth status` → `loggedIn: false`), so a
+subscription row needs `CLAUDE_CODE_OAUTH_TOKEN` (§ Running), which the
+SUT keeps; before any spend the runners ask `claude auth status` under
+the sandbox HOME and stop without it. `plugin_sha` and `case_fp` still name
 the checkout's commit and the case. Still reachable: any absolute path
 (`find /` reaches the checkout), the network, `~/.ssh` (ssh reads the
 password database, not HOME), a `CLAUDE_CONFIG_DIR` the operator sets.

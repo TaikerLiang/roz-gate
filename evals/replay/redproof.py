@@ -3008,9 +3008,10 @@ def sandbox_checks():
              os.sep + "home") and auth[0].get("home") != saved.get("HOME")),
         ("an api row skips the auth check (its key is in the environment)",
          api_ok is None and len(auth) == 1),
-        ("logged out under the sandbox HOME: the run exits 2 naming CLAUDE_CODE_OAUTH_TOKEN, "
-         "no session launched",
-         out_rc == 2 and "CLAUDE_CODE_OAUTH_TOKEN" in out_text and out_n == 0),
+        ("logged out under the sandbox HOME: the run exits 2 naming the required step "
+         "(`claude setup-token`, export CLAUDE_CODE_OAUTH_TOKEN), no session launched",
+         out_rc == 2 and "CLAUDE_CODE_OAUTH_TOKEN" in out_text
+         and "claude setup-token" in out_text and out_n == 0),
     ]
 
 

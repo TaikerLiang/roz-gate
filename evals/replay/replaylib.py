@@ -86,11 +86,12 @@ def sut_base_env(environ=None):
 # live sessions. The sandbox HOME holds only a .gitconfig with the seeds'
 # identity — the SUT commits in its sandbox repo, and the operator's
 # ~/.gitconfig no longer reaches it — and XDG_* is dropped so nothing
-# resolves back to the operator's dirs. The subscription login lives in the
-# macOS keychain (or CLAUDE_CODE_OAUTH_TOKEN, kept), not under HOME; the
+# resolves back to the operator's dirs. The keychain login does not reach
+# a sandbox HOME (measured 2026-11-17: `HOME=$(mktemp -d) claude auth
+# status` -> loggedIn false), so a subscription row needs
+# CLAUDE_CODE_OAUTH_TOKEN (`claude setup-token`, once), which is kept; the
 # runners ask `claude auth status` under this HOME before any spend, so a
-# login the sandbox cannot see stops the run instead of failing the smoke
-# gate.
+# missing token stops the run instead of failing the smoke gate.
 SUT_GITCONFIG = "[user]\n\tname = paul\n\temail = paul@example.com\n"
 
 
