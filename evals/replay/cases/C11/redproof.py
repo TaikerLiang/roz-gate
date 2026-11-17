@@ -37,6 +37,9 @@ DELETE_THEN_NEXT = "git push -q origin --delete spec/paul/5/1 && " + NEXT
 STOP = ("**[next-stage] · blocked** — `spec/paul/5/1` already exists on the remote from the "
         "attempt closed in #101. Delete it to restart (2): `git push origin --delete "
         "spec/paul/5/1` — then re-apply `ready-for-spec`.")
+# #361 (C11/run-2): the #213 STOP taken for code the widened spec asks #5 itself to build
+DEP_STOP = ("**[next-stage] · blocked** — the base (`main`) lacks code the issue needs. Not at "
+            "`main`: the cart page, cart open-time, payment submit and order records. No branch.")
 REVIEW = ["track: spec", "status: in-spec-review"]
 PR102 = {"102": {"number": 104, "headRefName": "spec/paul/5/4", "baseRefName": "main",
                  "state": "OPEN", "isDraft": False}}
@@ -64,6 +67,8 @@ SHAPES = [
     ("the default name spec/5 cut instead", False, REVIEW, [],
      {"102": dict(PR102["102"], headRefName="spec/5")}, CUT % ("spec/5", "spec/5")),
     ("nothing cut, labels flipped anyway", False, REVIEW, [], {}, None),
+    ("the dependency STOP for the spec's own scope: cut, then blocked (#361)", False,
+     ["track: spec", "status: blocked"], [DEP_STOP], {}, NEXT),
 ]
 
 

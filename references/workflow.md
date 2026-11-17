@@ -498,14 +498,16 @@ saying what could not be done: the prefix makes it non-actionable until you
 reply, which is exactly what `blocked` would have bought.
 
 **A missing dependency in the base is a STOP, never an option** (#213). A
-seat that finds the base branch lacks code the issue needs — a module, a
-migration, a feature another issue delivered to a branch that has not reached
-`<default_branch>` — reports it to the command (what is missing, and which
-branch holds it if known) and goes no further. The command takes the STOP
-exit with the shape *the base lacks a dependency*: title `**[<command>] ·
-blocked**`, must-read naming the missing code and the branch that holds it,
-resume line — **To resume:** sync `<default_branch>` yourself (merge the
-branch that holds the code into the base, or release it there), then clear
+dependency is code another issue delivers or a branch not yet in
+`<default_branch>` holds. A seat that finds the base lacks one reports it to
+the command (what is missing, and the branch or issue that holds it) and goes
+no further; code the spec asks this issue to build, or scope beyond the
+issue, is a scope question on the spec CR, never this STOP. The command
+takes the STOP exit with the shape *the base lacks a dependency*: title
+`**[<command>] · blocked**`, must-read naming the missing code and the
+branch or issue that holds it, resume line —
+**To resume:** sync `<default_branch>` yourself (merge the branch that holds
+the code into the base, or release it there), then clear
 `status: blocked`, apply `status: <phase>` — yourself, or tell the main
 agent; nothing to answer — run the remedy first. After the sync the loop
 merges the base as it always does (`git merge origin/<default_branch>`), and
