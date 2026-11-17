@@ -38,6 +38,7 @@
       "isDraft": false,
       "headRefName": "feat/5",
       "baseRefName": "spec/5",
+      "mergeCommit": "{{sha:spec/5~2}}",
       "body": "## Contract deviations\n\nnone\n",
       "threads": [],
       "reviews": [],
@@ -57,6 +58,7 @@
       "isDraft": false,
       "headRefName": "qa/5",
       "baseRefName": "spec/5",
+      "mergeCommit": "{{sha:spec/5~1}}",
       "threads": [],
       "reviews": [],
       "comments": [

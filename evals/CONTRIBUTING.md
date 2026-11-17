@@ -177,8 +177,9 @@ real verdict.
   rebase-merged PR with no `mergeCommit`, a PR with no `author`, a closed
   issue with no `stateReason`) is UNKNOWN too, and its
   note names the field: the fix is the fixture's — state the fact in
-  `state.json`. A field gh itself rejects goes in `GH_REJECTS` only after
-  a seat asked for it and real gh was seen to refuse it. URLs name
+  `state.json`. A field outside gh's own catalog (`GH_FIELDS`, copied
+  from gh 2.82's `Unknown JSON field` list) is gh's error, exit 1, and
+  scored — so is an unknown subcommand (`GH_SUBCOMMANDS`) (#365). URLs name
   the fixture's `repo` (default `acme/demo`). A free-form `--jq` is fine when `jq` is
   installed (CI's ubuntu runner has it; the stub falls back to it and
   journals `jq: system`); without it the expression is UNKNOWN. An
