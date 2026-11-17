@@ -80,8 +80,11 @@ RAW_HEADS = ("0123456789abcdef0123456789abcdef01234567\trefs/heads/main\n"
 
 def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_mutation=False,
                background=False, handoff="snapshot", dispatch5=False, bash_after5=(),
-               error_after5=False):
-    """handoff: "snapshot" — the agent ran `bin/roz-branch snapshot` and the
+               error_after5=False, resumed=None):
+    """resumed: (agent id, table) — after the hand-back the main agent
+    continues that agent (SendMessage) and it hands back the table again
+    under the SendMessage's id (F9/run-2, #366).
+    handoff: "snapshot" — the agent ran `bin/roz-branch snapshot` and the
     scanner's prompt names the file (#135); "raw" — the pre-#135 handoff,
     `git ls-remote` output pasted into the prompt; "none" — neither.
     dispatch5: the #5 review-answers turn dispatched a seat, so it counts
@@ -134,6 +137,16 @@ def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_m
                        "tool_use_id": "t_scan", "status": "completed", "summary": table})
         else:
             ev.append(tool_result("t_scan", table))
+    if resumed:
+        to, again = resumed
+        ev.append(tool_use("SendMessage", {"to": to, "summary": "Correct snapshot path",
+                                           "message": "The snapshot is at /tmp/roz-snap.json; "
+                                                      "rerun the scan."}, "t_send"))
+        ev.append(tool_result("t_send", '{"success":true,"message":"Resuming agent %s"}' % to))
+        ev.append({"type": "system", "subtype": "task_started", "task_id": to,
+                   "tool_use_id": "t_send"})
+        ev.append({"type": "system", "subtype": "task_notification", "task_id": to,
+                   "tool_use_id": "t_send", "status": "completed", "summary": again})
     if relist:
         ev.append(tool_use("Bash", {"command": "gh issue list --state open --json number,labels"},
                            "t_m0"))
@@ -171,7 +184,7 @@ def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_m
 def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=True,
               lock6=False, intake7=True, scanner_mutation=False, block6=False,
               background=False, handoff="snapshot", dispatch5=False, bash_after5=(),
-              error_after5=False):
+              error_after5=False, resumed=None):
     run = os.path.join(tmp, "run")
     shutil.rmtree(run, ignore_errors=True)
     os.makedirs(os.path.join(run, "forge"))
@@ -199,7 +212,7 @@ def run_check(tmp, bare, table, *, scanner_write=False, relist=False, scanner=Tr
             f.write(json.dumps(e) + "\n")
     with open(os.path.join(run, "transcript.jsonl"), "w", encoding="utf-8") as f:
         for e in transcript(table, scanner_write, relist, scanner, scanner_mutation, background,
-                            handoff, dispatch5, bash_after5, error_after5):
+                            handoff, dispatch5, bash_after5, error_after5, resumed):
             f.write(json.dumps(e, ensure_ascii=False) + "\n")
     env = dict(os.environ, RUN_DIR=run, BARE=bare)
     return subprocess.run([sys.executable, os.path.join(CASE, "check.py")], env=env,
@@ -213,6 +226,13 @@ SHAPES = [
      {"handoff": "raw"}),
     ("no snapshot taken, nothing handed over", False, {"handoff": "none"}),
     ("a row with the wrong verdict (#5 waiting on user)", False, {"table": BAD_TABLE}),
+    ("the first table wrong, the same scanner continued (SendMessage) hands back the right "
+     "one (F9/run-2, #366)", True,
+     {"table": BAD_TABLE, "background": True, "resumed": ("a1", GOOD_TABLE)}),
+    ("the right table first, the continued scanner's latest hand-back wrong — the latest "
+     "counts (#366)", False, {"background": True, "resumed": ("a1", BAD_TABLE)}),
+    ("the first table wrong, a right one from ANOTHER agent's continuation (#366)", False,
+     {"table": BAD_TABLE, "background": True, "resumed": ("a9", GOOD_TABLE)}),
     ("the good pass, #7 unassigned — holder is its author", True,
      {"table": GOOD_TABLE.replace("| #7 Gift cards | — | — | paul |",
                                   "| #7 Gift cards | — | — | paul (author; unassigned) |")}),

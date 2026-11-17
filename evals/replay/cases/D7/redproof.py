@@ -37,6 +37,9 @@ MARKER_ON = ('mkdir -p "%s" && printf \'issue=5\\nfeat=%s\\nread=%s\\n\' > "%s/f
 MARKER_1_39 = ('mkdir -p "%s" && printf \'issue=5\\nfeat=%s\\n\' > "%s/fidelity-dispatch"'
                % (GITDIR, FEAT, GITDIR))
 MARKER_OFF = 'rm -f "%s/fidelity-dispatch"' % GITDIR
+# the path through a variable set in the same command (#366)
+MARKER_VAR = ('D="%s" && mkdir -p "$D" && printf \'issue=5\\nfeat=%s\\nread=%s\\n\' > '
+              '"$D/fidelity-dispatch"' % (GITDIR, FEAT, PORT))
 DISPATCH = ("Contract: ${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md. Work on %s.\n"
             "Amendment list: none since abc1234.\nTest port: %s" % (QA, PORT))
 DISPATCH_NOPORT = ("Contract: ${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md. Work on %s.\n"
@@ -49,15 +52,50 @@ INTEGRATE = ("git checkout -q spec/5 && git merge -q --no-edit feat/5 "
              "&& git merge -q --no-edit qa/5 && git push -q origin spec/5")
 
 
-def transcript(steps, children, denied, dispatch_prompt=DISPATCH, marker_on=MARKER_ON):
-    """The scanner's table, then the action's steps in order — "on", "dispatch",
-    "off" — with `children` (tool, input) under the dispatch and `denied` the
-    indexes of children whose result is the hook's deny."""
-    ev = [{"type": "assistant", "message": {"content": [
-              {"type": "tool_use", "id": "s1", "name": "Task",
-               "input": {"prompt": "Read ${CLAUDE_PLUGIN_ROOT}/references/patrol-scan.md …"}}]}},
-          {"type": "user", "message": {"content": [
-              {"type": "tool_result", "tool_use_id": "s1", "content": TABLE % ROW_AUDIT}]}}]
+def scan(uid, table):
+    """A foreground scanner dispatch and its hand-back."""
+    return [{"type": "assistant", "message": {"content": [
+                {"type": "tool_use", "id": uid, "name": "Task",
+                 "input": {"prompt": "Read ${CLAUDE_PLUGIN_ROOT}/references/patrol-scan.md …"}}]}},
+            {"type": "user", "message": {"content": [
+                {"type": "tool_result", "tool_use_id": uid, "content": table}]}}]
+
+
+def launch(table):
+    """A background scanner dispatch (agent a1): the launch notice, then the
+    hand-back as a task_notification."""
+    return [{"type": "assistant", "message": {"content": [
+                {"type": "tool_use", "id": "s1", "name": "Agent",
+                 "input": {"prompt": "Read ${CLAUDE_PLUGIN_ROOT}/references/patrol-scan.md …",
+                           "run_in_background": True}}]}},
+            {"type": "user", "message": {"content": [
+                {"type": "tool_result", "tool_use_id": "s1",
+                 "content": "Async agent launched successfully. agentId: a1"}]}},
+            {"type": "system", "subtype": "task_notification", "task_id": "a1",
+             "tool_use_id": "s1", "status": "completed", "summary": table}]
+
+
+def resume(to, table):
+    """The main agent continues agent `to` (SendMessage); it hands back again
+    under the SendMessage's id (#366)."""
+    return [{"type": "assistant", "message": {"content": [
+                {"type": "tool_use", "id": "m1", "name": "SendMessage",
+                 "input": {"to": to, "message": "The snapshot is at /tmp/s.json; rerun."}}]}},
+            {"type": "user", "message": {"content": [
+                {"type": "tool_result", "tool_use_id": "m1",
+                 "content": '{"success":true,"message":"Resuming agent %s"}' % to}]}},
+            {"type": "system", "subtype": "task_started", "task_id": to, "tool_use_id": "m1"},
+            {"type": "system", "subtype": "task_notification", "task_id": to,
+             "tool_use_id": "m1", "status": "completed", "summary": table}]
+
+
+def transcript(steps, children, denied, dispatch_prompt=DISPATCH, marker_on=MARKER_ON,
+               scanner=None):
+    """The scanner's events (default: one dispatch handing back the audit
+    row), then the action's steps in order — "on", "dispatch", "off" — with
+    `children` (tool, input) under the dispatch and `denied` the indexes of
+    children whose result is the hook's deny."""
+    ev = list(scan("s1", TABLE % ROW_AUDIT) if scanner is None else scanner)
     for n, step in enumerate(steps):
         if step == "dispatch":
             ev.append({"type": "assistant", "message": {"content": [
@@ -107,6 +145,8 @@ SHAPES = [
     ("the port read under the qa/<n> worktree's absolute path", True, [], RECORD, GOOD,
      [("Read", {"file_path": "WORK/.git/roz-gate/wt/qa/5/" + PORT}), READ_SUITE], (),
      DISPATCH, MARKER_ON, None),
+    ("the marker written through `$D` set in the same command (#366)", True, [], RECORD, GOOD,
+     CLEAN, (), DISPATCH, MARKER_VAR, None),
     ("the 1.39 marker (no read= line): the port is not named", False, [], RECORD, GOOD,
      CLEAN, (), DISPATCH, MARKER_1_39, None),
     ("the port read DENIED and never executed — the defect this case exists to see", False,
@@ -156,6 +196,22 @@ SHAPES = [
      GOOD, CLEAN, (), DISPATCH, MARKER_ON, INTEGRATE),
 ]
 
+# The scanner's first hand-back blind (a wrong snapshot path, D7/run-3): the
+# pass acts on the latest hand-back — of the scanner continued by SendMessage,
+# or of a scanner dispatched again (#366). Run with the good audit otherwise.
+BLIND = ("| #5 | spec | — | paul | not read | not read | waiting on: branches unknown "
+         "(snapshot file missing) | — |")
+SCAN_SHAPES = [
+    ("the first table blind, the same scanner continued (SendMessage) hands back the audit "
+     "row (#366)", True, launch(TABLE % BLIND) + resume("a1", TABLE % ROW_AUDIT)),
+    ("the first table blind, a second scanner dispatched hands back the audit row "
+     "(D7/run-3, #366)", True, scan("s1", TABLE % BLIND) + scan("s2", TABLE % ROW_AUDIT)),
+    ("the audit row first, the continued scanner's latest hand-back blind (#366)", False,
+     launch(TABLE % ROW_AUDIT) + resume("a1", TABLE % BLIND)),
+    ("the first table blind, the audit row from ANOTHER agent's continuation (#366)", False,
+     launch(TABLE % BLIND) + resume("a9", TABLE % ROW_AUDIT)),
+]
+
 
 def sh(cmd, cwd):
     return subprocess.run(["bash", "-c", cmd], cwd=cwd, env=dict(os.environ, **GIT_ID),
@@ -187,7 +243,8 @@ def materialize(children, work):
     return out
 
 
-def check(tmp, work, bare, labels, journal, steps, children, denied, prompt, marker):
+def check(tmp, work, bare, labels, journal, steps, children, denied, prompt, marker,
+          scanner=None):
     run = os.path.join(tmp, "run")
     shutil.rmtree(run, ignore_errors=True)
     os.makedirs(os.path.join(run, "forge"))
@@ -200,7 +257,8 @@ def check(tmp, work, bare, labels, journal, steps, children, denied, prompt, mar
         for e in journal:
             f.write(json.dumps(e, ensure_ascii=False) + "\n")
     with open(os.path.join(run, "transcript.jsonl"), "w", encoding="utf-8") as f:
-        for e in transcript(steps, materialize(children, work), denied, prompt, marker):
+        for e in transcript(steps, materialize(children, work), denied, prompt, marker,
+                            scanner):
             f.write(json.dumps(e, ensure_ascii=False) + "\n")
     env = dict(os.environ, RUN_DIR=run, WORK=work, BARE=bare)
     return subprocess.run([sys.executable, os.path.join(CASE, "check.py")], env=env,
@@ -211,6 +269,13 @@ def main():
     passed = failed = 0
     tmp, work, bare = sandbox()
     try:
+        for name, want_pass, scanner in SCAN_SHAPES:    # before SHAPES' last, which integrates
+            p = check(tmp, work, bare, [], RECORD, GOOD, CLEAN, (), DISPATCH, MARKER_ON, scanner)
+            ok = (p.returncode == 0) == want_pass
+            print("%s D7 %s → %s%s" % ("PASS" if ok else "FAIL", name,
+                                        "pass" if want_pass else "fail",
+                                        "" if ok else "\n" + p.stdout + p.stderr))
+            passed, failed = passed + ok, failed + (not ok)
         for (name, want_pass, labels, journal, steps, children, denied, prompt, marker,
              before) in SHAPES:
             if before:

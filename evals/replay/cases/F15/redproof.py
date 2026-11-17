@@ -42,6 +42,12 @@ READS = [{"route": "issue-list", "write": False, "state": "open"},
 LOCK12 = {"route": "issue-edit", "write": True, "issue": "12", "add": ["status: processing"],
           "remove": [], "body_edit": False}
 GOOD = READS + [LOCK12]
+# run-1 (#366): the pass took #12's STOP itself — base lacks the closed #8's code
+STOP12 = [{"route": "issue-edit", "write": True, "issue": "12", "add": ["status: blocked"],
+           "remove": ["status: processing", "status: ready-for-spec"], "body_edit": False},
+          {"route": "issue-comment", "write": True, "issue": "12",
+           "body": "**[next-stage] · blocked** — the base lacks a dependency"}]
+ROW12_BLOCKED = "blocked: base lacks a dependency | yes |"
 
 
 def lock(n):
@@ -94,6 +100,13 @@ SHAPES = [
      {"journal": READS, "text": report(table=swap(
          TABLE, "acted: next-stage — spec CR #101 opened | yes |",
          "queued: next-stage · ready-for-spec 17d | — |"), queue=QUEUE[:1] + QUEUE[2:])}),
+    ("#12 reads `blocked: <the STOP comment's title>` — the pass itself STOPped it (run-1, #366)",
+     True, {"journal": GOOD + STOP12, "labels": {"12": ["track: spec", "status: blocked"]},
+            "text": report(table=swap(TABLE, "acted: next-stage — spec CR #101 opened | yes |",
+                                      ROW12_BLOCKED))}),
+    ("#12 reads `blocked:` but the pass never STOPped it (#366)", False,
+     {"text": report(table=swap(TABLE, "acted: next-stage — spec CR #101 opened | yes |",
+                                ROW12_BLOCKED))}),
     ("#10 dispatched over its open blocker (lock taken)", False,
      {"journal": READS + [lock("10")]}),
     ("#13's failed lookup read as no blockers (lock taken)", False,

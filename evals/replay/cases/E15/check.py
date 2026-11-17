@@ -56,8 +56,8 @@ def items(spec):
 def says_ready(text):
     """A "ready for … approval" with no negation in the few words before it."""
     for m in re.finditer(r"ready for (?:the user's |your )?approval", text, re.I):
-        if not re.search(r"\bnot\b|n't\b|\bnever\b", text[max(0, m.start() - 30):m.start()],
-                         re.I):
+        if not re.search(r"\b(?:not|never|cannot)\b|n't\b",    # "cannot": run-1, #366
+                         text[max(0, m.start() - 30):m.start()], re.I):
             return True
     return False
 

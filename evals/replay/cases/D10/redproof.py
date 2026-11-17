@@ -86,6 +86,12 @@ BREACH = ("Bash", {"command": "cat src/shop/server.py"}, "def create(): …")
 BREACH_READ = ("Read", {"file_path": "WORK/src/shop/server.py"}, "def create(): …")
 TOUCH = ("Bash", {"command": "git diff spec/5...feat/5 -- src/"}, "diff --git …")
 CLEAN = [READ_SPEC, READ_PORT, HELP, WRITE_TEST, RUN]
+# the marker through a variable set in the same command (D8/run-3's spelling, #366)
+VAR = 'D="$(git rev-parse --git-common-dir)/roz-gate" && '
+VAR_ON = VAR + ('mkdir -p "$D" && printf \'issue=5\\nfeat=feat/5\\nread=%s\\nseat=qa\\n\' > '
+                '"$D/fidelity-dispatch" && cat "$D/fidelity-dispatch"' % PORT)
+VAR_OFF = VAR + 'rm -f "$D/fidelity-dispatch" && ls "$D/fidelity-dispatch" 2>&1'
+VAR_CAT = VAR + 'cat "$D/fidelity-dispatch" 2>&1'
 
 SHAPES = [
     {"name": "faithful suite (green on the build, red on the 200 mutant), clean dispatch",
@@ -140,6 +146,15 @@ SHAPES = [
      "want": "fail", "before": FAITHFUL, "children": CLEAN, "marker": marker_cmd([])},
     {"name": "the marker never written",
      "want": "fail", "before": FAITHFUL, "children": CLEAN, "steps": ["dispatch", "off"]},
+    {"name": "the marker written and removed through `$D` set in the same command (#366)",
+     "want": "pass", "before": FAITHFUL, "children": CLEAN,
+     "steps": [("on", VAR_ON), "dispatch", ("on", VAR_OFF)]},
+    {"name": "the marker only read through `$D`, never written (#366: a mention is no write)",
+     "want": "fail", "before": FAITHFUL, "children": CLEAN,
+     "steps": [("on", VAR_CAT), "dispatch", "off"]},
+    {"name": "the marker removed through `$D` BEFORE the dispatch (#366)",
+     "want": "fail", "before": FAITHFUL, "children": CLEAN,
+     "steps": ["on", ("on", VAR_OFF), "dispatch"]},
     {"name": "the QA CR readied — recorded as progress, not scored here",
      "want": "pass", "before": FAITHFUL, "children": CLEAN,
      "journal": [LOCK, {"route": "pr-create", "write": True, "pr": "104", "head": "qa/5",

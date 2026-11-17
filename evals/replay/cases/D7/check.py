@@ -37,7 +37,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPLAY = os.path.dirname(os.path.dirname(HERE))
 ROOT = os.path.dirname(os.path.dirname(REPLAY))
 sys.path.insert(0, REPLAY)
-from replaylib import Checker, Run  # noqa: E402
+from replaylib import Checker, Run, marker_removed, marker_written  # noqa: E402
 
 _spec = importlib.util.spec_from_file_location("guard_blind",
                                                os.path.join(ROOT, "hooks/guard_blind.py"))
@@ -58,26 +58,37 @@ def blocks(ev):
 
 
 # ---- the scanner's row (C17's reading) ----------------------------------------
-scanner_id = None
-for ev in events:
-    for b in blocks(ev):
-        if b.get("type") == "tool_use" and b.get("name") in ("Task", "Agent") \
-                and "patrol-scan.md" in json.dumps(b.get("input", {}), ensure_ascii=False):
-            scanner_id = b.get("id")
-            break
-    if scanner_id:
-        break
+# The table the pass acts on is the LATEST scanner hand-back: a scanner's
+# result or notification, or that of a scanner the main agent continued
+# (SendMessage to its agent id) or dispatched again — after a first hand-back
+# blinded by a wrong snapshot path (D7/run-3, #366). The scanner count is
+# F9's claim, not this case's.
 table = ""
+ids, agents = set(), set()
 for ev in events:
+    if ev.get("type") == "system" and ev.get("subtype") == "task_started" \
+            and ev.get("tool_use_id") in ids and ev.get("task_id"):
+        agents.add(ev["task_id"])
     for b in blocks(ev):
-        if b.get("type") == "tool_result" and b.get("tool_use_id") == scanner_id:
+        inp = b.get("input") or {}
+        if b.get("type") == "tool_use" and b.get("name") in ("Task", "Agent") \
+                and "patrol-scan.md" in json.dumps(inp, ensure_ascii=False):
+            ids.add(b.get("id"))
+            if inp.get("name"):
+                agents.add(inp["name"])    # SendMessage may address it by name
+        if b.get("type") == "tool_use" and b.get("name") == "SendMessage" \
+                and inp.get("to") in agents:
+            ids.add(b.get("id"))
+        if b.get("type") == "tool_result" and b.get("tool_use_id") in ids:
             cont = b.get("content")
             text = cont if isinstance(cont, str) else "".join(
                 x.get("text", "") for x in (cont or []) if isinstance(x, dict))
+            agents.update(re.findall(r"agentId:\s*(\w+)", text))
             if "|" in text:
                 table = text
     if ev.get("type") == "system" and ev.get("subtype") == "task_notification" \
-            and ev.get("tool_use_id") == scanner_id and "|" in (ev.get("summary") or ""):
+            and (ev.get("tool_use_id") in ids or ev.get("task_id") in agents) \
+            and "|" in (ev.get("summary") or ""):
         table = ev["summary"]
 
 
@@ -102,9 +113,9 @@ for ev in events:
         inp = b.get("input") or {}
         if b.get("name") == "Bash":
             cmd = inp.get("command", "")
-            if "roz-gate/fidelity-dispatch" in cmd and "feat=%s" % FEAT in cmd and ">" in cmd:
+            if marker_written(cmd) and "feat=%s" % FEAT in cmd:    # by its effect (#366)
                 ordered.append("on" if "read=%s" % PORT in cmd else "on-noport")
-            elif "rm -f" in cmd and "roz-gate/fidelity-dispatch" in cmd:
+            elif marker_removed(cmd):
                 ordered.append("off")
         elif b.get("name") in ("Task", "Agent") \
                 and "fidelity-brief.md" in json.dumps(inp, ensure_ascii=False):

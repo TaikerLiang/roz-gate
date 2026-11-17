@@ -49,7 +49,14 @@ import tempfile
 S = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(S))
 sys.path.insert(0, S)
-from replaylib import CHECK_INVALID, Checker, Run, invalid  # noqa: E402
+from replaylib import (  # noqa: E402
+    CHECK_INVALID,
+    Checker,
+    Run,
+    invalid,
+    marker_removed,
+    marker_written,
+)
 
 _spec = importlib.util.spec_from_file_location("guard_blind",
                                                os.path.join(ROOT, "hooks/guard_blind.py"))
@@ -57,7 +64,6 @@ _gb = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_gb)
 
 DENIED = _gb.QA_OPEN          # "Roz Gate: blocked — this is a QA dispatch"
-MARKER = "roz-gate/fidelity-dispatch"
 GREEN, RED = "ACCEPTANCE: GREEN", "ACCEPTANCE: RED"
 HEREDOC = re.compile(r"<<-?\s*['\"]?(\w+)['\"]?[^\n]*\n.*?\n\s*\1\s*$", re.S | re.M)
 WRITE_OP = re.compile(r"(^|[|;&\s])(>>?|tee|cp|mv|install|cat\s*>|python3?\s+-\s*<<)")
@@ -106,9 +112,9 @@ class Frame:
                 inp = b.get("input") or {}
                 if b.get("name") == "Bash":
                     cmd = inp.get("command", "")
-                    if MARKER in cmd and ">" in cmd:    # every write, whatever it names
+                    if marker_written(cmd):    # every write, whatever it names (#366)
                         ordered.append("on-qa" if self._marker_ok(cmd) else "on-other")
-                    elif "rm -f" in cmd and MARKER in cmd:
+                    elif marker_removed(cmd):
                         ordered.append("off")
                 elif b.get("name") in ("Task", "Agent") \
                         and ("qa-brief.md" in json.dumps(inp, ensure_ascii=False)

@@ -117,9 +117,14 @@ c.expect("patrol-scan.md § Scan (a closed blocker releases)",
          "#11's clause names only the open blocker, never #8",
          x11 is not None and "#8" not in x11[2])
 x12 = row("12")
+# patrol.md §4 offers `blocked: <the STOP comment's title>` beside `acted:` for an
+# issue the pass itself just STOPped — #12 now wears `status: blocked` (run-1, #366)
 c.expect("patrol-scan.md § Scan (all blockers closed → classified as its labels say)",
-         "#12 is the actionable row: `acted:` or `queued:`, never a wait",
-         x12 is not None and re.match(r"(?i)(acted|queued):", x12[2]) is not None)
+         "#12 is the actionable row: `acted:` or `queued:` — or `blocked:` when the pass "
+         "STOPped it — never a wait",
+         x12 is not None and (re.match(r"(?i)(acted|queued):", x12[2]) is not None
+                              or (re.match(r"(?i)blocked:", x12[2]) is not None
+                                  and "status: blocked" in state["issues"]["12"]["labels"])))
 x13 = row("13")
 c.expect("patrol.md §4 (`waits on: blockers unknown`)",
          "#13's clause says its blockers are unknown",

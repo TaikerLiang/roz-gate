@@ -50,19 +50,36 @@ c.expect("patrol.md §1", "exactly one scanner dispatch, prompt names patrol-sca
 # the Task's tool_result; a background dispatch returns a launch notice there
 # and the table arrives later as a `system`/`task_notification` event whose
 # `summary` is the report (the v1.26.0 sweep's run-5). Both are the same
-# hand-back; the checker reads whichever carried a table.
+# hand-back; the checker reads whichever carried a table. The main agent may
+# continue the same scanner (SendMessage to its agent id) — a corrected
+# snapshot path — and the scanner hands back again under the SendMessage's
+# id: the LATEST hand-back of that agent is the table the pass acts on
+# (F9/run-2, #366); `table_at` stays the FIRST hand-back, where the relist
+# check starts.
 table, table_at = "", None
+ids, agents = {scanner_id}, set()
 for i, ev in enumerate(events):
+    if ev.get("type") == "system" and ev.get("subtype") == "task_started" \
+            and ev.get("tool_use_id") in ids and ev.get("task_id"):
+        agents.add(ev["task_id"])
     for b in blocks(ev):
-        if b.get("type") == "tool_result" and b.get("tool_use_id") == scanner_id:
+        if b.get("type") == "tool_use" and b.get("id") == scanner_id \
+                and (b.get("input") or {}).get("name"):
+            agents.add(b["input"]["name"])    # SendMessage may address it by name
+        if b.get("type") == "tool_use" and b.get("name") == "SendMessage" \
+                and (b.get("input") or {}).get("to") in agents:
+            ids.add(b.get("id"))
+        if b.get("type") == "tool_result" and b.get("tool_use_id") in ids:
             cont = b.get("content")
             text = cont if isinstance(cont, str) else "".join(
                 x.get("text", "") for x in (cont or []) if isinstance(x, dict))
+            agents.update(re.findall(r"agentId:\s*(\w+)", text))
             if "|" in text:
-                table, table_at = text, i
+                table, table_at = text, i if table_at is None else table_at
     if ev.get("type") == "system" and ev.get("subtype") == "task_notification" \
-            and ev.get("tool_use_id") == scanner_id and "|" in (ev.get("summary") or ""):
-        table, table_at = ev["summary"], i
+            and (ev.get("tool_use_id") in ids or ev.get("task_id") in agents) \
+            and "|" in (ev.get("summary") or ""):
+        table, table_at = ev["summary"], i if table_at is None else table_at
 c.expect("patrol-scan.md (the table)", "the scanner returned a table", "|" in table)
 
 
