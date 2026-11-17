@@ -150,6 +150,9 @@ config block:
   `Implementation: lib, app` for the dispatch text (next-stage B2.4 / B2.7,
   patrol's fidelity step). The line a blind seat reads is a rendering of
   the list the hook enforces — no command or brief writes a directory.
+  Both find the project through the same `toplevel()` too: from inside
+  the git dir (#245) it is the main checkout, for the tool as for the
+  guard.
 - **One engine, two membership predicates.** The blanking (heredoc and
   forge bodies, mentions, exclusion operands), the readable roots (the
   suite, the marker's `read=` port) and the verdict are one route,

@@ -18,7 +18,6 @@ Exit codes:
 """
 
 import os
-import subprocess
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -26,17 +25,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
 import implementation_dirs  # noqa: E402
 
 
-def toplevel():
-    try:
-        out = subprocess.run(["git", "rev-parse", "--show-toplevel"],
-                             capture_output=True, text=True, timeout=5)
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-    return out.stdout.strip() if out.returncode == 0 else None
-
-
 def main():
-    dirs = implementation_dirs.load(toplevel())
+    dirs = implementation_dirs.load(implementation_dirs.toplevel())
     if isinstance(dirs, implementation_dirs.Invalid):
         print("roz-implementation-dirs: `%s: %s` is invalid — %s. Write it as `%s`, "
               "repo-relative, or remove the line to guard `src/`."

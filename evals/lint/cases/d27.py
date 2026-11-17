@@ -62,6 +62,9 @@ for _name, _text in (("hooks/guard_blind.py", GUARD), ("bin/roz-implementation-d
              not re.search(r"implementation_dirs:(?:\\s|\[)", _text)
              and "find_block" not in _text.replace("from config_block import find_block", "")
              .replace("blk = find_block(top)", ""))
+    c.expect(_name, "D27: finds the project through implementation_dirs.toplevel() — "
+             "no `rev-parse --show-toplevel` of its own",
+             "implementation_dirs.toplevel()" in _text and "--show-toplevel\"" not in _text)
 c.expect("hooks/guard_blind.py", "D27: the deny message names the list in force",
          "member.label" in GUARD and "implementation-blind: %s and `feat/<n>`" in GUARD)
 

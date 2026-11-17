@@ -26,6 +26,7 @@ Stdlib only, Python 3.9-compatible.
 
 import os
 import re
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -65,6 +66,32 @@ def parse(raw):
         if norm not in dirs:
             dirs.append(norm)
     return tuple(dirs)
+
+
+def toplevel():
+    """The working tree a call is made from — the guard's and the renderer's
+    one definition (codex review, PR #345: the tool had its own and found
+    nothing from inside the git dir, where the guard still enforced).
+    A cwd inside the git dir has none
+    — a session that `cd`'d into the common dir to write the marker leaves
+    its sub-agents there — so it is the repository's main worktree, the first
+    `git worktree list` names (#245: with no toplevel the port's `read=`
+    exemption resolved nothing and a Read of the port was denied)."""
+    try:
+        out = subprocess.run(["git", "rev-parse", "--show-toplevel"],
+                             capture_output=True, text=True, timeout=5)
+        if out.returncode == 0:
+            return out.stdout.strip()
+        out = subprocess.run(["git", "worktree", "list", "--porcelain"],
+                             capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if out.returncode != 0:
+        return None
+    first = out.stdout.split("\n\n", 1)[0].splitlines()
+    if "bare" in first or not first or not first[0].startswith("worktree "):
+        return None
+    return first[0][len("worktree "):]
 
 
 def load(top):
