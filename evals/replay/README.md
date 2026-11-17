@@ -158,8 +158,8 @@ QA seat does?). `A` is the checkout's brief; `B`, `C`, … are the frozen
 files under `variants/qa-brief/` (its README holds each one's hash and
 provenance). For a variant other than A the runner copies the plugin root
 to a temp dir — no `.git`, no `evals/`, `docs/`, caches — replaces **only**
-`references/qa-brief.md` there and runs the session with that dir as
-`--plugin-dir`; the checkout is never written, and the harness red-proof
+`references/qa-brief.md` there and runs each session on its own copy of
+that dir (§ Method, #359); the checkout is never written, and the harness red-proof
 (`redproof.py` § VARIANT) asserts the copy differs from the checkout in
 exactly that file. `--variant A` copies nothing: one A, never two.
 
@@ -309,9 +309,9 @@ built-ins (`cc-plugin-*@builtin`) and exactly one roz-gate loaded from
 event at all makes the iteration INVALID with that reason. Every
 `result.json` records the session's effective `plugins`; a result without
 the field was recorded before the isolation and may have run with the
-operator's configuration. One thing stays: the runtime's auto-memory
-directory for the sandbox's path (`~/.claude/projects/<path>/memory/`) —
-a fresh temp path each run, so it starts empty.
+operator's configuration. The runtime's auto-memory directory
+(`~/.claude/projects/<path>/memory/`) is under the sandbox HOME (below),
+so it starts empty.
 
 **The environment** is the second way in (#321). A runner started from
 inside Claude Code inherits that session's variables, and until #321 passed
@@ -324,6 +324,31 @@ a driver. Each session also gets its own `TMPDIR`, removed after it. A
 literal `/tmp/...` path is still shared: the sandbox is a directory, not a
 jail. Results recorded before #321 may carry the launching session's
 settings; the 2026-11-14 haiku55 sweep did (`CLAUDE_EFFORT=medium`).
+
+**The filesystem** is the third (#359). The 2026-11-16 sweep's seats
+`find`-ed the operator's main checkout, the installed plugin under
+`~/.claude/plugins/cache` and other worktrees, read their prose, and ran
+the bins from the plugin root — a git checkout, so `roz-branch snapshot`
+listed the real remote's heads. Now every session gets, inside its own
+`TMPDIR`: a copy of the plugin (`COPY_IGNORE_NAMES` left out: no `.git`,
+no `evals/`, `tools/`, CI dirs) as `--plugin-dir`, so the plugin root is
+no repository and its parent is the session's own dir; and a sandbox
+`HOME` (`replaylib.sut_home`) holding only a `.gitconfig` with the seeds'
+identity, `XDG_*` dropped. `--disallowedTools` denies `ScheduleWakeup`,
+`CronCreate`, `CronDelete`, `RemoteTrigger` and `ListAgents`
+(`SUT_DISALLOWED_TOOLS`); `SendMessage` stays, because continuing the
+session's own scanner is scored (D7, F9) and the flag cannot tell it from
+a cross-session send. Before any spend the runners ask
+`claude auth status` under the sandbox HOME (subscription rows); a login
+it cannot see stops the run — export `CLAUDE_CODE_OAUTH_TOKEN` (`claude
+setup-token`), which the SUT keeps. `plugin_sha` and `case_fp` still name
+the checkout's commit and the case. Still reachable: any absolute path
+(`find /` reaches the checkout), the network, `~/.ssh` (ssh reads the
+password database, not HOME), a `CLAUDE_CONFIG_DIR` the operator sets.
+An OS sandbox would close those; it is out of scope. The F6 driver
+builds its own command and still passes the checkout as `--plugin-dir`
+(its sessions do get the sandbox HOME and the deny-list); moving it to a
+copy moves F6's fingerprint.
 
 **The forge** is a stateful stub (`forge-stub/gh`) shadowing the real CLI
 via PATH. Fixtures seed `state.json`; writes mutate state (commands read

@@ -84,11 +84,12 @@ BRIEF_REL = "references/qa-brief.md"
 # another persona is stale for a case that declares "seats": ["qa"]
 PERSONA_REL = "agents/qa.md"
 VARIANTS = os.path.join(S, "variants", "qa-brief")
-# What the temp plugin copy leaves out: nothing the runtime loads. The
-# variant copy must differ from the checkout in exactly one file
-# (redproof.py § VARIANT), so the list is of trees, never of files.
+# What a temp plugin copy leaves out: nothing the runtime loads. Every SUT
+# session runs its own copy (#359), and the variant copy must differ from
+# the checkout in exactly one file (redproof.py § VARIANT), so the list is
+# of trees, never of files.
 COPY_IGNORE_NAMES = (".git", ".venv", ".ruff_cache", ".claude", "evals", "docs", "images",
-                     "node_modules", "__pycache__")
+                     "node_modules", "__pycache__", ".github", ".githooks", "tools")
 COPY_IGNORE = shutil.ignore_patterns(*COPY_IGNORE_NAMES)
 
 
@@ -211,17 +212,55 @@ def claude_env(sut, forge_state):
     return env
 
 
+def session_env(sut, forge_state):
+    """(env, dir): a SUT session's environment and its own dir — TMPDIR is
+    the dir (no two sessions share one, #321), HOME a sandbox inside it
+    (#359). The caller removes the dir."""
+    tmp = tempfile.mkdtemp(prefix="roz-sut-")
+    env = claude_env(sut, forge_state)
+    env["TMPDIR"] = tmp
+    rl.sut_home(env, tmp)
+    return env, tmp
+
+
+def auth_problem(sut):
+    """Why a SUT session under the sandbox HOME would not be logged in, or
+    None (#359): `claude auth status` there, no model, no quota. An api row
+    brings its key in the environment."""
+    if sut["mode"] == "api":
+        return None
+    env, tmp = session_env(sut, tempfile.gettempdir())
+    try:
+        out = subprocess.run(["claude", "auth", "status", "--json"], cwd=tmp, env=env,
+                             capture_output=True, text=True, timeout=60)
+        status = json.loads(out.stdout)
+    except (OSError, ValueError, subprocess.TimeoutExpired) as exc:
+        return "`claude auth status` failed under the sandbox HOME: %s" % exc
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    if isinstance(status, dict) and status.get("loggedIn"):
+        return None
+    return ("`claude auth status` under the sandbox HOME says not logged in — export "
+            "CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`), which the SUT keeps")
+
+
 def invoke_claude(sut, work, forge_state, prompt, timeout, transcript,
                   stderr_log, resume=None, plugin_dir=ROOT):
+    """Returns the plugin dir the session was handed: its own copy of
+    `plugin_dir` — no .git, nothing COPY_IGNORE names — inside the session's
+    TMPDIR, never the checkout or a dir beside the operator's (#359); gone
+    once the session ends. None for a no-plugin session."""
     args = ["claude", "-p", prompt]
     if resume:
         args += ["--resume", resume]
     args += ["--model", sut["model"], "--output-format", "stream-json",
              "--verbose", "--dangerously-skip-permissions"] + rl.SUT_ISOLATION_ARGS
+    env, tmp = session_env(sut, forge_state)
+    plugin = None
     if plugin_dir:      # None: no plugin at all — the Workflow Value baseline (#259)
-        args += ["--plugin-dir", plugin_dir]
-    env = claude_env(sut, forge_state)
-    env["TMPDIR"] = tempfile.mkdtemp(prefix="roz-sut-")   # no two sessions share one (#321)
+        plugin = os.path.join(tmp, "plugin")
+        shutil.copytree(plugin_dir, plugin, ignore=COPY_IGNORE, symlinks=True)
+        args += ["--plugin-dir", plugin]
     with open(transcript, "w") as t, open(stderr_log, "a") as e:
         try:
             sh(args, cwd=work, env=env, timeout=timeout, out=t, err=e)
@@ -230,7 +269,8 @@ def invoke_claude(sut, work, forge_state, prompt, timeout, transcript,
             # finished turn): say so in stderr, where cut_short() reads it.
             e.write("\n" + rl.TIMEOUT_NOTE % timeout + "\n")
         finally:
-            shutil.rmtree(env["TMPDIR"], ignore_errors=True)
+            shutil.rmtree(tmp, ignore_errors=True)
+    return plugin
 
 
 def usage_and_cost(transcript, mode):
@@ -338,8 +378,8 @@ def _run_one(sut, cdir, rdir, prompt, timeout, variant, plugin_dir):
     open(os.path.join(rdir, "stderr.log"), "w").close()
     transcript = os.path.join(rdir, "transcript.jsonl")
 
-    invoke_claude(sut, work, os.path.join(rdir, "forge"), prompt, timeout,
-                  transcript, os.path.join(rdir, "stderr.log"), plugin_dir=plugin_dir)
+    ran = invoke_claude(sut, work, os.path.join(rdir, "forge"), prompt, timeout,
+                        transcript, os.path.join(rdir, "stderr.log"), plugin_dir=plugin_dir)
     # What the session actually loaded (#307), on every result from here on.
     stamp = {**stamp, "plugins": rl.session_plugins(transcript)}
 
@@ -355,7 +395,7 @@ def _run_one(sut, cdir, rdir, prompt, timeout, variant, plugin_dir):
                             "invalid_reason": err}, stamp)
         shutil.rmtree(sbx, ignore_errors=True)
         return 3 if err == "quota-exhausted" else 1
-    leak = rl.isolation_breach(transcript, plugin_dir)
+    leak = rl.isolation_breach(transcript, ran)
     if leak:
         write_result(rdir, {"valid": False, "pass": False, "invalid_reason": leak}, stamp)
         shutil.rmtree(sbx, ignore_errors=True)
@@ -709,6 +749,9 @@ def main(argv):
         return
     if sut["mode"] == "api" and not os.environ.get(sut["key_env"], ""):
         die("SUT '%s' is api-mode but $%s is unset" % (sut["name"], sut["key_env"]))
+    why = auth_problem(sut)
+    if why:
+        die("SUT '%s': %s (#359)" % (sut["name"], why))
 
     variant = args.variant
     report = os.path.join(REPORT, sut["name"])
@@ -730,12 +773,15 @@ def main(argv):
             print("run  %s run-%d ..." % (case_key(case, variant), i))
             if driver:
                 env = rl.sut_base_env()   # the driver's sessions inherit it (#321)
+                home = tempfile.mkdtemp(prefix="roz-sut-")
+                rl.sut_home(env, home)    # and its sandbox HOME (#359)
                 env.update({"ROOT": ROOT, "S": S, "SUT_NAME": sut["name"],
                             "SUT_MODEL": sut["model"], "SUT_MODE": sut["mode"],
                             "SUT_BASE_URL": sut["base_url"],
                             "SUT_KEY_ENV": sut["key_env"]})
                 rc = sh(["python3", os.path.join(cdir, driver), cdir, rdir,
                          str(i)], env=env).returncode
+                shutil.rmtree(home, ignore_errors=True)
                 stamp_result(rdir, case_stamp(cdir))
                 if rc == 3:  # the driver's quota signal — same stop as below
                     die("quota exhausted at %s/run-%d; resume after reset "
