@@ -109,7 +109,8 @@ WRITE = re.compile(r"gh (issue (edit|comment|close|create)"
                    r"|api -X (POST|PATCH|PUT|DELETE)"
                    r"|api graphql[^|;&]*\bmutation\b"
                    r"|api (?!graphql)\S+[^|;&]* -[fF] )")
-scanner_writes = [b for ev in events if ev.get("parent_tool_use_id") == scanner_id
+# Under the dispatch and under every continuation of it (codex review, PR #369).
+scanner_writes = [b for ev in events if ev.get("parent_tool_use_id") in ids - {None}
                   for b in blocks(ev) if b.get("type") == "tool_use" and b.get("name") == "Bash"
                   and WRITE.search((b.get("input") or {}).get("command", ""))]
 c.expect("patrol-scan.md (You write nothing)", "no forge write under the scanner",

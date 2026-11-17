@@ -138,13 +138,18 @@ def transcript(table, scanner_write=False, relist=False, scanner=True, scanner_m
         else:
             ev.append(tool_result("t_scan", table))
     if resumed:
-        to, again = resumed
+        to, again, *write = resumed    # write: the continued scanner labels #6
         ev.append(tool_use("SendMessage", {"to": to, "summary": "Correct snapshot path",
                                            "message": "The snapshot is at /tmp/roz-snap.json; "
                                                       "rerun the scan."}, "t_send"))
         ev.append(tool_result("t_send", '{"success":true,"message":"Resuming agent %s"}' % to))
         ev.append({"type": "system", "subtype": "task_started", "task_id": to,
                    "tool_use_id": "t_send"})
+        if write:
+            ev.append(tool_use("Bash",
+                               {"command": 'gh issue edit 6 --add-label "status: processing"'},
+                               "t_s5", parent="t_send"))
+            ev.append(tool_result("t_s5", "", parent="t_send"))
         ev.append({"type": "system", "subtype": "task_notification", "task_id": to,
                    "tool_use_id": "t_send", "status": "completed", "summary": again})
     if relist:
@@ -231,6 +236,8 @@ SHAPES = [
      {"table": BAD_TABLE, "background": True, "resumed": ("a1", GOOD_TABLE)}),
     ("the right table first, the continued scanner's latest hand-back wrong — the latest "
      "counts (#366)", False, {"background": True, "resumed": ("a1", BAD_TABLE)}),
+    ("the continued scanner wrote a label under the SendMessage (codex review, PR #369)", False,
+     {"table": BAD_TABLE, "background": True, "resumed": ("a1", GOOD_TABLE, True)}),
     ("the first table wrong, a right one from ANOTHER agent's continuation (#366)", False,
      {"table": BAD_TABLE, "background": True, "resumed": ("a9", GOOD_TABLE)}),
     ("the good pass, #7 unassigned — holder is its author", True,
