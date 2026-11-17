@@ -92,6 +92,14 @@ throwaway state, the resume rule against staged result.json files.
   minus the launching Claude Code session's: no `CLAUDECODE`, `CLAUDE_PID`,
   `CLAUDE_EFFORT` or `CLAUDE_CODE_*` but the login/provider ones, and its
   own `TMPDIR`, which exists during the session and is gone after it.
+- SANDBOX (#359) — under a fake `claude` that probes its session: the
+  `--plugin-dir` is the session's own copy inside its `TMPDIR` (not the
+  checkout, not beside it), with no `.git` and no non-plugin tree; git
+  finds no repository from it and `roz-branch snapshot` reaches no remote;
+  `HOME` is a sandbox holding only `.gitconfig`, `XDG_*` dropped;
+  `--disallowedTools` names the five tools, never SendMessage; S1-S3 still
+  score; the stamp names the checkout; `auth_problem` asks under the
+  sandbox HOME, and a logged-out answer stops the run before any session.
 - SYSTEM-EVENT (#319) — a transcript holding a `system` event whose
   `message` is a string (the CLI's `permission_denied` notice) reads as a
   healthy session: `session_error`, `session_tokens`, `path_files_read`,
@@ -2436,15 +2444,37 @@ ISO_USER_ROZ = {"name": "roz-gate", "path": "/Users/op/dev/roz-gate",
 ISO_TELEGRAM = {"name": "telegram", "source": "telegram@claude-plugins-official",
                 "path": "/Users/op/.claude/plugins/cache/claude-plugins-official/telegram/0.0.7"}
 FAKE_CLAUDE = r"""#!/usr/bin/env python3
-import json, os, sys
+import json, os, subprocess, sys
+argv = sys.argv[1:]
+if argv[:2] == ["auth", "status"]:   # the runners' pre-spend check (#359), not a session
+    with open(os.environ["FAKE_ARGV"] + ".auth", "a") as f:
+        f.write(json.dumps({"home": os.environ.get("HOME")}) + "\n")
+    print(json.dumps({"loggedIn": not os.environ.get("FAKE_LOGGED_OUT")}))
+    sys.exit(0)
 with open(os.environ["FAKE_ARGV"], "w") as f:
-    json.dump(sys.argv[1:], f)
+    json.dump(argv, f)
+plugin = argv[argv.index("--plugin-dir") + 1] if "--plugin-dir" in argv else None
+if plugin and os.environ.get("FAKE_PROBE"):   # the session's plugin copy and HOME (#359)
+    def run(*cmd):
+        p = subprocess.run(list(cmd), cwd=plugin, capture_output=True, text=True)
+        return {"rc": p.returncode, "out": p.stdout}
+    home = os.environ.get("HOME", "")
+    with open(os.environ["FAKE_ARGV"] + ".probe", "w") as f:
+        json.dump({"plugin": plugin, "entries": sorted(os.listdir(plugin)),
+                   "git": run("git", "rev-parse", "--absolute-git-dir"),
+                   "snapshot": run(sys.executable, "bin/roz-branch", "snapshot", "--json"),
+                   "home_entries": sorted(os.listdir(home)) if os.path.isdir(home) else None,
+                   "git_email": run("git", "config", "user.email")["out"].strip()}, f)
 with open(os.environ["FAKE_ARGV"] + ".log", "a") as f:   # one line per launch (#282)
     f.write(json.dumps(sys.argv[1:]) + "\n")
 with open(os.environ["FAKE_ARGV"] + ".env", "w") as f:   # the session's environment (#321)
     json.dump({"env": dict(os.environ),
                "tmpdir_exists": os.path.isdir(os.environ.get("TMPDIR", ""))}, f)
-print(open(os.environ["FAKE_INIT"]).read().strip())
+init = json.load(open(os.environ["FAKE_INIT"]))
+for p in init.get("plugins") or []:   # the runtime reports the dir it was handed
+    if plugin and p.get("path") == os.environ.get("FAKE_PLUGIN_AS"):
+        p["path"] = plugin
+print(json.dumps(init))
 if os.environ.get("FAKE_EVENTS"):   # extra transcript events (#279)
     print(open(os.environ["FAKE_EVENTS"]).read().strip())
 print(json.dumps({"type": "assistant", "message": {"id": "m1", "content": [
@@ -2480,6 +2510,7 @@ def _fake_claude(init):
     os.environ["PATH"] = bindir + os.pathsep + os.environ.get("PATH", "")
     os.environ["FAKE_ARGV"] = os.path.join(d, "argv.json")
     os.environ["FAKE_INIT"] = os.path.join(d, "init.json")
+    os.environ["FAKE_PLUGIN_AS"] = rr.ROOT   # _iso_roz(rr.ROOT): the --plugin-dir roz-gate
     for k in [k for k in os.environ if k.startswith("LANGFUSE_")]:
         del os.environ[k]   # never export a red-proof run
     try:
@@ -2866,6 +2897,123 @@ def env_checks():
     ]
 
 
+def _snapshot(out):
+    """(status, heads) of a `roz-branch snapshot --json` answer, or None."""
+    try:
+        snap = json.loads(out or "")
+        return snap.get("status"), snap.get("heads")
+    except (ValueError, AttributeError):
+        return None
+
+
+def sandbox_checks():
+    """#359: the 2026-11-16 sweep's SUT sessions ran the operator's git
+    checkout as --plugin-dir (the bins answered for it, `roz-branch
+    snapshot` listed the real remote), `find`-ed other roz-gate copies under
+    the operator's HOME, wrote beside the checkout, and kept the tools that
+    outlive the session or reach other ones. Dry construction: a fake
+    `claude` on PATH records the command, the environment and, while the
+    session runs, what its plugin dir and HOME hold."""
+    sut = {"name": "redproof", "mode": "subscription", "model": "m", "base_url": "",
+           "key_env": ""}
+    saved = dict(os.environ)
+    os.environ["XDG_CONFIG_HOME"] = os.path.join(os.path.expanduser("~"), ".config")
+    os.environ["FAKE_PROBE"] = "1"
+    try:
+        with _fake_claude(_iso_init([_iso_roz(rr.ROOT)])) as d:
+            ran = rr.invoke_claude(sut, d, d, "hi", 30, os.path.join(d, "t.jsonl"),
+                                   os.path.join(d, "e.log"), plugin_dir=rr.ROOT)
+            argv = rr.load_json(os.path.join(d, "argv.json"), [])
+            env = (rr.load_json(os.path.join(d, "argv.json.env"), {}) or {}).get("env") or {}
+            probe = rr.load_json(os.path.join(d, "argv.json.probe"), {}) or {}
+            auth_ok = _guarded(lambda: rr.auth_problem(sut))
+            auth = [json.loads(line) for line in open(os.path.join(d, "argv.json.auth"))] \
+                if os.path.exists(os.path.join(d, "argv.json.auth")) else []
+            api_ok = _guarded(lambda: rr.auth_problem(dict(sut, mode="api")))
+            smoke = {}
+            for sc in rr.SMOKE:
+                rdir = os.path.join(d, "smoke-" + sc)
+                prompt = rr.load_json(os.path.join(HERE, "smoke", sc, "case.json"))["prompt"]
+                rc = _guarded(lambda: rr.run_one(sut, os.path.join(HERE, "smoke", sc), rdir,
+                                                 prompt, 60))
+                smoke[sc] = (rc, rr.load_json(os.path.join(rdir, "result.json"), {}) or {},
+                             rr.load_json(os.path.join(d, "argv.json"), []))
+            saved_report = rr.REPORT
+            rr.REPORT = os.path.join(d, "report")
+            try:
+                os.makedirs(os.path.join(rr.REPORT, "haiku55"))
+                open(os.path.join(rr.REPORT, "haiku55", "smoke-pass"), "w").close()
+                os.environ["FAKE_LOGGED_OUT"] = "1"
+                out_rc, out_text, out_n = _cli(rr.main, ["--sut", "haiku55", "--k", "1", "A1"])
+                del os.environ["FAKE_LOGGED_OUT"]
+            finally:
+                rr.REPORT = saved_report
+    finally:
+        os.environ.clear()
+        os.environ.update(saved)
+    plugin = argv[argv.index("--plugin-dir") + 1] if "--plugin-dir" in argv else ""
+    tmp = env.get("TMPDIR", "")
+    deny = argv[argv.index("--disallowedTools") + 1] if "--disallowedTools" in argv else ""
+    denied = set(re.split(r"[,\s]+", deny)) - {""}
+    want = {"ScheduleWakeup", "CronCreate", "CronDelete", "RemoteTrigger", "ListAgents"}
+    snap = probe.get("snapshot") or {}
+    brief = rl.brief_sha256(os.path.join(rr.ROOT, rr.BRIEF_REL))
+    s1 = smoke.get("S1", (None, {}, []))[1]
+    return [
+        ("invoke_claude hands the SUT its own plugin copy inside the session's TMPDIR — not "
+         "the checkout, not beside it (the operator's scratchpad was the checkout's parent), "
+         "returned for the isolation check and removed after the session",
+         bool(plugin) and plugin == ran and os.path.dirname(plugin) == tmp
+         and os.path.realpath(plugin) != os.path.realpath(rr.ROOT)
+         and not os.path.realpath(plugin).startswith(
+             os.path.realpath(os.path.dirname(rr.ROOT)) + os.sep)
+         and not os.path.exists(tmp)),
+        ("the plugin copy has no .git and no non-plugin tree (evals, tools, .github, "
+         ".githooks, docs), and keeps what the runtime loads",
+         probe.get("entries") is not None
+         and not {".git", "evals", "tools", ".github", ".githooks", "docs"}
+         & set(probe["entries"])
+         and {".claude-plugin", "agents", "bin", "commands", "hooks", "references",
+              "scripts", "templates"} <= set(probe["entries"])),
+        ("from the plugin root git finds no repository at or above it",
+         (probe.get("git") or {}).get("rc", 0) != 0),
+        ("`bin/roz-branch snapshot` from the plugin root reaches no remote: it fails with "
+         "status unknown and lists no head",
+         bool(snap) and snap.get("rc") != 0 and _snapshot(snap.get("out")) == ("unknown", [])),
+        ("the SUT's HOME is a sandbox inside its TMPDIR holding only .gitconfig (the seeds' "
+         "identity), not the runner's HOME; XDG_* dropped",
+         bool(tmp) and env.get("HOME") == os.path.join(tmp, "home")
+         and env.get("HOME") != saved.get("HOME")
+         and probe.get("home_entries") == [".gitconfig"]
+         and probe.get("git_email") == "paul@example.com"
+         and not [k for k in env if k.startswith("XDG_")]),
+        ("--disallowedTools denies ScheduleWakeup, CronCreate, CronDelete, RemoteTrigger and "
+         "ListAgents — SendMessage stays (D7/F9 continue their own scanner)",
+         denied == want and "SendMessage" not in deny),
+        ("the deny-list rides in SUT_ISOLATION_ARGS, which the F6 driver imports",
+         "--disallowedTools" in rl.SUT_ISOLATION_ARGS),
+        ("S1-S3 still construct: each runs on its own plugin copy and scores (valid), the "
+         "isolation check reading the copy",
+         all(rc in (0, 2) and r.get("valid") is True
+             and a[a.index("--plugin-dir") + 1] != rr.ROOT
+             for rc, r, a in smoke.values() if "--plugin-dir" in a)
+         and len(smoke) == 3 and all("--plugin-dir" in a for _, _, a in smoke.values())),
+        ("the stamp still names the source: plugin_sha is the checkout's HEAD and "
+         "brief_sha256 the checkout's brief",
+         bool(rl.plugin_sha()) and s1.get("plugin_sha") == rl.plugin_sha()
+         and s1.get("brief_sha256") == brief),
+        ("auth_problem asks `claude auth status` under a sandbox HOME, not the runner's, and "
+         "passes a logged-in answer",
+         auth_ok is None and len(auth) == 1 and str(auth[0].get("home", "")).endswith(
+             os.sep + "home") and auth[0].get("home") != saved.get("HOME")),
+        ("an api row skips the auth check (its key is in the environment)",
+         api_ok is None and len(auth) == 1),
+        ("logged out under the sandbox HOME: the run exits 2 naming CLAUDE_CODE_OAUTH_TOKEN, "
+         "no session launched",
+         out_rc == 2 and "CLAUDE_CODE_OAUTH_TOKEN" in out_text and out_n == 0),
+    ]
+
+
 DENIED = {"type": "system", "subtype": "permission_denied", "tool_name": "Bash",
           "tool_use_id": "toolu_denied", "decision_reason_type": "safetyCheck",
           "message": "Dangerous rm operation detected: the target is the output of a command "
@@ -3040,6 +3188,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in env_checks():
         print("%s env: %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in sandbox_checks():
+        print("%s sandbox: %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in system_event_checks():
         print("%s system-event: %s" % ("PASS" if ok else "FAIL", name))
