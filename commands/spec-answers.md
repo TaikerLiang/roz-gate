@@ -24,6 +24,8 @@ Lookup, never guessed). Nothing below spells a branch name. **Personas**: run
 the `agent_type` it prints, attaching the seat's R&R row and its
 `Plugin root: ${CLAUDE_PLUGIN_ROOT}` line
 (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` § Seats and personas).
+Its failure (`PERSONA_UNMAPPED`, `AGENT_TYPE_UNAVAILABLE`) is the STOP exit,
+right after the lock; the comment names it and `/roz-gate:init`.
 
 ## 1. Find spec CRs to check (read-only)
 - If an issue number was passed (`$ARGUMENTS`), use the CR whose head branch is

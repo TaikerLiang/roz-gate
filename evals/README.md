@@ -132,14 +132,14 @@ Set on `main` at `2ee634c`.
 
 | prose | cap (words) |
 |---|---|
-| **the repo's runtime prose total** | 52,580 |
+| **the repo's runtime prose total** | 52,652 |
 | `commands/config.md` | 540 |
 | `commands/init.md` | 1,358 |
-| `commands/integrate.md` | 2,494 |
-| `commands/next-stage.md` | 1,076 |
-| `commands/patrol.md` | 3,917 |
+| `commands/integrate.md` | 2,504 |
+| `commands/next-stage.md` | 1,087 |
+| `commands/patrol.md` | 3,921 |
 | `commands/review-answers.md` | 1,822 |
-| `commands/spec-answers.md` | 3,412 |
+| `commands/spec-answers.md` | 3,430 |
 | `commands/tip.md` | 2,586 |
 | `commands/to-issues.md` | 504 |
 | `commands/uninit.md` | 444 |

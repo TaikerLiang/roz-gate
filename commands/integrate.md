@@ -42,6 +42,8 @@ every CAPITALIZED-OP. Missing config → stop; tell the user to run
 the `agent_type` it prints, attaching the seat's R&R row and its
 `Plugin root: ${CLAUDE_PLUGIN_ROOT}` line
 (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` § Seats and personas).
+Its failure (`PERSONA_UNMAPPED`, `AGENT_TYPE_UNAVAILABLE`) is the STOP exit,
+right after the lock; the comment names it and `/roz-gate:init`.
 
 ## 1. Preconditions (read-only)
 - `track: fast` → stop: the fast track has no integration stage — its CR merges
