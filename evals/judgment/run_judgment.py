@@ -441,8 +441,8 @@ def run_case(sut, name, fx, rdir, arm="treatment"):
     baseline = arm == "baseline"
     prompt = wv.baseline_prompt(fx["issue"]) if baseline else fx["command"]
     plugin_dir = None if baseline else rr.ROOT
-    rr.invoke_claude(sut, work, os.path.join(rdir, "forge"), prompt, fx["timeout"],
-                     transcript, os.path.join(rdir, "stderr.log"), plugin_dir=plugin_dir)
+    ran = rr.invoke_claude(sut, work, os.path.join(rdir, "forge"), prompt, fx["timeout"],
+                           transcript, os.path.join(rdir, "stderr.log"), plugin_dir=plugin_dir)
     base = {"fixture": name, "pin": fx["pin"], "overlay_sha": overlay_sha, "sut": sut["name"],
             "arm": arm, "prompt": prompt, "plugins": session_plugins(transcript)}
     cost_counts = wv.cost(Run(rdir).tool_uses(), loop_config(admc_path()))
@@ -457,7 +457,7 @@ def run_case(sut, name, fx, rdir, arm="treatment"):
         rr.write_result(rdir, {**base, "valid": False, "invalid_reason": err, "tokens": usage})
         shutil.rmtree(sbx, ignore_errors=True)
         return 3 if err == "quota-exhausted" else 1
-    leak = isolation_breach(transcript, plugin_dir)   # #307: a harness failure, never scored
+    leak = isolation_breach(transcript, ran)   # #307: a harness failure, never scored
     if leak:
         rr.write_result(rdir, {**base, "valid": False, "invalid_reason": leak, "tokens": usage})
         shutil.rmtree(sbx, ignore_errors=True)
@@ -732,6 +732,9 @@ def main(argv):
     if why:
         die(why)
     sources.require(args.cases or None)   # every pin and the overlay's commit, before any spend
+    why = rr.auth_problem(sut)
+    if why:
+        die("SUT '%s': %s (#359)" % (sut["name"], why))
     k, arm = args.k, args.arm
     report = arm_report(arm, sut["name"])
     os.makedirs(report, exist_ok=True)
