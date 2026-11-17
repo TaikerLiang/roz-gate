@@ -117,8 +117,10 @@ half-done:
    - **A demotion a guarantee needs is not folded**: an answer that
      demotes, or accepts the risk of, a premise a guarantee, scenario or
      acceptance criterion depends on leaves the premise `(unverified)` and
-     that clause byte-identical; the fold asks once (below) — keep
-     `<id>` and measure, or correct `<id>`.
+     that clause byte-identical; the fold asks once — keep `<id>` and
+     measure, or correct `<id>` — as a new `Q<k>` *raised by the fold
+     of Q<j>* (depth rule below; depth 0: its own thread), never as a
+     reply in Q<j>'s thread.
    - **A fold touching an evidence-tagged sentence re-derives the tag**: the
      measurement still covers the edited claim, or the tag downgrades to
      `(unverified)`. A stale `(measured, <date>, <scope>)` certifying a claim

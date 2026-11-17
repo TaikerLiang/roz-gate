@@ -32,7 +32,7 @@ META = {
 }
 
 SET_AT = "2ee634c"  # the main commit the caps were measured on (#279 merged)
-TOTAL_CAP = 52413  # 52338 + 75: #281's `Implementation:` line (budget 100)
+TOTAL_CAP = 52438  # 52413 + 25: #364's refused-demotion follow-up placement
 COMMAND_CAPS = {
     "commands/config.md": 540,
     "commands/init.md": 1358,
@@ -40,7 +40,7 @@ COMMAND_CAPS = {
     "commands/next-stage.md": 1076,
     "commands/patrol.md": 3917,
     "commands/review-answers.md": 1822,
-    "commands/spec-answers.md": 3373,
+    "commands/spec-answers.md": 3398,
     "commands/tip.md": 2586,
     "commands/to-issues.md": 504,
     "commands/uninit.md": 444,
