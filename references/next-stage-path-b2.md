@@ -86,7 +86,11 @@ and it is why the next step's blindness is the hook's, not the topology's.
   of `technical-spec.md` names (none when it says `none`); `seat=qa` here
   (the hook names the dispatch in its deny message). The dispatch text
   carries the same paths on a line of its own, `Test port: <path>[, <path>]`
-  or `Test port: none`. Immediately after it returns,
+  or `Test port: none` — and the line
+  `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-implementation-dirs` prints, if
+  any, exactly as printed (`Implementation: …`: the directories the hook
+  denies in place of `src/`; exit 2 is the STOP exit, before the marker).
+  Immediately after it returns,
   `rm -f "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`.
   While the marker exists, every read of `src/` outside
   `<acceptance_dir>` and the port the marker names, and every git action on
@@ -160,7 +164,8 @@ writes nothing here.
   when it says `none`) — the port the hook lets the dispatch read beside
   the suite (#125); `seat=reviewer` here; the dispatch text carries the same
   paths on a line of
-  its own, `Test port: <path>[, <path>]` or `Test port: none`. Immediately
+  its own, `Test port: <path>[, <path>]` or `Test port: none`, and
+  `roz-implementation-dirs`' line as in B2.4. Immediately
   after it returns,
   `rm -f "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`.
   While the marker exists, every read of `src/` outside

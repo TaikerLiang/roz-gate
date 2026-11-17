@@ -96,6 +96,7 @@ import sys
 # this dir already); the lint tier and the D5 checker load it by
 # spec_from_file_location, from elsewhere — the reader must still import.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import implementation_dirs  # noqa: E402
 from config_block import find_block  # noqa: E402
 
 MARKER_REL = "roz-gate/fidelity-dispatch"
@@ -448,13 +449,264 @@ def blank_variable_bodies(raw, cmd, scanned):
     return out
 
 
-def bash_reads_src(cmd, suite=None, top=None, tops=None):
+# ---- one engine, two membership predicates (#281) -------------------------
+# What rule E does with a call — the heredoc, forge-body, mention and
+# exclusion blanking, the readable roots (the suite, the marker's `read=`
+# paths), the walk over a tool's paths, the verdict — is ONE route:
+# `bash_reads()` and `tool_reads()`. What differs between a project that
+# keeps its code under `src/` and one that lists `implementation_dirs` is
+# only the MEMBERSHIP: which operand or tool path is the implementation.
+#
+#   SrcMembership — the key is unset. The D2 predicate as it always was:
+#     a `src/` path segment anywhere in the text (lexical; `SRC_PATH`,
+#     `SRC_EXCLUDED`, `suite_under_src`, the objects lint D2 pins).
+#   DirMembership — the listed directories, from the repo root, by whole
+#     segments, in every tree of this repo. The contract is the REAL
+#     location (`realpath`: symlinks and `..` resolved; a path that does
+#     not exist resolves lexically): `lib/notes → ../docs/notes` is not the
+#     implementation, `tools/impl → ../lib` is. Tools: `file_path`, `path`,
+#     `notebook_path`, and the fixed prefix of a Glob `pattern` / Grep
+#     `glob`. Bash: every operand that holds a `/`, and every word that is
+#     itself a symlink; a bare word (`grep lib README.md`, `ls lib`) is a
+#     word — the line `ls src` has always sat on.
+#
+# A membership answers with HITS — (value, name): the path as written, or
+# None when it cannot be told apart from the text around it (the lexical
+# predicate), and the directory's name for the message. The engine exempts
+# a hit whose real location is under a readable root; nothing else does.
+WILDCARD = re.compile(r"[*?\[{]")
+OPERAND = re.compile(r"""[^\s'"<>|;&()]+""")
+PATH_KEYS = ("file_path", "path", "notebook_path")
+
+
+def shell_words(cmd):
+    """The words of a command as the shell would hand them over — quotes and
+    backslash escapes honoured, so `"my lib/x.py"` is ONE word (codex
+    review, PR #345: split on whitespace, a path holding a space was judged
+    as pieces that are not the file read). Yields (word, quoted, glued):
+    `quoted` when any part of it was quoted or escaped, `glued` when the
+    word starts right after a `)` — the tail of `$(…)/lib/x`. Unquoted `<>|;&()` and
+    whitespace end a word; an unterminated quote runs to the end. No
+    expansion is attempted — `$(…)` inside double quotes stays in the word."""
+    word, quoted, i, n = [], False, 0, len(cmd)
+    started = glued = False
+    while i < n:
+        ch = cmd[i]
+        if not started and not (ch.isspace() or ch in "<>|;&()"):
+            glued = i > 0 and cmd[i - 1] == ")"
+        if ch == "'":
+            j = cmd.find("'", i + 1)
+            j = n if j < 0 else j
+            word.append(cmd[i + 1:j])
+            quoted = started = True
+            i = j + 1
+        elif ch == '"':
+            i += 1
+            while i < n and cmd[i] != '"':
+                if cmd[i] == "\\" and i + 1 < n and cmd[i + 1] in '"\\$`':
+                    i += 1
+                word.append(cmd[i])
+                i += 1
+            quoted = started = True
+            i += 1
+        elif ch == "\\" and i + 1 < n:
+            word.append(cmd[i + 1])
+            quoted = started = True
+            i += 2
+        elif ch.isspace() or ch in "<>|;&()":
+            if started:
+                yield "".join(word), quoted, glued
+            word, quoted, started = [], False, False
+            i += 1
+        else:
+            word.append(ch)
+            started = True
+            i += 1
+    if started:
+        yield "".join(word), quoted, glued
+
+
+class SrcMembership:
+    """The default: a `src/` segment anywhere — the D2 predicate."""
+
+    custom = False
+    excluded = SRC_EXCLUDED
+    label = "`src/`"
+
+    def root(self, path):
+        return suite_under_src(path)
+
+    def root_at(self, tree, root):
+        """Where a readable root is in one tree: joined lexically — a suite
+        that is itself a symlink out of src/ exempts nothing."""
+        return os.path.join(os.path.realpath(tree), root)
+
+    def text_hits(self, cmd, top, trees, base=None):
+        return [(None, "src/")] if SRC_PATH.search(cmd) else []
+
+    def tool_hits(self, tool, inp, top, trees, base=None):
+        hits = []
+        for v in inp.values():
+            text = v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)
+            if SRC_PATH.search(text):
+                hits.append((v if isinstance(v, str) else None, "src/"))
+        return hits
+
+
+class DirMembership:
+    """`implementation_dirs`: the listed directories, by real location."""
+
+    custom = True
+
+    def __init__(self, dirs):
+        self.dirs = tuple(dirs)
+        self.excluded = re.compile(SRC_EXCLUDED.pattern.replace(
+            "src/", "(?:%s)/" % "|".join(re.escape(d) for d in self.dirs)))
+        self.label = ", ".join("`%s/`" % d for d in self.dirs)
+        # A listed directory spelled inside a word, at a boundary that is
+        # no path character: `body=@lib/x.py`, `"${X:-@lib/x.py}"`, `\@lib/…`
+        # (#326's file-valued forge fields; codex review, PR #345). The path
+        # runs from there to the end of the word and is then RESOLVED like
+        # any other candidate — spelling alone denies nothing.
+        self.spelled = re.compile(r"(?<![\w./-])(?:\./)?(?:%s)/[^\s'\"<>|;&(){}]*"
+                                  % "|".join(re.escape(d) for d in self.dirs))
+
+    def root(self, path):
+        """A readable root needs an exemption only below a listed directory."""
+        if not path:
+            return None
+        segs = [x for x in os.path.normpath(path).replace(os.sep, "/").split("/")
+                if x not in (".", "")]
+        if ".." in segs:
+            return None
+        norm = "/".join(segs)
+        return norm if any(norm.startswith(d + "/") for d in self.dirs) else None
+
+    def root_at(self, tree, root):
+        """Where a readable root is in one tree. The listed directory it
+        sits under is taken at its REAL place, as membership takes it (codex
+        review, PR #345: with `code → real` listed, `read=code/port.py`
+        named a path no resolved read could match); the rest of the root is
+        joined lexically — a root that is itself a link out exempts nothing."""
+        tree = os.path.realpath(tree)
+        for d in self.dirs:
+            if root.startswith(d + "/"):
+                return os.path.join(os.path.realpath(os.path.join(tree, d)), root[len(d) + 1:])
+        return os.path.join(tree, root)
+
+    def member(self, path, top, trees, base=None):
+        """The listed directory `path` really is in, or None. A relative
+        path is the cwd's (`base`) — where the command reads it — never the
+        toplevel's (codex review, PR #345: from `tests/`, `cat ../lib/x.py`
+        was judged as `<top>/../lib/x.py` and passed)."""
+        if not top or not path:
+            return None
+        rp = os.path.realpath(path if os.path.isabs(path)
+                              else os.path.join(base or top, path))
+        for tree in trees or [top]:
+            base = os.path.realpath(tree)
+            for d in self.dirs:
+                want = os.path.realpath(os.path.join(base, d))
+                if rp == want or rp.startswith(want + "/"):
+                    return d + "/"
+        return None
+
+    def text_hits(self, cmd, top, trees, base=None):
+        here = base or top
+        # In a cwd that is itself the implementation every word naming a
+        # file there is a read of it — `cat x.py` from `lib/`.
+        inside = bool(here) and self.member(here, top, trees) is not None
+        hits = []
+        for word, quoted, glued in shell_words(cmd):
+            cands = [word, word.rsplit("=", 1)[-1]]
+            # `$(git rev-parse --show-toplevel)/lib/x` — the toplevel's,
+            # bare (the `)` ended a word) or inside double quotes
+            if glued and word.startswith("/") and top:
+                cands = [os.path.join(top, word.lstrip("/"))]
+            elif ")/" in word and top:
+                cands.append(os.path.join(top, word.rsplit(")/", 1)[-1]))
+            if quoted:
+                # a command inside a quoted word (`bash -c "cat lib/x.py"`):
+                # its pieces stay candidates, as they were before words
+                # were kept whole
+                for piece in OPERAND.findall(word):
+                    cands += [piece, piece.rsplit("=", 1)[-1]]
+            cands += self.spelled.findall(word)
+            if "/" in word and not word.startswith("/"):
+                cands.append(word[word.index("/"):])  # `@/abs/…`, `x=/abs/…`
+            seen = set()
+            for cand in cands:
+                if not cand or cand in seen:
+                    continue
+                seen.add(cand)
+                if "/" not in cand and not (here and (
+                        os.path.islink(os.path.join(here, cand))
+                        or inside and os.path.lexists(os.path.join(here, cand)))):
+                    continue
+                name = self.member(cand, top, trees, base)
+                if name:
+                    hits.append((cand, name))
+        return hits
+
+    def tool_hits(self, tool, inp, top, trees, cwd=None):
+        cands = [inp[k] for k in PATH_KEYS if isinstance(inp.get(k), str) and inp[k]]
+        base = inp.get("path") if isinstance(inp.get("path"), str) and inp["path"] else None
+        if tool in ("Glob", "Grep") and not base:
+            cands.append(".")  # no `path`: the search is the cwd's
+        # A Glob's `pattern` and a Grep's `glob` are paths up to their first
+        # wildcard segment, relative to `path`; a Grep's `pattern` is a regex.
+        glob = inp.get({"Glob": "pattern", "Grep": "glob"}.get(tool, ""))
+        if isinstance(glob, str):
+            fixed = []
+            for seg in glob.split("/"):
+                if WILDCARD.search(seg):
+                    break
+                fixed.append(seg)
+            prefix = "/".join(fixed)
+            if prefix.strip("/"):
+                cands.append(prefix if os.path.isabs(prefix) or not base
+                             else os.path.join(base, prefix))
+        hits = []
+        for cand in cands:
+            name = self.member(cand, top, trees, cwd)
+            if name:
+                hits.append((cand, name))
+        return hits
+
+
+SRC = SrcMembership()
+
+
+def exempt(value, roots, top, tops, base=None, member=None):
+    return isinstance(value, str) and any(
+        resolves_under_suite(value, root, top, tops, base, member) for root in roots)
+
+
+def bash_reads(cmd, member, roots, top, tops, trees=None, base=None):
+    """The directory a command reads the implementation under, or None."""
     text = blank_heredoc_bodies(cmd)
     cmd = blank_variable_bodies(cmd, text, blank_forge_bodies(text))
-    cmd = SRC_MENTIONED.sub(" ", SRC_EXCLUDED.sub(" ", cmd))
-    for root in roots_of(suite):
-        cmd = suite_operand_re(root, top).sub(suite_blanker(root, top, tops), cmd)
-    return SRC_PATH.search(cmd) is not None
+    cmd = SRC_MENTIONED.sub(" ", member.excluded.sub(" ", cmd))
+    for root in roots:
+        cmd = suite_operand_re(root, top).sub(
+            suite_blanker(root, top, tops, base, member), cmd)
+    for value, name in member.text_hits(cmd, top, trees, base):
+        if not exempt(value, roots, top, tops, base, member):
+            return name
+    return None
+
+
+def tool_reads(tool, inp, member, roots, top, tops, trees=None, base=None):
+    """The directory a Read/Glob/Grep input names the implementation under —
+    unless every such value is under a readable root — or None."""
+    for value, name in member.tool_hits(tool, inp, top, trees, base):
+        if not exempt(value, roots, top, tops, base, member):
+            return name
+    return None
+
+
+def bash_reads_src(cmd, suite=None, top=None, tops=None):
+    return bash_reads(cmd, SRC, roots_of(suite), top, tops) is not None
 
 
 def roots_of(suite):
@@ -536,7 +788,7 @@ def suite_operand_re(suite, top):
     return re.compile("|".join(forms))
 
 
-def resolves_under_suite(path, suite, top, tops=None):
+def resolves_under_suite(path, suite, top, tops=None, base=None, member=None):
     """The operand's REAL location is at or under the suite of one of the
     readable trees (`tops`, from `tree_tops()`; `top` alone when None — a
     relative operand is `top`'s, the toplevel the hook fired in, whether or
@@ -550,17 +802,21 @@ def resolves_under_suite(path, suite, top, tops=None):
     exempts nothing."""
     if not top:
         return False
-    rp = os.path.realpath(path if os.path.isabs(path) else os.path.join(top, path))
+    # `base` and `member` are the custom list's (#281): a relative path is
+    # the cwd's, and the listed directory a root sits under is taken at its
+    # real place. Unset — the `src/` predicate — both are as they were.
+    rp = os.path.realpath(path if os.path.isabs(path) else os.path.join(base or top, path))
     for tree in [top] if tops is None else tops:
-        want = os.path.join(os.path.realpath(tree), suite)
+        want = (member or SRC).root_at(tree, suite)
         if rp == want or rp.startswith(want + "/"):
             return True
     return False
 
 
-def suite_blanker(suite, top, tops=None):
+def suite_blanker(suite, top, tops=None, base=None, member=None):
     def blank(m):
-        return " " if resolves_under_suite(m.group(0), suite, top, tops) else m.group(0)
+        return " " if resolves_under_suite(
+            m.group(0), suite, top, tops, base, member) else m.group(0)
     return blank
 
 
@@ -573,15 +829,7 @@ def under_suite(path, suite, top, tops=None):
 def tool_reads_src(tool, inp, suite=None, top=None, tops=None):
     """A Read/Glob/Grep input naming src/ — unless every such value is under
     a readable root (the suite, or a `read=` path of the marker)."""
-    roots = roots_of(suite)
-    if not roots:
-        return SRC_PATH.search(json.dumps(inp, ensure_ascii=False)) is not None
-    for v in inp.values():
-        text = v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)
-        if SRC_PATH.search(text) and not (isinstance(v, str) and any(
-                under_suite(v, root, top, tops) for root in roots)):
-            return True
-    return False
+    return tool_reads(tool, inp, SRC, roots_of(suite), top, tops) is not None
 
 
 def tree_tops(top, ref=None):
@@ -596,23 +844,11 @@ def tree_tops(top, ref=None):
     and a sub-agent's Bash cwd is the session's, so the hook fires from the
     main checkout. A toplevel the list does not name (a `--separate-git-dir`
     checkout) is readable as it was before #107; no list at all, likewise."""
-    try:
-        out = subprocess.run(["git", "worktree", "list", "--porcelain"],
-                             capture_output=True, text=True, timeout=5)
-    except (OSError, subprocess.TimeoutExpired):
-        return [top]
-    if out.returncode != 0:
+    trees = worktrees()
+    if trees is None:
         return [top]
     tops, listed = [], False
-    for block in out.stdout.strip().split("\n\n"):
-        path = branch = None
-        for line in block.splitlines():
-            if line.startswith("worktree "):
-                path = line[len("worktree "):]
-            elif line.startswith("branch refs/heads/"):
-                branch = line[len("branch refs/heads/"):]
-        if not path:
-            continue
+    for path, branch in trees:
         if top and os.path.realpath(path) == os.path.realpath(top):
             listed = True
         if branch and (branch.startswith("feat/") or branch == ref):
@@ -622,6 +858,38 @@ def tree_tops(top, ref=None):
         tops.append(top)
     return tops
 
+
+def worktrees():
+    """(path, branch-or-None) of every worktree of this repo, or None when
+    git cannot list them."""
+    try:
+        out = subprocess.run(["git", "worktree", "list", "--porcelain"],
+                             capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if out.returncode != 0:
+        return None
+    trees = []
+    for block in out.stdout.strip().split("\n\n"):
+        path = branch = None
+        for line in block.splitlines():
+            if line.startswith("worktree "):
+                path = line[len("worktree "):]
+            elif line.startswith("branch refs/heads/"):
+                branch = line[len("branch refs/heads/"):]
+        if path:
+            trees.append((path, branch))
+    return trees
+
+
+def all_trees(top):
+    """Every tree of this repo — the implementation's included: a listed
+    directory is the implementation in each of them (#281)."""
+    paths = [path for path, _ in worktrees() or []]
+    if top and not any(os.path.realpath(p) == os.path.realpath(top) for p in paths):
+        paths.append(top)
+    return paths
+
 # The message opens by naming the dispatch the marker guards: the fidelity
 # review (the 1.x literal — lint D2 and the D2/D7 checkers pair denials by
 # it) or, under a `seat=qa` marker, QA's own dispatch (#140).
@@ -630,7 +898,7 @@ QA_OPEN = "Roz Gate: blocked — this is a QA dispatch"
 BRIEF = {"qa": "references/qa-brief.md", "reviewer": "references/fidelity-brief.md"}
 BLIND_MSG = (
     "%s and it is "
-    "implementation-blind: `src/` and `feat/<n>` are off-limits (%s). What "
+    "implementation-blind: %s and `feat/<n>` are off-limits (%s). What "
     "you need is in spec.md / technical-spec.md, the QA suite on qa/<n> "
     "and the test port the marker names%s. If you believe a read of the "
     "implementation is required, "
@@ -638,6 +906,16 @@ BLIND_MSG = (
     "(%s, the blindness rule). Not inside a "
     "blind dispatch? Then the marker is stale — the dispatching command "
     "removes `%s` when the dispatch returns; remove it and retry.%s"
+)
+
+
+CONFIG_MSG = (
+    "Roz Gate: blocked — `implementation_dirs: %s` in the Roz Gate config block is invalid "
+    "(%s), so the guard cannot tell which reads are the implementation's. Every call of a "
+    "blind dispatch is denied until the line is fixed: write it as `- implementation_dirs: "
+    "<dir>[, <dir>…]`, repo-relative (for example `- implementation_dirs: lib, app`), or "
+    "remove the line to guard `src/`. This is a configuration error, not a protocol block "
+    "— stop and report it.%s"
 )
 
 
@@ -705,14 +983,14 @@ def marker_reads(path):
     return out
 
 
-def readable_roots(suite, reads):
+def readable_roots(suite, reads, member=None):
     """The roots a read may resolve under: the suite when it sits under
     `src/`, then every `read=` path that does (a path with no `src/` segment
     is never denied; `src` or `<module>/src` itself exempts nothing) —
     normalized, in order, without repeats."""
     roots = []
     for p in ([suite] if suite else []) + list(reads or []):
-        r = suite_under_src(p)
+        r = (member or SRC).root(p)
         if r and r not in roots:
             roots.append(r)
     return roots
@@ -727,7 +1005,8 @@ def ref_touch_re(ref):
         r"|worktree)\b[^|;&\n]*(?<![\w-])" + re.escape(ref) + r"(?![\w-])")
 
 
-def violation(tool, inp, ref=None, suite=None, top=None, tops=None):
+def violation(tool, inp, ref=None, suite=None, top=None, tops=None, member=None, trees=None,
+              base=None):
     """The D2 checker's dispatch_blind(), per call: what it names. `suite`
     is the acceptance dir when it sits under src/ (never a read) — or the
     list `readable_roots()` builds, the suite plus the marker's `read=`
@@ -741,35 +1020,21 @@ def violation(tool, inp, ref=None, suite=None, top=None, tops=None):
             return "a git action on a feat/ ref"
         if ref and ref_touch_re(ref).search(cmd):
             return "a git action on %s, the implementation branch" % ref
-        if bash_reads_src(cmd, suite, top, tops):
-            return "a read of src/"
+        name = bash_reads(cmd, member or SRC, roots_of(suite), top, tops, trees, base)
+        if name:
+            return "a read of %s" % name
     elif tool in ("Read", "Glob", "Grep"):
-        if tool_reads_src(tool, inp, suite, top, tops):
-            return "a %s under src/" % tool
+        name = tool_reads(tool, inp, member or SRC, roots_of(suite), top, tops, trees, base)
+        if name:
+            return "a %s under %s" % (tool, name)
     return None
 
 
 def toplevel():
-    """The working tree the hook fired in. A cwd inside the git dir has none
-    — a session that `cd`'d into the common dir to write the marker leaves
-    its sub-agents there — so it is the repository's main worktree, the first
-    `git worktree list` names (#245: with no toplevel the port's `read=`
-    exemption resolved nothing and a Read of the port was denied)."""
-    try:
-        out = subprocess.run(["git", "rev-parse", "--show-toplevel"],
-                             capture_output=True, text=True, timeout=5)
-        if out.returncode == 0:
-            return out.stdout.strip()
-        out = subprocess.run(["git", "worktree", "list", "--porcelain"],
-                             capture_output=True, text=True, timeout=5)
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-    if out.returncode != 0:
-        return None
-    first = out.stdout.split("\n\n", 1)[0].splitlines()
-    if "bare" in first or not first or not first[0].startswith("worktree "):
-        return None
-    return first[0][len("worktree "):]
+    """The working tree the hook fired in — `implementation_dirs.toplevel`,
+    the one definition the renderer shares (a cwd inside the git dir is the
+    main worktree, #245)."""
+    return implementation_dirs.toplevel()
 
 
 def main():
@@ -784,17 +1049,24 @@ def main():
     marker = marker_path()
     ref = marker_ref(marker)
     top = toplevel()
-    suite = suite_under_src(load_acceptance_dir(top))
-    ports = readable_roots(None, marker_reads(marker))
-    roots = readable_roots(suite, ports)
-    what = violation(tool, inp, ref, roots, top, tree_tops(top, ref) if roots else None)
+    agent = payload.get("agent_type")
+    dirs = implementation_dirs.load(top)
+    if isinstance(dirs, implementation_dirs.Invalid):
+        deny(CONFIG_MSG % (dirs.raw.strip(), dirs.reason,
+                           " (agent: %s)" % agent if agent else ""))
+    member = SRC if dirs is None else DirMembership(dirs)
+    suite = member.root(load_acceptance_dir(top))
+    ports = readable_roots(None, marker_reads(marker), member)
+    roots = readable_roots(suite, ports, member)
+    what = violation(tool, inp, ref, roots, top, tree_tops(top, ref) if roots else None,
+                     member, all_trees(top) if member.custom else None,
+                     os.getcwd() if member.custom else None)
     if not what:
         return
-    agent = payload.get("agent_type")
     seat = marker_seat(marker)
     readable = (["its `%s` is readable here" % suite] if suite else []) + (
         ["the port it names: `%s`" % "`, `".join(ports)] if ports else [])
-    deny(BLIND_MSG % (QA_OPEN if seat == "qa" else FIDELITY_OPEN,
+    deny(BLIND_MSG % (QA_OPEN if seat == "qa" else FIDELITY_OPEN, member.label,
                       what, " (%s)" % "; ".join(readable) if readable else "",
                       BRIEF.get(seat, BRIEF["reviewer"]),
                       marker or "<git-dir>/" + MARKER_REL,

@@ -152,7 +152,8 @@ workspace).
 2. Spec track: implementation CR threads → dispatch `implementer` on
    `<feat-branch>`; QA CR fidelity threads → dispatch `qa` on `<qa-branch>` **under
    the fidelity-dispatch procedure** (`references/next-stage-path-b2.md` B2.7: marker on, carrying
-   `feat=<feat-branch>`, the test port's `read=` lines and `seat=qa`, dispatch, marker
+   `feat=<feat-branch>`, the test port's `read=` lines and `seat=qa`, dispatch
+   with `roz-implementation-dirs`' line, marker
    off — guard-blind denies any
    `src/` read outside `<acceptance_dir>` and the port, or git action on
    `<feat-branch>`, while it runs; the `<qa-branch>` carries the

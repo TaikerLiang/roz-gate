@@ -259,6 +259,8 @@
         <h4><span class="en">Optional — edited by hand</span><span class="zh">可選——手動編輯</span></h4>
         <label>acceptance_layout</label><input id="f_layout" placeholder="one folder per feature">
         <div class="hint"><span class="en">Only when the suite deviates from the default (one folder per feature) — e.g. <code>one folder per issue, shared fixtures in support/</code>.</span><span class="zh">只有在套件不照預設(一個 feature 一個資料夾)時才設——例如 <code>one folder per issue, shared fixtures in support/</code>。</span></div>
+        <label>implementation_dirs</label><input id="f_impl" placeholder="src">
+        <div class="hint"><span class="en">Only when the code is not under <code>src/</code> — e.g. <code>lib, app</code>, repo-relative. A blind dispatch (QA, the fidelity review) is denied these directories instead of <code>src/</code>; the list replaces the default.</span><span class="zh">只有在程式碼不在 <code>src/</code> 底下時才設——例如 <code>lib, app</code>(相對於 repo 根目錄)。盲測 dispatch(QA、fidelity review)會被擋這些目錄而不是 <code>src/</code>;清單取代預設。</span></div>
         <label>trace_marker</label><input id="f_trace" placeholder="@Traces(issue, scenario)">
         <div class="hint"><span class="en">The marker QA puts on acceptance tests to bind them to spec scenarios. Absent: qa picks one idiomatic to the language and declares it.</span><span class="zh">QA 在驗收測試上標記對應 spec scenario 的 marker。沒設:qa 挑一個該語言慣用的並宣告。</span></div>
         <label>agent_identity</label><div class="seg" data-key="ident"><button data-v="user" class="on">user</button><button data-v="bot">bot</button></div>
@@ -547,6 +549,7 @@ function applyPreset(){
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;') }
 const OPT = [
   ['acceptance_layout', () => $('f_layout').value.trim()],
+  ['implementation_dirs', () => $('f_impl').value.trim()],
   ['trace_marker',   () => $('f_trace').value.trim()],
   ['agent_identity', () => seg.ident==='bot' ? 'bot' : ''],
   ['bot_login',      () => seg.ident==='bot' ? $('f_bot').value.trim() : ''],
@@ -582,7 +585,7 @@ function renderCfg(){
     : `<p style="font-size:.9rem;color:var(--muted)">${B('Nothing local set — the defaults are the remote\'s HEAD branch and no inbox filter. Come back the day your tracker fills with issues that aren\'t ideas (<code>/roz-gate:config inbox_label discuss</code>), or when a sprint hands over (<code>/roz-gate:config default_branch release/20261020</code>).',
         '沒設本地 key——預設是 remote 的 HEAD 分支、inbox 不篩。哪天 tracker 塞滿不是 idea 的 issue(<code>/roz-gate:config inbox_label discuss</code>),或 sprint 交接(<code>/roz-gate:config default_branch release/20261020</code>),再回來。')}</p>`;
   $('cfgsteps').innerHTML = steps;
-  store.set('cfg', {seg, f: Object.fromEntries(['f_branch','f_test','f_adir','f_atest','f_sync','f_lock','f_regen','f_specs','f_layout','f_trace','f_bot','f_op','f_tpl','f_rounds','f_ilabel','f_iassg','f_model','f_buser','f_wcopy','f_npass'].map(id => [id, $(id).value]))});
+  store.set('cfg', {seg, f: Object.fromEntries(['f_branch','f_test','f_adir','f_atest','f_sync','f_lock','f_regen','f_specs','f_layout','f_impl','f_trace','f_bot','f_op','f_tpl','f_rounds','f_ilabel','f_iassg','f_model','f_buser','f_wcopy','f_npass'].map(id => [id, $(id).value]))});
 }
 function wireCfg(){
   document.querySelectorAll('#cfgform .seg').forEach(g => g.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {

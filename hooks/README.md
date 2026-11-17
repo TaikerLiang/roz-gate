@@ -44,6 +44,7 @@ The files:
 | `guard-acceptance.sh` · `guard_acceptance.py` | Edit / Write / MultiEdit on a spec branch (`spec/<n>`, or whatever `branch_template` renders) — the acceptance rule |
 | `run-guard.sh` | sourced by the three guard shims after their prefilter: runs the Python judge and fails closed when it cannot decide (#281) |
 | `sync-worktree.sh` · `sync_worktree.py` | PostToolUse · Bash, after a `git worktree add` — [the worktree copy](#the-worktree-copy) (#122) |
+| `implementation_dirs.py` | the one reader of the config block's `implementation_dirs` key (#281): `guard_blind.py` enforces what it loads, `bin/roz-implementation-dirs` prints the same list as the dispatch's `Implementation:` line — see [which directories are the implementation](#which-directories-are-the-implementation-rule-e) |
 | `config_block.py` | the config block's reader: `CLAUDE.md`, then `CLAUDE.local.md`, in the toplevel, then in the main checkout (`core.worktree` when set, else the common git dir's parent — a separate git dir without `core.worktree` is unreachable from a linked worktree: keep the block in the tracked `CLAUDE.md` there) — the first block wins, whole; `bin/roz-persona` reads the `### Roz Gate personas` block through it (#198) |
 | `tests/test_guard_*.py` | the cases, one file per guard, one class per rule: synthetic hook input in, exit code and stderr asserted; `test_guard_failure.py` runs every guard's `.sh` with `python3` missing, unable to start or crashing (#281) |
 | `tests/test_roz_*.py`, `tests/test_branch_names.py`, `tests/test_state_contract.py`, `tests/test_sync_worktree.py` | the `bin/` tools' and the shared modules' cases; where a tool reads the forge, `tests/fakeforge.py` stands in for `gh` / `glab` |
@@ -84,6 +85,7 @@ Any "no" → a replay case, not a hook, and never prose alone.
 | **J** the loop's worktree add runs alone | `guard-gate` · Bash | a Bash call holding the loop's `git worktree add …/roz-gate/wt/…` anywhere outside quotes (a quoted single word counts as that word; a quoted string with spaces is one opaque word) that is not exactly that add and nothing else. That covers a chain (`&&`, `||`, `;`, `|`, a second line), a wrapped add (`{ …; }`, `if …; then`, a subshell) and a backgrounded one (a trailing `&`). Segments split outside quotes, `$(…)` and backticks; `2>&1` / `&>` are redirects; a shell continuation is joined and an escaped space stays part of its word. Also denied, even alone: `git -C <dir> worktree add …/roz-gate/wt/…` | run the `git worktree add` line by itself, from inside the repository, then continue in the next call | static, no API; the `sync-worktree` PostToolUse hook copies your gitignored files only once the call returns, and finds the new worktree from the call's own directory, so a chained `&& cd … && <test>` would run without `.env` (the harness red #122 exists to remove); your own worktrees, outside `roz-gate/wt`, are not judged — the add is the loop's only when `roz-gate/wt` sits in the add's own segment, or a variable the call set to it (`wt=…/roz-gate/wt/…`, then `"$wt"`) does, so your own add beside a mention elsewhere in the call (a heredoc, a later command) passes; variable indirection (`$GIT worktree add`) is out of reach. The rule guards against a model's chained call, not an adversary (codex review, PR #184) |
 | **K** the loop merges only the base or its own branches | `guard-gate` · Bash | in a loop worktree — the call runs under `<git-common-dir>/roz-gate/wt/<branch>` by the hook's cwd, a `cd` earlier in the call or `git -C` — a `git merge <ref…>` or `git pull <remote> <branch>` naming any branch other than `origin/<default_branch>` (the local key, else the remote's HEAD, else `main` — `bin/roz-config`'s resolution; a `pull` must name `origin` as its repository) or a `branch_template` branch of the **same issue** (the template's regex, `{kind}/{n}` when unset, matched against the worktree's own branch gives `{n}`; a ref rendering the same `{n}` is a sibling). A SHA, a tag, `master`, another issue's branch: denied; a plain `git pull`, `merge --abort`, `merge-base`: not a merge of a ref. A shell redirection (`2>&1`, `>f`, `2> f`) is never a ref. The place is followed through `cd` / `git -C`: a static path; a loop worktree named by a static `…/roz-gate/wt/<branch>` suffix (`cd "$(git rev-parse --git-common-dir)/roz-gate/wt/spec/5"` — never executed); otherwise **unknown** (`cd "$WT"`), where a merge is denied in a repository that has loop worktrees (#292) | by cause: a foreign branch — the base lacks code this issue needs, post the STOP comment (resume line: sync `<default_branch>`, then clear `status: blocked`), never merge another branch in; the worktree's branch does not match the template — the issue cannot be told, report the branch; a SHA or another remote — not a branch name the hook can read; an unknown place — re-issue the merge from the worktree or by its literal path. Only the first speaks of the base | static, two git reads; outside `roz-gate/wt/` the rule is silent — the person's own merges are theirs. `rebase` and `cherry-pick` are not judged (#213 scope). ConsoleAPI #1: `origin/master` merged into a spec branch brought 79 foreign commits into the CR |
 | **acceptance** | `guard-acceptance` · Edit, Write, MultiEdit | a write under `<acceptance_dir>` in a worktree on a spec branch — `spec/*`, or HEAD matching your `branch_template` (the local file, `.claude/roz-gate.local.json`, here or in the main checkout — #165) rendered for the spec kind. **The place is the file's** (#277): branch, toplevel, config block and local file come from the worktree that holds `file_path` (its nearest existing directory; a relative path resolves against the cwd), never from the session's cwd — the loop edits `<common-dir>/roz-gate/wt/spec/<n>/…` from the main checkout on `main`. A stored `branch_template` that `branch_names.validate` rejects denies every suite write, on every branch | make the change on `qa/<n>`, merge it in; for the invalid template, fix it in the checkout the message names (`roz-config branch_template <template>`, or no value for the default) | branch-and-path only; no exemption list; a path in no git work tree is allowed |
+| **E · invalid `implementation_dirs`** | `guard-blind` · Bash, Read, Glob, Grep | while the marker exists, the config block's `implementation_dirs` line cannot be used — no directory, an empty entry, an absolute path, a `..`, the repo root | fix the line (`- implementation_dirs: <dir>[, <dir>…]`, repo-relative) or remove it to guard `src/`; the message says which | fails **closed**: **every** call the guard sees is denied — it cannot tell which read is safe (#281). `bin/roz-implementation-dirs` exits 2 on the same line, so a command stops before it writes the marker |
 | **no python3** | every guard · `run-guard.sh` | the prefilter escalated and `python3` is not on PATH | `roz-gate <guard>: python3 not found` — a tool failure, not a protocol block; install python3 and retry | fails **closed**. `guard-acceptance` has no prefilter, so every Edit / Write / MultiEdit is denied, everywhere the plugin is enabled — the visible direction, ruled on #281 |
 | **guard crash** | every guard · `run-guard.sh` | the guard exits with anything but 0 (allow) or 2 (deny): an interpreter that cannot start (126), an uncaught exception (1) — a forge answer of the wrong shape, say — or a signal | `roz-gate <guard>: the guard could not start or did not finish its check (exit N)` — a tool failure; Python's own traceback above it says what failed | fails **closed**; a protocol deny keeps its own message (#281) |
 
@@ -129,6 +131,70 @@ The prefilter is one git call plus one stat. **Stale marker = rule still
 ON**: if a dispatch crashed and a later, non-blind read is denied, the deny
 message names the file to remove. `agent_type` from the hook input is
 reported in the message but never relied on.
+
+## Which directories are the implementation (rule E)
+
+By default rule E guards `src/` — a `src/` path segment anywhere, so
+`<module>/src/` too. A project laid out otherwise lists its own in the
+config block:
+
+```
+- implementation_dirs: lib, app
+```
+
+- **The list replaces the default.** With `lib, app`, `src/` is an
+  ordinary directory; a project that wants it guarded lists it.
+- **One reader.** `implementation_dirs.py` parses, normalizes (backticks,
+  `./`, a trailing `/`, repeats) and validates the line. The guard calls
+  `load()`; so does `bin/roz-implementation-dirs`, which prints
+  `Implementation: lib, app` for the dispatch text (next-stage B2.4 / B2.7,
+  patrol's fidelity step). The line a blind seat reads is a rendering of
+  the list the hook enforces — no command or brief writes a directory.
+  Both find the project through the same `toplevel()` too: from inside
+  the git dir (#245) it is the main checkout, for the tool as for the
+  guard.
+- **One engine, two membership predicates.** The blanking (heredoc and
+  forge bodies, mentions, exclusion operands), the readable roots (the
+  suite, the marker's `read=` port) and the verdict are one route,
+  `bash_reads()` / `tool_reads()`. Only *membership* differs:
+  - unset → `SrcMembership`: **lexical** — the text holds a `src/`
+    segment. This is the D2 predicate, unchanged.
+  - set → `DirMembership`: a listed directory **from the repo root, by
+    whole segments, in every worktree of the repo** — `lib-old/`,
+    `vendor/x/lib/`, `/usr/lib/` and another repository's `lib/` are not
+    it.
+- **Symlinks: the real location decides** (custom lists). A path is in the
+  implementation iff its `realpath` is at or under `<tree>/<dir>`; one that
+  does not exist resolves lexically. `lib/notes → ../docs/notes` is not a
+  read of the implementation; `tools/impl → ../lib` is, and so is a link
+  inside the suite that points there. Tools: `file_path`, `path`, and the
+  fixed prefix of a Glob `pattern` / Grep `glob`; a Glob or Grep with no
+  `path` searches the cwd. Bash: the command is read as shell words —
+  quotes and backslash escapes honoured, so `"my lib/x.py"` is one path and
+  a directory or a checkout whose name holds a space is judged as the file
+  Bash reads; the pieces of a quoted word stay candidates too (`bash -c
+  "cat lib/x.py"`), and so does a listed directory spelled inside a word
+  after a character that is no part of a path — `-F body=@lib/x.py`,
+  `"${X:-@lib/x.py}"`. Then: every word holding a `/`, every word
+  that is itself a symlink, and — when the cwd is itself inside a listed
+  directory — every word naming a file there (`cat x.py` from `lib/`).
+- **A relative path is the cwd's**, where the command reads it, never the
+  toplevel's: from `tests/`, `cat ../lib/x.py` is `lib/x.py`. (`$(git
+  rev-parse --show-toplevel)/…` is the toplevel's.)
+- **A readable root under a listed directory** — the suite, a `read=` port
+  — is taken at that directory's real place too, so `code → real` with
+  `read=code/port.py` exempts the port by either spelling. The rest of the
+  root is joined lexically: a root that is itself a link out exempts
+  nothing.
+- **Held to the `src/` table.** `hooks/tests/test_implementation_dirs.py`
+  replays every Bash command of the default predicate's deny and allow
+  tables with `src/` spelled as a listed directory and requires the same
+  verdict; an exemption has to name the case and the contract that
+  differs. There are none.
+- **Cannot see** (the same line `src/` sits on): a bare word (`ls lib`,
+  `grep -r foo lib`) from outside the directory, a `cd lib && cat x.py`
+  in one call, a wildcard before the directory (`*/x.py`), a Glob or Grep
+  with no `path` from the repo root.
 
 ## The worktree copy
 

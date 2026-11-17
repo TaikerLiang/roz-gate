@@ -32,8 +32,9 @@ and the port.
 even under `src/`. If you believe a read beyond them is required, that is
 a finding, and you report it instead.
 
-**Forbidden.** A read of `src/` outside `<acceptance_dir>` and the declared
-port; any git action on `<feat-branch>` (the ref the marker names, or any
+**Forbidden.** A read of `src/` — or, when the dispatch carries an
+`Implementation:` line, of the directories it names instead — outside
+`<acceptance_dir>` and the declared port; any git action on `<feat-branch>` (the ref the marker names, or any
 `feat/` ref); implementation-CR threads — their comments quote the code you
 must not see.
 

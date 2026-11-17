@@ -36,7 +36,7 @@ _BRIEF = "${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md"
 for _f, _hdr in _commit_points:
     _txt = read(_f)
     _i = _txt.find(_hdr)
-    _win = _txt[_i:_i + 1200] if _i >= 0 else ""
+    _win = _txt[_i:_i + 1300] if _i >= 0 else ""  # 1200 until #281 added a line to patrol's step
     c.expect("pattern", "L3: %s · %s dispatches the commit brief" % (_f, _hdr.strip()),
              _BRIEF in _win)
     c.expect("pattern", "L3: %s · %s pushes from the returned sha" % (_f, _hdr.strip()),

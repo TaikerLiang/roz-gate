@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+"""roz-implementation-dirs — the dispatch's `Implementation:` line (#281).
+
+    roz-implementation-dirs
+
+Prints `Implementation: <dir>[, <dir>…]` — the directories guard-blind
+rule E denies under a blind dispatch — when the project's Roz Gate config
+block sets `implementation_dirs`; prints nothing when it does not (rule E
+then guards `src/`, and the briefs already say so). The line is a rendered
+view of `hooks/implementation_dirs.load()`, the same call the guard makes:
+a dispatching command appends what this prints and never writes a
+directory itself.
+
+Exit codes:
+  0   the line, or nothing
+  2   the config line is invalid — stderr says why; stop before the
+      marker is written (the guard would deny every call of the dispatch)
+"""
+
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                "hooks"))
+import implementation_dirs  # noqa: E402
+
+
+def main():
+    dirs = implementation_dirs.load(implementation_dirs.toplevel())
+    if isinstance(dirs, implementation_dirs.Invalid):
+        print("roz-implementation-dirs: `%s: %s` is invalid — %s. Write it as `%s`, "
+              "repo-relative, or remove the line to guard `src/`."
+              % (implementation_dirs.KEY, dirs.raw.strip(), dirs.reason,
+                 implementation_dirs.SHAPE), file=sys.stderr)
+        return 2
+    if dirs:
+        print(implementation_dirs.render(dirs))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

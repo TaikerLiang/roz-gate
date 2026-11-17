@@ -72,7 +72,7 @@ src("D7: init's contract note names the line", "commands/init.md",
     "declared on `technical-spec.md`'s\n  `**Test port** — <path>` line")
 src("D7: the hook parses read= lines", "hooks/guard_blind.py", "def marker_reads(path):")
 src("D7: the hook builds the readable roots", "hooks/guard_blind.py",
-    "def readable_roots(suite, reads):")
+    "def readable_roots(suite, reads, member=None):")
 src("D7: the hook's deny message names the port", "hooks/guard_blind.py",
     "the port it names: `%s`")
 _PORT7, _KIT7 = "src/test/java/acme/port/OfferPortTest.java", "src/test/java/acme/portkit"

@@ -16,7 +16,8 @@ Work from a `<qa-branch>` checkout **only**: `spec.md`, `technical-spec.md`,
 dispatch names under `Test port:` (the marker's `read=` lines, copied from
 `technical-spec.md`'s `**Test port**` line): the files the suite drives,
 yours to read wherever they live, even under `src/`; nothing else under
-`src/` is (#125). Since 2.0.0 that branch **carries the implementation** —
+`src/` is (#125) — nor under the directories an `Implementation:` line of
+the dispatch names, which then stand in for `src/`. Since 2.0.0 that branch **carries the implementation** —
 QA starts after it lands on `<spec-branch>` — so nothing in the topology
 keeps you blind; the hook does, and so does this rule. **You never read the
 implementation** (`<feat-branch>`), and
