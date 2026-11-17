@@ -79,6 +79,42 @@ def sut_base_env(environ=None):
         del env[k]
     return env
 
+
+# The SUT's own HOME (#359). Under the operator's HOME the 2026-11-16 sweep's
+# seats `find`-ed the main checkout, ~/.claude/plugins/cache's installed
+# roz-gate and ~/dev's other worktrees, and ListAgents listed the operator's
+# live sessions. The sandbox HOME holds only a .gitconfig with the seeds'
+# identity — the SUT commits in its sandbox repo, and the operator's
+# ~/.gitconfig no longer reaches it — and XDG_* is dropped so nothing
+# resolves back to the operator's dirs. The subscription login lives in the
+# macOS keychain (or CLAUDE_CODE_OAUTH_TOKEN, kept), not under HOME; the
+# runners ask `claude auth status` under this HOME before any spend, so a
+# login the sandbox cannot see stops the run instead of failing the smoke
+# gate.
+SUT_GITCONFIG = "[user]\n\tname = paul\n\temail = paul@example.com\n"
+
+
+def sut_home(env, parent):
+    """Point env at a fresh sandbox HOME under `parent` and return it."""
+    home = os.path.join(parent, "home")
+    os.makedirs(home)
+    with open(os.path.join(home, ".gitconfig"), "w", encoding="utf-8") as f:
+        f.write(SUT_GITCONFIG)
+    for k in [k for k in env if k.startswith("XDG_")]:
+        del env[k]
+    env["HOME"] = home
+    return home
+
+
+# Tools a SUT session never gets (#359): a wake-up or cron outlives the
+# fixture's timeout (D24/run-3 scheduled a 1800 s wake-up and was killed),
+# a remote trigger leaves the machine, ListAgents lists the operator's
+# sessions. SendMessage stays: continuing the session's own scanner by its
+# agent id is a protocol move D7 and F9 score, and the flag cannot tell it
+# from a cross-session send (the sandbox HOME leaves no peer to reach).
+SUT_DISALLOWED_TOOLS = ("ScheduleWakeup", "CronCreate", "CronDelete", "RemoteTrigger",
+                        "ListAgents")
+
 # The SUT's configuration scope, on every `claude -p` a SUT runs (#307).
 # Without it a session loads the operator's user scope: their plugins (a
 # second roz-gate from the installed copy, telegram), hooks, skills, MCP
@@ -89,7 +125,8 @@ def sut_base_env(environ=None):
 # --mcp-config) drops every MCP server on its own, a project `.mcp.json`
 # included. The plugin under test still loads from --plugin-dir, hooks
 # and all. `--bare` would need an API key.
-SUT_ISOLATION_ARGS = ["--setting-sources", "project,local", "--strict-mcp-config"]
+SUT_ISOLATION_ARGS = ["--setting-sources", "project,local", "--strict-mcp-config",
+                      "--disallowedTools", ",".join(SUT_DISALLOWED_TOOLS)]
 
 
 def init_events(transcript):
