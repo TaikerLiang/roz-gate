@@ -11,6 +11,10 @@ the claim (A3's condition), and a fold never applies a demotion a
 guarantee needs. This case holds the table, the four actions and the
 condition in Path B, the promote check's pointer to it, the fold rule, and
 A3's sentence — and the old two-remedy wording absent.
+#364: "is not folded … the fold asks once (below)" sent seats to a depth
+rule written for a fold that happened, and E15 asked the follow-up as a
+reply in Q1's thread. The rule now says where it goes: a new `Q<k>` raised
+by the fold of Q<j>, its own thread at depth 0, never a reply in Q<j>'s.
 """
 
 from lib.lintkit import c, read
@@ -23,7 +27,9 @@ META = {
               "(`hit`, `clause`, `kind`, `unknown`, `if false`, `action`), the four actions "
               "(`correct the spec`, `measure`, `accept a bounded risk`, `reword`) and the "
               "condition on `accept a bounded risk`; the promote check points at that table; "
-              "spec-answers' fold rules carry *A demotion a guarantee needs is not folded*; A3 "
+              "spec-answers' fold rules carry *A demotion a guarantee needs is not folded*, its "
+              "question a new `Q<k>` *raised by the fold of Q<j>* with its own thread at depth 0, "
+              "never a reply in Q<j>'s thread (#364); A3 "
               "makes `(assumed-empirical:` legal only when nothing depends on the claim (#256: "
               "the STOP recommended demoting all four hits, a p95 premise among them).",
 }
@@ -73,6 +79,11 @@ c.expect("pattern", "B10: the refused demotion keeps the tag and the clause byte
          "leaves the premise `(unverified)` and that clause byte-identical" in _s)
 c.expect("pattern", "B10: the refused demotion asks once — measure or correct",
          "keep `<id>` and measure, or correct `<id>`" in _s)
+c.expect("pattern", "B10: the refused demotion's question is a new item raised by the fold (#364)",
+         "the fold asks once — keep `<id>` and measure, or correct `<id>` — as a new `Q<k>` "
+         "*raised by the fold of Q<j>* (depth rule below; depth 0: its own thread)" in _s)
+c.expect("pattern", "B10: the refused demotion's question is never a reply in Q<j>'s thread (#364)",
+         "never as a reply in Q<j>'s thread" in _s)
 
 c.expect("pattern", "B10: A3 makes the demotion legal only when nothing depends on the claim",
          "Legal only when nothing in a guarantee, scenario or acceptance criterion depends on "
