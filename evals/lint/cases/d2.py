@@ -235,11 +235,11 @@ c.expect("hook rule E (#94: a multi-module suite is exempt)",
          is not None)
 src("D2 conformance: guard-blind reads acceptance_dir from the config block only",
     "hooks/guard_blind.py", "def load_acceptance_dir(top):")
+# patrol.md no longer restates the rule — it points to B2.7 (#363)
 for _f, _lit in (("references/fidelity-brief.md",
                   "every read of `src/` outside `<acceptance_dir>`"),
                  ("references/next-stage-path-b2.md",
                   "every read of `src/` outside\n  `<acceptance_dir>`"),
-                 ("commands/patrol.md", "`src/` read outside `<acceptance_dir>`"),
                  ("references/workflow.md", "no read of `src/` outside the suite"),
                  ("hooks/README.md", "outside `<acceptance_dir>`"),
                  ("README.md", "outside `<acceptance_dir>`")):
