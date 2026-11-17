@@ -93,7 +93,11 @@ c.expect("patrol.md §4 (`needs you`: yes or —)", "every `needs you` cell is y
 c.expect("patrol.md §4 (`needs you` whenever the next move is a human's)",
          "#8 (a thread awaiting the human), #9 and #10 (blocked) are `needs you`",
          all(row(n) is not None and row(n)[3] == "yes" for n in ("8", "9", "10")))
-c.expect("patrol.md §4 (`needs you`)", "#6 (queued machine work) is not",
+# #6 is machine work whether the pass queued it or, after an answer-only #5
+# turn (outside the N, as F9 scores it), opened its fast CR: the review and
+# the hand-off are patrol's next moves. The seed holds what #6 needs — the
+# lockfile and a real suite (#328, #367) — so a STOP on #6 is a miss.
+c.expect("patrol.md §4 (`needs you`)", "#6 (queued, or its fast CR opened — machine work) is not",
          row("6") is not None and row("6")[3] == "—")
 # The acted rows: a review answered leaves the review to the human; a
 # questions batch posted leaves the questions to the holder (§4). Tied to

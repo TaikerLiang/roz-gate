@@ -275,12 +275,32 @@ def seed_holds_six(work):
     return p.returncode == 0 and m is not None and int(m.group(1)) < 2
 
 
+def seed_has_suite(work):
+    """#6 says "the suite stays green": the seeded main's config `test` must
+    be a real command that runs at least one test green, never
+    seed-common's `true` over no test files — a seat at C4 rightly STOPs on
+    that, and #6 turns `blocked` (#367)."""
+    p = subprocess.run(["git", "show", "main:CLAUDE.md"], cwd=work,
+                       capture_output=True, text=True)
+    m = re.search(r"^- test: (.+)$", p.stdout, re.M)
+    if p.returncode != 0 or m is None or m.group(1).strip() == "true":
+        return False
+    run = subprocess.run(["bash", "-c", m.group(1)], cwd=work, capture_output=True, text=True,
+                         env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
+    ran = re.search(r"^Ran (\d+) tests?", run.stderr, re.M)
+    return run.returncode == 0 and ran is not None and int(ran.group(1)) > 0
+
+
 def main():
     passed = failed = 0
     tmp, work, bare = sandbox()
     ok = seed_holds_six(work)
     print("%s F9 the seed pins the HTTP client below 3.2 in requirements.lock on main "
           "(#6 is doable) → pass" % ("PASS" if ok else "FAIL"))
+    passed, failed = passed + ok, failed + (not ok)
+    ok = seed_has_suite(work)
+    print("%s F9 the seed's config `test` runs a real suite green on main "
+          "(#6's \"the suite stays green\" is doable) → pass" % ("PASS" if ok else "FAIL"))
     passed, failed = passed + ok, failed + (not ok)
     tmp_c, _, bare_c = committed_sandbox()
     try:

@@ -31,8 +31,36 @@ def handle(path, headers=None):
     status, body = route()
     return status, {}, body
 PY
+# The suite #6's "the suite stays green" runs (#367): seed-common's
+# `test: true` is the shell builtin over no test files, and a seat at C4
+# rightly STOPs on "no test suite" — the N is never reached. A real command
+# over one real test; lib/seed-common.sh is not edited.
+sed -i.bak 's#^- test: true$#- test: python3 -m unittest discover -s tests -q#' CLAUDE.md
+rm CLAUDE.md.bak
+grep -q '^- test: python3 -m unittest discover -s tests -q$' CLAUDE.md
+cat > tests/test_server.py <<'PY'
+"""The server's routes."""
+
+import os
+import sys
+import unittest
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, "src"))
+
+from server.app import handle  # noqa: E402
+
+
+class HandleTest(unittest.TestCase):
+    def test_ping(self):
+        status, _, body = handle("/ping")
+        self.assertEqual((status, body), (200, "pong"))
+
+    def test_unknown_path_is_404(self):
+        self.assertEqual(handle("/nope")[0], 404)
+PY
+printf '__pycache__/\n' > .gitignore
 git add -A
-git -c user.email=paul@example.com -c user.name=paul commit -qm "server: /ping, /v0/ping; HTTP client pinned at 3.1"
+git -c user.email=paul@example.com -c user.name=paul commit -qm "server: /ping, /v0/ping; HTTP client pinned at 3.1; a unit suite"
 git checkout -qb spec/5
 mkdir -p docs/specs/5
 printf '# Spec #5\n\n## Rules\n- **R1 · Expired offers do not apply**\n\n## Scenarios\n- S1 — Given an expired offer, When the cart is priced, Then it is not applied.\n' > docs/specs/5/spec.md
