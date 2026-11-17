@@ -5,9 +5,16 @@ comments quote the code. A THREADS-LIST names no src/, so rule E cannot
 see it. The dispatcher (the main agent, not blind) now checks contract
 currency first and hands the reviewer a code-free amendment list; the
 reviewer verifies it and never opens the implementation CR.
+A copy of the procedure that names the marker but not the contract-currency
+step is what the seat followed (#363: patrol's QA fix dispatch carried no
+`Amendment list:`): every list item that invokes it names all its steps or
+none.
 """
 
-from lib.lintkit import must_not_match, read, src
+import os
+import re
+
+from lib.lintkit import R, c, must_not_match, read, src
 
 META = {
     "id": 'D6',
@@ -42,3 +49,42 @@ src("D6: patrol's fidelity-audit carries the step", "commands/patrol.md",
     "contract currency by you first")
 src("D6: hooks/README records rule E's cannot-see", "hooks/README.md",
     "cannot see a forge read of the implementation CR")
+
+# #363: each list item invoking the procedure (or B2.4's QA dispatch
+# procedure, the same one under the QA brief) that names the marker also
+# names the contract-currency step — a partial step list is red.
+_PROC = re.compile(r"(fidelity-dispatch|QA dispatch) procedure", re.I)
+_ITEM = re.compile(r"^\s*(?:\d+\.|[-*]|#+)\s|^\s*$")
+
+
+def _items(text):
+    cur = []
+    for ln in text.splitlines():
+        if cur and _ITEM.match(ln):
+            yield " ".join(" ".join(cur).split())
+            cur = []
+        cur.append(ln)
+    if cur:
+        yield " ".join(" ".join(cur).split())
+
+
+_hits = 0
+for _d in ("commands", "references", "agents"):
+    for _base, _, _names in os.walk(os.path.join(R, _d)):
+        for _n in sorted(_names):
+            if not _n.endswith(".md"):
+                continue
+            _rel = os.path.relpath(os.path.join(_base, _n), R)
+            for _it in _items(read(_rel)):
+                if _PROC.search(_it) and re.search(r"\bmarker\b", _it, re.I):
+                    _hits += 1
+                    c.expect("pattern", "D6 (#363): %s — an item naming the procedure's marker "
+                             "names the contract-currency step: %s" % (_rel, _it[:70]),
+                             re.search(r"contract[- ]currency", _it, re.I) is not None)
+c.expect("pattern", "D6 (#363): the item scan found the procedure's step lists", _hits >= 3)
+src("D6 (#363): patrol's QA fix dispatch points to B2.7, no step list", "commands/patrol.md",
+    "the fidelity-dispatch procedure** (`references/next-stage-path-b2.md` B2.7,\n"
+    "   every step, with `seat=qa`)")
+src("D6 (#363): spec-answers' QA re-dispatch points to B2.4, no step list",
+    "commands/spec-answers.md",
+    "under the QA dispatch procedure (`references/next-stage-path-b2.md` B2.4, every step)")
