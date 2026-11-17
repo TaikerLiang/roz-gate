@@ -2,7 +2,70 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
-## v2.20.0 — seats resolve through roz-persona — 2026-11-15
+## v2.21.0 — implementation_dirs and plugin-root dispatch — 2026-11-17
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.21.0>
+
+**Behavior:** rule E guards the directories a project lists in `implementation_dirs`; every seat dispatch names the plugin root it reads from; a seat that does not resolve takes the STOP exit right after the lock; the missing-dependency STOP says what a dependency is; a refused demotion's question becomes a new item; the QA fix dispatch follows the whole fidelity-dispatch procedure.
+
+### Behavior
+- **Every seat dispatch names the plugin root** (#358, PR #379). The payload carries `Plugin root: <absolute path> — plugin paths resolve here; never search for plugin files.` A seat no longer searches the disk for `workflow.md`, so it cannot follow another installed version's rules.
+- **A seat that does not resolve takes the STOP exit, right after the lock** (#362, PR #374).
+  - On `PERSONA_UNMAPPED` or `AGENT_TYPE_UNAVAILABLE`, `next-stage`, `integrate`, `spec-answers` and `patrol` lock the issue, set `status: blocked` alone, and post a comment naming the code and `/roz-gate:init`.
+  - Before this, next-stage could stop before the lock with a message in the terminal only.
+  - `review-answers` (no `blocked` exit) and `to-issues` (no lock) are unchanged.
+- **The missing-dependency STOP says what a dependency is** (#361, PR #376).
+  - A dependency is code another issue delivers, or code that a branch not yet in `<default_branch>` holds.
+  - Code the spec asks this issue to build, or scope beyond the issue, is a scope question on the spec CR, never the STOP.
+  - The STOP's must-read names the branch **or issue** that holds the missing code. "No branch" no longer passes.
+- **A refused demotion's question is a new item, not a reply** (#364, PR #372). When the fold refuses a demotion a guarantee needs, the follow-up is a new `Q<k>` *raised by the fold of Q<j>*. At depth 0 it gets its own thread.
+- **The QA fix dispatch follows the whole fidelity-dispatch procedure** (#363, PR #375).
+  - Patrol's address-review points to B2.7 ("every step, with `seat=qa`"), so the contract-currency step and the `Amendment list:` are back.
+  - spec-answers' QA re-dispatch points to B2.4.
+  - Patrol's fidelity-audit dispatch carries the `Implementation:` line.
+- **The QA and fidelity dispatches carry `Implementation: <dirs>`** when `implementation_dirs` is set (#281, PR #345). `bin/roz-implementation-dirs` prints the line from the same list the hook enforces.
+
+### Hooks
+- **`implementation_dirs`** (#281, PR #345).
+  - Rule E guards the directories the config block lists instead of `src/`; with the key unset, it still guards `src/` and `<module>/src/`.
+  - A listed directory is matched from the repo root by whole segments and by real location, in every worktree. The list replaces the default.
+  - An invalid list denies every call of a blind dispatch until the line is fixed.
+- **Rule E: a forge body held in a shell variable is a mention** (#360, PR #370).
+  - `BODY='… src/x …'; gh pr comment N --body "$BODY"` is no longer denied under a blind dispatch.
+  - A variable whose value runs a substitution (`X=$(cat src/x)`), or that is used outside a forge body, still is.
+
+### Evals
+- **Operator action required, once per machine:** run `claude setup-token`, then export `CLAUDE_CODE_OAUTH_TOKEN` before any replay or judgment run (#359, PRs #377 and #378). Without the token, the runners exit 2 before any spend.
+- **SUT sessions are sandboxed from the operator's machine** (#359, PR #377).
+  - Each session runs on its own plugin copy inside its `TMPDIR`, with no `.git`, and with a sandbox `HOME`.
+  - `ScheduleWakeup`, `CronCreate`, `CronDelete`, `RemoteTrigger` and `ListAgents` are denied.
+  - Harness red-proof § SANDBOX. Readings before this release were unsandboxed; the next sweep is the first sandboxed baseline.
+- **Replay checkers score by effect** (#366, PRs #369 and #373). This covers the fidelity marker through `$D`, the latest scanner hand-back, D25's commit dispatch, E15's negated "cannot … ready" and F15's `blocked:`. D14 counts a suite run that drives the port. 19 fingerprints moved.
+- **The forge stub serves #365's routes** (PR #371).
+  - New routes: one review by id, the repository's branches, `mergeStateStatus`.
+  - An unknown field or subcommand now gets gh's own error instead of invalidating the iteration.
+  - C12's seed names its `mergeCommit`.
+- **Fixtures make #367's expected actions possible** (PR #368). C26, F9 and F11 seed a real suite, F15 seeds #8's ledger, and E2's implementer looks like the plugin persona.
+- **New and extended lint:**
+  - new: D27 (`implementation_dirs`) and D28 (plugin root, lint and replay);
+  - extended: L22 (persona STOP), C29 (dependency definition), B10 (new-item placement), D6 (contract-currency step) and D2 (variable body).
+- **Re-baselines needed:**
+  - C12, C26, D2, D26, E2, F9, F11, F15;
+  - the 19 cases from #369.
+- **Prose caps** (lint `L21`):
+  - `TOTAL_CAP` 52,338 → 52,652;
+  - `commands/spec-answers.md` 3,373 → 3,430, `commands/integrate.md` 2,494 → 2,504, `commands/patrol.md` 3,917 → 3,921, `commands/next-stage.md` 1,076 → 1,087.
+
+### Tooling
+- **`bin/roz-implementation-dirs`** (#281, PR #345): prints the `Implementation:` line. It prints nothing when the key is unset and exits 2 on an invalid list.
+
+### Docs
+- `README.md`, `hooks/README.md` § Which directories are the implementation, the onboarding config builder, `evals/replay/README.md` (PR #345).
+
+### Checks
+Hook tests 1643/1643 · lint 1958/1958 · red-proofs 59/59 · ruff · judgment `--check` · ledger `--check` current
+
+## v2.20.0 — seats resolve through roz-persona — 2026-11-16
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.20.0>
 
