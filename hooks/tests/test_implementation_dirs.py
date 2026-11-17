@@ -562,6 +562,23 @@ class RozImplementationDirs(HookTest):
         self.git(repo2, "worktree", "add", "-q", str(wt), "-b", "spec/5")
         with self.case("tool: from a linked worktree — the same line"):
             self.assertEqual(tool(wt).stdout, "Implementation: lib, app\n")
+        # Codex review, PR #345, round 4: from inside the git dir (#245 — a
+        # session that cd'd there to write the marker) the tool found no
+        # toplevel, printed nothing and let an invalid list through, while
+        # the guard, which falls back to the main checkout, enforced it.
+        for where in (".git", ".git/roz-gate"):
+            with self.case("tool: from %s — the same line the guard enforces" % where):
+                p = tool(repo2 / where)
+                self.assertEqual((p.returncode, p.stdout), (0, "Implementation: lib, app\n"),
+                                 p.stderr)
+        with self.case("tool: from .git — the guard denies what the line names"):
+            self.assertDenied(self.call("Read", {"file_path": "%s/lib/x.py" % repo2},
+                                        repo2 / ".git"), "`lib/`, `app/` and `feat/<n>`")
+        bad = self.repo_with("../lib")
+        with self.case("tool: from .git — an invalid list is still exit 2"):
+            p = tool(bad / ".git")
+            self.assertEqual((p.returncode, p.stdout), (2, ""), p.stderr)
+            self.assertIn("is invalid", p.stderr)
         with self.case("tool: outside a roz-gate project — nothing, exit 0"):
             p = tool(self.new_dir())
             self.assertEqual((p.returncode, p.stdout), (0, ""), p.stderr)
