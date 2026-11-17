@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """F15's red-proof: check.py scores staged passes correctly. No model — each
 shape is a forge state + journal and a transcript (the scanner dispatch, the
-final report). The checker reads no git, so no sandbox is seeded.
+final report). The checker reads no git, so no sandbox is seeded for the
+shapes. One more row seeds the case's repo: #12 is scored as the pass's
+actionable row, so the seed must hold what the closed #8 delivered (#367).
 
     python3 evals/replay/cases/F15/redproof.py
 
@@ -10,12 +12,16 @@ Run by evals/replay/run_redproofs.py (pre-push and CI). Stdlib only.
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 
 CASE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(CASE))))
+GIT_ID = {"GIT_AUTHOR_NAME": "a", "GIT_AUTHOR_EMAIL": "a@a",
+          "GIT_COMMITTER_NAME": "a", "GIT_COMMITTER_EMAIL": "a@a"}
 
 TABLE = [
     "| issue | state | this pass | needs you |",
@@ -155,8 +161,31 @@ def run_check(tmp, *, text=None, journal=None, labels=None, dispatch=True):
                           capture_output=True, text=True)
 
 
+def seed_holds_eight():
+    """#12 Order history export is blocked only by the closed #8 Order ledger
+    schema: the seeded main must hold the ledger #8 delivered, or a seat
+    rightly STOPs #12 on a missing dependency (#213) and the closed blocker
+    released nothing (#367)."""
+    work = tempfile.mkdtemp()
+    try:
+        env = dict(os.environ, **GIT_ID)
+        for cmd in ("git init -q -b main", "bash %s %s" % (os.path.join(CASE, "seed.sh"), ROOT)):
+            if subprocess.run(["bash", "-c", cmd], cwd=work, env=env,
+                              capture_output=True).returncode != 0:
+                return False
+        p = subprocess.run(["git", "show", "main:src/orders/ledger.py"], cwd=work,
+                           capture_output=True, text=True)
+        return p.returncode == 0 and re.search(r"^COLUMNS = .*order_id", p.stdout, re.M) is not None
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main():
     passed = failed = 0
+    ok = seed_holds_eight()
+    print("%s F15 the seed holds #8's order ledger schema on main (#12 is doable) → pass"
+          % ("PASS" if ok else "FAIL"))
+    passed, failed = passed + ok, failed + (not ok)
     tmp = tempfile.mkdtemp()
     try:
         for name, want_pass, kw in SHAPES:
