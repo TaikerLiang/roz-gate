@@ -31,6 +31,8 @@ stop and tell the user to run `/roz-gate:init`. **Personas**: run
 `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-persona --json` and dispatch each seat as
 the `agent_type` it prints, attaching the seat's R&R row
 (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` § Seats and personas).
+Its failure (`PERSONA_UNMAPPED`, `AGENT_TYPE_UNAVAILABLE`) is the STOP exit,
+right after the lock; the comment names it and `/roz-gate:init`.
 
 **Workspace.** Every git step below runs in a linked worktree, never in the
 user's checkout (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` → The main

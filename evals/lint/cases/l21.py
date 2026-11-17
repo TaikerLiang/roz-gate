@@ -32,15 +32,15 @@ META = {
 }
 
 SET_AT = "2ee634c"  # the main commit the caps were measured on (#279 merged)
-TOTAL_CAP = 52515  # 52438 + 77: #361's dependency definition (#213 STOP)
+TOTAL_CAP = 52587  # 52515 + 72: #362's persona STOP sentence in four commands
 COMMAND_CAPS = {
     "commands/config.md": 540,
     "commands/init.md": 1358,
-    "commands/integrate.md": 2494,
-    "commands/next-stage.md": 1076,
-    "commands/patrol.md": 3917,
+    "commands/integrate.md": 2498,
+    "commands/next-stage.md": 1081,
+    "commands/patrol.md": 3921,
     "commands/review-answers.md": 1822,
-    "commands/spec-answers.md": 3406,
+    "commands/spec-answers.md": 3424,
     "commands/tip.md": 2586,
     "commands/to-issues.md": 504,
     "commands/uninit.md": 444,
