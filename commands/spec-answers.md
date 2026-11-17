@@ -332,11 +332,12 @@ main agent; an answer or amendment goes on the spec CR `<url>` — an inline
 thread or a top-level comment; a reply here on the issue is not read — the
 evidence folded under
 `<details><summary>Evidence</summary>`. When **the base lacks a dependency**
-(#213) — an answer or the fold shows `<default_branch>` lacks code the spec
-needs — the must-read names the missing code and the branch that holds it
-and the resume line reads **To resume:** sync `<default_branch>` yourself,
-then clear `status: blocked`, apply `status: in-spec-review`; nothing to
-answer — run the remedy first. A fold never merges another branch into the
+(#213) — an answer or the fold shows `<default_branch>` lacks code another
+issue delivers (never code this spec asks for) — the must-read names the
+missing code and the branch or issue that holds it and the resume line
+reads **To resume:** sync `<default_branch>` yourself, then clear
+`status: blocked`, apply `status: in-spec-review`; nothing to answer — run
+the remedy first. A fold never merges another branch into the
 spec branch (guard-gate rule K denies it). Name the half-done thread if there is
 one — a folded-but-unresolved thread will be re-folded on re-run, and the human
 should know. Already-resolved threads are idempotent; a re-run skips them.

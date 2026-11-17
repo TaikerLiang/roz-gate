@@ -109,11 +109,12 @@ B2 consumed no gate label (it entered from in flight): its line reads
 **To resume:** clear `status: blocked` — nothing else; patrol's next pass
 re-runs it, or run `/roz-gate:next-stage <n>`. A B2.2 STOP names the
 conflicting files and says nothing was pushed. **The base lacks a dependency**
-(#213): a seat reported that `<default_branch>` lacks code this issue needs
-— the must-read names the missing code and the branch that holds it, and
-the resume line reads **To resume:** sync `<default_branch>` yourself, then
-clear `status: blocked`, apply the gate label this run consumed — yourself,
-or tell the main agent; nothing to answer — run the remedy first. Never
+(#213): a seat reported that `<default_branch>` lacks code another issue
+delivers (never code this issue would build) — the must-read names the
+missing code and the branch or issue that holds it, and the resume line
+reads **To resume:** sync `<default_branch>` yourself, then clear
+`status: blocked`, apply the gate label this run consumed — yourself, or
+tell the main agent; nothing to answer — run the remedy first. Never
 merge that branch into the issue branch instead (guard-gate rule K denies
 it). The escalation valve (C3) is **not** a failure — it is a designed
 transition and never uses the STOP exit.

@@ -32,7 +32,7 @@ META = {
 }
 
 SET_AT = "2ee634c"  # the main commit the caps were measured on (#279 merged)
-TOTAL_CAP = 52503  # 52438 + 65: #358's `Plugin root:` dispatch line
+TOTAL_CAP = 52580  # 52515 + 65: #358's `Plugin root:` dispatch line
 COMMAND_CAPS = {
     "commands/config.md": 540,
     "commands/init.md": 1358,
@@ -40,7 +40,7 @@ COMMAND_CAPS = {
     "commands/next-stage.md": 1076,
     "commands/patrol.md": 3917,
     "commands/review-answers.md": 1822,
-    "commands/spec-answers.md": 3404,
+    "commands/spec-answers.md": 3412,
     "commands/tip.md": 2586,
     "commands/to-issues.md": 504,
     "commands/uninit.md": 444,
