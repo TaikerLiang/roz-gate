@@ -1,0 +1,16 @@
+{
+  "repo": {"owner": "acme", "name": "demo"},
+  "agent_login": "paul",
+  "issues": {
+    "9": {
+      "title": "Idea: nightly stock report",
+      "body": "Rough idea: email the team a stock summary every night.",
+      "author": "paul",
+      "assignees": ["paul"],
+      "labels": [],
+      "createdAt": "2026-08-23T09:00:00Z",
+      "comments": []
+    }
+  },
+  "prs": {}
+}

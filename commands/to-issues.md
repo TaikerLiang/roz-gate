@@ -16,7 +16,8 @@ Missing config → stop; tell the user to run `/roz-gate:init`. Also read
 `${CLAUDE_PLUGIN_ROOT}/references/intake-brief.md` — it is the dispatch brief
 for step 2. **Personas**: run
 `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-persona --json` and dispatch each seat as
-the `agent_type` it prints, attaching the seat's R&R row
+the `agent_type` it prints, attaching the seat's R&R row and its
+`Plugin root: ${CLAUDE_PLUGIN_ROOT}` line
 (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` § Seats and personas).
 
 ## 1. Gather the use case

@@ -1,0 +1,8 @@
+{
+  "ledger": "D28 · Every seat dispatch names the plugin root it reads from",
+  "tier": "lint + replay (#358)",
+  "ledger_text": "\"D3's fixture: patrol's async intake dispatches the product seat. Pass: that dispatch's payload contains the plugin root the session loaded (the init event's roz-gate path), and no Bash call searches the filesystem for a plugin file (`find` / `locate` / `mdfind` naming `roz-gate`, `references`, `workflow.md`, a `-brief.md` or `CLAUDE_PLUGIN_ROOT`). Invalid: no product dispatch, or no roz-gate path in the init event.\" (#358: `${CLAUDE_PLUGIN_ROOT}` is unset in Bash and literal in a file read; seats ran `find / -name workflow.md` and read whichever copy turned up first — the operator's checkout or a cached 2.7.1 plugin in 28 runs of the 2026-11-16 sweep)",
+  "prompt": "/roz-gate:patrol",
+  "k": 5,
+  "timeout": 900
+}

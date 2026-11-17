@@ -31,7 +31,10 @@ configuration: the `### Roz Gate personas` block in CLAUDE.md maps each seat
 to the subagent actually dispatched — the plugin default (`roz-gate:<role>`)
 or an agent the user already owns (e.g. `implementer: backend`). Commands
 always dispatch through this mapping, and every dispatch attaches the seat's
-**contract**: its R&R row above (Owns / Never) plus the stage's instructions.
+**contract**: its R&R row above (Owns / Never), the stage's instructions, and
+the line `Plugin root: <dir> — plugin paths resolve here; never search for plugin files.`,
+`<dir>` being the absolute path the command's `${CLAUDE_PLUGIN_ROOT}` expanded
+to (Bash never sets it).
 **Persona is swappable; the contract never is.** A persona whose own text
 fights its seat's Never column is a misconfiguration — init flags it when
 linking. The commands resolve seats by running `bin/roz-persona`: a seat with

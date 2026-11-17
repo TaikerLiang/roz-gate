@@ -21,7 +21,8 @@ remote's HEAD branch, empty lists, empty strings). **Branch names**: bind `<spec
 `branch_template`, `""` → `{kind}/{n}`; an existing branch is found by
 Lookup, never guessed). Nothing below spells a branch name. **Personas**: run
 `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-persona --json` and dispatch each seat as
-the `agent_type` it prints, attaching the seat's R&R row
+the `agent_type` it prints, attaching the seat's R&R row and its
+`Plugin root: ${CLAUDE_PLUGIN_ROOT}` line
 (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` § Seats and personas).
 Its failure (`PERSONA_UNMAPPED`, `AGENT_TYPE_UNAVAILABLE`) is the STOP exit,
 right after the lock; the comment names it and `/roz-gate:init`.
