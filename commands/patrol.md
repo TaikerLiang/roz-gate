@@ -153,13 +153,8 @@ workspace).
    double-dispatch).
 2. Spec track: implementation CR threads → dispatch `implementer` on
    `<feat-branch>`; QA CR fidelity threads → dispatch `qa` on `<qa-branch>` **under
-   the fidelity-dispatch procedure** (`references/next-stage-path-b2.md` B2.7: marker on, carrying
-   `feat=<feat-branch>`, the test port's `read=` lines and `seat=qa`, dispatch
-   with `roz-implementation-dirs`' line, marker
-   off — guard-blind denies any
-   `src/` read outside `<acceptance_dir>` and the port, or git action on
-   `<feat-branch>`, while it runs; the `<qa-branch>` carries the
-   implementation since 2.0.0, so the marker is the blindness) (it may
+   the fidelity-dispatch procedure** (`references/next-stage-path-b2.md` B2.7,
+   every step, with `seat=qa`) (it may
    decline a finding that lacks verbatim citations) — fix and/or reply.
    Fast track: the main agent addresses its own CR's threads directly
    (it wrote the code; `implementer` is never dispatched onto `<fast-branch>`).
@@ -232,7 +227,7 @@ an audited one. Patrol runs the audit alone — nothing else of B2.7.
    `mkdir -p "$(git rev-parse --git-common-dir)/roz-gate" && printf 'issue=<n>\nfeat=<feat-branch>\nread=<path>\nseat=<seat>\n' > "$(git rev-parse --git-common-dir)/roz-gate/fidelity-dispatch"`
    — one `read=<path>` line per path `technical-spec.md`'s `**Test port**`
    line names, none for `none`, `seat=reviewer`, and the same paths on a line of their own
-   in the dispatch text, `Test port: …` (B2.7, #125) — then dispatch the **reviewer** seat in a
+   in the dispatch text, `Test port: …` (B2.7, #125), and `roz-implementation-dirs`' line — then dispatch the **reviewer** seat in a
    **fresh context** with
    `${CLAUDE_PLUGIN_ROOT}/references/fidelity-brief.md` as its contract and
    the seat's R&R row, in the `<qa-branch>` worktree; immediately after it returns,
