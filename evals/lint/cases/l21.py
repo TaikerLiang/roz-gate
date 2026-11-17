@@ -37,7 +37,7 @@ COMMAND_CAPS = {
     "commands/config.md": 540,
     "commands/init.md": 1358,
     "commands/integrate.md": 2498,
-    "commands/next-stage.md": 1076,
+    "commands/next-stage.md": 1081,
     "commands/patrol.md": 3921,
     "commands/review-answers.md": 1822,
     "commands/spec-answers.md": 3424,

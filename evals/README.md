@@ -136,7 +136,7 @@ Set on `main` at `2ee634c`.
 | `commands/config.md` | 540 |
 | `commands/init.md` | 1,358 |
 | `commands/integrate.md` | 2,498 |
-| `commands/next-stage.md` | 1,076 |
+| `commands/next-stage.md` | 1,081 |
 | `commands/patrol.md` | 3,921 |
 | `commands/review-answers.md` | 1,822 |
 | `commands/spec-answers.md` | 3,424 |
