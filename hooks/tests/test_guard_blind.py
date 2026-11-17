@@ -147,6 +147,34 @@ BASH_DENIED = [
      "gh pr comment 103 --body < src/app.txt", "read of src/"),
     ("rule E #326: a -b outside a forge write is no body (cat -b numbers lines) — denied",
      "cat -b src/app.txt", "read of src/"),
+    # #360: a body held in a variable is text — a variable that reaches a read is not.
+    ("rule E #360: X=$(cat src/…) — the substitution reads the file — denied",
+     "X=$(cat src/app.txt); gh pr comment 103 --body \"$X\"", "read of src/"),
+    ("rule E #360: X=$(<src/…) — the redirect reads the file — denied",
+     "X=$(<src/app.txt); gh pr comment 103 --body \"$X\"", "read of src/"),
+    ("rule E #360: X=\"$(cat src/…)\" (quoted substitution) — denied",
+     "X=\"$(cat src/app.txt)\"; gh pr comment 103 --body \"$X\"", "read of src/"),
+    ("rule E #360: F=src/…; cat \"$F\" — the variable reaches a read — denied",
+     "F=src/app.txt; cat \"$F\"", "read of src/"),
+    ("rule E #360: a body variable also used outside the body — denied",
+     "BODY='see src/app.txt'; gh pr comment 103 --body \"$BODY\"; cat $BODY", "read of src/"),
+    ("rule E #360: a variable as --body-file reads the file — denied",
+     "F=src/app.txt; gh pr comment 103 --body-file \"$F\"", "read of src/"),
+    ("rule E #360: a variable as -F body= may hold @<path> — denied",
+     "F=@src/app.txt; gh api repos/acme/demo/issues/5/comments -F body=\"$F\"", "read of src/"),
+    ("rule E #360: F=src/… as an env prefix is the command's environment — denied",
+     "F=src/app.txt sh -c 'cat \"$F\"'", "read of src/"),
+    ("rule E #360: an exported variable reaches a child — denied",
+     "F=src/app.txt; export F; python3 tests/read_env.py", "read of src/"),
+    ("rule E #360: a variable named in a heredoc body may be read there — denied",
+     "F=src/app.txt\npython3 - <<EOF\nimport os; open(os.environ['F'])\nEOF", "read of src/"),
+    ("rule E #360: an assignment no forge body uses stays as it is — denied",
+     "F=src/app.txt", "read of src/"),
+    ("rule E #360: an unquoted \"$BODY\" splits into words (--body-file src/…) — denied",
+     "BODY='x --body-file src/app.txt'; gh pr comment 103 --body $BODY", "read of src/"),
+    ("rule E #360: \"a\"$BODY — the reference itself unquoted — denied",
+     "BODY='x --body-file src/app.txt'; gh pr comment 103 --body \"a\"$BODY\" b\"",
+     "read of src/"),
 ]
 # (name, command) -- Bash calls under the marker that name src/ without reading it.
 BASH_ALLOWED = [
@@ -265,6 +293,20 @@ BASH_ALLOWED = [
      "GH_HOST=github.com gh api repos/acme/demo/issues/5/comments -f body='see src/app.txt'"),
     ("rule E #326: a -f body= mention, then 2>&1 | tail — allowed",
      "gh api repos/acme/demo/issues/5/comments -f body='see src/app.txt' 2>&1 | tail -1"),
+    # #360 (C17/run-1, the 2026-11-16 sweep): the body held in a shell variable.
+    ("rule E #360: C17's BODY='…'; gh pr comment --body \"$BODY\" allowed",
+     "BODY='**[reviewer] · fidelity** 0/1 faithful.\n\nthe **Test port** — src/pricing.py "
+     "line 6 returns the price.'; gh pr comment 103 --repo acme/demo --body \"$BODY\""),
+    ("rule E #360: BODY=\"…\" (double quotes) then --body \"$BODY\" allowed",
+     "BODY=\"see src/pricing.py:6\"; gh pr comment 1 --body \"$BODY\""),
+    ("rule E #360: BODY='…' on its own line, then -f body=\"$BODY\" allowed",
+     "BODY='see src/pricing.py:6'\ngh api repos/acme/demo/issues/5/comments -f body=\"$BODY\""),
+    ("rule E #360: BODY='…' && glab mr note -m \"${BODY}\" allowed",
+     "BODY='see src/pricing.py:6' && glab mr note 103 -m \"${BODY}\""),
+    ("rule E #360: body='…'; gh api -f body=\"$body\" (the key is no use of $body) allowed",
+     "body='see src/pricing.py:6'; gh api repos/acme/demo/issues/5/comments -f body=\"$body\""),
+    ("rule E #360: body='…'; gh pr comment --body \"$body\" (the flag is no use) allowed",
+     "body='see src/pricing.py:6'; gh pr comment 103 --body \"$body\""),
 ]
 
 

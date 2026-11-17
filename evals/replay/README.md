@@ -334,7 +334,13 @@ bare remote (pushes are refs, nothing leaves the machine). An invocation
 matching no route **invalidates the iteration** — invalid, never red: a
 reach the fixture doesn't define is a fixture gap, not a model failure.
 So is a `--json` field the stub does not serve (#250): the call is
-refused whole, never answered with the other fields. Every URL the stub
+refused whole, never answered with the other fields. A call real gh
+itself rejects is gh's error instead, exit 1, and the iteration stays
+valid (#365): a `--json` field outside gh 2.82's catalog (`GH_FIELDS`,
+`Unknown JSON field` with gh's field list), an unknown subcommand of a
+routed group (`gh pr comments`: gh's `unknown command` text), and a
+review comment's id on the issue-comments endpoint or the reverse
+(GitHub's 404; the stub numbers the two kinds apart). Every URL the stub
 prints names the fixture's `repo`. Optional fixture facts the `--json`
 fields read (#291): a PR's `author`, `mergeCommit` and `reviewDecision`; an issue's
 `updatedAt`, `closedAt`, `stateReason`; `repo.default_branch`. Unstated,
@@ -342,16 +348,20 @@ each is derived only where the sandbox proves it (a PR opened in the run;
 the one merge commit with the head as a parent, or the head itself when
 the seed fast-forwarded the base to it; the remote's HEAD) or the fixture
 settles it — a repository that states no review requirement requires none,
-so `reviewDecision` is what the reviews settle, `""` with none (#325) —
+so `reviewDecision` is what the reviews settle, `""` with none (#325),
+and `mergeStateStatus` is `CLEAN`, `DIRTY` or `DRAFT` (`UNKNOWN` once
+merged, as GitHub gives it) (#365) —
 and is otherwise UNKNOWN. Timestamps follow the fixture's clock (#325): an
 unstated `createdAt` is the corpus epoch (2026-08-01), the stub's own
 writes are stamped 2026-08-24T12:00Z, and an unstated `updatedAt`, or a
 closed item's `closedAt` / `mergedAt`, is the latest moment the fixture
 records for the item as seeded. A stated or derived fact is served only
 while it still describes the item: the stub records each issue and PR as
-seeded (`seeded-issues.json`, beside `state.json`), and once the run
-writes to one its `updatedAt` — or, after an issue's state change, its
-`stateReason` and `closedAt` — is UNKNOWN. A `--jq` that jq rejects is the
+seeded (`seeded-issues.json`, beside `state.json`). Once the run writes
+to one, its `updatedAt` is the stub's write clock (#365). After an
+issue's state change, its `stateReason` and `closedAt` are UNKNOWN. A
+squash-merged PR's fixture states its `mergeCommit` as `{{sha:<ref>}}`
+(C12). A `--jq` that jq rejects is the
 command's failure, as in gh: exit 1, `jq_error` on the journal entry, the
 iteration valid (#325).
 A call with no `--json` (#259) — `issue view` (with or without

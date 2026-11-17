@@ -140,6 +140,27 @@ def main():
             passed, failed = passed + ok, failed + (not ok)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
+    # #365 — C12/run-1 of the 2026-11-16 sweep asked the forge stub for each
+    # merged CR's mergeCommit: each is its squash commit on spec/5.
+    tmp, work, bare = sandbox()
+    try:
+        state = os.path.join(tmp, "forge")
+        os.makedirs(state)
+        shutil.copy(os.path.join(CASE, "state.json"), state)
+        for pr, ref in (("102", "spec/5~2"), ("103", "spec/5~1")):
+            p = subprocess.run([sys.executable, os.path.join(CASE, "..", "..", "forge-stub", "gh"),
+                                "pr", "view", pr, "--json", "mergeCommit", "--jq",
+                                ".mergeCommit.oid"], cwd=work, capture_output=True, text=True,
+                               env=dict(os.environ, FORGE_STATE=state))
+            want = sh("git rev-parse %s" % ref, work).stdout
+            subject = sh("git log -1 --format=%%s %s" % ref, work).stdout.strip()
+            ok = p.returncode == 0 and p.stdout == want and subject.endswith("(#%s)" % pr)
+            print("%s C12 stub: pr %s's mergeCommit is its squash commit on spec/5%s"
+                  % ("PASS" if ok else "FAIL", pr, "" if ok else " (got %r %r, %s)"
+                     % (p.stdout, p.stderr[-200:], subject)))
+            passed, failed = passed + ok, failed + (not ok)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
     print("\n%d passed, %d failed" % (passed, failed))
     return 0 if failed == 0 else 1
 

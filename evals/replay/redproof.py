@@ -57,6 +57,14 @@ throwaway state, the resume rule against staged result.json files.
   `repos/<o>/<r>`; GitHub's 404 for a reply without the PR number; the
   GraphQL thread reply; `pr view --comments` with reviews; `--jq` on the
   `--json` commands; a `--jq` jq rejects is the command's failure.
+- STUB-GAPS (#365) — the 2026-11-16 sweep's stub UNKNOWNs: one review by
+  id (an id the PR lacks is GitHub's 404); the repository's branches;
+  `mergeStateStatus`; a `--json` field outside gh 2.82's catalog is gh's
+  `Unknown JSON field` with gh's list, a catalog field the stub does not
+  serve stays UNKNOWN; an unknown subcommand is gh's `unknown command`
+  error byte for byte (a real unrouted one stays UNKNOWN); issue and review
+  comments count apart, and the other kind's id is GitHub's 404; after the
+  run's write, `updatedAt` is the stub's write clock.
 - TOKENS (#308) — `session_tokens` on canned transcripts whose messages
   stream one event per block: the result event's `modelUsage` (seats
   included), else its `usage` summed over result events, else each message
@@ -392,8 +400,6 @@ REPO_ROUTES = [
      ["pr", "list", "--json", "number,statusCheckRollup"], "UNKNOWN", ["statusCheckRollup"]),
     ("repo view --json name,description",
      ["repo", "view", "--json", "name,description"], "UNKNOWN", ["description"]),
-    ("issue view --json bogus (a field gh itself lacks is unserved too)",
-     ["issue", "view", "5", "--json", "bogus"], "UNKNOWN", ["bogus"]),
 ]
 
 # #291 — the `--json` fields a Haiku seat asks for. Each is served only from
@@ -606,9 +612,10 @@ def fields_rows():
                 ("a comment", ["issue", "comment", "5", "--body", "hi"]),
                 ("a close", ["issue", "close", "5"])):
             rc, out, route, note = after([write], IV + ["updatedAt"], dated)
-            rows.append(("issue view --json updatedAt: stale after %s in this run → UNKNOWN"
-                         % name, rc == 64 and out == "" and route == "UNKNOWN"
-                         and "updatedAt" in note))
+            # #365 — not UNKNOWN any more: the run's write is at the stub's clock
+            rows.append(("issue view --json updatedAt: after %s in this run → the stub's "
+                         "write clock" % name,
+                         rc == 0 and '"updatedAt": "2026-08-24T12:00:00Z"' in out))
         rc, out, route, note = after([["issue", "edit", "9", "--add-label", "x"]],
                                      IV + ["updatedAt"], dated)
         rows.append(("issue view --json updatedAt: another issue's write leaves this one's",
@@ -646,8 +653,11 @@ def fields_rows():
         rc, out, err, j = stub(["pr", "list", "--json", "number,reviewThreads"], st(), cwd=work)
         rows.append(("pr list --json reviewThreads: the same",
                      rc == 1 and out == "" and [e["route"] for e in j] == ["json-field-rejected"]))
-        unknown("pr view --json bogus: a field nobody verified gh rejects stays UNKNOWN", st(),
-                V + ["bogus"], "bogus")
+        # #365 — gh 2.82's catalog (GH_FIELDS) is verified: a field outside it
+        # is gh's error, not UNKNOWN
+        rc, out, err, j = stub(V + ["bogus"], st(), cwd=work)
+        rows.append(("pr view --json bogus: gh's Unknown JSON field, exit 1",
+                     rc == 1 and out == "" and [e["route"] for e in j] == ["json-field-rejected"]))
         # a number with no pull request: gh's own answer
         rc, out, err, j = stub(["pr", "view", "5", "--json", "number,title"], st(), cwd=work)
         rows.append(("pr view <a number with no PR>: gh's GraphQL error, exit 1",
@@ -802,9 +812,8 @@ def gaps_rows():
         try:
             call(["pr", "comment", "101", "--body", "hi"], state_dir=d)
             rc, out, err, j = call(V + ["updatedAt"], state_dir=d)
-            rows.append(("updatedAt: a PR written to in this run → UNKNOWN saying so",
-                         rc == 64 and out == "" and "written to in this run"
-                         in j[-1].get("note", "")))
+            rows.append(("updatedAt: a PR written to in this run → the stub's write clock "
+                         "(#365)", rc == 0 and '"updatedAt": "2026-08-24T12:00:00Z"' in out))
             call(["pr", "merge", "103"], state_dir=d)
             rc, out, err, j = call(["pr", "view", "103", "--json", "mergedAt,closedAt"],
                                    state_dir=d)
@@ -949,6 +958,147 @@ def gaps_rows():
                                           ".title"], "issue-view", exact="x\n")
         served("pr list --json --jq", ["pr", "list", "--json", "number", "--jq", ".[].number"],
                "pr-list", exact="101\n103\n")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return rows
+
+
+# #365 — the 2026-11-16 sweep's stub UNKNOWNs (9 of 12 INVALIDs): routes and
+# fields a real gh serves, and calls a real gh rejects — answered with gh's
+# own error (exit 1), so the seat's mistake is scored, not invalidated.
+GH_PR_USAGE = ("Usage:  gh pr <command> [flags]\n\nAvailable commands:\n"
+               + "".join("  %s\n" % c for c in (
+                   "checkout", "checks", "close", "comment", "create", "diff", "edit", "list",
+                   "lock", "merge", "ready", "reopen", "review", "status", "unlock",
+                   "update-branch", "view")))
+
+
+def stub365_rows():
+    """[(name, ok)] — #365: each row is red on the stub before the fix."""
+    rows = []
+    tmp, work = gaps_sandbox()
+
+    def call(argv, state=None, state_dir=None):
+        return stub(argv, state if state is not None else gaps_state(), cwd=work,
+                    state_dir=state_dir)
+
+    def served(name, argv, route, *needles, state=None, exact=None):
+        rc, out, err, j = call(argv, state)
+        rows.append((name, rc == 0 and [e["route"] for e in j] == [route]
+                     and all(n in out for n in needles) and (exact is None or out == exact)))
+
+    def refused(name, argv, route, err_exact=None, err_has=(), state=None, state_dir=None):
+        rc, out, err, j = call(argv, state, state_dir)
+        rows.append((name, rc == 1 and out == "" and [e["route"] for e in j][-1:] == [route]
+                     and (err_exact is None or err == err_exact)
+                     and all(n in err for n in err_has)))
+
+    reviewed = gaps_state(**{"101": {"reviews": [
+        {"id": 501, "state": "CHANGES_REQUESTED", "body": "R4 needs a tie-break",
+         "author": "ann", "submitted_at": "2026-08-22T08:00:00Z"}]}})
+    try:
+        # served routes and fields — A2/2, F2/2, D24/2, D25/1, C22/3
+        served("GET pulls/<n>/reviews/<id> --jq .html_url (A2/2, F2/2)",
+               ["api", "repos/{owner}/{repo}/pulls/101/reviews/501", "--jq", ".html_url"],
+               "review-view", state=reviewed,
+               exact="https://github.com/acme/demo/pull/101#pullrequestreview-501\n")
+        served("GET pulls/<n>/reviews/<id>: the review's state, body and author",
+               ["api", "repos/acme/demo/pulls/101/reviews/501", "--jq",
+                "[.state, .body, .user.login, .submitted_at]"], "review-view", state=reviewed,
+               exact='["CHANGES_REQUESTED","R4 needs a tie-break","ann",'
+                     '"2026-08-22T08:00:00Z"]\n')
+        refused("GET pulls/<n>/reviews/<id> of a review the PR does not have: GitHub's 404",
+                ["api", "repos/acme/demo/pulls/101/reviews/502"], "http-404",
+                err_has=("Not Found (HTTP 404)",), state=reviewed)
+        served("GET repos/<o>/<r>/branches --paginate --jq '.[].name' (D24/2, D25/1)",
+               ["api", "repos/{owner}/{repo}/branches", "--paginate", "--jq", ".[].name"],
+               "branches-list", exact="clash/6\nfeat/5\nmain\nspec/5\n")
+        feat5 = subprocess.check_output(["git", "-C", work, "rev-parse", "feat/5"],
+                                        text=True).strip()
+        served("branches: each branch's commit is the remote's",
+               ["api", "repos/acme/demo/branches", "--jq", ".[1].commit.sha"], "branches-list",
+               exact=feat5 + "\n")
+        served("pr view --json mergeStateStatus (C22/3's call): an open, mergeable PR is CLEAN",
+               ["pr", "view", "101", "--json", "comments,reviews,state,headRefOid,"
+                "mergeStateStatus"], "pr-view", '"mergeStateStatus": "CLEAN"')
+        for n, over, want in (("103", {}, "DIRTY"), ("102", {}, "UNKNOWN"),
+                              ("101", {"isDraft": True}, "DRAFT")):
+            served("mergeStateStatus: pr %s%s is %s" % (n, " (draft)" if over else "", want),
+                   ["pr", "view", n, "--json", "mergeStateStatus"], "pr-view",
+                   '"mergeStateStatus": "%s"' % want, state=gaps_state(**{n: over}))
+        # a --json field gh lacks: gh's error, with gh's whole field list
+        refused("pr view --json mergeCommit,mergeMethod (C12/1): gh's Unknown JSON field",
+                ["pr", "view", "102", "--json", "mergeCommit,mergeMethod"],
+                "json-field-rejected",
+                err_has=('Unknown JSON field: "mergeMethod"\nAvailable fields:\n',
+                         "  mergeStateStatus\n", "  statusCheckRollup\n"))
+        refused("issue view --json bogus: gh's Unknown JSON field, gh's issue fields",
+                ["issue", "view", "5", "--json", "title,bogus"], "json-field-rejected",
+                err_has=('Unknown JSON field: "bogus"', "  stateReason\n", "  isPinned\n"))
+        refused("repo view --json bogus: gh's Unknown JSON field",
+                ["repo", "view", "--json", "bogus"], "json-field-rejected",
+                err_has=('Unknown JSON field: "bogus"', "  viewerDefaultMergeMethod\n"))
+        rc, out, err, j = call(["pr", "view", "101", "--json", "number,milestone"])
+        rows.append(("a gh field the stub does not serve (milestone) stays UNKNOWN",
+                     rc == 64 and [e["route"] for e in j] == ["UNKNOWN"]
+                     and "milestone" in j[-1].get("note", "")))
+        # an unknown subcommand: gh's own message, exit 1
+        refused("gh pr comments 102 (D23/3): gh's unknown command, with its suggestion",
+                ["pr", "comments", "102"], "unknown-command",
+                err_exact='unknown command "comments" for "gh pr"\n\nDid you mean this?\n'
+                          '\tcomment\n\n' + GH_PR_USAGE)
+        refused("gh pr x: no suggestion", ["pr", "x"], "unknown-command",
+                err_exact='unknown command "x" for "gh pr"\n\n' + GH_PR_USAGE)
+        refused("gh issue lst: gh suggests list", ["issue", "lst"], "unknown-command",
+                err_has=('unknown command "lst" for "gh issue"\n\nDid you mean this?\n\tlist\n\n'
+                         "Usage:  gh issue <command> [flags]\n",))
+        for argv in (["pr", "checks", "101"], ["issue", "ls"]):
+            rc, out, err, j = call(argv)
+            rows.append(("gh %s: a real gh command the stub does not route stays UNKNOWN"
+                         % " ".join(argv), rc == 64 and [e["route"] for e in j] == ["UNKNOWN"]))
+        # the two comment kinds: separate id sequences, and the wrong
+        # endpoint's id is GitHub's 404 — D6/1
+        d = tempfile.mkdtemp()
+        try:
+            rc1, out1, _, _ = call(["pr", "comment", "101", "--body", "a"], state_dir=d)
+            rc2, out2, _, _ = call(["api", "-X", "POST",
+                                    "repos/acme/demo/pulls/101/comments/9101/replies",
+                                    "-f", "body=r", "--jq", ".id"], state_dir=d)
+            rc3, out3, _, _ = call(["issue", "comment", "5", "--body", "b"], state_dir=d)
+            reply = out2.strip()
+            rows.append(("issue comments and review comments count separately",
+                         out1.endswith("#issuecomment-1001\n")
+                         and out3.endswith("#issuecomment-1002\n")
+                         and reply.isdigit() and reply not in ("1001", "1002")))
+            refused("PATCH issues/comments/<a review comment's id> (D6/1): GitHub's 404",
+                    ["api", "-X", "PATCH", "repos/acme/demo/issues/comments/%s" % reply,
+                     "-f", "body=e"], "http-404", err_has=("Not Found (HTTP 404)",),
+                    state_dir=d)
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+        refused("GET issues/comments/<a review comment's id>: GitHub's 404",
+                ["api", "repos/acme/demo/issues/comments/9101"], "http-404")
+        refused("DELETE issues/comments/<a review comment's id>: GitHub's 404",
+                ["api", "-X", "DELETE", "repos/acme/demo/issues/comments/9101"], "http-404")
+        refused("PATCH pulls/comments/<an issue comment's id>: GitHub's 404",
+                ["api", "-X", "PATCH", "repos/acme/demo/pulls/comments/1", "-f", "body=e"],
+                "http-404")
+        rc, out, err, j = call(["api", "-X", "PATCH", "repos/acme/demo/issues/comments/77",
+                                "-f", "body=e"])
+        rows.append(("PATCH issues/comments/<an id of neither kind> stays UNKNOWN",
+                     rc == 64 and [e["route"] for e in j] == ["UNKNOWN"]))
+        # updatedAt after the run's own write is the stub's write clock — F11/3
+        d = tempfile.mkdtemp()
+        try:
+            call(["issue", "edit", "5", "--add-label", "status: blocked"], state_dir=d)
+            rc, out, err, j = call(["issue", "list", "-R", "acme/demo", "--state", "all",
+                                    "--limit", "30"], state_dir=d)
+            rows.append(("issue list (no --json) after a write (F11/3): updatedAt is the "
+                         "stub's write clock",
+                         rc == 0 and out == "5\tOPEN\tx\tstatus: blocked\t2026-08-24T12:00:00Z\n"
+                                            "6\tCLOSED\ty\ttrack: spec\t2026-08-15T09:00:00Z\n"))
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return rows
@@ -3094,6 +3244,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in gaps_rows():
         print("%s route: #325 %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in stub365_rows():
+        print("%s route: #365 %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     octo = dict(STATE, repo={"owner": "octo", "name": "widgets"})
     for name, argv, route, needles in REPO_ROUTES:

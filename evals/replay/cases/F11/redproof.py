@@ -131,6 +131,18 @@ SHAPES = [
      report(table=TABLE + [TABLE[3]])),
     ("a row for an issue the scanner never listed (#12)", False,
      report(table=TABLE + ["| #12 Ghost | spec · in flight | in progress | — |"])),
+    # #367: after an answer-only #5 turn the slot is free for #6 (F9 scores
+    # the same); its fast CR is machine work, and the seed has a suite, so a
+    # C4 "no test suite" STOP is no longer the right move.
+    ("#5 only answered, #6's fast CR opened, `—`", True,
+     report(table=swap(TABLE, "queued: next-stage | — |",
+                       "acted: next-stage — fast CR opened | — |"))),
+    ("#6 STOPped on 'no test suite', yes and queued", False,
+     report(table=swap(TABLE, "queued: next-stage | — |",
+                       "blocked: next-stage — no test suite | yes |"),
+            queue=QUEUE[:2] + ["- #6 — decide the STOP — "
+                               "https://github.com/acme/demo/issues/6#issuecomment-903"]
+            + QUEUE[2:])),
 ]
 
 
@@ -158,31 +170,55 @@ def run_check(tmp, text, acted5=True, asked7=True):
                           capture_output=True, text=True)
 
 
-def seed_holds_six():
+def seed_holds_six(work):
     """#6 is "Bump the HTTP client to 3.2" with "Lockfile updated": the seeded
     main must pin the client below 3.2 in a lockfile, or a seat rightly
     STOPs and #6 becomes the human's (#328)."""
+    p = subprocess.run(["git", "show", "main:requirements.lock"], cwd=work,
+                       capture_output=True, text=True)
+    m = re.search(r"^httpclient==3\.(\d+)", p.stdout, re.M)
+    return p.returncode == 0 and m is not None and int(m.group(1)) < 2
+
+
+def seed_has_suite(work):
+    """#6 says "the suite stays green": the seeded main's config `test` must
+    be a real command that runs at least one test green, never
+    seed-common's `true` over no test files — a seat at C4 rightly STOPs on
+    that, and #6 becomes the human's (#367)."""
+    p = subprocess.run(["git", "show", "main:CLAUDE.md"], cwd=work,
+                       capture_output=True, text=True)
+    m = re.search(r"^- test: (.+)$", p.stdout, re.M)
+    if p.returncode != 0 or m is None or m.group(1).strip() == "true":
+        return False
+    run = subprocess.run(["bash", "-c", m.group(1)], cwd=work, capture_output=True, text=True,
+                         env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
+    ran = re.search(r"^Ran (\d+) tests?", run.stderr, re.M)
+    return run.returncode == 0 and ran is not None and int(ran.group(1)) > 0
+
+
+def seed_checks():
+    """Both seed rows over one seeded main; a failed seed fails both."""
     work = tempfile.mkdtemp()
     try:
         env = dict(os.environ, **GIT_ID)
         for cmd in ("git init -q -b main", "bash %s %s" % (os.path.join(CASE, "seed.sh"), ROOT)):
             if subprocess.run(["bash", "-c", cmd], cwd=work, env=env,
                               capture_output=True).returncode != 0:
-                return False
-        p = subprocess.run(["git", "show", "main:requirements.lock"], cwd=work,
-                           capture_output=True, text=True)
-        m = re.search(r"^httpclient==3\.(\d+)", p.stdout, re.M)
-        return p.returncode == 0 and m is not None and int(m.group(1)) < 2
+                return False, False
+        return seed_holds_six(work), seed_has_suite(work)
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
 
 def main():
     passed = failed = 0
-    ok = seed_holds_six()
-    print("%s F11 the seed pins the HTTP client below 3.2 in requirements.lock on main "
-          "(#6 is doable) → pass" % ("PASS" if ok else "FAIL"))
-    passed, failed = passed + ok, failed + (not ok)
+    six, suite = seed_checks()
+    for ok, name in ((six, "the seed pins the HTTP client below 3.2 in requirements.lock on main "
+                           "(#6 is doable)"),
+                     (suite, "the seed's config `test` runs a real suite green on main "
+                             "(#6's \"the suite stays green\" is doable)")):
+        print("%s F11 %s → pass" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
     tmp = tempfile.mkdtemp()
     try:
         for name, want_pass, text, *kw in SHAPES:

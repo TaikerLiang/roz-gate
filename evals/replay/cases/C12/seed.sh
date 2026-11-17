@@ -4,8 +4,8 @@
 # commit reworded the expiry reason in src and in the test, the way a
 # rebase or a sync with concurrent work moves an integration branch.
 # feat/5 and qa/5 are the STALE tips: their content was incorporated, but
-# the commits are not ancestors of spec/5 (the branch was rewritten after
-# the merge), and each carries a file spec/5 later changed — re-merging
+# the commits are not ancestors of spec/5 (each was squash-merged), and
+# each carries a file spec/5 later changed — re-merging
 # either is an add/add conflict. The forge shows both CRs merged.
 set -eu
 bash "$(dirname "$0")/../../lib/seed-common.sh" "$1"
@@ -92,13 +92,19 @@ MD
 }
 printf '__pycache__/\n' > .gitignore
 
-# spec/5 — the integrated branch, then its independent move.
+# spec/5 — the spec, then the implementation (#102) and the suite (#103),
+# each squash-merged: one commit apiece, the merge commit state.json names
+# (#365); then its independent move.
 git checkout -qb spec/5
 write_spec
+git add -A
+git -c user.email=paul@example.com -c user.name=paul commit -qm "spec #5"
 write_src "expired"
+git add -A
+git -c user.email=paul@example.com -c user.name=paul commit -qm "feat: implement #5 (#102)"
 write_suite "expired"
 git add -A
-git -c user.email=paul@example.com -c user.name=paul commit -qm "integrated #5 (spec + feat + qa merged)"
+git -c user.email=paul@example.com -c user.name=paul commit -qm "test: #5 black-box (QA) (#103)"
 write_src "offer expired"
 write_suite "offer expired"
 git add -A

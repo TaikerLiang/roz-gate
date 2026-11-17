@@ -361,8 +361,77 @@ def blank_forge_bodies(cmd):
         i, flag = end, word
 
 
+# Mention is not use, sixth form (#360, C17/run-1 of the 2026-11-16 sweep):
+# a forge write's body held in a shell variable — `BODY='… src/pricing.py
+# …'; gh pr comment 103 --body "$BODY"` — is the #326 body in another
+# spelling, and was denied for the assignment. The value of a `NAME=value`
+# word is blanked when the word is all its simple command holds (a prefix
+# to a command word is that command's environment), the value runs no
+# command substitution (`X=$(cat src/x)` and `X=$(<src/x)` are reads), and
+# NAME is used as a whole double-quoted body word (`"$NAME"`, `"${NAME}"`)
+# that blank_forge_bodies() blanked and nowhere else — not unquoted (`--body
+# $F` splits into words: `x --body-file src/x`), not in a heredoc body, not
+# in any other word (`cat "$F"`, `--body-file
+# "$F"`, `-F body="$F"`, `export F` keep the assignment a read; so does an
+# assignment no body uses).
+
+
+def assignment_values(cmd):
+    """{name: [(start, end), …]}: the value span of every `NAME=value` word
+    that stands alone in its simple command and holds no command
+    substitution. An Unsupported word ends the scan; its segment is dropped."""
+    found, seg, bare, i = {}, [], True, 0
+    while True:
+        while i < len(cmd) and (cmd[i] in " \t<>" or cmd.startswith("\\\n", i)):
+            i += 2 if cmd[i] == "\\" else 1
+        if i >= len(cmd) or cmd[i] in "\n;&|()":
+            for name, span in seg if bare else ():
+                found.setdefault(name, []).append(span)
+            if i >= len(cmd):
+                return found
+            i, seg, bare = i + 1, [], True
+            continue
+        if cmd[i] == "#":
+            j = cmd.find("\n", i)
+            i = len(cmd) if j < 0 else j
+            continue
+        try:
+            end, sub = shell_word(cmd, i)
+        except Unsupported:
+            return found
+        m = re.match(r"([A-Za-z_]\w*)=", cmd[i:end])
+        if not m:
+            bare = False
+        elif not sub:
+            seg.append((m.group(1), (i + m.end(), end)))
+        i = end
+
+
+def blank_variable_bodies(raw, cmd, scanned):
+    """`scanned` (cmd, its forge bodies blanked) with each assignment's value
+    blanked whose name occurs as a whole `"$NAME"`/`"${NAME}"` body word in
+    a blanked forge body (unquoted, it splits into words) and otherwise only
+    in its own assignments (a `--body` flag or a `body=` key whose value was
+    blanked is no use of `$body`); `raw` (before the heredoc bodies were
+    blanked) is counted too, so a name in a heredoc body keeps it visible."""
+    out = scanned
+    for name, spans in assignment_values(cmd).items():
+        word = re.compile(r"(?<![\w-])%s(?!\w)" % name)
+        ref = re.compile(r'(?<![^\s=])"\$(\{)?%s(?(1)\})"' % name)
+        body = [m for m in ref.finditer(cmd) if not scanned[m.start():m.end()].strip()]
+        own = [m for m in word.finditer(cmd)
+               if any(s - len(name) - 1 <= m.start() < e for s, e in spans)
+               or cmd[m.end():m.end() + 1] == "=" and cmd[m.end() + 1:m.end() + 2].strip()
+               and not scanned[m.end() + 1:m.end() + 2].strip()]
+        if body and len(body) + len(own) == len(word.findall(raw)):
+            for s, e in spans:
+                out = out[:s] + re.sub(r"[^\n]", " ", out[s:e]) + out[e:]
+    return out
+
+
 def bash_reads_src(cmd):
-    cmd = blank_forge_bodies(blank_heredoc_bodies(cmd))
+    text = blank_heredoc_bodies(cmd)
+    cmd = blank_variable_bodies(cmd, text, blank_forge_bodies(text))
     cmd = SRC_MENTIONED.sub(" ", SRC_EXCLUDED.sub(" ", cmd))
     return SRC_PATH.search(cmd) is not None
 
