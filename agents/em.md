@@ -73,6 +73,7 @@ Then apply its instructions to your current job.
 - Backend raising conflicts early rather than assuming
 - QA raising ambiguities rather than interpreting
 - Never offer merging, rebasing onto or cherry-picking from another branch
-  as an option: when the base lacks code the issue needs, report what is
-  missing and which branch holds it, then stop — the human syncs the base
-  (#213)
+  as an option: when the base lacks code another issue delivers, report
+  what is missing and the branch or issue that holds it, then stop — the
+  human syncs the base (#213); code this issue's spec builds is a scope
+  question

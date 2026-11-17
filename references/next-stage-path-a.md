@@ -42,11 +42,13 @@ Base everything strictly on the issue body. Per the workflow's stage (2):
 - Dispatch `implementer` → write `<specs_dir>/<n>/technical-spec.md` (the
   contract: command/API spec, schema, behavioral guarantees; a documented test
   **port** for non-API features). A seat — `product`, `em`, `implementer`, at
-  any dispatch of this command — that finds the base lacks code the issue
-  needs **reports it** (what, and which branch holds it) and stops; this
-  command then takes the STOP exit below with the shape *the base lacks a
-  dependency*. It never proposes a merge, a rebase or a cherry-pick from
-  another branch as a question option (#213, `references/workflow.md`). **The test-port line** (#125):
+  any dispatch of this command — that finds the base lacks code another
+  issue delivers **reports it** (what, and the branch or issue that holds
+  it) and stops; this command then takes the STOP exit below with the shape
+  *the base lacks a dependency*. Code the spec asks this issue to build is
+  an Open Question, never this STOP. It never proposes a merge, a rebase or
+  a cherry-pick from another branch as a question option (#213,
+  `references/workflow.md`). **The test-port line** (#125):
   `technical-spec.md` carries exactly one line `**Test port** — <path>[,
   <path>…]` — the repo-relative files or directories the port lives in;
   the acceptance suite drives it, and it is the one thing under `src/`

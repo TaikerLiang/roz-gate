@@ -9,11 +9,16 @@ is *sync `<default_branch>`*; no seat offers merging, rebasing onto or
 cherry-picking from another branch as a question option. Rule K
 (`hooks/guard_gate.py`, C28) denies the merge mechanically; this lint keeps
 the prose from proposing it.
+#361 (2026-11-16 sweep, C11/F3/F7): seats took the STOP for checkout and
+payment code the widened spec asked issue #5 itself to build — "lacks code
+the issue needs" and "which branch holds it if known" let "no branch"
+pass. A dependency is code another issue delivers or another branch holds;
+code the spec asks this issue to build is a scope question, never the STOP.
 """
 
 import re
 
-from lib.lintkit import NEXT_STAGE, c, read
+from lib.lintkit import NEXT_STAGE, c, dirs_text, read
 
 META = {
     "id": "C29",
@@ -23,7 +28,9 @@ META = {
               "`<default_branch>`); `next-stage.md` and `spec-answers.md` carry the named STOP; "
               "`agents/product.md`, `agents/em.md` and the implementer dispatch say a seat "
               "reports the gap and never proposes a merge; `merge origin/master` appears in no "
-              "brief or command (rule K denies the act — C28).",
+              "brief or command (rule K denies the act — C28). A dependency is code another "
+              "issue delivers; code the spec asks this issue to build is a scope question, "
+              "never this STOP (#361).",
 }
 
 
@@ -64,3 +71,26 @@ for _f in ("agents/product.md", "agents/em.md", "agents/qa.md", "agents/reviewer
            "references/commit-brief.md", "README.md") + NEXT_STAGE[1:]:
     c.expect("pattern", "C29: %s never says to merge master" % _f,
              _banned.search(read(_f)) is None)
+
+# #361: what a dependency is — at the policy, at every site that restates it.
+_wff = " ".join(_wf.split()).lower()
+c.expect("pattern", "C29: workflow.md — a dependency is code another issue delivers (#361)",
+         "a dependency is code another issue delivers" in _wff)
+c.expect("pattern", "C29: workflow.md — the issue's own scope is a scope question, never this STOP",
+         "scope question on the spec cr, never this stop" in _wff)
+_a3f = " ".join(_a3.split()).lower()
+c.expect("pattern", "C29: next-stage.md A3 — the spec's own code is an Open Question, not the STOP",
+         "another issue delivers" in _a3f and "build is an open question, never this stop" in _a3f)
+for _f in ("commands/next-stage.md", "commands/spec-answers.md", "agents/product.md",
+           "agents/em.md"):
+    c.expect("pattern", "C29: %s — the base lacks code another issue delivers (#361)" % _f,
+             "lacks code another issue delivers" in flat(_f))
+for _f in ("agents/product.md", "agents/em.md"):
+    c.expect("pattern", "C29: %s — the issue's own spec is a scope question (#361)" % _f,
+             "code this issue's spec builds is a scope question" in flat(_f))
+_runtime = " ".join((dirs_text("agents", "commands", "references")
+                     + read("templates/implementer.md")).split()).lower()
+for _old in ("lacks code the issue needs", "lacks code this issue needs",
+             "lacks code the spec needs", "holds it if known"):
+    c.expect("pattern", "C29: no runtime prose says the retired '%s' (#361)" % _old,
+             _old not in _runtime)
