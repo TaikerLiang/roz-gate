@@ -31,6 +31,12 @@ MARKER_NOSEAT = ('mkdir -p "%s" && printf \'issue=5\\nfeat=feat/5\\nread=%s\\n\'
 MARKER_NOPORT = ('mkdir -p "%s" && printf \'issue=5\\nfeat=feat/5\\nseat=qa\\n\' > '
                  '"%s/fidelity-dispatch"' % (GITDIR, GITDIR))
 MARKER_OFF = 'rm -f "%s/fidelity-dispatch"' % GITDIR
+# run-3's spelling (#366): the path through a variable set in the same command
+VAR = 'D="%s" && ' % GITDIR
+VAR_ON = VAR + ('mkdir -p "$D" && printf \'issue=5\\nfeat=feat/5\\nread=%s\\nseat=qa\\n\' > '
+                '"$D/fidelity-dispatch" && cat "$D/fidelity-dispatch"' % PORT)
+VAR_OFF = VAR + 'rm -f "$D/fidelity-dispatch" && ls "$D/fidelity-dispatch" 2>&1'
+VAR_CAT = VAR + 'cat "$D/fidelity-dispatch" 2>&1'
 DENY = ("Roz Gate: blocked — this is a QA dispatch and it is implementation-blind: `src/` and "
         "`feat/<n>` are off-limits (a read of src/).")
 RUN = ("Bash", {"command": "python3 run_acceptance.py tests/acceptance/offers"},
@@ -53,12 +59,17 @@ GOOD_JOURNAL = [LOCK, CREATE, UNLOCK]
 
 
 def transcript(steps, children, denied, marker):
-    """steps: "on" | "off" | "dispatch"; children run under the dispatch;
-    `denied` = indexes into children whose result is the hook's deny."""
+    """steps: "on" | "off" | "dispatch" | ("cmd", <a Bash command>); children
+    run under the dispatch; `denied` = indexes into children whose result is
+    the hook's deny."""
     ev, n = [], 0
     for step in steps:
         n += 1
-        if step == "dispatch":
+        if isinstance(step, tuple):
+            ev.append({"type": "assistant", "message": {"content": [
+                {"type": "tool_use", "id": "b%d" % n, "name": "Bash",
+                 "input": {"command": step[1]}}]}})
+        elif step == "dispatch":
             ev.append({"type": "assistant", "message": {"content": [
                 {"type": "tool_use", "id": "d1", "name": "Task",
                  "input": {"subagent_type": "roz-gate:qa",
@@ -107,6 +118,15 @@ SHAPES = [
      CLEAN, (), MARKER_QA),
     ("the marker never written", False, GOOD_JOURNAL, ["dispatch", "off"], CLEAN, (), MARKER_QA),
     ("the marker left behind", False, GOOD_JOURNAL, ["on", "dispatch"], CLEAN, (), MARKER_QA),
+    ("the marker written and removed through `$D` set in the same command (run-3, #366)", True,
+     GOOD_JOURNAL, [("cmd", VAR_ON), "dispatch", ("cmd", VAR_OFF)], CLEAN, (), MARKER_QA),
+    ("the marker's redirect continued onto the next line (`> \\` newline — codex, PR #369)", True,
+     GOOD_JOURNAL, [("cmd", MARKER_QA.replace("' > ", "' > \\\n  ")), "dispatch", "off"], CLEAN,
+     (), MARKER_QA),
+    ("the marker only read through `$D`, never written (#366: a mention is no write)", False,
+     GOOD_JOURNAL, [("cmd", VAR_CAT), "dispatch", "off"], CLEAN, (), MARKER_QA),
+    ("the marker removed through `$D` BEFORE the dispatch (#366)", False, GOOD_JOURNAL,
+     ["on", ("cmd", VAR_OFF), "dispatch"], CLEAN, (), MARKER_QA),
     ("no QA CR opened", False, [LOCK, UNLOCK], GOOD, CLEAN, (), MARKER_QA),
     ("the QA CR opened ready, not draft", False,
      [LOCK, {**CREATE, "draft": False}, UNLOCK], GOOD, CLEAN, (), MARKER_QA),

@@ -83,6 +83,8 @@ IN_REVIEW = ["track: spec", "status: in-spec-review"]
 REPORT = "Q2 folded and resolved. Q1 not folded: G2 depends on it — Q3 asks. Q3 is open."
 NOT_READY = REPORT + " #5 is **not** ready for approval while Q3 is open."
 READY = REPORT + " #5 is fully answered and ready for the user's approval."
+# run-1's wording (#366): the negation is "cannot"
+CANNOT = REPORT + " Q3 is open, so the issue cannot be reported as ready for approval."
 
 # (name, want, shell before check, journal, labels, report)
 SHAPES = [
@@ -90,6 +92,8 @@ SHAPES = [
      fold(), GOOD, IN_REVIEW, REPORT),
     ("the same, the report saying it is **not** ready for approval", "pass",
      fold(), GOOD, IN_REVIEW, NOT_READY),
+    ("the same, the report saying it **cannot** be reported as ready (run-1, #366)", "pass",
+     fold(), GOOD, IN_REVIEW, CANNOT),
     ("Q2's tag wrapped across two lines", "pass",
      fold(spec_edits=(R1_TAG_WRAPPED,)), GOOD, IN_REVIEW, REPORT),
     ("demote all — Q1's premise demoted too", "fail",

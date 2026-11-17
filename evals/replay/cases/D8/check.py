@@ -28,7 +28,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPLAY = os.path.dirname(os.path.dirname(HERE))
 ROOT = os.path.dirname(os.path.dirname(REPLAY))
 sys.path.insert(0, REPLAY)
-from replaylib import Checker, Run  # noqa: E402
+from replaylib import Checker, Run, marker_removed, marker_written  # noqa: E402
 
 _spec = importlib.util.spec_from_file_location("guard_blind",
                                                os.path.join(ROOT, "hooks/guard_blind.py"))
@@ -56,10 +56,11 @@ for ev in events:
         inp = b.get("input") or {}
         if b.get("name") == "Bash":
             cmd = inp.get("command", "")
-            if "roz-gate/fidelity-dispatch" in cmd and "feat=%s" % FEAT in cmd and ">" in cmd:
+            # by its effect: the path may be spelled through `$D` (run-3, #366)
+            if marker_written(cmd) and "feat=%s" % FEAT in cmd:
                 ordered.append("on-qa" if ("seat=qa" in cmd and "read=%s" % PORT in cmd)
                                else "on-other")
-            elif "rm -f" in cmd and "roz-gate/fidelity-dispatch" in cmd:
+            elif marker_removed(cmd):
                 ordered.append("off")
         elif b.get("name") in ("Task", "Agent") \
                 and "qa-brief.md" in json.dumps(inp, ensure_ascii=False):

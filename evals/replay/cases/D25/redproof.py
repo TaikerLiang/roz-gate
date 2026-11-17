@@ -33,10 +33,20 @@ TASK = "Implement #5 per docs/specs/5/technical-spec.md in the feat/5 worktree. 
 COMMIT = ("Read ${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md. Worktree "
           ".git/roz-gate/wt/feat/5, branch feat/5, message 'feat: implement #5'.")
 REVIEW = "Review the diff of feat/5 against spec/5; attached: spec.md, technical-spec.md."
+# run-2's build payload (#366): it names the commit sub-agent as the main
+# agent's next step, and the row says "your" own code
+ROW_YOUR = ("Your seat contract (R&R):\n- Owns: `docs/specs/5/technical-spec.md` (the contract) "
+            "and its as-built corrections on this branch; implementation code + **unit** tests.\n"
+            "- Never: spec scenarios, black-box/acceptance tests, reviewing your own code.\n"
+            "Leave your changes **uncommitted**. The main agent commits via a commit sub-agent; "
+            "you do not run `git commit`.")
+# a commit sub-agent whose payload inlines the brief instead of naming its file
+COMMIT_INLINE = ("You are the COMMIT sub-agent. Stage and commit what is named in "
+                 ".git/roz-gate/wt/feat/5 on feat/5, message 'feat: implement #5'.")
 
 
-def call(n, agent_type, prompt, tool="Task"):
-    inp = {"description": "dispatch", "prompt": prompt}
+def call(n, agent_type, prompt, tool="Task", description="dispatch"):
+    inp = {"description": description, "prompt": prompt}
     if agent_type:
         inp["subagent_type"] = agent_type
     return {"type": "assistant", "message": {"content": [
@@ -48,6 +58,7 @@ def build(agent_type, row=ROW, tool="Task"):
 
 
 COMMIT_GP = (None, COMMIT, "Task")
+COMMIT_STEP = (None, COMMIT_INLINE, "Task", "Commit the implementation on feat/5")
 REVIEWER = ("roz-gate:reviewer", REVIEW, "Task")
 
 # (name, expected exit: 0 pass / 1 fail / 3 invalid, the dispatches in order)
@@ -66,6 +77,13 @@ SHAPES = [
     ("backend builds with Owns only, no Never", 1, [build("backend", OWNS_ONLY)]),
     ("no dispatch at all", 3, []),
     ("only the commit sub-agent and the reviewer", 3, [COMMIT_GP, REVIEWER]),
+    ("backend builds; its payload says the main agent commits via a commit sub-agent and "
+     "the row reads \"your own code\" (run-2, #366)", 0,
+     [build("backend", ROW_YOUR), COMMIT_GP, REVIEWER]),
+    ("…the commit sub-agent dispatched for the commit step, its brief inlined (#366)", 0,
+     [build("backend", ROW_YOUR), COMMIT_STEP, REVIEWER]),
+    ("the run-2 build payload, built by the literal `implementer` (#366)", 1,
+     [build("implementer", ROW_YOUR), COMMIT_GP]),
 ]
 
 
@@ -96,8 +114,9 @@ def check(tmp, bare, calls):
     shutil.copy(os.path.join(CASE, "state.json"), os.path.join(run, "forge", "state.json"))
     open(os.path.join(run, "forge", "journal.jsonl"), "w").close()
     with open(os.path.join(run, "transcript.jsonl"), "w", encoding="utf-8") as f:
-        for n, (agent_type, prompt, tool) in enumerate(calls):
-            f.write(json.dumps(call(n, agent_type, prompt, tool), ensure_ascii=False) + "\n")
+        for n, (agent_type, prompt, tool, *desc) in enumerate(calls):
+            f.write(json.dumps(call(n, agent_type, prompt, tool, *desc), ensure_ascii=False)
+                    + "\n")
         f.write(json.dumps({"type": "result", "result": "next-stage: #5 built."}) + "\n")
     env = dict(os.environ, RUN_DIR=run, BARE=bare)
     return subprocess.run([sys.executable, os.path.join(CASE, "check.py")], env=env,

@@ -568,6 +568,41 @@ def invalid_reason(check_log):
     return "checker: invalid without a reason"
 
 
+# ---- the fidelity-dispatch marker, by its effect (#366) ---------------------
+# The SUT may spell the marker's path through a variable it set in the same
+# command — `D="$(git rev-parse --git-common-dir)/roz-gate" && … > "$D/fidelity-
+# dispatch"`; the file on disk is the same. A Bash call's shell state does not
+# outlive it, so only an assignment in the same command can resolve a name.
+FIDELITY_MARKER = "roz-gate/fidelity-dispatch"
+_SH_WORD = r"(?:\"[^\"]*\"|'[^']*'|\$\([^)]*\)|[^\s;&|<>()\"'])+"
+_SH_ASSIGN = re.compile(r"(?:^|[\s;&|(])([A-Za-z_]\w*)=(" + _SH_WORD + r"|)")
+_SH_TARGET = re.compile(r"(?:>>?|\btee(?:\s+-a)?)\s*(" + _SH_WORD + r")")
+
+
+def expand_assigned(cmd):
+    """cmd with each `$NAME` / `${NAME}` that an assignment in cmd sets
+    replaced by its (unquoted) value; any other name stays as written. A
+    backslash-newline is the shell's line continuation, so it is a space here
+    (codex review, PR #369)."""
+    cmd = cmd.replace("\\\n", " ")
+    names = {m.group(1): re.sub(r"[\"']", "", m.group(2)) for m in _SH_ASSIGN.finditer(cmd)}
+    return re.sub(r"\$(?:\{(\w+)\}|(\w+))",
+                  lambda m: names.get(m.group(1) or m.group(2), m.group(0)), cmd)
+
+
+def marker_written(cmd):
+    """A redirect (`>`, `>>`) or `tee` whose target resolves to the marker —
+    never a mention (`cat "$D/fidelity-dispatch"`, `ls … 2>&1`)."""
+    return any(re.sub(r"[\"']", "", m.group(1)).endswith(FIDELITY_MARKER)
+               for m in _SH_TARGET.finditer(expand_assigned(cmd)))
+
+
+def marker_removed(cmd):
+    """An `rm -f` in a command naming the marker's resolved path."""
+    x = expand_assigned(cmd)
+    return "rm -f" in x and FIDELITY_MARKER in re.sub(r"[\"']", "", x)
+
+
 def plugin_sha():
     """The checkout's short HEAD, or "" outside a checkout."""
     try:
