@@ -81,6 +81,18 @@ SHAPES = [
      "want": "pass", "before": FAITHFUL, "children": BASE},
     {"name": "the port never reached — never named, the suite never run under the dispatch",
      "want": "fail", "before": FAITHFUL, "children": [READ_SPEC, WRITE_TEST]},
+    {"name": "the runner only echoed, never run — never named (codex review, PR #373)",
+     "want": "fail", "before": FAITHFUL,
+     "children": [READ_SPEC, WRITE_TEST,
+                  ("Bash", {"command": "echo 'python3 run_acceptance.py tests/acceptance/kv'"},
+                   "python3 run_acceptance.py tests/acceptance/kv")]},
+    {"name": "the runner only in a comment and a heredoc body — never named (codex review, PR "
+             "#373)", "want": "fail", "before": FAITHFUL,
+     "children": [READ_SPEC, WRITE_TEST,
+                  ("Bash", {"command": "ls tests  # then: python3 run_acceptance.py"},
+                   "acceptance"),
+                  ("Bash", {"command": "cat > notes.txt <<'EOF'\npython3 run_acceptance.py "
+                                       "tests/acceptance/kv\nEOF"}, "")]},
     {"name": "the suite run, GREEN on the mutant too — never named, the port not shown driven",
      "want": "fail", "before": VACUOUS, "children": BASE},
     {"name": "the suite run, RED on the build — never named, the port not shown driven (#366)",

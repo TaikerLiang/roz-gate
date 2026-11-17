@@ -34,20 +34,37 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from qaframe import GREEN, RED, Frame  # noqa: E402
+from qaframe import GREEN, HEREDOC, RED, Frame, _gb  # noqa: E402
 
 PORT = "src/kv/cli.py"
 MUTANT = (PORT, "        data[a.key] = a.value\n        save(path, data)\n",
           "        data[a.key] = a.value\n")
 
+
+def runs(f):
+    """Executed suite runs under the dispatch: a Bash naming run_acceptance.py
+    outside a heredoc body, a forge body, an echo/printf operand or a comment
+    (the blanking Frame._names_port applies) — the frame's suite_runs() is a
+    substring count, a progress signal, not a verdict (codex review, PR #373)."""
+    denied = f.denied_ids()
+    n = 0
+    for b in f.children():
+        if b.get("name") != "Bash" or b.get("id") in denied:
+            continue
+        cmd = _gb.blank_forge_bodies(HEREDOC.sub(" ", (b.get("input") or {}).get("command") or ""))
+        n += "run_acceptance.py" in _gb.SRC_MENTIONED.sub(" ", cmd)
+    return n
+
+
 f = Frame(ports=[PORT])
 _, _, port_reads = f.standard()
 green, red = f.faithful(MUTANT,
                         "`set` forgets: a suite that drives set-then-get through the port is red")
-drove = f.suite_runs() >= 1 and green.startswith(GREEN) and red.startswith(RED)
+suite_runs = runs(f)
+drove = suite_runs >= 1 and green.startswith(GREEN) and red.startswith(RED)
 f.c.expect("qa-brief.md § Inputs (the port is yours to read, even under src/); D7's positive "
            "half; #366 (a suite run that drives the port counts)",
            "at least one EXECUTED tool call under the dispatch reads or runs %s (%d), or runs "
            "the suite (%d) — GREEN on the build, RED on the mutant of the port"
-           % (PORT, port_reads, f.suite_runs()), port_reads >= 1 or drove)
+           % (PORT, port_reads, suite_runs), port_reads >= 1 or drove)
 f.finish()
