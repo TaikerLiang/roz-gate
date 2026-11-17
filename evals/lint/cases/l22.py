@@ -7,7 +7,10 @@ implementer seat named an agent that did not exist met it only at the spawn.
 - every command that dispatches a seat carries the call, and no file under
   `commands/` or `references/` carries the retired sentence;
 - `references/workflow.md` states that a failed resolve or a refused spawn
-  is the STOP exit;
+  is the STOP exit, and each command with a lock and a STOP exit says when:
+  right after the lock, the comment naming the code and `/roz-gate:init`
+  (#362: next-stage resolved before its lock, its STOP covered only steps
+  after it, and D26's seats stopped with a terminal-only message);
 - the tool's `SEATS` (read with `ast`) equals the personas template's five
   lines, in order — the seat set has one definition — and the tool reads
   the block through `hooks/config_block.py`;
@@ -15,8 +18,8 @@ implementer seat named an agent that did not exist met it only at the spawn.
   display table (`seat-pane.tsx`, `seat-sprites.ts` — #202, L11) names a
   `roz-gate:<seat>` agent type: nothing else maps an agent to a seat.
 Red-proofed by restoring the old sentence in one command, removing the call
-from one, adding a sixth seat to `SEATS`, and adding a `SEAT_OF` table to a
-hook.
+from one, moving one command's persona STOP before the lock, adding a sixth
+seat to `SEATS`, and adding a `SEAT_OF` table to a hook.
 """
 
 import ast
@@ -32,16 +35,22 @@ META = {
     "ledger": "Every command that dispatches a seat carries the `bin/roz-persona --json` call "
               "and none carries the retired sentence (`resolves through the `### Roz Gate "
               "personas` block`); `references/workflow.md` states that a failed resolve or a "
-              "refused spawn is the STOP exit; `roz-persona`'s `SEATS` equals the five lines of "
-              "the personas template; no file under `hooks/` or `bin/` other than the resolver "
-              "and the pane's display table maps an agent type to a seat (#198: role identity "
-              "depended on the agent name that happened to run it).",
+              "refused spawn is the STOP exit, which next-stage, integrate, spec-answers and "
+              "patrol take right after the lock (#362); `roz-persona`'s `SEATS` equals the "
+              "five lines of the personas template; no file under `hooks/` or `bin/` other than "
+              "the resolver and the pane's display table maps an agent type to a seat (#198: "
+              "role identity depended on the agent name that happened to run it).",
 }
 
 TOOL = "bin/roz-persona"
 CALL = "python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-persona --json"
 DISPATCHERS = ("next-stage", "patrol", "integrate", "spec-answers", "review-answers",
                "to-issues", "init")
+# the commands with a lock and a STOP exit; review-answers has no `blocked` exit, to-issues and
+# init no lock (#362)
+STOPPERS = ("next-stage", "integrate", "spec-answers", "patrol")
+PERSONA_STOP = ("Its failure (`PERSONA_UNMAPPED`, `AGENT_TYPE_UNAVAILABLE`) is the STOP exit, "
+                "right after the lock; the comment names it and `/roz-gate:init`.")
 RETIRED = re.compile(r"resolves? through the `### Roz Gate personas` block")
 # the literals § Seats and personas must carry: the tool, both typed failures, the refused
 # spawn, and where all three lead
@@ -58,6 +67,11 @@ def flat(rel):
 for _cmd in DISPATCHERS:
     _rel = "commands/%s.md" % _cmd
     c.expect("pattern", "L22: %s carries the roz-persona call" % _rel, CALL in flat(_rel))
+
+for _cmd in STOPPERS:
+    _rel = "commands/%s.md" % _cmd
+    c.expect("pattern", "L22: %s takes the persona STOP right after the lock (#362)" % _rel,
+             PERSONA_STOP in flat(_rel))
 
 _restating = []
 for _d in ("commands", "references"):

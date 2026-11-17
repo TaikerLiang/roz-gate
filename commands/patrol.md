@@ -35,6 +35,8 @@ that is the session's.
 **Personas**: run `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-persona --json` and dispatch
 each seat as the `agent_type` it prints, attaching the seat's R&R row
 (`${CLAUDE_PLUGIN_ROOT}/references/workflow.md` § Seats and personas).
+Its failure (`PERSONA_UNMAPPED`, `AGENT_TYPE_UNAVAILABLE`) is the STOP exit,
+right after the lock; the comment names it and `/roz-gate:init`.
 
 **Version check**: compare the workflow section's
 `<!-- roz-gate workflow-template vN -->` stamp against the one in
