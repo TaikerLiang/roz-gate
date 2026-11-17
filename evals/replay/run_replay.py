@@ -240,8 +240,9 @@ def auth_problem(sut):
         shutil.rmtree(tmp, ignore_errors=True)
     if isinstance(status, dict) and status.get("loggedIn"):
         return None
-    return ("`claude auth status` under the sandbox HOME says not logged in — export "
-            "CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`), which the SUT keeps")
+    return ("`claude auth status` under the sandbox HOME says not logged in — the "
+            "keychain login does not reach it. Required once per machine: run `claude "
+            "setup-token`, then export CLAUDE_CODE_OAUTH_TOKEN=<the token> and re-run")
 
 
 def invoke_claude(sut, work, forge_state, prompt, timeout, transcript,
