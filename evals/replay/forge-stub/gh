@@ -318,8 +318,8 @@ def web(st):
 
 
 # #250 — the `--json` fields each command SERVES: the ones the fixture can
-# answer faithfully, and nothing else. Not gh's field catalog — a field
-# that is not here (gh's or a typo) is UNKNOWN, never a silent blank. Each
+# answer faithfully, and nothing else. Not gh's field catalog (GH_FIELDS) —
+# a gh field that is not here is UNKNOWN, never a silent blank. Each
 # value is computed only when asked for.
 ISSUE_FIELDS = {
     "number": lambda st, n, iss: int(n),
@@ -333,7 +333,8 @@ ISSUE_FIELDS = {
     "author": lambda st, n, iss: {"login": iss.get("author", "")},
     "createdAt": lambda st, n, iss: iss.get("createdAt", CORPUS_EPOCH),
     # #291 — stated by the fixture, else (#325) the latest moment the
-    # fixture records for the issue as seeded; never after a write in the run
+    # fixture records for the issue as seeded; after a write in the run,
+    # the stub's write clock (#365)
     "updatedAt": lambda st, n, iss: _updated_at(n, iss),
     # gh's struct zero values for an open issue (api/queries_issue.go:
     # `StateReason string`, `ClosedAt *time.Time`); a closed one needs the fact
@@ -349,10 +350,9 @@ ISSUE_FIELDS = {
 def _updated_at(n, iss):
     seed = seeded(n)
     if not seed or seed["digest"] != issue_digest(iss):
-        # after a write in this run the seeded timestamp is stale, and the
-        # write's own time (the stub stamps only some writes) is not known
-        return unserved("updatedAt", "issue %s was written to in this run; its seeded "
-                        "updatedAt no longer describes it" % n)
+        # #365 — written to in this run (or created by it): every write the
+        # stub performs happens at RUN_NOW, the fixture's clock
+        return RUN_NOW
     return iss.get("updatedAt") or seed.get("latest") or _latest(iss)
 
 
@@ -418,14 +418,15 @@ def json_want(cmd, argv, served):
     if raw is None:
         return []
     want = [f.strip() for f in raw.split(",")]
-    rejected = [f for f in want if f in GH_REJECTS.get(cmd, ())]
+    catalog = GH_FIELDS[cmd.split()[0]]
+    rejected = [f for f in want if f not in catalog]
     if rejected:
         # gh's own client-side answer, before any request: the seat's
         # recovery is behaviour under measurement, so this is scored
         journal("json-field-rejected", field=rejected[0])
         flush_journal()
         sys.stderr.write('Unknown JSON field: "%s"\nAvailable fields:\n%s\n'
-                         % (rejected[0], "\n".join("  " + f for f in sorted(served))))
+                         % (rejected[0], "\n".join("  " + f for f in sorted(catalog))))
         sys.exit(1)
     missing = [f for f in want if f not in served]
     if missing:
@@ -433,15 +434,39 @@ def json_want(cmd, argv, served):
     return want
 
 
-# #291 — `--json` fields gh itself rejects for a command. NOT a catalog of
-# gh's fields (#250): a name is added here only after a seat asked for it in
-# a sweep AND real gh was seen to answer `Unknown JSON field` for it.
-#   reviewThreads — haiku55 sweep 2026-11-12; `gh pr view --json reviewThreads`
-#   on gh 2.89.0. gh prints its whole field list after the first line; the
-#   stub prints the fields it serves, which is what is available here.
-#   merged — haiku55 sweep 2026-11-15 (C20/1); `gh pr view --json merged` on
-#   gh 2.82.0 (#325). gh's field is `mergedAt` / `state`.
-GH_REJECTS = {"pr view": {"reviewThreads", "merged"}, "pr list": {"reviewThreads", "merged"}}
+# #365 — gh's own `--json` field catalog per command group, copied from gh
+# 2.82.0's `Unknown JSON field` answer (`gh pr view --json bogus`; `pr list`
+# prints the same list, and so do `issue view` and `issue list`). A field
+# outside it is gh's client-side error, exit 1, scored (#291 `reviewThreads`,
+# #325 `merged`, #365 `mergeMethod`). A field inside it that the stub does
+# not serve is UNKNOWN (#250).
+GH_FIELDS = {
+    "pr": set("""additions assignees author autoMergeRequest baseRefName baseRefOid body
+        changedFiles closed closedAt closingIssuesReferences comments commits createdAt
+        deletions files fullDatabaseId headRefName headRefOid headRepository
+        headRepositoryOwner id isCrossRepository isDraft labels latestReviews
+        maintainerCanModify mergeCommit mergeStateStatus mergeable mergedAt mergedBy
+        milestone number potentialMergeCommit projectCards projectItems reactionGroups
+        reviewDecision reviewRequests reviews state statusCheckRollup title updatedAt
+        url""".split()),
+    "issue": set("""assignees author body closed closedAt closedByPullRequestsReferences
+        comments createdAt id isPinned labels milestone number projectCards projectItems
+        reactionGroups state stateReason title updatedAt url""".split()),
+    "repo": set("""archivedAt assignableUsers codeOfConduct contactLinks createdAt
+        defaultBranchRef deleteBranchOnMerge description diskUsage forkCount fundingLinks
+        hasDiscussionsEnabled hasIssuesEnabled hasProjectsEnabled hasWikiEnabled
+        homepageUrl id isArchived isBlankIssuesEnabled isEmpty isFork isInOrganization
+        isMirror isPrivate isSecurityPolicyEnabled isTemplate
+        isUserConfigurationRepository issueTemplates issues labels languages latestRelease
+        licenseInfo mentionableUsers mergeCommitAllowed milestones mirrorUrl name
+        nameWithOwner openGraphImageUrl owner parent primaryLanguage projects projectsV2
+        pullRequestTemplates pullRequests pushedAt rebaseMergeAllowed repositoryTopics
+        securityPolicyUrl squashMergeAllowed sshUrl stargazerCount templateRepository
+        updatedAt url usesCustomOpenGraphImage viewerCanAdminister
+        viewerDefaultCommitEmail viewerDefaultMergeMethod viewerHasStarred
+        viewerPermission viewerPossibleCommitEmails viewerSubscription visibility
+        watchers""".split()),
+}
 
 
 def unserved(field, why):
@@ -649,12 +674,18 @@ def _merge_commit(st, pr):
     D-family's `git merge feat/5` onto spec/5), and the commit that merge
     left on the base is the head. Those are the history shapes where the
     sandbox states what GitHub's `mergeCommit` is. A squash, a rebase, a
-    head that moved, or two candidates are not guessed."""
+    head that moved, or two candidates are not guessed. A squash-merged
+    fixture states it as `{{sha:<ref>}}` (#365: C12's `spec/5~2`), resolved
+    like a comment's at read time — the seed makes the commit at run time."""
     if pr.get("state", "OPEN").upper() != "MERGED":
         return None
-    if pr.get("mergeCommit"):
-        return {"oid": pr["mergeCommit"]}
     n = pr.get("number")
+    if pr.get("mergeCommit"):
+        oid = expand_shas(pr["mergeCommit"])
+        if "{{sha:" in oid:
+            return unserved("mergeCommit", "pr %s's fixture states %s, which does not resolve "
+                            "in the sandbox" % (n, pr["mergeCommit"]))
+        return {"oid": oid}
     head = _git("rev-parse", "--verify", "-q",
                 resolve_ref(pr.get("headRefName", "")) + "^{commit}")
     log = _git("rev-list", "--merges", "--parents", resolve_ref(pr.get("baseRefName", "")))
@@ -704,11 +735,11 @@ def _pr_seed(pr):
 
 def _pr_updated_at(st, pr):
     """Stated, else the latest moment the fixture records for the PR as
-    seeded; after a write in the run, UNKNOWN (the issue rule, #291)."""
+    seeded; after a write in the run, the stub's write clock (the issue
+    rule, #365)."""
     seed = _pr_seed(pr)
     if not seed or seed["digest"] != issue_digest(pr):
-        return unserved("updatedAt", "pr %s was written to in this run; its seeded "
-                        "updatedAt no longer describes it" % pr.get("number"))
+        return RUN_NOW
     return pr.get("updatedAt") or seed.get("latest") or _latest(pr)
 
 
@@ -761,6 +792,30 @@ def _mergeable(st, pr):
         return "MERGEABLE" if r.returncode == 0 else "CONFLICTING"
     return unserved("mergeable", "pr %s's base and head do not merge-tree in the sandbox"
                     % pr.get("number"))
+
+
+def _merge_state_status(st, pr):
+    """#365 — gh's mergeStateStatus. Merged: UNKNOWN, GitHub's value (gh
+    2.82 on this repository's merged PRs). Otherwise DIRTY when head and
+    base conflict (`_mergeable`), DRAFT for a mergeable draft, else CLEAN:
+    no fixture states a branch protection or a status check and the sandbox
+    runs none — `_review_decision`'s reading (#325). A closed PR reads the
+    same (CLEAN on GitHub, gh 2.82). A fixture that states a reviewDecision
+    requires a review, and a conflicting draft's precedence is unverified:
+    both UNKNOWN."""
+    n = pr.get("number")
+    if pr.get("state", "OPEN").upper() == "MERGED":
+        return "UNKNOWN"
+    if "reviewDecision" in pr:
+        return unserved("mergeStateStatus", "pr %s's fixture states a reviewDecision, so its "
+                        "repository's branch protection is not known" % n)
+    conflicting = _mergeable(st, pr) == "CONFLICTING"
+    if pr.get("isDraft"):
+        if conflicting:
+            return unserved("mergeStateStatus", "pr %s is a conflicting draft; DRAFT or "
+                            "DIRTY is not verified" % n)
+        return "DRAFT"
+    return "DIRTY" if conflicting else "CLEAN"
 
 
 def _pr_diffstat(key):
@@ -821,6 +876,7 @@ PR_FIELDS = {
     "createdAt": lambda st, pr: pr.get("createdAt") or CORPUS_EPOCH,
     "updatedAt": _pr_updated_at,
     "mergeable": _mergeable,
+    "mergeStateStatus": _merge_state_status,   # #365: C22/3
     "additions": _pr_diffstat("additions"),
     "deletions": _pr_diffstat("deletions"),
     "commits": _pr_commits,
@@ -1093,8 +1149,26 @@ def jq_ignores(data, key, expr):
 
 
 def next_id(st):
+    """The next issue comment's id (a top-level issue or PR comment)."""
     st["_id"] = st.get("_id", 1000) + 1
     return st["_id"]
+
+
+def next_review_id(st):
+    """#365 — the next review comment's id (an inline thread or a reply).
+    GitHub numbers the two kinds apart, so one kind's id is not the
+    other's: an id PATCHed on the wrong endpoint is GitHub's 404 (D6/1)."""
+    st["_review_id"] = st.get("_review_id", 2000) + 1
+    return st["_review_id"]
+
+
+def comment_ids(st):
+    """(issue comment ids, review comment ids) the forge holds now."""
+    items = list(st.get("issues", {}).values()) + list(st.get("prs", {}).values())
+    issue = {c.get("id") for i in items for c in i.get("comments", [])}
+    review = {c.get("databaseId") for p in st.get("prs", {}).values()
+              for t in p.get("threads", []) for c in t.get("comments", [])}
+    return issue, review
 
 
 # Benign read-only probes — stateless, canned, journaled under a real
@@ -1135,6 +1209,49 @@ PROBES = (
     ("probe-help",  # bare `gh` — usage + exit 1, like the real CLI
      lambda a: not a, HELP_TEXT, 1),
 )
+
+
+# #365 — gh 2.82.0's subcommands of the groups the stub routes, as `gh <group>
+# <typo>` lists them, plus their aliases (each subcommand's --help ALIASES).
+# A real one the stub does not route (`pr checks`) stays UNKNOWN; anything
+# else is gh's own `unknown command` error (D23/3 ran `gh pr comments`).
+GH_SUBCOMMANDS = {
+    "pr": ("checkout checks close comment create diff edit list lock merge ready reopen "
+           "review status unlock update-branch view", "co new ls"),
+    "issue": ("close comment create delete develop edit list lock pin reopen status transfer "
+              "unlock unpin view", "new ls"),
+    "repo": ("archive autolink clone create delete deploy-key edit fork gitignore license list "
+             "rename set-default sync unarchive view", "new ls"),
+    "label": ("clone create delete edit list", "ls"),
+    "auth": ("login logout refresh setup-git status switch token", ""),
+}
+
+
+def _distance(a, b):
+    """Levenshtein distance, case-insensitive — cobra's for suggestions."""
+    a, b = a.lower(), b.lower()
+    row = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        prev, row[0] = row[0], i
+        for j, cb in enumerate(b, 1):
+            prev, row[j] = row[j], min(row[j] + 1, row[j - 1] + 1, prev + (ca != cb))
+    return row[-1]
+
+
+def unknown_command(group, typed):
+    """gh's answer (exit 1, stderr) to `gh <group> <typed>`: cobra's error,
+    its suggestions (distance ≤ 2, or a prefix), then the group's usage —
+    byte for byte gh 2.82.0's."""
+    names = GH_SUBCOMMANDS[group][0].split()
+    near = [c for c in names if _distance(typed, c) <= 2 or c.startswith(typed.lower())]
+    journal("unknown-command", group=group, command=typed[:40])
+    flush_journal()
+    sys.stderr.write('unknown command "%s" for "gh %s"\n\n' % (typed, group)
+                     + ("Did you mean this?\n%s\n" % "".join("\t%s\n" % c for c in near)
+                        if near else "")
+                     + "Usage:  gh %s <command> [flags]\n\nAvailable commands:\n%s"
+                     % (group, "".join("  %s\n" % c for c in names)))
+    sys.exit(1)
 
 
 def main():
@@ -1825,7 +1942,7 @@ def main():
                     for t in prd.get("threads", []):
                         if t.get("id") != tid:
                             continue
-                        cid = next_id(st)
+                        cid = next_review_id(st)
                         root = (t.get("comments") or [{}])[0].get("databaseId")
                         t.setdefault("comments", []).append(
                             {"databaseId": cid, "author": st.get("agent_login", "paul"),
@@ -1872,6 +1989,51 @@ def main():
                 out([{"id": r["id"], "state": r["state"], "body": r["body"],
                       "user": {"login": r["author"]},
                       "submitted_at": r["submitted_at"]} for r in rows])
+            return
+
+        # #365 — one review by id (A2/2, F2/2: `--jq .html_url`), the list's
+        # sibling in REST's shape. The fixture holds every review of the PR,
+        # so an id it lacks is GitHub's 404; an absent PR stays UNKNOWN. GET only.
+        m = re.match(r"repos/[^/]+/[^/]+/pulls/(\d+)/reviews/(\d+)$", target)
+        if m and method == "GET":
+            n, rid = m.group(1), int(m.group(2))
+            pr = st.get("prs", {}).get(n)
+            if pr is None:
+                unknown("review: pr %s not in fixture" % n)
+            r = next((r for r in pr.get("reviews", []) if r.get("id") == rid), None)
+            if r is None:
+                http_error(404, "Not Found", target=target[:120])
+            journal("review-view", pr=n, review=rid)
+            jq_project({"id": rid, "user": {"login": r.get("author", "")},
+                        "body": expand_shas(r.get("body", "")), "state": r.get("state", ""),
+                        "html_url": web(st) + "/pull/%s#pullrequestreview-%d" % (n, rid),
+                        "pull_request_url": "https://api.github.com/repos/%s/pulls/%s"
+                                            % (repo_slug(st), n),
+                        "submitted_at": r.get("submitted_at") or r.get("submittedAt", "")},
+                       flag_val(argv, "--jq", "-q"))
+            return
+
+        # #365 — the repository's branches (D24/2, D25/1: `--paginate --jq
+        # '.[].name'`): the forge's branches ARE the sandbox's bare remote (the
+        # git-ref route's source), one page, by name; `protected` is false, as
+        # no fixture states a branch protection (#325). GET only.
+        if re.match(r"repos/[^/]+/[^/]+/branches$", target) and method == "GET":
+            try:   # not _git: main() defines its own (the contents route)
+                ls = subprocess.run(["git", "ls-remote", "--heads", "origin"],
+                                    capture_output=True, text=True, timeout=10)
+            except (OSError, subprocess.TimeoutExpired):
+                ls = None
+            if ls is None or ls.returncode != 0:
+                unknown("branches: the sandbox's remote does not list")
+            journal("branches-list")
+            rows = []
+            for line in ls.stdout.splitlines():
+                sha, ref = line.split()
+                rows.append({"name": ref[len("refs/heads/"):],
+                             "commit": {"sha": sha, "url": "https://api.github.com/repos/%s/"
+                                                           "commits/%s" % (repo_slug(st), sha)},
+                             "protected": False})
+            jq_project(sorted(rows, key=lambda b: b["name"]), flag_val(argv, "--jq", "-q"))
             return
 
         m = re.match(r"repos/[^/]+/[^/]+/issues/(\d+)/comments$", target)
@@ -1984,7 +2146,7 @@ def main():
             if n not in st.get("prs", {}):
                 unknown("thread-post: pr %s not in fixture" % n)
             fields = api_fields(argv)
-            cid = next_id(st)
+            cid = next_review_id(st)
             st["prs"][n].setdefault("threads", []).append(
                 {"id": "T%d" % cid, "isResolved": False,
                  "path": fields.get("path"), "line": fields.get("line"),
@@ -2016,7 +2178,7 @@ def main():
             fields = api_fields(argv)
             for t in st.get("prs", {}).get(n, {}).get("threads", []):
                 if any(c.get("databaseId") == base for c in t.get("comments", [])):
-                    cid = next_id(st)
+                    cid = next_review_id(st)
                     t["comments"].append(
                         {"databaseId": cid,
                          "author": st.get("agent_login", "paul"),
@@ -2035,6 +2197,13 @@ def main():
             unknown("reply: comment %d not in fixture" % base)
 
         m = re.match(r"repos/[^/]+/[^/]+/issues/comments/(\d+)$", target)
+        if m:
+            # #365 — a review comment's id on the issue-comments endpoint
+            # (D6/1 PATCHed the reply id the stub had just returned): no
+            # issue comment has it, so GitHub answers 404, for any method
+            issue_ids, review_ids = comment_ids(st)
+            if int(m.group(1)) not in issue_ids and int(m.group(1)) in review_ids:
+                http_error(404, "Not Found", target=target[:120])
         if m and method == "PATCH":   # #237: -X or --method, as in gh
             cid = int(m.group(1))
             fields = api_fields(argv)
@@ -2198,6 +2367,9 @@ def main():
         m = re.match(r"repos/[^/]+/[^/]+/pulls/comments/(\d+)$", target)
         if m:
             cid = int(m.group(1))
+            issue_ids, review_ids = comment_ids(st)
+            if cid not in review_ids and cid in issue_ids:   # #365: the mirror of D6/1
+                http_error(404, "Not Found", target=target[:120])
             for n, pr in st.get("prs", {}).items():
                 for t in pr.get("threads", []):
                     for c in t.get("comments", []):
@@ -2279,6 +2451,9 @@ def main():
         journal("label-create", write=True, label=argv[2] if len(argv) > 2 else "")
         return
 
+    if len(argv) > 1 and argv[0] in GH_SUBCOMMANDS and not argv[1].startswith("-") \
+            and argv[1] not in " ".join(GH_SUBCOMMANDS[argv[0]]).split():
+        unknown_command(argv[0], argv[1])
     unknown("no matching route")
 
 
