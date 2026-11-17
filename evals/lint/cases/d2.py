@@ -33,9 +33,10 @@ for name in ("GIT_TOUCH", "SRC_PATH", "SRC_EXCLUDED", "SRC_MENTIONED", "HEREDOC_
     src("D2 conformance: guard-blind carries the checker's %s byte-for-byte" % name,
         "hooks/guard_blind.py", m.group(0))
 # #220: the heredoc blanking is two functions and their escape, not a regex —
-# held the same way; #326's forge-body blanking likewise.
+# held the same way; #326's forge-body blanking likewise, and #360's variable body.
 for name in ("Unsupported", "heredoc_words", "blank_heredoc_bodies", "shell_word",
-             "skip_substitution", "blank_forge_bodies"):
+             "skip_substitution", "blank_forge_bodies", "assignment_values",
+             "blank_variable_bodies"):
     m = re.search(r"^(?:def|class) %s\b.*?(?=\n\n\n)" % name, D2_CHECK, re.M | re.S)
     if not m:
         c.fails += 1
@@ -174,6 +175,20 @@ c.expect("hook rule E (a forge write's real reads are still reads)",
          and _gb.violation("Bash", {"command": "gh api x -F body=@src/app.txt"}) is not None
          and _gb.violation("Bash", {"command": "gh pr comment 1 -b 'src/x' && cat src/app.txt"})
          is not None)
+# #360 (the 2026-11-16 sweep, C17/run-1): a body held in a variable is text.
+c.expect("hook rule E (mention is not use, sixth form: a variable only a body uses)",
+         "D2 pattern: `BODY='… src/x …'; gh pr comment 1 --body \"$BODY\"` is NOT a read",
+         _gb.violation("Bash", {"command": "BODY='see src/pricing.py:6'; gh pr comment 1 "
+                                           "--body \"$BODY\""}) is None
+         and _gb.violation("Bash", {"command": "BODY=\"see src/pricing.py:6\"; gh pr comment 1 "
+                                               "--body \"$BODY\""}) is None)
+c.expect("hook rule E (a variable that reaches a read is still a read)",
+         "D2 pattern: `X=$(cat src/x)`, `X=$(<src/x)` and `F=src/x; cat \"$F\"` are reads",
+         _gb.violation("Bash", {"command": "X=$(cat src/app.txt); gh pr comment 1 --body \"$X\""})
+         is not None
+         and _gb.violation("Bash", {"command": "X=$(<src/app.txt); gh pr comment 1 --body \"$X\""})
+         is not None
+         and _gb.violation("Bash", {"command": "F=src/app.txt; cat \"$F\""}) is not None)
 # Issue #81 (1.29.1): the suite is not the implementation. A Maven layout's
 # acceptance dir sits under src/test/…; the hook exempts it (outside the
 # four regexes, which stay byte-identical above) and the prose says so.
