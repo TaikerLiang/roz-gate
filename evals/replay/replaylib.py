@@ -581,7 +581,10 @@ _SH_TARGET = re.compile(r"(?:>>?|\btee(?:\s+-a)?)\s*(" + _SH_WORD + r")")
 
 def expand_assigned(cmd):
     """cmd with each `$NAME` / `${NAME}` that an assignment in cmd sets
-    replaced by its (unquoted) value; any other name stays as written."""
+    replaced by its (unquoted) value; any other name stays as written. A
+    backslash-newline is the shell's line continuation, so it is a space here
+    (codex review, PR #369)."""
+    cmd = cmd.replace("\\\n", " ")
     names = {m.group(1): re.sub(r"[\"']", "", m.group(2)) for m in _SH_ASSIGN.finditer(cmd)}
     return re.sub(r"\$(?:\{(\w+)\}|(\w+))",
                   lambda m: names.get(m.group(1) or m.group(2), m.group(0)), cmd)
