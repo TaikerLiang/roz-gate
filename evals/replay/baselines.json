@@ -313,6 +313,368 @@
      "passed": 2
     }
    ]
+  },
+  {
+   "id": "haiku55-sweep-2026-11-18",
+   "sut": "haiku55",
+   "plugin": "v2.21.0",
+   "plugin_range": null,
+   "date": null,
+   "date_range": "2026-11-17 → 2026-11-18",
+   "k": 3,
+   "source": "full replay sweep `run_replay.py --sut haiku55 --k 3` over every case on main 0066c98, 2026-11-17 23:43 → 2026-11-18 09:44 CST, one run, no restarts: 193 PASS · 11 FAIL · 3 INVALID · 3 F6 instrument-only; per-cell result.json in the operator's report dir (not committed); every non-PASS is analysed in issues #382–#385",
+   "note": "0066c98 is v2.21.0's content: release #381 changed only plugin.json's version and CHANGELOG.md, so the runs' plugin.json reads 2.20.0. Every cell carries plugin_sha 0066c98 and ran under the #359 sandbox with #358's Plugin root line. valid < k where an iteration was INVALID (D2, F9: forge stub/fixture gaps, #385; E11: the fold raised no question, by design) and for D25: run-2 passed, but a backend seat dispatched without the Plugin root line ran `find /` and read the installed 2.7.1 workflow.md from ~/.claude/plugins/cache, so that cell measured a mixed plugin and is left out (#382). Cases whose checker or fixture #383/#384/#385 change (C22, D2, D6, D9, E15, F2, F4, F9) will have their result marked superseded in that change.",
+   "results": [
+    {
+     "case": "A1",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "A2",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "A3",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "A4",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "A5",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "A7",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "A9",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "A11",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "C1",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "C2",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "C5",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "C7",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "C10",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "C11",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "C12",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "C13",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "C16",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "C17",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "C20",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "C22",
+     "valid": 3,
+     "passed": 2
+    },
+    {
+     "case": "C23",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "C26",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "C30",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "C32",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D2",
+     "valid": 2,
+     "passed": 2
+    },
+    {
+     "case": "D3",
+     "valid": 3,
+     "passed": 1
+    },
+    {
+     "case": "D4",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D5",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D6",
+     "valid": 3,
+     "passed": 2
+    },
+    {
+     "case": "D7",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D8",
+     "valid": 3,
+     "passed": 2
+    },
+    {
+     "case": "D9",
+     "valid": 3,
+     "passed": 2
+    },
+    {
+     "case": "D10",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D11",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D12",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D13",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D14",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D15",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D16",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D17",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D18",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D19",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D22",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D23",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D24",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D25",
+     "valid": 2,
+     "passed": 2
+    },
+    {
+     "case": "D26",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "D28",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "E2",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "E5",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "E6",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "E8",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "E9",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "E11",
+     "valid": 2,
+     "passed": 2
+    },
+    {
+     "case": "E15",
+     "valid": 3,
+     "passed": 1
+    },
+    {
+     "case": "F1",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "F2",
+     "valid": 3,
+     "passed": 2
+    },
+    {
+     "case": "F3",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "F4",
+     "valid": 3,
+     "passed": 1
+    },
+    {
+     "case": "F5",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "F6",
+     "reported": "instrument-only — every curve point compliant at turns 1/3/5/8/12 in all 3 sessions (no decay detected at n=3 sessions)"
+    },
+    {
+     "case": "F7",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "F8",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "F9",
+     "valid": 2,
+     "passed": 2
+    },
+    {
+     "case": "F10",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "F11",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "F12",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "F13",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "F14",
+     "valid": 3,
+     "passed": 3
+    },
+    {
+     "case": "F15",
+     "valid": 3,
+     "passed": 3
+    }
+   ]
   }
  ],
  "judgment": {

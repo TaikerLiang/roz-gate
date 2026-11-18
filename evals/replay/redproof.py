@@ -3092,8 +3092,9 @@ def cli_checks():
             out = zero("replay --list", rr.main, ["--list"], 0, "D10")
             rows.append(("replay --list shows each case's default k, baseline status and tier",
                          re.search(r"^D10\s+5\s+\S", out, re.M) is not None
-                         and re.search(r"^A1\s+5\s+superseded: opus-first-sweep", out, re.M)
-                         is not None))
+                         and re.search(r"^A1\s+5\s+%s\s" % re.escape(rr.baseline_status(
+                             "A1", (rr.load_json(rr.BASELINES) or {}).get("replay", []))),
+                             out, re.M) is not None))
             out = zero("replay --dry-run D10", rr.main, ["--sut", "haiku55", "--dry-run", "D10"],
                        0, "smoke gate: 3 session(s)")
             rows.append(("replay --dry-run D10 prints its k, done, pending (5 0 5)",
