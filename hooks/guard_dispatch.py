@@ -62,7 +62,7 @@ DENY_OPEN = "Roz Gate: blocked — a seat dispatch without its contract"
 FAILED = ("roz-gate guard-dispatch: %s, so the dispatch is blocked. This is a tool failure, "
           "not a protocol block — fix it and retry.")
 ROW = re.compile(r"^\|\s*\*\*([\w ]+)\*\*\s*\|(.*)\|\s*$", re.M)
-ROOT = re.compile(r"Plugin root:\**\s*`?([^\s`'\"]+)")
+ROOT = re.compile(r"Plugin root:\**[ \t]*([^\n]*)")
 WORD = re.compile(r"[a-z0-9]+")
 
 
@@ -117,10 +117,22 @@ def missing_terms(cells, text):
 
 
 def root_ok(text):
+    """A `Plugin root:` whose rest of line opens with an absolute plugin dir:
+    quoted (backticks, double quotes) or not, each whitespace-bounded prefix
+    tried, longest first — a dir whose name holds a space is one dir, and
+    the line's `— plugin paths resolve here …` tail is not part of it."""
     for m in ROOT.finditer(text):
-        d = m.group(1).rstrip(".,;:)")
-        if os.path.isabs(d) and os.path.isfile(os.path.join(d, "references", "workflow.md")):
-            return True
+        rest = m.group(1).strip()
+        q = rest[:1]
+        if q in "`\"" and q and q in rest[1:]:
+            cands = [rest[1:rest.index(q, 1)]]
+        else:
+            cands = [rest[:k.start()] for k in re.finditer(r"\s|$", rest)][::-1]
+        for d in cands:
+            d = d.rstrip(".,;:)`'\"")
+            if os.path.isabs(d) and os.path.isfile(os.path.join(d, "references",
+                                                                  "workflow.md")):
+                return True
     return False
 
 

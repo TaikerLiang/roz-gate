@@ -21,9 +21,16 @@ case $input in
   *)
     top=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
     common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || common=
+    main=
+    if [ -n "$common" ]; then   # config_block.main_checkout(): core.worktree, else the parent
+      main=${common%/*}
+      if wt=$(git config --file "$common/config" core.worktree 2>/dev/null); then
+        case $wt in /*) main=$wt ;; *) main=$common/$wt ;; esac
+      fi
+    fi
     found=
     for f in "$top/CLAUDE.md" "$top/CLAUDE.local.md" \
-             ${common:+"${common%/*}/CLAUDE.md" "${common%/*}/CLAUDE.local.md"}; do
+             ${main:+"$main/CLAUDE.md" "$main/CLAUDE.local.md"}; do
       if [ -f "$f" ] && grep -qE '^###[[:space:]]+(Roz Gate|Gated Loop) personas' "$f"; then
         found=1
         break

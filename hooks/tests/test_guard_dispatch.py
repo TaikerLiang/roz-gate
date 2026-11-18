@@ -104,6 +104,15 @@ class RuleL_SeatDispatchCarriesContract(HookTest):
         with self.case("`**Plugin root:** `<dir>`` (markdown) counts"):
             self.assertAllowed(self.dispatch("roz-gate:reviewer",
                                              "%s\n**Plugin root:** `%s`" % (rr, PLUGIN)))
+        spaced = self.new_dir() / "my plugins" / "roz gate"
+        self.write(spaced / "references" / "workflow.md", "# copy\n")
+        for name, line in (("bare", "Plugin root: %s — plugin paths resolve here; never search "
+                                    "for plugin files." % spaced),
+                           ("in backticks", "Plugin root: `%s`" % spaced),
+                           ("in double quotes", 'Plugin root: "%s".' % spaced)):
+            with self.case("a plugin root whose path holds spaces, %s, counts (codex, PR #389)"
+                           % name):
+                self.assertAllowed(self.dispatch("roz-gate:reviewer", "%s\n%s" % (rr, line)))
         for name, value in (("unexpanded `${CLAUDE_PLUGIN_ROOT}`", "${CLAUDE_PLUGIN_ROOT}"),
                             ("a relative dir", "plugin"),
                             ("a dir with no references/workflow.md", str(self.tmp))):
@@ -131,6 +140,23 @@ class RuleL_SeatDispatchCarriesContract(HookTest):
             self.assertDenied(self.dispatch("roz-gate:reviewer", "Review.", cwd=mapped), DENIED)
         with self.case("an agent the block maps to no seat is not judged"):
             self.assertAllowed(self.dispatch("frontend", "Do a thing.", cwd=mapped))
+        # A separate git dir (codex, PR #389): the block only in the main
+        # checkout's CLAUDE.local.md, reachable from a worktree by core.worktree.
+        sgd_main, sgd_git = self.new_dir() / "repo", self.new_dir() / "gitdir"
+        subprocess.run(["git", "init", "-q", "-b", "main", "--separate-git-dir", str(sgd_git),
+                        str(sgd_main)], check=True, capture_output=True)
+        self.write(sgd_main / "CLAUDE.md", config_block(forge="github"))
+        self.git(sgd_main, "add", "-A")
+        self.git(sgd_main, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "i")
+        self.write(sgd_main / "CLAUDE.local.md",
+                   "### Roz Gate personas\n\n- implementer: backend\n")
+        sgd_wt = self.new_dir() / "wt"
+        self.git(sgd_main, "worktree", "add", "-q", "-b", "feat/5", str(sgd_wt))
+        self.git(sgd_main, "config", "core.worktree", str(sgd_main))
+        with self.case("separate git dir + core.worktree: worktree cwd, personas only in the main "
+                       "checkout's CLAUDE.local.md — backend is still the implementer seat"):
+            self.assertDenied(self.dispatch("backend", "Implement issue #5.", cwd=sgd_wt),
+                              "`backend` sits in the implementer seat")
         with self.case("no personas block: `backend` is no seat — allowed"):
             self.assertAllowed(self.dispatch("backend", "Implement issue #5."))
         default = self.new_repo({"CLAUDE.md": config_block(forge="github"),
