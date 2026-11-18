@@ -33,6 +33,18 @@ NO_LIST = BRIEF + "Re-check thread T9."
 SCANNER_FIDELITY = ("You are the patrol SCANNER for the Roz Gate loop. You are READ-ONLY. "
                     "Step 1 — Read ${CLAUDE_PLUGIN_ROOT}/references/patrol-scan.md; classify "
                     "every row, fidelity-audit rows included, and return the table.")
+# D6/run-3 of the 2026-11-17/18 sweep (#384): the commit helper's brief carries a commit
+# message that says "fidelity". It is no seat dispatch and never carries the list.
+COMMIT_HELPER = ("You are the COMMIT sub-agent. Your brief is the file "
+                 "${CLAUDE_PLUGIN_ROOT}/references/commit-brief.md — read it first.\n"
+                 "1. Worktree path: .git/roz-gate/wt/spec/5\n2. Branch checked out there: spec/5\n"
+                 "4. Commit message, verbatim (use a heredoc):\nspec: #5 QA questions Q1-Q2 "
+                 "(open)\n\nRaised by qa in the fidelity/contract review of the QA suite: Q1 "
+                 "(offer-applied response shape) and Q2 (expired-offer seed port).")
+# A QA seat dispatch whose text never says "fidelity" or "qa/5" is still one: the seat
+# selects it (#384).
+QA_NO_LIST = ("Seat: qa. Your contract: ${CLAUDE_PLUGIN_ROOT}/references/qa-brief.md — read "
+              "it first. Address the open thread on the QA CR in your worktree.")
 
 
 def ev_bash(i, cmd, parent=None):
@@ -50,7 +62,8 @@ def ev_dispatch(i, prompt, name="d", seat="roz-gate:reviewer"):
 
 
 # Each shape is a list of (kind, arg, parent) in transcript order:
-#   ("bash", cmd, parent_or_None) · ("dispatch", prompt, None) · ("scanner", prompt_or_None, None)
+#   ("bash", cmd, parent_or_None) · ("dispatch", prompt, seat_or_None — the reviewer)
+#   · ("scanner", prompt_or_None, None) · ("helper", prompt, None — a general-purpose agent)
 # The scanner is patrol's read-only sub-agent (id "s0"); its own listings carry
 # its id as parent and are NOT the dispatcher's contract-currency check, and
 # its dispatch is NOT a fidelity dispatch even when its brief says "fidelity".
@@ -91,6 +104,10 @@ SHAPES = [
     ("only the scanner's brief says fidelity — no seat dispatch (#327)", False,
      [("scanner", SCANNER_FIDELITY, None), ("bash", LIST_102, "s0"),
       ("bash", LIST_101, None), ("bash", LIST_102, None)]),
+    ("the list handed, then the commit helper commits a message saying fidelity (#384, "
+     "D6/run-3)", True, GOOD + [("helper", COMMIT_HELPER, None)]),
+    ("the list handed to the reviewer, a QA seat dispatched without it (#384: the seat "
+     "selects)", False, GOOD + [("dispatch", QA_NO_LIST, "roz-gate:qa")]),
 ]
 
 
@@ -101,7 +118,9 @@ def transcript(steps):
             prompt = arg or "Read ${CLAUDE_PLUGIN_ROOT}/references/patrol-scan.md …"
             ev.append(ev_dispatch(0, prompt, name="s", seat="general-purpose"))
         elif kind == "dispatch":
-            ev.append(ev_dispatch(i, arg))
+            ev.append(ev_dispatch(i, arg, seat=parent or "roz-gate:reviewer"))
+        elif kind == "helper":
+            ev.append(ev_dispatch(i, arg, name="h", seat="general-purpose"))
         else:
             ev.append(ev_bash(i, arg, parent))
     ev.append({"type": "result", "result": "patrol: #5 address-review, re-check done."})

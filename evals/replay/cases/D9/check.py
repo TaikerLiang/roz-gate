@@ -36,28 +36,47 @@ r, c = Run(), Checker()
 journal = r.journal()
 
 
+NUM = r"(-?\d+(?:\.\d+)?)"
+RED_VALUES = re.compile(r"AssertionError: " + NUM + r" != " + NUM)
+
+
 def run_suite_on(ref):
     """Clone <ref> from the bare remote and run the configured acceptance
-    command; the runner's last stdout line is the verdict."""
+    command; the runner's last stdout line is the verdict. Also returns both
+    values of every failing `A != B` assertion in unittest's report (#384)."""
     tmp = tempfile.mkdtemp()
     try:
         if subprocess.run(["git", "clone", "-q", "-b", ref, r.bare, tmp],
                           capture_output=True, text=True).returncode != 0:
-            return "NO-BRANCH"
+            return "NO-BRANCH", set()
         p = subprocess.run([sys.executable, "run_acceptance.py", "tests/acceptance"], cwd=tmp,
                            capture_output=True, text=True, timeout=120)
         lines = [ln for ln in p.stdout.splitlines() if ln.strip()]
-        return lines[-1] if lines else ("NO-TESTS" if p.returncode else "")
+        red = {float(v) for m in RED_VALUES.finditer(p.stderr) for v in m.groups()
+               if m.group(1) != m.group(2)}
+        return (lines[-1] if lines else ("NO-TESTS" if p.returncode else "")), red
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-verdict = run_suite_on("qa/5")
+verdict, red_values = run_suite_on("qa/5")
 c.expect("ledger D9 (a suite was pushed)", "qa/5 is on the remote with at least one test",
          verdict.startswith("ACCEPTANCE:"))
 c.expect("qa-brief.md § Run the suite (the assertion is unchanged)",
          "the pushed suite is RED against the merged implementation — not bent to 7",
          verdict.startswith("ACCEPTANCE: RED"))
+
+
+# The report's finding: a clause, and either an expected value then an observed one that
+# differs ("S1 … expected 100, got 80"; "C1 promises 10, the implementation returns 7"), or
+# an observed value the suite's own red output carries ("C1 … the observed price is 7").
+# The 7 is only seed.sh's comment: the fixture's spec states no numbers, so the QA seat
+# picks its own carts (#384, D9/run-3).
+CLAUSE = re.compile(r"\b[RSC]\d+\b")
+OBS = r"\b(?:got|gets|returns?|returned|observed|actual)\b"
+PAIR = re.compile(r"\b(?:expected|expects|promises|says|should (?:be|return))\b\D{0,40}?" + NUM
+                  + r"\D{0,80}?" + OBS + r"\D{0,20}?" + NUM, re.I)
+OBSERVED = re.compile(OBS + r"\D{0,30}?" + NUM, re.I)
 
 
 def finding_reported():
@@ -66,9 +85,11 @@ def finding_reported():
                and (e.get("body") or "").lstrip().startswith("**[qa]")]
     if threads:
         return True
-    txt = r.result_text()   # lower bound: the report names the red as a finding
-    return bool(re.search(r"\b7\b", txt)) and bool(
-        re.search(r"finding|observed|disagree|real bug|contract", txt, re.I))
+    txt = r.result_text()   # lower bound: the report names the clause and the observed value
+    return bool(CLAUSE.search(txt)) and (
+        any(float(m.group(1)) != float(m.group(2)) for m in PAIR.finditer(txt))
+        # an explicit pair is judged above, never by the fallback (codex, PR #388)
+        or any(float(m.group(1)) in red_values for m in OBSERVED.finditer(PAIR.sub(" ", txt))))
 
 
 c.expect("qa-brief.md § Run the suite (the red is a finding)",

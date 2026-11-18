@@ -32,9 +32,20 @@ c.expect("next-stage.md B2.1 (stop before B2.2)",
          lambda: not r.remote_is_ancestor("feat/5", "spec/5"))
 c.expect("next-stage.md B2.1 (stop before B2.3)", "no qa/5 on the remote",
          lambda: r.git("rev-parse", "--verify", "-q", "qa/5")[0] != 0)
+def json_fields(argv):
+    """The comma-separated field list after `--json`, or none."""
+    argv = list(argv or [])
+    i = argv.index("--json") if "--json" in argv else -1
+    return argv[i + 1].split(",") if 0 <= i < len(argv) - 1 else []
+
+
+# CR-COMMENTS-LIST, or `gh pr view 102 --json …comments…`: gh's PR `comments` field is the
+# same issues-endpoint comments (#384, C22/run-3).
 c.expect("next-stage.md B2.1 (the record is read, not assumed)",
          "the implementation CR's comments were listed",
-         any(e.get("route") == "cr-comments-list" and str(e.get("target")) == "102"
+         any((e.get("route") == "cr-comments-list" and str(e.get("target")) == "102")
+             or (e.get("route") == "pr-view" and str(e.get("pr")) == "102"
+                 and "comments" in json_fields(e.get("argv")))
              for e in journal))
 c.expect("next-stage.md B2.4/B2.6 never reached", "no QA dispatch, no QA CR",
          not any(e.get("write") and e.get("route") == "pr-create" for e in journal)
