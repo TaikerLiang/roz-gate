@@ -246,7 +246,7 @@ def render_baselines():
                    % (b["id"], b["sut"], b["plugin"] or b["plugin_range"], when(b), b["k"],
                       " · ".join(cells).replace("|", "\\|"), b["source"].replace("|", "\\|")))
     out += ["", "Wilson 90%% intervals, the runner's formula. No recorded baseline (%d): %s."
-            % (len(none), ", ".join(none)), ""]
+            % (len(none), ", ".join(none) or "none"), ""]
     j = data["judgment"]
     out.append("**Judgment:** the last recorded sweep is %s SUT, %s judge, plugin %s, %s, "
                "k=%d — %s. Judgment V1 and the Workflow Value pilot have no recorded run."
