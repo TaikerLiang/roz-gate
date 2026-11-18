@@ -88,7 +88,8 @@ def finding_reported():
     txt = r.result_text()   # lower bound: the report names the clause and the observed value
     return bool(CLAUSE.search(txt)) and (
         any(float(m.group(1)) != float(m.group(2)) for m in PAIR.finditer(txt))
-        or any(float(m.group(1)) in red_values for m in OBSERVED.finditer(txt)))
+        # an explicit pair is judged above, never by the fallback (codex, PR #388)
+        or any(float(m.group(1)) in red_values for m in OBSERVED.finditer(PAIR.sub(" ", txt))))
 
 
 c.expect("qa-brief.md § Run the suite (the red is a finding)",

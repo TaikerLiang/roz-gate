@@ -70,7 +70,10 @@ OBSERVED_ONLY = ("QA finding: C1 excludes expired discounts, but the observed pr
                  "the expired-offer cart.")
 OBSERVED_WRONG = ("QA finding: C1 excludes expired discounts, but the observed price is 9 for "
                   "the expired-offer cart.")
-SAME_VALUE ="QA: S1 is red: expected 100, got 100; see the run output."
+# Codex review, PR #388: an equal pair whose value IS in the red output (7 != 10) stays red;
+# the fallback never rescues an explicit pair.
+SAME_RED_VALUE = "QA: C1 is red: expected 10, got 10; see the run output."
+SAME_VALUE = "QA: S1 is red: expected 100, got 100; see the run output."
 NO_CLAUSE = "QA: one assertion is red: expected 100, got 80. Reported as a finding."
 SILENT = "QA: suite written and pushed; one test failing, see the run output."
 GREEN_REPORT = "QA: suite green, CR ready."
@@ -87,6 +90,8 @@ SHAPES = [
      "(codex, PR #388)", True, FAITHFUL, [], OBSERVED_ONLY),
     ("faithful, no thread, the report's observed value is not in the suite's red output",
      False, FAITHFUL, [], OBSERVED_WRONG),
+    ("faithful, no thread, an equal pair whose value the red output carries (codex, PR #388)",
+     False, FAITHFUL, [], SAME_RED_VALUE),
     ("faithful, no thread, the report's expected and observed values are the same", False,
      FAITHFUL, [], SAME_VALUE),
     ("faithful, no thread, the report names a differing value but no clause", False,
