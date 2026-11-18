@@ -78,6 +78,7 @@
       "isDraft": false,
       "headRefName": "spec/5",
       "baseRefName": "main",
+      "author": "paul",
       "threads": [],
       "reviews": [],
       "comments": [
@@ -91,6 +92,7 @@
       "isDraft": false,
       "headRefName": "spec/8",
       "baseRefName": "main",
+      "author": "paul",
       "threads": [
         {"id": "T1", "isResolved": false, "path": "docs/specs/8/spec.md", "line": 4, "comments": [
           {"databaseId": 9101, "author": "paul", "body": "**[product] · Q1 · Grace period length**\n\nHow long after expiry does an offer still apply?\n- (a) 15 minutes — the cart's own session timeout (recommended)\n- (b) 24 hours\n- (c) configurable per offer", "createdAt": "2026-08-20T10:00:00Z"}

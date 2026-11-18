@@ -40,6 +40,7 @@
       "isDraft": false,
       "headRefName": "spec/5",
       "baseRefName": "main",
+      "author": "paul",
       "threads": [],
       "reviews": [],
       "comments": []
@@ -51,6 +52,7 @@
       "isDraft": false,
       "headRefName": "feat/5",
       "baseRefName": "spec/5",
+      "author": "paul",
       "body": "## Contract deviations\n\nnone\n",
       "threads": [],
       "reviews": [],
@@ -70,6 +72,7 @@
       "isDraft": false,
       "headRefName": "qa/5",
       "baseRefName": "spec/5",
+      "author": "paul",
       "threads": [],
       "reviews": [],
       "comments": [
@@ -88,6 +91,7 @@
       "isDraft": false,
       "headRefName": "spec/6",
       "baseRefName": "main",
+      "author": "paul",
       "threads": [],
       "reviews": [],
       "comments": []
@@ -99,6 +103,7 @@
       "isDraft": false,
       "headRefName": "feat/6",
       "baseRefName": "spec/6",
+      "author": "paul",
       "body": "## Contract deviations\n\nnone\n",
       "threads": [],
       "reviews": [],
@@ -118,6 +123,7 @@
       "isDraft": false,
       "headRefName": "qa/6",
       "baseRefName": "spec/6",
+      "author": "paul",
       "threads": [],
       "reviews": [],
       "comments": [
