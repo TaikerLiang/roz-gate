@@ -116,7 +116,9 @@ half-done:
      registry is `${CLAUDE_PLUGIN_ROOT}/references/reserved-words.json`). The
      ruling part is the
      holder's; the claim about the world still needs measuring or a legal
-     demotion (the next rule).
+     demotion, which folds the premise as `(assumed-empirical: <named risk>)`
+     in place of `(unverified)` (A3), the ruling keeping `(from Q<j>)`; the
+     next rule says when a demotion is illegal.
    - **A demotion a guarantee needs is not folded**: an answer that
      demotes, or accepts the risk of, a premise a guarantee, scenario or
      acceptance criterion depends on leaves the premise `(unverified)` and

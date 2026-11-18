@@ -41,6 +41,9 @@ Q3_NO_G2 = Q3.replace("G2 without", "the row count without").replace(
     "the premise G2's p95 budget and S2 rest on", "a load-bearing premise").replace(
     "keep G2", "keep the budget").replace("correct G2", "correct the budget").replace(
     "*why: G2 is", "*why: it is")
+# run-1's form (#383): the premise's rule and the scenario, never G2
+Q3_R2_S2 = Q3_NO_G2.replace("keep the budget", "keep R2's 2M-row premise").replace(
+    "correct the budget", "correct R2 and S2")
 Q2_RESOLVED = ("  **Resolved:** (a) demoted — paul, 2026-08-23; *#7 retires the view*; "
                "folded into R1.\n")
 
@@ -104,7 +107,9 @@ SHAPES = [
      fold(spec_edits=(R1_TAG, S2_EDIT)), GOOD, IN_REVIEW, REPORT),
     ("Q1 refused silently — no raised question", "fail",
      fold(q3=""), [READ, REPLY2, RESOLVE2], IN_REVIEW, REPORT),
-    ("the raised question does not name G2", "fail",
+    ("the raised question names R2 and S2, not G2 (run-1, #383)", "pass",
+     fold(q3=Q3_R2_S2), GOOD, IN_REVIEW, REPORT),
+    ("the raised question names none of R2, G2, S2, AC-2", "fail",
      fold(q3=Q3_NO_G2), GOOD, IN_REVIEW, REPORT),
     ("Q3 in the spec, but no thread posted", "fail",
      fold(), [READ, REPLY2, RESOLVE2, REPLY1], IN_REVIEW, REPORT),

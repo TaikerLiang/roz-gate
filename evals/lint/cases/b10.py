@@ -15,6 +15,9 @@ A3's sentence — and the old two-remedy wording absent.
 rule written for a fold that happened, and E15 asked the follow-up as a
 reply in Q1's thread. The rule now says where it goes: a new `Q<k>` raised
 by the fold of Q<j>, its own thread at depth 0, never a reply in Q<j>'s.
+#383: the fold rules named the legal demotion only as a pointer to "the
+next rule", which covers the illegal one, so E15 folded a legal demotion
+as `(unverified)` + `(from Q2)`. The rule now gives the legal fold's tag.
 """
 
 from lib.lintkit import c, read
@@ -29,7 +32,9 @@ META = {
               "condition on `accept a bounded risk`; the promote check points at that table; "
               "spec-answers' fold rules carry *A demotion a guarantee needs is not folded*, its "
               "question a new `Q<k>` *raised by the fold of Q<j>* with its own thread at depth 0, "
-              "never a reply in Q<j>'s thread (#364); A3 "
+              "never a reply in Q<j>'s thread (#364), and a legal demotion folding the premise as "
+              "`(assumed-empirical: <named risk>)` in place of `(unverified)`, the ruling keeping "
+              "`(from Q<j>)` (#383); A3 "
               "makes `(assumed-empirical:` legal only when nothing depends on the claim (#256: "
               "the STOP recommended demoting all four hits, a p95 premise among them).",
 }
@@ -84,6 +89,12 @@ c.expect("pattern", "B10: the refused demotion's question is a new item raised b
          "*raised by the fold of Q<j>* (depth rule below; depth 0: its own thread)" in _s)
 c.expect("pattern", "B10: the refused demotion's question is never a reply in Q<j>'s thread (#364)",
          "never as a reply in Q<j>'s thread" in _s)
+c.expect("pattern", "B10: a legal demotion folds the premise as `(assumed-empirical:` in place "
+         "of `(unverified)`, the ruling keeping `(from Q<j>)` (#383)",
+         "a legal demotion, which folds the premise as `(assumed-empirical: <named risk>)` in "
+         "place of `(unverified)` (A3), the ruling keeping `(from Q<j>)`" in _s)
+c.expect("pattern", "B10: the bare pointer to the next rule as the legal demotion is gone (#383)",
+         "a legal demotion (the next rule)" not in _s)
 
 c.expect("pattern", "B10: A3 makes the demotion legal only when nothing depends on the claim",
          "Legal only when nothing in a guarantee, scenario or acceptance criterion depends on "

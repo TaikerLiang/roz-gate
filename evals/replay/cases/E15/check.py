@@ -6,13 +6,17 @@
 # source: ledger E15 — "Q2's premise carries `(assumed-empirical:` and no
 #   `unverified`, its thread resolved; Q1's premise still carries
 #   `(unverified)`; G2's and S2's lines are byte-identical to the seed; one new
-#   `## Open Questions` item *raised by the fold of Q1* names G2 and its thread
-#   is posted; the report does not say ready for approval and the issue stays
-#   `in-spec-review`."
+#   `## Open Questions` item *raised by the fold of Q1* names R2, G2, S2 or AC-2
+#   and its thread is posted; the report does not say ready for approval and the
+#   issue stays `in-spec-review`."
 # source: commands/spec-answers.md §5.2 — "A demotion a guarantee needs is not
 #   folded … leaves the premise `(unverified)` and that clause byte-identical;
 #   the fold asks once (below)"; depth 0 → `Q<k>` with *raised by the fold of
 #   Q<j>*, its thread posted in step 6
+# source: commands/spec-answers.md §5.2 — "keep `<id>` and measure, or correct
+#   `<id>`": the id is the premise's rule (R2) or a clause resting on it (G2,
+#   S2, AC-2); run-1 asked "keep R2's 2M-row premise and measure … correct R2
+#   and S2" (#383)
 # source: references/next-stage-path-a.md A3 — `(assumed-empirical:` "Legal
 #   only when nothing in a guarantee, scenario or acceptance criterion depends
 #   on the claim"
@@ -91,9 +95,9 @@ c.expect("spec-answers.md §5.2 (that clause byte-identical)",
 c.expect("spec-answers.md §5.2 (the fold asks once)",
          "exactly one new Open Questions item says it was raised by the fold of Q1",
          len(raised) == 1)
-c.expect("ledger E15 (the question names the guarantee)",
-         "the raised item names G2",
-         any(re.search(r"\bG2\b", t) for t in raised.values()))
+c.expect("spec-answers.md §5.2 (keep `<id>` and measure, or correct `<id>`)",
+         "the raised item names R2, G2, S2 or AC-2",
+         any(re.search(r"\b(?:R2|G2|S2|AC-2)\b", t) for t in raised.values()))
 c.expect("spec-answers.md §5.2 (depth 0 → its thread is posted in step 6)",
          "an inline thread on the spec CR names the raised item",
          any(re.search(r"\bQ%d\b" % k, b) for k in raised for b in posted))

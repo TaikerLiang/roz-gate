@@ -328,32 +328,38 @@
     {
      "case": "A1",
      "valid": 3,
-     "passed": 3
+     "passed": 3,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "A2",
      "valid": 3,
-     "passed": 3
+     "passed": 3,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "A3",
      "valid": 3,
-     "passed": 3
+     "passed": 3,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "A4",
      "valid": 3,
-     "passed": 3
+     "passed": 3,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "A5",
      "valid": 3,
-     "passed": 3
+     "passed": 3,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "A7",
      "valid": 3,
-     "passed": 3
+     "passed": 3,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "A9",
@@ -363,7 +369,8 @@
     {
      "case": "A11",
      "valid": 3,
-     "passed": 3
+     "passed": 3,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "C1",
@@ -403,7 +410,8 @@
     {
      "case": "C13",
      "valid": 3,
-     "passed": 3
+     "passed": 3,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "C16",
@@ -413,7 +421,8 @@
     {
      "case": "C17",
      "valid": 3,
-     "passed": 3
+     "passed": 3,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "C20",
@@ -423,22 +432,26 @@
     {
      "case": "C22",
      "valid": 3,
-     "passed": 2
+     "passed": 2,
+     "superseded": "checker accepts what the prose allows (#388)"
     },
     {
      "case": "C23",
      "valid": 3,
-     "passed": 3
+     "passed": 3,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "C26",
      "valid": 3,
-     "passed": 3
+     "passed": 3,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "C30",
      "valid": 3,
-     "passed": 3
+     "passed": 3,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "C32",
@@ -448,7 +461,8 @@
     {
      "case": "D2",
      "valid": 2,
-     "passed": 2
+     "passed": 2,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "D3",
@@ -463,17 +477,20 @@
     {
      "case": "D5",
      "valid": 3,
-     "passed": 3
+     "passed": 3,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "D6",
      "valid": 3,
-     "passed": 2
+     "passed": 2,
+     "superseded": "checker accepts what the prose allows (#388); its fixture states the PR author (#387)"
     },
     {
      "case": "D7",
      "valid": 3,
-     "passed": 3
+     "passed": 3,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "D8",
@@ -483,7 +500,8 @@
     {
      "case": "D9",
      "valid": 3,
-     "passed": 2
+     "passed": 2,
+     "superseded": "checker accepts what the prose allows (#388)"
     },
     {
      "case": "D10",
@@ -598,7 +616,8 @@
     {
      "case": "E15",
      "valid": 3,
-     "passed": 1
+     "passed": 1,
+     "superseded": "checker loosened: the raised item may name R2, G2, S2 or AC-2 (#386)"
     },
     {
      "case": "F1",
@@ -608,7 +627,8 @@
     {
      "case": "F2",
      "valid": 3,
-     "passed": 2
+     "passed": 2,
+     "superseded": "ledger text follows the answer-first ruling (#388)"
     },
     {
      "case": "F3",
@@ -618,7 +638,8 @@
     {
      "case": "F4",
      "valid": 3,
-     "passed": 1
+     "passed": 1,
+     "superseded": "checker accepts what the prose allows (#388)"
     },
     {
      "case": "F5",
@@ -642,7 +663,8 @@
     {
      "case": "F9",
      "valid": 2,
-     "passed": 2
+     "passed": 2,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "F10",
@@ -652,7 +674,8 @@
     {
      "case": "F11",
      "valid": 3,
-     "passed": 3
+     "passed": 3,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "F12",
@@ -662,12 +685,14 @@
     {
      "case": "F13",
      "valid": 3,
-     "passed": 3
+     "passed": 3,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "F14",
      "valid": 3,
-     "passed": 3
+     "passed": 3,
+     "superseded": "its fixture states the PR author (#387)"
     },
     {
      "case": "F15",
