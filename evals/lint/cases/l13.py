@@ -5,7 +5,7 @@ judgment, authority — and tracks each mechanical row through a fixed
 lifecycle. A catalogue nobody checks drifts the first time the prose is
 rewritten, so this case holds it to its own rules:
 - every ledger ID appears in a table, and every ID in a table is a ledger ID;
-- every hook rule A–K owns at least one row;
+- every hook rule A–L owns at least one row;
 - every anchor is still a literal of its source (unless the row is
   `migrated <sha>`);
 - classes, owners and statuses come from the fixed vocabularies;
@@ -25,7 +25,7 @@ META = {
     "id": "L13",
     "title": "the executable-prose inventory stays honest",
     "tier": "lint (#260)",
-    "ledger": "every ledger ID is in `docs/prose-inventory.md`, every hook rule A–K owns a row, "
+    "ledger": "every ledger ID is in `docs/prose-inventory.md`, every hook rule A–L owns a row, "
               "every anchor is still a literal of its source, and every status agrees with its "
               "readiness fields — `not_ready` names its blocker by leaving it `—`.",
 }
@@ -97,7 +97,7 @@ c.expect("pattern", "L13: every ID in the inventory is a ledger ID (unknown: %s)
 
 _owned = {m.group(1) for r in _mech if len(r) == 12
           for m in [re.match(r"hook ([A-Z])\Z", r[5])] if m}
-c.expect("pattern", "L13: every hook rule A–K owns a row (missing: %s)"
+c.expect("pattern", "L13: every hook rule A–L owns a row (missing: %s)"
          % (", ".join(sorted(_hooks - _owned)) or "none"), _hooks and _hooks <= _owned)
 
 

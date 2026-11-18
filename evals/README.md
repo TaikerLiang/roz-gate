@@ -12,9 +12,9 @@ Level-1 suite does not prove Roz Gate improves engineering outcomes.
 <!-- counts -->
 | Tier | Cases | Status | Cost class |
 |---|---|---|---|
-| **lint** | 82 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
+| **lint** | 83 | built — `lint/run_lint.py` | static text checks, milliseconds, deterministic |
 | **replay** | 70 | built — `replay/run_replay.py` | needs a running loop and a pass rate over k repeated runs |
-| **hook** | 4 | built — `ledger-hook.json`, proven in `../hooks/tests/` by the same gate | rules a hook alone enforces; the other hook rules ride on a lint or replay row |
+| **hook** | 5 | built — `ledger-hook.json`, proven in `../hooks/tests/` by the same gate | rules a hook alone enforces; the other hook rules ride on a lint or replay row |
 | **judgment** | 7 items / 4 fixtures · V1: 10 decisions | built — `judgment/run_judgment.py`, k=2 baseline complete (2026-09-21) | a real repo per iteration plus an opus judge; the Level-2 seed (`charter.md`) |
 <!-- /counts -->
 
@@ -132,13 +132,13 @@ Set on `main` at `2ee634c`.
 
 | prose | cap (words) |
 |---|---|
-| **the repo's runtime prose total** | 52,676 |
+| **the repo's runtime prose total** | 52,693 |
 | `commands/config.md` | 540 |
 | `commands/init.md` | 1,358 |
 | `commands/integrate.md` | 2,504 |
 | `commands/next-stage.md` | 1,087 |
 | `commands/patrol.md` | 3,921 |
-| `commands/review-answers.md` | 1,822 |
+| `commands/review-answers.md` | 1,839 |
 | `commands/spec-answers.md` | 3,454 |
 | `commands/tip.md` | 2,586 |
 | `commands/to-issues.md` | 504 |
@@ -154,7 +154,7 @@ read at the time. A new baseline is a new batch in that file, then the
 tool.
 
 <!-- baselines -->
-**36 of 70 replay cases have at least one recorded SUT baseline; 34 have none.** *Recorded* is not *current*: a batch below is a measurement of the case as it was then, and a later seed or checker change may have superseded it — where the record says so, the row does. **0 of 70 have a recorded baseline that is not superseded.**
+**70 of 70 replay cases have at least one recorded SUT baseline; 0 have none.** *Recorded* is not *current*: a batch below is a measurement of the case as it was then, and a later seed or checker change may have superseded it — where the record says so, the row does. **45 of 70 have a recorded baseline that is not superseded.**
 
 | batch | SUT | plugin | when | k | results | source |
 |---|---|---|---|---|---|---|
@@ -164,8 +164,9 @@ tool.
 | `opus-1.36.0-e8` | opus | v1.36.0 | 2026-10-12 | 3 | 3/3 [53%, 100%]: E8 · *superseded:* the batch — #293 (2026-11-14): the shared seed (the base every case starts from) changed and entered every case's fingerprint, so no replay result recorded before it describes a case as it now stands | evals/README.md § Baseline results, "Replay, k=3, plugin v1.36.0 (2026-10-12) — E8"; checker commits f2cb1d2, 8c1e33a; k=3 by the gate holder's quota call |
 | `qa-brief-pilot-run-1` | opus | v2.10.0–v2.10.1 | sweep 2026-11-07 → 2026-11-08 | 1 | 1/1 [27%, 100%]: D10, D11, D12, D15, D16, D17, D18 · 0/1 [0%, 73%]: D13, D14, D19 · *superseded:* the batch — PR #233 moved every D10–D19 case_fp; the k>1 top-up re-measures them (#199); #293 (2026-11-14): the shared seed (the base every case starts from) changed and entered every case's fingerprint, so no replay result recorded before it describes a case as it now stands | evals/README.md § Baseline results, "Replay, k=1, plugin v2.10.0–v2.10.1 … the #199 QA-brief pilot"; issue #199. Brief A only (references/qa-brief.md, the shipped brief); the B and C variants measured other briefs and are not baselines of these cases |
 | `qa-brief-haiku-reading` | haiku55 | main 6cc2c79 … ccfa8ef (PR #242), after v2.10.1 — the plugin sha varied across cells | 2026-11-08 | 3 | 3/3 [53%, 100%]: D10, D11, D15, D16, D18 · 2/2 [43%, 100%]: D12, D13, D14 · 1/1 [27%, 100%]: D17 · 2/3 [25%, 92%]: D19 · *superseded:* the batch — references/qa-brief.md changed after this reading (#243, #261, #262); a result is evidence about the brief it ran under; #293 (2026-11-14): the shared seed (the base every case starts from) changed and entered every case's fingerprint, so no replay result recorded before it describes a case as it now stands | issue #199, "Pilot report — Haiku reading" (https://github.com/TaikerLiang/roz-gate/issues/199#issuecomment-6719997010): brief A, 24/25 valid cells, 5 invalid. Not in evals/README.md's narrative. Brief A only; B and C measured other briefs |
+| `haiku55-sweep-2026-11-18` | haiku55 | v2.21.0 | sweep 2026-11-17 → 2026-11-18 | 3 | 3/3 [53%, 100%]: A1, A2, A3, A4, A5, A7, A9, A11, C1, C2, C5, C7, C10, C11, C12, C13, C16, C17, C20, C23, C26, C30, C32, D4, D5, D7, D10, D11, D12, D13, D14, D15, D16, D17, D18, D19, D22, D23, D24, D26, D28, E2, E5, E6, E8, E9, F1, F3, F5, F7, F8, F10, F11, F12, F13, F14, F15 · 2/3 [25%, 92%]: C22, D6, D8, D9, F2 · 2/2 [43%, 100%]: D2, D25, E11, F9 · 1/3 [8%, 75%]: D3, E15, F4 · reported — instrument-only — every curve point compliant at turns 1/3/5/8/12 in all 3 sessions (no decay detected at n=3 sessions): F6 · *superseded:* A1 — its fixture states the PR author (#387); A2 — its fixture states the PR author (#387); A3 — its fixture states the PR author (#387); A4 — its fixture states the PR author (#387); A5 — its fixture states the PR author (#387); A7 — its fixture states the PR author (#387); A11 — its fixture states the PR author (#387); C13 — its fixture states the PR author (#387); C17 — its fixture states the PR author (#387); C22 — checker accepts what the prose allows (#388); C23 — its fixture states the PR author (#387); C26 — its fixture states the PR author (#387); C30 — its fixture states the PR author (#387); D2 — its fixture states the PR author (#387); D5 — its fixture states the PR author (#387); D6 — checker accepts what the prose allows (#388); its fixture states the PR author (#387); D7 — its fixture states the PR author (#387); D9 — checker accepts what the prose allows (#388); E15 — checker loosened: the raised item may name R2, G2, S2 or AC-2 (#386); F2 — ledger text follows the answer-first ruling (#388); F4 — checker accepts what the prose allows (#388); F9 — its fixture states the PR author (#387); F11 — its fixture states the PR author (#387); F13 — its fixture states the PR author (#387); F14 — its fixture states the PR author (#387) | full replay sweep `run_replay.py --sut haiku55 --k 3` over every case on main 0066c98, 2026-11-17 23:43 → 2026-11-18 09:44 CST, one run, no restarts: 193 PASS · 11 FAIL · 3 INVALID · 3 F6 instrument-only; per-cell result.json in the operator's report dir (not committed); every non-PASS is analysed in issues #382–#385 |
 
-Wilson 90% intervals, the runner's formula. No recorded baseline (34): A9, A11, C11, C12, C13, C16, C17, C20, C22, C23, C26, C30, C32, D4, D5, D6, D7, D8, D9, D22, D23, D24, D25, D26, D28, E9, E11, E15, F10, F11, F12, F13, F14, F15.
+Wilson 90% intervals, the runner's formula. No recorded baseline (0): none.
 
 **Judgment:** the last recorded sweep is opus SUT, opus judge, plugin v1.16.2, sweep 2026-09-20 → 2026-09-21, k=2 — the only judgment sweep on record; nine valid runs over the four fixtures. Judgment V1 and the Workflow Value pilot have no recorded run.
 <!-- /baselines -->

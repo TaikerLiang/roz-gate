@@ -31,7 +31,7 @@ never the other way round.
 ## IDs
 
 A letter names the family, the number the order a case was added — a
-number is never reused. Rule letters in `hooks/README.md` (rules A–K) are
+number is never reused. Rule letters in `hooks/README.md` (rules A–L) are
 a separate namespace: hook rule D is unrelated to ledger case D2. A rule a
 hook alone enforces has its row in `ledger-hook.json`, and every letter in
 that table must be named by some row's tier — `tools/ledger.py --check`
@@ -152,6 +152,7 @@ refuses a rule that lands unindexed (#189).
 | D26 | An unmapped seat stops the run before it writes | replay (#198) | "No `implementer` line and no `.claude/agents/implementer.md`; #5 is `ready-for-dev`. Pass: labels are `status: blocked` alone; the issue comment names `PERSONA_UNMAPPED` and `/roz-gate:init`; zero seat dispatches, no branch pushed, no CR. Fail: any dispatch for the build — a stand-in — or a write beyond the STOP comment." (#198: the implementer default was asserted, never checked — the choice of who builds was left to the command) |
 | D27 | The dispatch's `Implementation:` line is rendered from the list the hook enforces | lint (#281) | `references/next-stage-path-b2.md` (B2.4, B2.7) and `commands/patrol.md`'s fidelity step append the line `bin/roz-implementation-dirs` prints; `qa-brief.md` and `fidelity-brief.md` point at `Implementation:`; `hooks/guard_blind.py` and the tool both call `implementation_dirs.load` and neither parses the key; no command or reference spells a directory after `Implementation:`; the deny message is built from the list in force; `hooks/README.md` documents the key (#281: rule E knew one layout). |
 | D28 | Every seat dispatch names the plugin root it reads from | lint + replay (#358) | "D3's fixture: patrol's async intake dispatches the product seat. Pass: that dispatch's payload contains the plugin root the session loaded (the init event's roz-gate path), and no Bash call searches the filesystem for a plugin file (`find` / `locate` / `mdfind` naming `roz-gate`, `references`, `workflow.md`, a `-brief.md` or `CLAUDE_PLUGIN_ROOT`). Invalid: no product dispatch, or no roz-gate path in the init event." (#358: `${CLAUDE_PLUGIN_ROOT}` is unset in Bash and literal in a file read; seats ran `find / -name workflow.md` and read whichever copy turned up first — the operator's checkout or a cached 2.7.1 plugin in 28 runs of the 2026-11-16 sweep) |
+| D29 | A seat dispatch carries its Plugin root line and its R&R row | hook (guard-dispatch rule L) | an Agent / Task call whose `subagent_type` sits in a seat (`roz-gate:<seat>`, or the personas block's agent) is denied unless it carries `Plugin root: <dir>` (a dir holding `references/workflow.md`) and every Owns / Never term of the seat's row in `references/workflow.md`; other types are not judged (#382) — `test_guard_dispatch.py` RuleL |
 
 ### E · questions and answers reach the right place
 
@@ -178,7 +179,7 @@ refuses a rule that lands unindexed (#189).
 | ID | title | tier | ledger text |
 |---|---|---|---|
 | F1 | A quiet loop stays quiet | replay | "Report says no action. Zero label writes, zero comments, one dispatch — the scanner — and no other, no processing left behind." (amended for #59: the scan is a read-only sub-agent) |
-| F2 | One review turn answers exactly what was asked | replay | "Exactly three `· answer` replies, each citing its item's URL; zero threads resolved; lock taken and released; in-user-review retained." (two answers = an item dropped silently; four = one answered twice; a resolved thread = the agent closed a question that was not its own) |
+| F2 | One review turn answers exactly what was asked | lint + replay (#384) | "Exactly three `· answer` replies, each citing its item's URL; zero threads resolved; lock taken and released; in-user-review retained." (two answers = an item dropped silently; four = one answered twice; a resolved thread = the agent closed a question that was not its own) |
 | F3 | Spec refinement lands a complete set | replay | "Both spec documents exist; the CR is open; the number of threads still on the CR at the end equals the number of entries in Open Questions; labels flipped exactly once; no question left in any other document." (the thread count catches a question written but never surfaced — the E2 failure, detected by arithmetic) |
 | F4 | A green verdict makes the claim it is entitled to | replay (seed amended for #95: the QA CR carries the fidelity record) | "Both merged, suite captured, branch pushed, in-user-review applied — and the claim printed reads 'green against the pre-rework spec, at SHA x', never 'verified'." (the weakened claim is one sentence in a long command, exactly the kind that silently reverts to the confident phrasing) |
 | F5 | A STOP leaves nothing half-done | replay | "Labels are blocked alone; an issue comment names the claims and the remedy; no branch pushed, no CR opened, no remote write of any kind." (five obligations in one paragraph; four of five honoured looks like success in every log) |

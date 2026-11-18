@@ -20,6 +20,7 @@
       "isDraft": false,
       "headRefName": "spec/5",
       "baseRefName": "main",
+      "author": "paul",
       "threads": [],
       "reviews": [
         {"id": 501, "state": "CHANGES_REQUESTED",

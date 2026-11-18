@@ -65,6 +65,9 @@ throwaway state, the resume rule against staged result.json files.
   error byte for byte (a real unrouted one stays UNKNOWN); issue and review
   comments count apart, and the other kind's id is GitHub's 404; after the
   run's write, `updatedAt` is the stub's write clock.
+- STUB-GAPS (#385) — `headRepositoryOwner` / `headRepository` from the
+  fixture's `repo` (no fixture has a fork PR); every patrol case's PRs
+  state their `author`, so a scanner's `pr list --json …,author` answers.
 - TOKENS (#308) — `session_tokens` on canned transcripts whose messages
   stream one event per block: the result event's `modelUsage` (seats
   included), else its `usage` summed over result events, else each message
@@ -1107,6 +1110,47 @@ def stub365_rows():
                                             "6\tCLOSED\ty\ttrack: spec\t2026-08-15T09:00:00Z\n"))
         finally:
             shutil.rmtree(d, ignore_errors=True)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return rows
+
+
+def stub385_rows():
+    """[(name, ok)] — #385: each row is red before the fix."""
+    rows = []
+    tmp, work = gaps_sandbox()
+
+    def served(name, argv, route, *needles, state):
+        rc, out, err, j = stub(argv, state, cwd=work)
+        rows.append((name, rc == 0 and [e["route"] for e in j] == [route]
+                     and all(n in out for n in needles)))
+
+    octo = dict(gaps_state(), repo={"owner": "octo", "name": "widgets"})
+    try:
+        served("pr view --json headRepositoryOwner,headRepository (D2/1): the fixture's repo",
+               ["pr", "view", "103", "--json", "headRepositoryOwner,headRepository"],
+               "pr-view", '"headRepositoryOwner": {"login": "octo"}',
+               '"headRepository": {"name": "widgets"}', state=octo)
+        served("pr list --json headRepositoryOwner,headRepository: every row",
+               ["pr", "list", "--json", "number,headRepositoryOwner,headRepository", "--jq",
+                '[.[] | .headRepositoryOwner.login + "/" + .headRepository.name] | unique'],
+               "pr-list", '["acme/demo"]', state=gaps_state())
+        # F9/1's scanner call; every patrol case's PRs state their author
+        cases = os.path.join(HERE, "cases")
+        for case in sorted(os.listdir(cases)):
+            try:
+                with open(os.path.join(cases, case, "case.json")) as f:
+                    prompt = json.load(f).get("prompt")
+                with open(os.path.join(cases, case, "state.json")) as f:
+                    fixture = json.load(f)
+            except OSError:
+                continue
+            if prompt != "/roz-gate:patrol" or not fixture.get("prs"):
+                continue
+            served("%s's fixture answers F9/1's pr list --json ...,author" % case,
+                   ["pr", "list", "--state", "all", "--json", "number,title,isDraft,"
+                    "baseRefName,headRefName,state,url,mergedAt,author"], "pr-list",
+                   '"author": {"login": "paul"}', state=fixture)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return rows
@@ -3062,6 +3106,57 @@ def system_event_checks():
     ]
 
 
+def dispatch_deny_checks():
+    """#382: a seat dispatch guard-dispatch refused never ran — the transcript
+    every checker reads drops it and its result, so "exactly one QA dispatch"
+    (qaframe, D8, C20) and "one reviewer dispatch" (C23) count the re-sent
+    one. A dispatch refused by anything else stays: D26 counts a spawn the
+    runtime refused."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "guard_dispatch", os.path.join(rr.ROOT, "hooks", "guard_dispatch.py"))
+    gd = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(gd)
+
+    def call(i, agent, prompt):
+        return {"type": "assistant", "message": {"content": [
+            {"type": "tool_use", "id": i, "name": "Agent",
+             "input": {"subagent_type": agent, "prompt": prompt}}]}}
+
+    def result(i, text, err):
+        return {"type": "user", "message": {"content": [
+            {"type": "tool_result", "tool_use_id": i, "content": text, "is_error": err}]}}
+
+    deny = "PreToolUse:Agent hook error: [guard-dispatch.sh]: %s. `roz-gate:qa` …" % gd.DENY_OPEN
+    events = [call("d1", "roz-gate:qa", "Contract: qa-brief.md"), result("d1", deny, True),
+              call("d2", "roz-gate:qa", "Contract: qa-brief.md + the row"),
+              result("d2", "suite pushed", False),
+              call("d3", "implementer", "Build."),
+              result("d3", "Agent type 'implementer' not found", True)]
+    d = tempfile.mkdtemp()
+    try:
+        with open(os.path.join(d, "transcript.jsonl"), "w") as f:
+            f.writelines(json.dumps(e, ensure_ascii=False) + "\n" for e in events)
+        run = rl.Run(d)
+        ids = [b["id"] for b in run.tool_uses(("Task", "Agent"))]
+        results = [b.get("tool_use_id") for ev in run.transcript_events()
+                   for b in rl.event_message(ev).get("content") or []
+                   if b.get("type") == "tool_result"]
+        count = run.dispatch_count()
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+    return [
+        ("replaylib's deny opening is the hook's own DENY_OPEN",
+         rl.DISPATCH_DENIED[0] == gd.DENY_OPEN),
+        ("the refused QA dispatch is dropped, the re-sent one kept (%r)" % (ids,),
+         "d1" not in ids and "d2" in ids),
+        ("a spawn the runtime refused still counts (D26)", "d3" in ids),
+        ("the refused dispatch's result is dropped with it (%r)" % (results,),
+         results == ["d2", "d3"]),
+        ("dispatch_count is 2, not 3 (%d)" % count, count == 2),
+    ]
+
+
 def cli_checks():
     """#282: --help, --list, --dry-run, an unknown case (alone or after a
     valid one), a bad --k, an unknown flag and a driver case under a
@@ -3092,8 +3187,9 @@ def cli_checks():
             out = zero("replay --list", rr.main, ["--list"], 0, "D10")
             rows.append(("replay --list shows each case's default k, baseline status and tier",
                          re.search(r"^D10\s+5\s+\S", out, re.M) is not None
-                         and re.search(r"^A1\s+5\s+superseded: opus-first-sweep", out, re.M)
-                         is not None))
+                         and re.search(r"^A1\s+5\s+%s\s" % re.escape(rr.baseline_status(
+                             "A1", (rr.load_json(rr.BASELINES) or {}).get("replay", []))),
+                             out, re.M) is not None))
             out = zero("replay --dry-run D10", rr.main, ["--sut", "haiku55", "--dry-run", "D10"],
                        0, "smoke gate: 3 session(s)")
             rows.append(("replay --dry-run D10 prints its k, done, pending (5 0 5)",
@@ -3195,6 +3291,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in system_event_checks():
         print("%s system-event: %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in dispatch_deny_checks():
+        print("%s dispatch-deny: %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in cli_checks():
         print("%s cli: %s" % ("PASS" if ok else "FAIL", name))
@@ -3399,6 +3498,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in stub365_rows():
         print("%s route: #365 %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in stub385_rows():
+        print("%s route: #385 %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     octo = dict(STATE, repo={"owner": "octo", "name": "widgets"})
     for name, argv, route, needles in REPO_ROUTES:

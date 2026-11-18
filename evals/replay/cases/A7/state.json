@@ -43,6 +43,7 @@
       "isDraft": false,
       "headRefName": "fast/5",
       "baseRefName": "main",
+      "author": "paul",
       "threads": [],
       "reviews": [],
       "comments": []
@@ -54,6 +55,7 @@
       "isDraft": false,
       "headRefName": "spec/6",
       "baseRefName": "main",
+      "author": "paul",
       "threads": [],
       "reviews": [],
       "comments": []

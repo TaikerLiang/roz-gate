@@ -43,19 +43,23 @@ def names_cr(cmd, number):
             and re.search(r"(?<![\w.])%d(?![\w.])" % number, cmd) is not None)
 
 
-# The fidelity dispatches (D2's reading): Task/Agent calls naming the brief or qa/5.
-# The patrol scanner is not one: its prompt is patrol-scan.md (patrol.md §1),
-# which says "fidelity" because the scan classifies fidelity-audit rows, and
-# it reads PR 102 while classifying — the same reason the root-listing check
-# below skips it (#327).
+# The fidelity dispatches: Task/Agent calls to the qa or reviewer seat, or naming the qa or
+# fidelity brief — never the word "fidelity" anywhere in the input. The commit helper's
+# brief carries a commit message that may say "fidelity" (#384, D6/run-3), and it never
+# carries the list. The patrol scanner is not one either: its prompt is patrol-scan.md
+# (patrol.md §1), and it reads PR 102 while classifying — the same reason the root-listing
+# check below skips it (#327).
+SEAT = re.compile(r"^(?:roz-gate:)?(?:qa|reviewer)$")
 dispatch_ids, first_dispatch_at = [], None
 for i, ev in enumerate(events):
     for b in blocks(ev):
         if b.get("type") == "tool_use" and b.get("name") in ("Task", "Agent"):
-            p = json.dumps(b.get("input", {}), ensure_ascii=False)
+            inp = b.get("input") or {}
+            p = json.dumps(inp, ensure_ascii=False)
             if "patrol-scan.md" in p:
                 continue
-            if "fidelity" in p.lower() or "qa/5" in p:
+            if SEAT.match(str(inp.get("subagent_type", ""))) \
+                    or "qa-brief.md" in p or "fidelity-brief.md" in p:
                 dispatch_ids.append(b.get("id"))
                 if first_dispatch_at is None:
                     first_dispatch_at = i
