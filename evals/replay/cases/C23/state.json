@@ -27,6 +27,7 @@
       "isDraft": false,
       "headRefName": "spec/5",
       "baseRefName": "main",
+      "author": "paul",
       "threads": [],
       "reviews": [],
       "comments": []
@@ -38,6 +39,7 @@
       "isDraft": false,
       "headRefName": "feat/5",
       "baseRefName": "spec/5",
+      "author": "paul",
       "body": "Closes #5. Implements C1 on `price(cart, now)`; the port is `src/pricing.py`.\n\n## Contract deviations\n\n- **C2** — added: `now` is the caller's clock, never read from a store; the approved text left the clock source open. Declared, not decided: R4 is untouched.\n",
       "threads": [],
       "reviews": [],

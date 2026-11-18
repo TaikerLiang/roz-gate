@@ -65,6 +65,9 @@ throwaway state, the resume rule against staged result.json files.
   error byte for byte (a real unrouted one stays UNKNOWN); issue and review
   comments count apart, and the other kind's id is GitHub's 404; after the
   run's write, `updatedAt` is the stub's write clock.
+- STUB-GAPS (#385) — `headRepositoryOwner` / `headRepository` from the
+  fixture's `repo` (no fixture has a fork PR); every patrol case's PRs
+  state their `author`, so a scanner's `pr list --json …,author` answers.
 - TOKENS (#308) — `session_tokens` on canned transcripts whose messages
   stream one event per block: the result event's `modelUsage` (seats
   included), else its `usage` summed over result events, else each message
@@ -1107,6 +1110,47 @@ def stub365_rows():
                                             "6\tCLOSED\ty\ttrack: spec\t2026-08-15T09:00:00Z\n"))
         finally:
             shutil.rmtree(d, ignore_errors=True)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return rows
+
+
+def stub385_rows():
+    """[(name, ok)] — #385: each row is red before the fix."""
+    rows = []
+    tmp, work = gaps_sandbox()
+
+    def served(name, argv, route, *needles, state):
+        rc, out, err, j = stub(argv, state, cwd=work)
+        rows.append((name, rc == 0 and [e["route"] for e in j] == [route]
+                     and all(n in out for n in needles)))
+
+    octo = dict(gaps_state(), repo={"owner": "octo", "name": "widgets"})
+    try:
+        served("pr view --json headRepositoryOwner,headRepository (D2/1): the fixture's repo",
+               ["pr", "view", "103", "--json", "headRepositoryOwner,headRepository"],
+               "pr-view", '"headRepositoryOwner": {"login": "octo"}',
+               '"headRepository": {"name": "widgets"}', state=octo)
+        served("pr list --json headRepositoryOwner,headRepository: every row",
+               ["pr", "list", "--json", "number,headRepositoryOwner,headRepository", "--jq",
+                '[.[] | .headRepositoryOwner.login + "/" + .headRepository.name] | unique'],
+               "pr-list", '["acme/demo"]', state=gaps_state())
+        # F9/1's scanner call; every patrol case's PRs state their author
+        cases = os.path.join(HERE, "cases")
+        for case in sorted(os.listdir(cases)):
+            try:
+                with open(os.path.join(cases, case, "case.json")) as f:
+                    prompt = json.load(f).get("prompt")
+                with open(os.path.join(cases, case, "state.json")) as f:
+                    fixture = json.load(f)
+            except OSError:
+                continue
+            if prompt != "/roz-gate:patrol" or not fixture.get("prs"):
+                continue
+            served("%s's fixture answers F9/1's pr list --json ...,author" % case,
+                   ["pr", "list", "--state", "all", "--json", "number,title,isDraft,"
+                    "baseRefName,headRefName,state,url,mergedAt,author"], "pr-list",
+                   '"author": {"login": "paul"}', state=fixture)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return rows
@@ -3454,6 +3498,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in stub365_rows():
         print("%s route: #365 %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in stub385_rows():
+        print("%s route: #385 %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     octo = dict(STATE, repo={"owner": "octo", "name": "widgets"})
     for name, argv, route, needles in REPO_ROUTES:

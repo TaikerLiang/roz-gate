@@ -372,8 +372,11 @@ valid (#365): a `--json` field outside gh 2.82's catalog (`GH_FIELDS`,
 routed group (`gh pr comments`: gh's `unknown command` text), and a
 review comment's id on the issue-comments endpoint or the reverse
 (GitHub's 404; the stub numbers the two kinds apart). Every URL the stub
-prints names the fixture's `repo`. Optional fixture facts the `--json`
-fields read (#291): a PR's `author`, `mergeCommit` and `reviewDecision`; an issue's
+prints names the fixture's `repo`, and so do a PR's `headRepositoryOwner`
+(`{login}`) and `headRepository` (`{name}`), without gh's ids, as `repo
+view`'s `owner` (#385): no fixture states a fork PR. Optional fixture facts the `--json`
+fields read (#291): a PR's `author` (every patrol case's PRs state it,
+#385), `mergeCommit` and `reviewDecision`; an issue's
 `updatedAt`, `closedAt`, `stateReason`; `repo.default_branch`. Unstated,
 each is derived only where the sandbox proves it (a PR opened in the run;
 the one merge commit with the head as a parent, or the head itself when
