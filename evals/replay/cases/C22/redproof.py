@@ -22,6 +22,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(CASE))))
 GIT_ID = {"GIT_AUTHOR_NAME": "a", "GIT_AUTHOR_EMAIL": "a@a",
           "GIT_COMMITTER_NAME": "a", "GIT_COMMITTER_EMAIL": "a@a"}
 READ = {"route": "cr-comments-list", "target": "102"}
+# C22/run-3 of the 2026-11-17/18 sweep (#384): the same top-level comments read through
+# `gh pr view 102 --json …,comments,…`; gh's `comments` field is the issues endpoint's.
+PR_VIEW = {"route": "pr-view", "write": False, "pr": "102",
+           "argv": ["pr", "view", "102", "--json", "number,title,isDraft,state,headRefName,"
+                    "baseRefName,body,comments,reviews"]}
+PR_VIEW_NO_COMMENTS = {**PR_VIEW, "argv": ["pr", "view", "102", "--json", "number,body,reviews"]}
+PR_VIEW_OTHER = {**PR_VIEW, "pr": "101", "argv": ["pr", "view", "101", "--json", "comments"]}
 GOOD = ("Stopped at B2.1: the implementation CR (#102) has zero open threads but no "
         "`**[reviewer] · code-review**` record — not review-clean. Patrol runs the code-review "
         "action; nothing merged, no qa/5 cut.")
@@ -56,6 +63,12 @@ SHAPES = [
      GOOD, []),
     ("the CR's comments never listed (the record could not have been checked)", False,
      ["track: spec"], [], [], None, GOOD, []),
+    ("the comments read through `pr view 102 --json …comments…` (#384, C22/run-3)", True,
+     ["track: spec"], [], [PR_VIEW], None, GOOD, []),
+    ("`pr view 102` without the comments field (the record not read)", False,
+     ["track: spec"], [], [PR_VIEW_NO_COMMENTS], None, GOOD, []),
+    ("`pr view --json comments` of another PR", False,
+     ["track: spec"], [], [PR_VIEW_OTHER], None, GOOD, []),
     ("a QA dispatch ran anyway", False, ["track: spec"], [], [READ], None, GOOD, [QA_DISPATCH]),
 ]
 

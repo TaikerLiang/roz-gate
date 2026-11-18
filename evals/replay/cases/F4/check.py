@@ -30,8 +30,10 @@ c.expect("integrate.md:63", "gh pr merge was never invoked",
 
 # A negated "verified" disclaims the confident claim, it does not make it
 # (#330 ruling 4): `not "verified"`, `not verified`, `not mean verified`,
-# `never "verified"` are dropped before the search; a bare claim stays red.
-NEGATED = re.compile(r"\b(?:not|never)\s+(?:mean\s+)?[\"'“”‘’`*_]*verified\b", re.I)
+# `never "verified"` are dropped before the search; a bare claim stays red. So is
+# "not a claim that … verified" within one sentence (#384, F4/run-1).
+NEGATED = re.compile(r"\b(?:not|never)\s+(?:mean\s+)?[\"'“”‘’`*_]*verified\b"
+                     r"|\bnot\s+a\s+claim\s+that\b[^.!?\n]*?\bverified\b", re.I)
 
 
 def claim_ok():

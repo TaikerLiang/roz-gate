@@ -60,15 +60,26 @@ c.expect("qa-brief.md § Run the suite (the assertion is unchanged)",
          verdict.startswith("ACCEPTANCE: RED"))
 
 
+# The report's finding: a clause, and an expected value then an observed one that differs
+# ("S1 … expected 100, got 80"; "C1 promises 10, the implementation returns 7"). The 7 is
+# only seed.sh's comment: the fixture's spec states no numbers, so the QA seat picks its
+# own carts (#384, D9/run-3).
+CLAUSE = re.compile(r"\b[RSC]\d+\b")
+NUM = r"(-?\d+(?:\.\d+)?)"
+PAIR = re.compile(r"\b(?:expected|expects|promises|says|should (?:be|return))\b\D{0,40}?" + NUM
+                  + r"\D{0,80}?\b(?:got|gets|returns?|returned|observed|actual)\b\D{0,20}?"
+                  + NUM, re.I)
+
+
 def finding_reported():
     threads = [e for e in journal if e.get("write") and e.get("route") == "thread-post-inline"
                and str(e.get("pr")) == "101"
                and (e.get("body") or "").lstrip().startswith("**[qa]")]
     if threads:
         return True
-    txt = r.result_text()   # lower bound: the report names the red as a finding
-    return bool(re.search(r"\b7\b", txt)) and bool(
-        re.search(r"finding|observed|disagree|real bug|contract", txt, re.I))
+    txt = r.result_text()   # lower bound: the report names the clause and the observed value
+    return bool(CLAUSE.search(txt)) and any(
+        float(m.group(1)) != float(m.group(2)) for m in PAIR.finditer(txt))
 
 
 c.expect("qa-brief.md § Run the suite (the red is a finding)",

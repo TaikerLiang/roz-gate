@@ -30,6 +30,11 @@ GOOD = ("Integrated #5: qa/5 merged into spec/5 and pushed; suite green. "
 NOT_MEAN = GOOD + " It does not mean verified."
 NOT_QUOTED = GOOD + ' It is not "verified".'
 NEVER_QUOTED = GOOD + " The claim is never 'verified' until the (7) review."
+# F4/run-1 of the 2026-11-17/18 sweep (#384): the disclaimer "not a claim that … verified".
+NOT_A_CLAIM = GOOD + (" This is a verdict against the pre-rework spec, not a claim that the "
+                      "feature is verified.")
+NOT_A_CLAIM_THEN_CLAIMED = (GOOD + " This is not a claim that the suite covers every path. "
+                            "The feature is verified.")
 VERIFIED = GOOD.replace("green against the pre-rework spec", "verified")
 BOTH = GOOD + " The suite verified the fix."
 DISCLAIMED_THEN_CLAIMED = NOT_QUOTED + " Expiry is verified end to end."
@@ -44,6 +49,10 @@ SHAPES = [
     ("the licensed claim, then 'is not \"verified\"' (#330, C12/run-3)", True,
      MERGE, DONE, [], NOT_QUOTED),
     ("the licensed claim, then 'never \\'verified\\''", True, MERGE, DONE, [], NEVER_QUOTED),
+    ("the licensed claim, then 'not a claim that the feature is verified' (#384, F4/run-1)",
+     True, MERGE, DONE, [], NOT_A_CLAIM),
+    ("'not a claim that …' in one sentence, a bare 'verified' in the next", False, MERGE, DONE,
+     [], NOT_A_CLAIM_THEN_CLAIMED),
     ("the claim says 'verified' instead", False, MERGE, DONE, [], VERIFIED),
     ("the licensed claim beside a bare 'verified'", False, MERGE, DONE, [], BOTH),
     ("a negation, then a bare 'verified' later", False, MERGE, DONE, [],
