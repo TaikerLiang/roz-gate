@@ -32,6 +32,14 @@
       "ledger": "in a `roz-gate/wt/` worktree, `git merge` / `git pull` of anything but `origin/<default_branch>` or a `branch_template` branch of the same issue is denied with the sync-the-base remedy; the person's checkout is silent — `test_guard_gate.py` RuleK, 41 cases (#213)",
       "rule": "K",
       "proof": "hooks/tests/test_guard_gate.py"
+    },
+    {
+      "id": "D29",
+      "title": "A seat dispatch carries its Plugin root line and its R&R row",
+      "tier": "hook (guard-dispatch rule L)",
+      "ledger": "an Agent / Task call whose `subagent_type` sits in a seat (`roz-gate:<seat>`, or the personas block's agent) is denied unless it carries `Plugin root: <dir>` (a dir holding `references/workflow.md`) and every Owns / Never term of the seat's row in `references/workflow.md`; other types are not judged (#382) — `test_guard_dispatch.py` RuleL",
+      "rule": "L",
+      "proof": "hooks/tests/test_guard_dispatch.py"
     }
   ]
 }

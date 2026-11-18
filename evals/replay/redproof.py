@@ -3062,6 +3062,57 @@ def system_event_checks():
     ]
 
 
+def dispatch_deny_checks():
+    """#382: a seat dispatch guard-dispatch refused never ran — the transcript
+    every checker reads drops it and its result, so "exactly one QA dispatch"
+    (qaframe, D8, C20) and "one reviewer dispatch" (C23) count the re-sent
+    one. A dispatch refused by anything else stays: D26 counts a spawn the
+    runtime refused."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "guard_dispatch", os.path.join(rr.ROOT, "hooks", "guard_dispatch.py"))
+    gd = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(gd)
+
+    def call(i, agent, prompt):
+        return {"type": "assistant", "message": {"content": [
+            {"type": "tool_use", "id": i, "name": "Agent",
+             "input": {"subagent_type": agent, "prompt": prompt}}]}}
+
+    def result(i, text, err):
+        return {"type": "user", "message": {"content": [
+            {"type": "tool_result", "tool_use_id": i, "content": text, "is_error": err}]}}
+
+    deny = "PreToolUse:Agent hook error: [guard-dispatch.sh]: %s. `roz-gate:qa` …" % gd.DENY_OPEN
+    events = [call("d1", "roz-gate:qa", "Contract: qa-brief.md"), result("d1", deny, True),
+              call("d2", "roz-gate:qa", "Contract: qa-brief.md + the row"),
+              result("d2", "suite pushed", False),
+              call("d3", "implementer", "Build."),
+              result("d3", "Agent type 'implementer' not found", True)]
+    d = tempfile.mkdtemp()
+    try:
+        with open(os.path.join(d, "transcript.jsonl"), "w") as f:
+            f.writelines(json.dumps(e, ensure_ascii=False) + "\n" for e in events)
+        run = rl.Run(d)
+        ids = [b["id"] for b in run.tool_uses(("Task", "Agent"))]
+        results = [b.get("tool_use_id") for ev in run.transcript_events()
+                   for b in rl.event_message(ev).get("content") or []
+                   if b.get("type") == "tool_result"]
+        count = run.dispatch_count()
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+    return [
+        ("replaylib's deny opening is the hook's own DENY_OPEN",
+         rl.DISPATCH_DENIED[0] == gd.DENY_OPEN),
+        ("the refused QA dispatch is dropped, the re-sent one kept (%r)" % (ids,),
+         "d1" not in ids and "d2" in ids),
+        ("a spawn the runtime refused still counts (D26)", "d3" in ids),
+        ("the refused dispatch's result is dropped with it (%r)" % (results,),
+         results == ["d2", "d3"]),
+        ("dispatch_count is 2, not 3 (%d)" % count, count == 2),
+    ]
+
+
 def cli_checks():
     """#282: --help, --list, --dry-run, an unknown case (alone or after a
     valid one), a bad --k, an unknown flag and a driver case under a
@@ -3195,6 +3246,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in system_event_checks():
         print("%s system-event: %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in dispatch_deny_checks():
+        print("%s dispatch-deny: %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in cli_checks():
         print("%s cli: %s" % ("PASS" if ok else "FAIL", name))
