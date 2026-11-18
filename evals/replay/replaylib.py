@@ -523,6 +523,31 @@ def event_message(ev):
     return m if isinstance(m, dict) else {}
 
 
+# guard-dispatch's deny openings (hooks/guard_dispatch.py DENY_OPEN, and the
+# tool-failure prefix run-guard.sh / the guard print); redproof's
+# dispatch_deny_checks holds the first equal to the hook's.
+DISPATCH_DENIED = ("Roz Gate: blocked — a seat dispatch without its contract",
+                   "roz-gate guard-dispatch:")
+
+
+def refused_dispatches(events):
+    """The ids of the Task/Agent calls whose result is guard-dispatch's deny."""
+    calls, out = set(), set()
+    for ev in events:
+        for b in event_message(ev).get("content") or []:
+            if not isinstance(b, dict):
+                continue
+            if b.get("type") == "tool_use" and b.get("name") in ("Task", "Agent"):
+                calls.add(b.get("id"))
+            elif b.get("type") == "tool_result" and b.get("is_error") \
+                    and b.get("tool_use_id") in calls:
+                c = b.get("content")
+                text = c if isinstance(c, str) else json.dumps(c, ensure_ascii=False)
+                if any(d in text for d in DISPATCH_DENIED):
+                    out.add(b.get("tool_use_id"))
+    return out
+
+
 SHARED_FINGERPRINT_INPUTS = ("lib/seed-common.sh",)
 
 
@@ -816,16 +841,29 @@ class Run:
 
     # ---- transcript ------------------------------------------------------
     def transcript_events(self):
+        """The transcript's events, minus every Task/Agent call guard-dispatch
+        denied and its result (#382): a dispatch the hook refused never ran,
+        so no checker counts it — the re-sent one is the dispatch."""
         path = os.path.join(self.dir, "transcript.jsonl")
+        events = []
         try:
             with open(path, encoding="utf-8") as f:
                 for line in f:
                     try:
-                        yield json.loads(line)
+                        events.append(json.loads(line))
                     except ValueError:
                         pass
         except OSError:
             return
+        refused = refused_dispatches(events)
+        for ev in events:
+            content = event_message(ev).get("content")
+            if refused and isinstance(content, list):
+                kept = [b for b in content if not (isinstance(b, dict) and (
+                    b.get("id") in refused or b.get("tool_use_id") in refused))]
+                if len(kept) != len(content):
+                    ev = dict(ev, message=dict(ev["message"], content=kept))
+            yield ev
 
     def tool_uses(self, names=None):
         for ev in self.transcript_events():

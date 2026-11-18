@@ -114,6 +114,34 @@ class BlindFailsClosed(GuardFailure):
             self.assertAllowed(self.bash("ls", cwd=self.repo))
 
 
+class DispatchFailsClosed(GuardFailure):
+    """#382: a seat dispatch reaches Python; any other Agent call outside a
+    personas block never does."""
+
+    guard = "guard-dispatch"
+
+    def dispatch(self, agent, cwd):
+        return self.call("Agent", {"subagent_type": agent, "prompt": "Do the stage."}, cwd)
+
+    def test_dispatch(self):
+        repo = self.new_repo({"CLAUDE.md": config_block(forge="github")}, commit=True)
+        for label, setter, says in self.broken():
+            saved = dict(self.env)
+            setter()
+            with self.case("guard-dispatch, %s: a roz-gate seat dispatch is denied as a tool "
+                           "failure" % label):
+                self.assertToolFailure(self.dispatch("roz-gate:qa", repo), "guard-dispatch",
+                                       says)
+            with self.case("guard-dispatch, %s: a general-purpose dispatch, no personas block — "
+                           "allowed without python" % label):
+                self.assertAllowed(self.dispatch("general-purpose", repo))
+            self.env = saved
+        with self.case("guard-dispatch: a protocol deny keeps its own message"):
+            r = self.dispatch("roz-gate:qa", repo)
+            self.assertDenied(r, "a seat dispatch without its contract")
+            self.assertNotIn(FAILED, r.stderr)
+
+
 class AcceptanceFailsClosed(GuardFailure):
     """No prefilter since #277: every edit reaches Python, so a broken Python
     denies every edit — ruled on #281, the visible direction."""
