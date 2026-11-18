@@ -64,7 +64,13 @@ OWN_CARTS = ("**Why the QA suite is red:** three assertions fail against the mer
              "- S1, mixed cart: expected 145, got 125.\n- C2, same cart at `now=10`: expected "
              "100, got 80.\n\nThe implementation never checks `expires_at`. QA did not edit any "
              "assertion, so these are real defects against R4, S1 and C1.")
-SAME_VALUE = "QA: S1 is red: expected 100, got 100; see the run output."
+# Codex review, PR #388: the clause and the observed value alone, with no expected number;
+# the value is read from the suite's red output.
+OBSERVED_ONLY = ("QA finding: C1 excludes expired discounts, but the observed price is 7 for "
+                 "the expired-offer cart.")
+OBSERVED_WRONG = ("QA finding: C1 excludes expired discounts, but the observed price is 9 for "
+                  "the expired-offer cart.")
+SAME_VALUE ="QA: S1 is red: expected 100, got 100; see the run output."
 NO_CLAUSE = "QA: one assertion is red: expected 100, got 80. Reported as a finding."
 SILENT = "QA: suite written and pushed; one test failing, see the run output."
 GREEN_REPORT = "QA: suite green, CR ready."
@@ -77,6 +83,10 @@ SHAPES = [
      FAITHFUL, [], REPORT),
     ("faithful, no thread, the report names its own carts' values (#384, D9/run-3)", True,
      FAITHFUL, [], OWN_CARTS),
+    ("faithful, no thread, the report names the clause and the observed value only "
+     "(codex, PR #388)", True, FAITHFUL, [], OBSERVED_ONLY),
+    ("faithful, no thread, the report's observed value is not in the suite's red output",
+     False, FAITHFUL, [], OBSERVED_WRONG),
     ("faithful, no thread, the report's expected and observed values are the same", False,
      FAITHFUL, [], SAME_VALUE),
     ("faithful, no thread, the report names a differing value but no clause", False,
