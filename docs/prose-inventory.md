@@ -359,10 +359,21 @@ stale — which is when to look at it again.
 | class | meaning | `owner` | `evidence` |
 |---|---|---|---|
 | `hooked` | a hook denies the act itself — not a narrower operational boundary beside it (rule E stops QA reading the implementation; it does not make an assertion follow the contract) | `hook <rule>` | the hook-test cases |
-| `deterministic-candidate` | files, git and one call's input could decide it, and nothing does. Its issue chooses the owner, red first, in this order: the architecture removes the invalid choice · a generator produces the value · `roz-check` verifies it · a hook denies it · it stays prose (#352, #354: push a failure down the trust stack; eliminate before denying) | `none yet` | the follow-up issue |
+| `deterministic-candidate` | the rule's **whole predicate** is decidable from files, git and one call's input, and nothing decides it. A rule whose predicate needs something no call carries — which command is writing, say — is not one, however easy part of it is to recognise. Its issue chooses the owner, in this order: the architecture removes the invalid choice · a generator produces the value · `roz-check` or a static check verifies it · a hook denies it · it stays prose (#352, #354: push a failure down the trust stack; eliminate before denying) | `none yet` | the follow-up issue |
 | `guarded-by-case` | a lint, replay or judgment case asserts this prohibition — not a neighbouring one | the prose or kernel rule that owns it | ledger ids |
 | `prose-only` | nothing enforces it. The reason says why: `semantic`, `persona`, `authority` — or `unguarded — <what would guard it>`, a gap recorded as a gap | `prose` | — |
 | `not-a-rule` | the word forbids an agent nothing: a fact, a condition, another seat's rule described, a line addressed to the human | — | — |
+
+**The evidence bar is the owner's, not the class's.** Evidence that a rule
+matters is not evidence that a blocking mechanism is justified, so what a
+candidate's issue must show depends on the owner it ends with:
+
+| eventual owner | what justifies it |
+|---|---|
+| the architecture removes the invalid choice, or a generator produces the value | an architecture justification and tests of the invariant — no prior failure is required |
+| a static lint or `roz-check` verification | an accepted deterministic contract and a red-proof of the checker |
+| another runtime blocking policy | strong observed failure evidence |
+| a runtime deny hook | a replay red or a shipped defect (`hooks/README.md` § How to add a rule) |
 
 Where a prohibition could be both, the stronger claim on enforcement wins:
 `hooked`, then `deterministic-candidate`, then `guarded-by-case`.
@@ -379,12 +390,12 @@ Scope: `agents/`, `commands/`, `templates/` — 17 files, 208 prohibition words,
 | class | rules | sources |
 |---|---|---|
 | `hooked` | 4 | 9 |
-| `deterministic-candidate` | 6 | 8 |
+| `deterministic-candidate` | 5 | 6 |
 | `guarded-by-case` | 42 | 62 |
-| `prose-only` | 65 | 70 |
+| `prose-only` | 66 | 72 |
 | `not-a-rule` (reasons) | 10 | 59 |
 
-Of the `prose-only` rules, **40 are `unguarded`** — not semantic, and nothing enforces them yet.
+Of the `prose-only` rules, **41 are `unguarded`** — not semantic, and nothing enforces them yet.
 
 | id | rule | stated in | class | owner | evidence / reason |
 |---|---|---|---|---|---|
@@ -410,7 +421,7 @@ Of the `prose-only` rules, **40 are `unguarded`** — not semantic, and nothing 
 | P025 | The implementer never substitutes a local reading for a Glossary definition it cannot build to | `templates/implementer.md` | `prose-only` | prose | semantic — whether the build follows the definition is a reading of the code against the Glossary |
 | P026 | The implementer never waits on an open question mid-job — it returns its open questions with the deliverable | `templates/implementer.md` | `prose-only` | prose | unguarded — a replay case in which the dispatched implementer holds an open question and must return it rather than end its turn asking (E3 guards that the route exists, not that it is taken) |
 | P027 | The implementer never silently assumes an answer to an open question | `templates/implementer.md` | `prose-only` | prose | semantic — whether a choice was an assumption is a reading of the build against the spec |
-| P028 | The config command never edits `.claude/roz-gate.local.json`, `CLAUDE.md` or `CLAUDE.local.md` itself — `bin/roz-config` does the write | `commands/config.md` | `deterministic-candidate` | none yet | — |
+| P028 | The config command never edits `.claude/roz-gate.local.json`, `CLAUDE.md` or `CLAUDE.local.md` itself — `bin/roz-config` does the write | `commands/config.md` | `prose-only` | prose | unguarded — a replay case on `/roz-gate:config` setting a key: the local file changes only through `bin/roz-config`, with no Edit or Write on it — not a deterministic candidate today: the predicate is which command is writing, not which path is written (`init` writes `CLAUDE.md` legitimately), and no tool call or local state carries a trustworthy command identity. It becomes one if the architecture introduces a command-context / capability boundary |
 | P030 | A multi-value config key is passed one value per quoted argument, never split on spaces | `commands/config.md` | `prose-only` | prose | unguarded — a replay case on `/roz-gate:config` setting `inbox_label` to a label that holds a space |
 | P032 | An agent never applies a gate label (`ready-for-spec`, `ready-for-dev`) — the gate is the human's | `commands/config.md` · `commands/to-issues.md` · `commands/spec-answers.md` · `commands/patrol.md` | `hooked` | hook B | `hooks/tests/test_guard_gate.py::RuleB_GateLabelsAreHumanOnly` |
 | P033 | The config command never creates forge labels | `commands/config.md` | `prose-only` | prose | unguarded — a replay case on `/roz-gate:config` whose forge journal holds no label-create call |
@@ -456,11 +467,11 @@ Of the `prose-only` rules, **40 are `unguarded`** — not semantic, and nothing 
 | P076 | tip's answer is a reading of the documents, never a new rule | `commands/tip.md` | `prose-only` | prose | semantic — whether an answer adds a rule the documents do not give is a reading of it |
 | P077 | tip names the repair for an illegal or stuck state and never performs it | `commands/tip.md` | `guarded-by-case` | commands/tip.md | F12 |
 | P078 | tip never declares a `processing` lock stale — it reports the pair and the evidence | `commands/tip.md` | `prose-only` | prose | unguarded — a replay case on tip over `processing` beside a phase label: the answer reports the pair and does not call the lock stale |
-| P079 | An agent never deletes a remote branch — `git push origin --delete` is the human's to run | `commands/tip.md` | `deterministic-candidate` | none yet | — |
+| P079 | An agent never deletes a remote branch — `git push origin --delete` is the human's to run | `commands/tip.md` | `deterministic-candidate` | none yet | #394 |
 | P080 | tip never writes — no label, no comment, no commit, no branch, no cleared `blocked` | `commands/tip.md` | `guarded-by-case` | commands/tip.md | C19, F12 |
 | P081 | tip never dispatches a seat | `commands/tip.md` | `guarded-by-case` | commands/tip.md | F12 |
 | P082 | The agent-marker predicate (`**[`, `✅ [`) never swallows a human's bare `✅` answer | `commands/spec-answers.md` | `guarded-by-case` | references/patrol-scan.md | A1 |
-| P083 | A ruling's authority tag and an empirical premise's `(unverified)` evidence tag are never merged into one parenthesis | `commands/spec-answers.md` | `deterministic-candidate` | none yet | — |
+| P083 | A ruling's authority tag and an empirical premise's `(unverified)` evidence tag are never merged into one parenthesis | `commands/spec-answers.md` | `deterministic-candidate` | none yet | #396 |
 | P084 | A question a depth-0 fold raises is a new `Q<k>` with its own thread, never a reply in the folded question's thread | `commands/spec-answers.md` | `prose-only` | prose | unguarded — a replay case in which a depth-0 fold raises a question: a new thread exists and the folded thread gains no question reply (E11 covers depth 1) |
 | P085 | On a post-integration re-entry a question the fold surfaces is one top-level `[review] · question` comment, never a new seat thread | `commands/spec-answers.md` | `guarded-by-case` | commands/spec-answers.md | C5 |
 | P086 | On a post-integration re-entry a question the fold surfaces is never deferred | `commands/spec-answers.md` | `prose-only` | prose | unguarded — a replay re-entry whose fold surfaces a question: no `· deferred` entry and no `[spec-answers] · deferred` comment |
@@ -491,7 +502,7 @@ Of the `prose-only` rules, **40 are `unguarded`** — not semantic, and nothing 
 | P111 | Intake's clarification thinking is the dispatched `product` seat's, never patrol's own | `commands/patrol.md` | `prose-only` | prose | unguarded — a replay intake pass: a `product` dispatch precedes every `[intake]` comment and the comment is its text |
 | P112 | At finalize, comments from anyone but the gate holder are thread discussion — never folded in, never listed, never a reason to wait | `commands/patrol.md` | `prose-only` | prose | unguarded — a replay finalize on an issue whose latest summary is followed by a non-holder comment: the summary is finalized verbatim and nothing waits |
 | P113 | A summary request from anyone but the gate holder never triggers an intake summary | `commands/patrol.md` | `hooked` | hook A | `hooks/tests/test_guard_gate.py::RuleA_IntakeSummaryTrigger` |
-| P114 | The intake question batch is asked once — patrol never re-batches | `commands/patrol.md` | `deterministic-candidate` | none yet | — |
+| P114 | The intake question batch is asked once — patrol never re-batches | `commands/patrol.md` | `deterministic-candidate` | none yet | #395 |
 | P115 | A bot's or an agent-marker comment never counts as a human comment on an intake thread | `commands/patrol.md` | `guarded-by-case` | references/patrol-scan.md | A9 — hook I is a supporting boundary: a reply where no human comment follows the latest `[intake]` comment is denied |
 | P116 | An intake reply never re-asks the question batch | `commands/patrol.md` | `guarded-by-case` | commands/patrol.md | A9 |
 | P117 | An intake reply never edits the issue body or a label | `commands/patrol.md` | `guarded-by-case` | commands/patrol.md | A9 |

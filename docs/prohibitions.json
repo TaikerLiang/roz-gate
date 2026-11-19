@@ -524,9 +524,11 @@
     {
       "id": "P028",
       "rule": "The config command never edits `.claude/roz-gate.local.json`, `CLAUDE.md` or `CLAUDE.local.md` itself — `bin/roz-config` does the write",
-      "class": "deterministic-candidate",
-      "owner": "none yet",
+      "class": "prose-only",
+      "owner": "prose",
       "evidence": [],
+      "reason": "unguarded — a replay case on `/roz-gate:config` setting a key: the local file changes only through `bin/roz-config`, with no Edit or Write on it",
+      "note": "not a deterministic candidate today: the predicate is which command is writing, not which path is written (`init` writes `CLAUDE.md` legitimately), and no tool call or local state carries a trustworthy command identity. It becomes one if the architecture introduces a command-context / capability boundary",
       "sources": [
         {
           "file": "commands/config.md",
@@ -1411,7 +1413,9 @@
       "rule": "An agent never deletes a remote branch — `git push origin --delete` is the human's to run",
       "class": "deterministic-candidate",
       "owner": "none yet",
-      "evidence": [],
+      "evidence": [
+        "#394"
+      ],
       "sources": [
         {
           "file": "commands/tip.md",
@@ -1486,7 +1490,9 @@
       "rule": "A ruling's authority tag and an empirical premise's `(unverified)` evidence tag are never merged into one parenthesis",
       "class": "deterministic-candidate",
       "owner": "none yet",
-      "evidence": [],
+      "evidence": [
+        "#396"
+      ],
       "sources": [
         {
           "file": "commands/spec-answers.md",
@@ -1960,7 +1966,9 @@
       "rule": "The intake question batch is asked once — patrol never re-batches",
       "class": "deterministic-candidate",
       "owner": "none yet",
-      "evidence": [],
+      "evidence": [
+        "#395"
+      ],
       "sources": [
         {
           "file": "commands/patrol.md",
