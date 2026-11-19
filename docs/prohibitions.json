@@ -1,4 +1,420 @@
 {
-  "scope": ["agents", "templates"],
-  "rows": []
+  "scope": [
+    "agents",
+    "templates"
+  ],
+  "rows": [
+    {
+      "id": "P001",
+      "rule": "Dispatched with no one to ask, a spec seat never waits for an answer — it returns its open questions with the deliverable",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case in which a dispatched seat holds an open question and must return it rather than end its turn asking (E2 guards where a returned question lands, not that the seat returns it)",
+      "sources": [
+        {
+          "file": "agents/em.md",
+          "quote": "Dispatched with no one to ask, never wait"
+        },
+        {
+          "file": "agents/product.md",
+          "quote": "Dispatched with no one to ask, never wait"
+        }
+      ]
+    },
+    {
+      "id": "P002",
+      "rule": "A dispatched spec seat never silently assumes an answer to an open question",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a choice was an assumption is a reading of the deliverable against the spec",
+      "sources": [
+        {
+          "file": "agents/em.md",
+          "quote": "never silently assume: collect open questions"
+        },
+        {
+          "file": "agents/product.md",
+          "quote": "never silently assume: collect open questions"
+        }
+      ]
+    },
+    {
+      "id": "P003",
+      "rule": "A seat folding an answer never posts its follow-up question to the forge itself — the main agent posts or defers it",
+      "class": "hook-candidate",
+      "owner": "none yet",
+      "evidence": [],
+      "sources": [
+        {
+          "file": "agents/em.md",
+          "quote": "you never post it yourself"
+        },
+        {
+          "file": "agents/product.md",
+          "quote": "you never post it yourself"
+        }
+      ]
+    },
+    {
+      "id": "P004",
+      "rule": "em never accepts a vague answer to a requirement",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "persona — how the seat interrogates; what counts as vague is its judgment",
+      "sources": [
+        {
+          "file": "agents/em.md",
+          "quote": "You never accept vague answers"
+        }
+      ]
+    },
+    {
+      "id": "P005",
+      "rule": "product never accepts a happy-path-only answer",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "persona — how the seat interrogates; what counts as happy-path-only is its judgment",
+      "sources": [
+        {
+          "file": "agents/product.md",
+          "quote": "You never accept happy-path-only answers"
+        }
+      ]
+    },
+    {
+      "id": "P006",
+      "rule": "A spec seat never offers merging, rebasing onto or cherry-picking from another branch as an option — it reports the missing dependency",
+      "class": "guarded-by-case",
+      "owner": "references/workflow.md",
+      "evidence": [
+        "C29"
+      ],
+      "sources": [
+        {
+          "file": "agents/em.md",
+          "quote": "Never offer merging, rebasing onto or cherry-picking from another branch as an option"
+        },
+        {
+          "file": "agents/product.md",
+          "quote": "Never offer merging, rebasing onto or cherry-picking from another branch as an option"
+        }
+      ]
+    },
+    {
+      "id": "P007",
+      "rule": "States a fact or the persona's stance; forbids no act",
+      "class": "not-a-rule",
+      "owner": "—",
+      "evidence": [],
+      "reason": "states a fact or the persona's stance; forbids no act",
+      "sources": [
+        {
+          "file": "agents/qa.md",
+          "quote": "You do not care how elegant the code is"
+        },
+        {
+          "file": "agents/reviewer.md",
+          "quote": "The author cannot see their own blind spots"
+        }
+      ]
+    },
+    {
+      "id": "P008",
+      "rule": "A condition (`… you cannot …`), not a prohibition",
+      "class": "not-a-rule",
+      "owner": "—",
+      "evidence": [],
+      "reason": "a condition — what to do when something cannot be done — not a prohibition",
+      "sources": [
+        {
+          "file": "agents/reviewer.md",
+          "quote": "If you cannot explain why a line is correct"
+        },
+        {
+          "file": "templates/implementer.md",
+          "quote": "a definition you cannot build to is a question"
+        }
+      ]
+    },
+    {
+      "id": "P009",
+      "rule": "Example text in the template's commented-out stack block",
+      "class": "not-a-rule",
+      "owner": "—",
+      "evidence": [],
+      "reason": "example text inside the implementer template's commented-out stack block, which the project replaces with its own",
+      "sources": [
+        {
+          "file": "templates/implementer.md",
+          "quote": "Raw SQL only when the ORM cannot express it cleanly"
+        }
+      ]
+    },
+    {
+      "id": "P010",
+      "rule": "Addressed to the human who fills in or reads the template",
+      "class": "not-a-rule",
+      "owner": "—",
+      "evidence": [],
+      "reason": "addressed to the human who fills in the template, not to an agent",
+      "sources": [
+        {
+          "file": "templates/claude-workflow.md",
+          "quote": "the seat names never change"
+        },
+        {
+          "file": "templates/idea.md",
+          "quote": "Don't add labels"
+        }
+      ]
+    },
+    {
+      "id": "P011",
+      "rule": "Describes another seat's rule",
+      "class": "not-a-rule",
+      "owner": "—",
+      "evidence": [],
+      "reason": "describes QA's rule to the implementer (it is stated to QA in `references/qa-brief.md`); forbids the reader nothing",
+      "sources": [
+        {
+          "file": "templates/implementer.md",
+          "quote": "QA never touches the persistence layer"
+        }
+      ]
+    },
+    {
+      "id": "P012",
+      "rule": "QA never resolves an ambiguity in the spec by interpretation — an ambiguity is a finding it reports",
+      "class": "guarded-by-case",
+      "owner": "references/qa-brief.md",
+      "evidence": [
+        "D24",
+        "E14"
+      ],
+      "sources": [
+        {
+          "file": "agents/qa.md",
+          "quote": "you never resolve it by interpretation"
+        }
+      ]
+    },
+    {
+      "id": "P013",
+      "rule": "QA tests against the contract, never the raw implementation",
+      "class": "hooked",
+      "owner": "hook E",
+      "evidence": [
+        "hooks/tests/test_guard_blind.py::RuleE_QaDispatchSeat"
+      ],
+      "sources": [
+        {
+          "file": "agents/qa.md",
+          "quote": "never the raw implementation"
+        }
+      ]
+    },
+    {
+      "id": "P014",
+      "rule": "The acceptance tests are a maintained suite, never write-once snapshots",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a suite is maintained or a snapshot is a reading of how it was written",
+      "sources": [
+        {
+          "file": "agents/qa.md",
+          "quote": "never write-once snapshots"
+        }
+      ]
+    },
+    {
+      "id": "P015",
+      "rule": "QA never flags a project-sanctioned test layout as a violation",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a finding is about the layout is a reading of the finding",
+      "sources": [
+        {
+          "file": "agents/qa.md",
+          "quote": "a project-sanctioned layout is never a violation to flag"
+        }
+      ]
+    },
+    {
+      "id": "P016",
+      "rule": "`test-spec.md`'s scenario→test map is derived from the trace markers in the test source, never hand-maintained",
+      "class": "hook-candidate",
+      "owner": "none yet",
+      "evidence": [],
+      "sources": [
+        {
+          "file": "agents/qa.md",
+          "quote": "never hand-maintained"
+        }
+      ]
+    },
+    {
+      "id": "P017",
+      "rule": "A QA red is a harness issue fixed or a finding reported, never an edited assertion (QA-4)",
+      "class": "guarded-by-case",
+      "owner": "kernel QA-4 (`references/qa-brief.md`)",
+      "evidence": [
+        "B8",
+        "D9",
+        "D13"
+      ],
+      "sources": [
+        {
+          "file": "agents/qa.md",
+          "quote": "never an edited assertion (QA-4, the QA brief)"
+        }
+      ]
+    },
+    {
+      "id": "P018",
+      "rule": "QA references exact scenario names, never a paraphrase",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "persona — how the seat communicates",
+      "sources": [
+        {
+          "file": "agents/qa.md",
+          "quote": "never paraphrase"
+        }
+      ]
+    },
+    {
+      "id": "P019",
+      "rule": "QA does not negotiate on violations",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "persona — how the seat communicates",
+      "sources": [
+        {
+          "file": "agents/qa.md",
+          "quote": "Do not negotiate on violations"
+        }
+      ]
+    },
+    {
+      "id": "P020",
+      "rule": "The reviewer does not redesign the architecture",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "persona — the seat's role boundary; whether a comment is a redesign is its judgment",
+      "sources": [
+        {
+          "file": "agents/reviewer.md",
+          "quote": "You do not redesign the architecture"
+        }
+      ]
+    },
+    {
+      "id": "P021",
+      "rule": "The reviewer does not re-test behaviour against the spec",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "persona — the seat's role boundary",
+      "sources": [
+        {
+          "file": "agents/reviewer.md",
+          "quote": "You do not re-test behavior against the spec"
+        }
+      ]
+    },
+    {
+      "id": "P022",
+      "rule": "A review comment is never a vague \"consider refactoring\"",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "persona — how the seat communicates",
+      "sources": [
+        {
+          "file": "agents/reviewer.md",
+          "quote": "never a vague \"consider refactoring\""
+        }
+      ]
+    },
+    {
+      "id": "P023",
+      "rule": "The reviewer never invents problems to look thorough",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "persona — how the seat communicates",
+      "sources": [
+        {
+          "file": "agents/reviewer.md",
+          "quote": "never invent problems to look thorough"
+        }
+      ]
+    },
+    {
+      "id": "P024",
+      "rule": "A contract corrected while building is declared under `## Contract deviations`, never silently changed",
+      "class": "hooked",
+      "owner": "hook H",
+      "evidence": [
+        "hooks/tests/test_guard_gate.py::RuleH_CrOpenDeclaresDeviations"
+      ],
+      "sources": [
+        {
+          "file": "templates/implementer.md",
+          "quote": "declared, never silently changed"
+        }
+      ]
+    },
+    {
+      "id": "P025",
+      "rule": "The implementer never substitutes a local reading for a Glossary definition it cannot build to",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether the build follows the definition is a reading of the code against the Glossary",
+      "sources": [
+        {
+          "file": "templates/implementer.md",
+          "quote": "never a local reading"
+        }
+      ]
+    },
+    {
+      "id": "P026",
+      "rule": "The implementer never waits on an open question mid-job — it returns its open questions with the deliverable",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case in which the dispatched implementer holds an open question and must return it rather than end its turn asking (E3 guards that the route exists, not that it is taken)",
+      "sources": [
+        {
+          "file": "templates/implementer.md",
+          "quote": "Never wait on an open question mid-job"
+        }
+      ]
+    },
+    {
+      "id": "P027",
+      "rule": "The implementer never silently assumes an answer to an open question",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a choice was an assumption is a reading of the build against the spec",
+      "sources": [
+        {
+          "file": "templates/implementer.md",
+          "quote": "never silently assume: collect open questions"
+        }
+      ]
+    }
+  ]
 }

@@ -50,6 +50,8 @@ BASELINES = os.path.join(ROOT, "evals", "replay", "baselines.json")
 BASELINES_MARK = re.compile(r"<!-- baselines -->\n(.*?)<!-- /baselines -->", re.S)
 PROSE_CAPS = os.path.join(LINT_CASES, "l21.py")
 PROSE_CAPS_MARK = re.compile(r"<!-- prose-caps -->\n(.*?)<!-- /prose-caps -->", re.S)
+INVENTORY = os.path.join(ROOT, "docs", "prose-inventory.md")
+PROHIBITIONS_MARK = re.compile(r"<!-- prohibitions -->\n(.*?)<!-- /prohibitions -->", re.S)
 HOOK_RULE_ROW = re.compile(r"^\| \*\*([A-Z])\*\* ", re.M)  # hooks/README.md's rule table
 TIER_RULE = re.compile(r"\brule ([A-Z])\b")
 
@@ -274,6 +276,64 @@ def render_prose_caps():
     return "\n".join(out) + "\n"
 
 
+def render_prohibitions():
+    """docs/prose-inventory.md's <!-- prohibitions --> block, from
+    docs/prohibitions.json (#380). No line numbers: a prose edit that leaves
+    the rows alone leaves this block alone."""
+    sys.path.insert(0, os.path.join(ROOT, "evals"))
+    from lib import prohibitions as P
+    data = P.load(ROOT)
+    survey = P.survey(ROOT, data)
+    rows = data.get("rows", [])
+
+    def cell(text):
+        return str(text).replace("|", "\\|")
+
+    def files(row):
+        names = []
+        for src in row["sources"]:
+            if src["file"] not in names:
+                names.append(src["file"])
+        return " · ".join("`%s`" % n for n in names)
+
+    by = {c: [r for r in rows if r["class"] == c] for c in P.CLASSES}
+    unguarded = [r for r in by["prose-only"] if r.get("reason", "").startswith("unguarded")]
+    rules = [r for r in rows if r["class"] != "not-a-rule"]
+    out = ["Scope: %s — %d files, %d prohibition words, each inside one quote of one row."
+           % (", ".join("`%s/`" % d for d in data.get("scope", [])), len(survey["files"]),
+              survey["hits"]), "",
+           "| class | rules | sources |", "|---|---|---|"]
+    for c in P.CLASSES:
+        label = "`%s`" % c if c != "not-a-rule" else "`not-a-rule` (reasons)"
+        out.append("| %s | %d | %d |" % (label, len(by[c]),
+                                         sum(len(r["sources"]) for r in by[c])))
+    out += ["", "Of the `prose-only` rules, **%d are `unguarded`** — not semantic, and nothing "
+            "enforces them yet." % len(unguarded), "",
+            "| id | rule | stated in | class | owner | evidence / reason |",
+            "|---|---|---|---|---|---|"]
+    for r in rules:
+        proof = ", ".join("`%s`" % e if "::" in e else e for e in r.get("evidence", []))
+        out.append("| %s | %s | %s | `%s` | %s | %s |" % (
+            r["id"], cell(r["rule"]), files(r), r["class"], cell(r["owner"]),
+            cell(proof or r.get("reason", "—"))))
+    out += ["", "**Not a rule** — a prohibition word that forbids an agent nothing. One row "
+            "per reason; every fragment is listed, none is matched by pattern.", "",
+            "| id | reason | fragments |", "|---|---|---|"]
+    for r in by["not-a-rule"]:
+        frags = " · ".join("`%s` “%s”" % (src["file"], cell(src["quote"]))
+                           for src in r["sources"])
+        out.append("| %s | %s | %s |" % (r["id"], cell(r["reason"]), frags))
+    return "\n".join(out) + "\n"
+
+
+def render_inventory():
+    text = read(INVENTORY)
+    m = PROHIBITIONS_MARK.search(text)
+    if not m:
+        fail("docs/prose-inventory.md has no <!-- prohibitions --> block")
+    return text[:m.start(1)] + render_prohibitions() + text[m.end(1):]
+
+
 def render_readme():
     text = read(README)
     b = BASELINES_MARK.search(text)
@@ -297,10 +357,11 @@ def render_readme():
 
 
 def main(argv):
-    ledger, readme = render_ledger(rows()), render_readme()
+    ledger, readme, inventory = render_ledger(rows()), render_readme(), render_inventory()
     if "--check" in argv:
-        stale = [p for p, t in ((LEDGER, ledger), (README, readme)) if read(p) != t]
-        for p in (LEDGER, README):
+        stale = [p for p, t in ((LEDGER, ledger), (README, readme), (INVENTORY, inventory))
+                 if read(p) != t]
+        for p in (LEDGER, README, INVENTORY):
             print("%s is %s" % (os.path.relpath(p, ROOT),
                                 "stale — run tools/ledger.py" if p in stale else "current"))
         return 1 if stale else 0
@@ -308,6 +369,8 @@ def main(argv):
         f.write(ledger)
     with open(README, "w", encoding="utf-8") as f:
         f.write(readme)
+    with open(INVENTORY, "w", encoding="utf-8") as f:
+        f.write(inventory)
     c = counts()
     print("LEDGER.md: lint %s · replay %s · hook %s · judgment %s"
           % (c["lint"], c["replay"], c["hook"], c["judgment"]))
