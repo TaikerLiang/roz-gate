@@ -295,6 +295,56 @@ def api_fields(argv):
     return fields
 
 
+# #408 — gh 2.82's flags of `pr comment` / `issue comment`, as its flag
+# error prints them under the command's own usage line.
+COMMENT_FLAGS = """
+Flags:
+  -b, --body text        The comment body text
+  -F, --body-file file   Read body text from file (use "-" to read from standard input)
+      --create-if-none   Create a new comment if no comments are found. Can be used only with --edit-last
+      --delete-last      Delete the last comment of the current user
+      --edit-last        Edit the last comment of the current user
+  -e, --editor           Skip prompts and open the text editor to write the body in
+  -w, --web              Open the web browser to write the comment
+      --yes              Skip the delete confirmation prompt when --delete-last is provided
+  
+"""
+
+
+def edit_last(st, argv, item, body, usage, url):
+    """#408 — gh's `--edit-last` (D22/1: the stub ignored it and added a
+    comment, and the seat believed it had overwritten one). As gh's
+    commentable.go: the last comment the current user (`agent_login`)
+    wrote on this item gets the new body; with none it is gh's error, exit
+    1, nothing written — or, under `--create-if-none`, a new comment (the
+    caller's own road: False). `--create-if-none` alone is gh's flag error.
+    True when the edit was made and answered."""
+    if "--edit-last" not in argv:
+        if "--create-if-none" not in argv:
+            return False
+        journal("gh-error", flag="--create-if-none")
+        flush_journal()
+        sys.stderr.write("`--create-if-none` can only be used with `--edit-last`\n\n"
+                         "Usage:  %s [flags]\n%s" % (usage, COMMENT_FLAGS))
+        sys.exit(1)
+    own = [c for c in item.get("comments", [])
+           if c.get("author") == st.get("agent_login", "paul")]
+    if not own:
+        if "--create-if-none" in argv:
+            return False
+        journal("gh-error", edit_last="none")
+        flush_journal()
+        sys.stderr.write("no comments found for current user\n")
+        sys.exit(1)
+    if own[-1].get("id") is None:
+        unknown("--edit-last: the agent's last comment has no id in the fixture")
+    own[-1]["body"] = body
+    journal("comment-edit", write=True, comment=own[-1]["id"], body=body, via="edit-last")
+    save(st)
+    print(url % own[-1]["id"])
+    return True
+
+
 def gql_login(c):
     """gh's --json (GraphQL) login: a bot's `[bot]` suffix is dropped and no
     type travels with it — `github-actions`, as live gh prints it (#174)."""
@@ -1373,6 +1423,11 @@ def main():
     if argv[:2] == ["issue", "comment"]:
         n = argv[2]
         body = body_arg(argv) or ""
+        item = st.get("prs", {}).get(n) or st.get("issues", {}).get(n)
+        if item is not None and edit_last(
+                st, argv, item, body, "gh issue comment {<number> | <url>}",
+                web(st) + "/issues/%s#issuecomment-%%d" % n):
+            return
         cid = next_id(st)
         # GitHub semantics: every PR is an issue — `gh issue comment <pr>`
         # legally lands a top-level PR comment.
@@ -1564,6 +1619,9 @@ def main():
         if n is None:
             unknown("pr %s not in fixture" % argv[2])
         body = body_arg(argv) or ""
+        if edit_last(st, argv, _pr, body, "gh pr comment [<number> | <url> | <branch>]",
+                     web(st) + "/pull/%s#issuecomment-%%d" % n):
+            return
         cid = next_id(st)
         st["prs"][n].setdefault("comments", []).append(
             {"id": cid, "author": st.get("agent_login", "paul"),
@@ -1682,6 +1740,49 @@ def main():
                         "object": {"sha": sha, "type": "commit",
                                    "url": "https://api.github.com/repos/" + repo_slug(st) + "/git/commits/%s" % sha}},
                        flag_val(argv, "--jq", "-q"))
+            return
+
+        # ---- gh api repos/o/r/git/trees/<ref>[?recursive=1] — #408 (A5/2:
+        # the repository's files listed through the API). A branch, a commit
+        # or a tree sha, resolved from the sandbox's objects as the contents
+        # route does; `recursive` (any value, as GitHub reads it) descends.
+        # One page, never truncated; an absent ref is GitHub's 404 under the
+        # same route. GET only.
+        m_tr = re.match(r"repos/[^/]+/[^/]+/git/trees/(.+)$", target)
+        if m_tr and method == "GET":
+            ref = unquote(m_tr.group(1))
+            api_root = "https://api.github.com/repos/%s/git/" % repo_slug(st)
+            tree_sha, listing = "", ""
+            for cand in ("origin/%s" % ref, ref):
+                try:
+                    rp = subprocess.run(["git", "rev-parse", "--verify", "-q", cand + "^{tree}"],
+                                        capture_output=True, text=True, timeout=10)
+                    if rp.returncode != 0:
+                        continue
+                    tree_sha = rp.stdout.strip()
+                    listing = subprocess.run(
+                        ["git", "ls-tree", "-l", "-z"]
+                        + (["-r", "-t"] if "recursive" in query else []) + [tree_sha],
+                        capture_output=True, text=True, timeout=10, check=True).stdout
+                    break
+                except (OSError, subprocess.SubprocessError):
+                    tree_sha = ""
+            journal("git-tree", ref=ref, recursive="recursive" in query, present=bool(tree_sha))
+            if not tree_sha:
+                sys.stderr.write("gh: Not Found (HTTP 404)\n{\"message\":\"Not Found\"}\n")
+                sys.exit(1)
+            tree = []
+            for row in filter(None, listing.split("\0")):
+                meta, path_ = row.split("\t", 1)
+                mode, kind, sha, size = meta.split()
+                entry = {"path": path_, "mode": mode, "type": kind, "sha": sha}
+                if kind == "blob":
+                    entry["size"] = int(size)
+                if kind in ("blob", "tree"):
+                    entry["url"] = api_root + "%ss/%s" % (kind, sha)
+                tree.append(entry)
+            jq_project({"sha": tree_sha, "url": api_root + "trees/" + tree_sha,
+                        "tree": tree, "truncated": False}, flag_val(argv, "--jq", "-q"))
             return
 
         # ---- gh api repos/o/r/contents/<path>?ref=<branch> — a file or a
@@ -1972,6 +2073,13 @@ def main():
                                        flag_val(argv, "--jq", "-q"))
                             return
                 unknown("resolve: thread %s not in fixture" % tid)
+            # #408 — `query{viewer{login}}` (D7/2), `gh api user`'s twin: the
+            # fixture's agent_login. Any other viewer field stays UNKNOWN.
+            if re.match(r"(?:query\b\s*\w*\s*)?\{\s*viewer\s*\{\s*login\s*\}\s*\}$", q.strip()):
+                journal("user-view", via="graphql")
+                jq_project({"data": {"viewer": {"login": st.get("agent_login", "paul")}}},
+                           flag_val(argv, "--jq", "-q"))
+                return
             unknown("graphql query not routed")
 
         m = re.match(r"repos/[^/]+/[^/]+/pulls/(\d+)/reviews$", target)

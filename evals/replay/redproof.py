@@ -68,6 +68,11 @@ throwaway state, the resume rule against staged result.json files.
 - STUB-GAPS (#385) — `headRepositoryOwner` / `headRepository` from the
   fixture's `repo` (no fixture has a fork PR); every patrol case's PRs
   state their `author`, so a scanner's `pr list --json …,author` answers.
+- STUB-GAPS (#408) — `git/trees/<ref>` (with `recursive=1`) from the
+  sandbox's objects; GraphQL `viewer{login}` from `agent_login`;
+  `pr comment --edit-last` edits the agent's own last comment, is gh's
+  `no comments found for current user` with none, creates under
+  `--create-if-none`; no seed pins a dependency name PyPI could hold.
 - TOKENS (#308) — `session_tokens` on canned transcripts whose messages
   stream one event per block: the result event's `modelUsage` (seats
   included), else its `usage` summed over result events, else each message
@@ -1151,6 +1156,145 @@ def stub385_rows():
                    ["pr", "list", "--state", "all", "--json", "number,title,isDraft,"
                     "baseRefName,headRefName,state,url,mergedAt,author"], "pr-list",
                    '"author": {"login": "paul"}', state=fixture)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return rows
+
+
+# #408 — a project name PyPI can hold (the packaging name specification):
+# ASCII letters, digits, `.`, `_`, `-`, starting and ending alphanumeric.
+PYPI_NAME = re.compile(r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$", re.I)
+
+
+def stub408_rows():
+    """[(name, ok)] — #408: each row is red before the fix."""
+    rows = []
+    tmp, work = gaps_sandbox()
+
+    def call(argv, state=None, state_dir=None):
+        return stub(argv, state if state is not None else gaps_state(), cwd=work,
+                    state_dir=state_dir)
+
+    def served(name, argv, route, *needles, state=None, exact=None, state_dir=None):
+        rc, out, err, j = call(argv, state, state_dir)
+        rows.append((name, rc == 0 and [e["route"] for e in j][-1:] == [route]
+                     and all(n in out for n in needles) and (exact is None or out == exact)))
+
+    def refused(name, argv, route, err_exact=None, err_has=(), state=None, state_dir=None):
+        rc, out, err, j = call(argv, state, state_dir)
+        rows.append((name, rc == 1 and out == "" and [e["route"] for e in j][-1:] == [route]
+                     and (err_exact is None or err == err_exact)
+                     and all(n in err for n in err_has)))
+
+    def unrouted(name, argv, state=None):
+        rc, out, err, j = call(argv, state)
+        rows.append((name, rc == 64 and [e["route"] for e in j] == ["UNKNOWN"]))
+
+    def rev(spec):
+        return subprocess.check_output(["git", "-C", work, "rev-parse", spec], text=True).strip()
+
+    def bodies(d, n="101"):
+        with open(os.path.join(d, "state.json")) as f:
+            return [c["body"] for c in json.load(f)["prs"][n]["comments"]]
+
+    try:
+        # git/trees — A5/2
+        served("GET git/trees/main?recursive=1 (A5/2's call)",
+               ["api", "repos/acme/demo/git/trees/main?recursive=1", "--jq", ".tree[].path"],
+               "git-tree", exact="app.txt\n")
+        served("git/trees/<ref>?recursive=1: every blob and tree under the ref",
+               ["api", "repos/{owner}/{repo}/git/trees/spec/5?recursive=1", "--jq",
+                '[.tree[] | .path + ":" + .type]'], "git-tree",
+               exact='["app.txt:blob","docs:tree","docs/spec.md:blob","impl.txt:blob"]\n')
+        served("git/trees/<ref> without recursive: the top level only",
+               ["api", "repos/acme/demo/git/trees/spec/5", "--jq", ".tree[].path"],
+               "git-tree", exact="app.txt\ndocs\nimpl.txt\n")
+        served("git/trees: the tree's sha, a blob's mode, sha and size, not truncated",
+               ["api", "repos/acme/demo/git/trees/spec/5", "--jq",
+                "[.sha, .truncated, .tree[0].mode, .tree[0].sha, .tree[0].size, "
+                ".tree[1].mode, .tree[1].sha]"], "git-tree",
+               exact='["%s",false,"100644","%s",5,"040000","%s"]\n'
+                     % (rev("spec/5^{tree}"), rev("spec/5:app.txt"), rev("spec/5:docs")))
+        served("git/trees/<a tree's sha>", ["api", "repos/acme/demo/git/trees/"
+                                            + rev("spec/5:docs"), "--jq", ".tree[].path"],
+               "git-tree", exact="spec.md\n")
+        refused("git/trees/<a ref the remote lacks>: GitHub's 404",
+                ["api", "repos/acme/demo/git/trees/nope?recursive=1"], "git-tree",
+                err_has=("Not Found (HTTP 404)",))
+        unrouted("POST git/trees (a write) stays UNKNOWN",
+                 ["api", "-X", "POST", "repos/acme/demo/git/trees", "-f", "base_tree=x"])
+        # viewer{login} — D7/2
+        roz = dict(gaps_state(), agent_login="roz")
+        served("graphql query{viewer{login}} (D7/2's call): the fixture's agent_login",
+               ["api", "graphql", "-f", "query=query{viewer{login}}"], "user-view",
+               state=roz, exact='{"data": {"viewer": {"login": "roz"}}}\n')
+        served("graphql { viewer { login } } --jq",
+               ["api", "graphql", "-f", "query={ viewer { login } }", "--jq",
+                ".data.viewer.login"], "user-view", state=roz, exact="roz\n")
+        unrouted("graphql viewer with a field the fixture cannot state stays UNKNOWN",
+                 ["api", "graphql", "-f", "query=query{viewer{login name}}"], state=roz)
+        # pr comment --edit-last — D22/1
+        other_last = gaps_state(**{"101": {"comments": [
+            {"id": 1, "author": "paul", "body": "first", "created_at": "2026-08-22T10:00:00Z"},
+            {"id": 7, "author": "ann", "body": "other", "created_at": "2026-08-23T10:00:00Z"}]}})
+        for cmd, tail in (("pr", "/pull/101#issuecomment-1\n"),
+                          ("issue", "/issues/101#issuecomment-1\n")):
+            d = tempfile.mkdtemp()
+            try:
+                rc, out, err, j = call([cmd, "comment", "101", "--body", "new", "--edit-last"],
+                                       other_last, d)
+                rows.append(("%s comment --edit-last (D22/1): edits the agent's own last "
+                             "comment, not a later one by someone else" % cmd,
+                             rc == 0 and out == "https://github.com/acme/demo" + tail
+                             and [(e["route"], e["write"], e.get("comment")) for e in j]
+                             == [("comment-edit", True, 1)]
+                             and j[0].get("body") == "new" and bodies(d) == ["new", "other"]))
+            finally:
+                shutil.rmtree(d, ignore_errors=True)
+        d = tempfile.mkdtemp()
+        try:
+            refused("pr comment --edit-last with no comment of the agent's: gh's error",
+                    ["pr", "comment", "103", "--edit-last", "--body", "new"], "gh-error",
+                    err_exact="no comments found for current user\n", state_dir=d)
+            rows.append(("…and nothing was written", bodies(d, "103") == []))
+            served("pr comment --edit-last --create-if-none with none: a new comment",
+                   ["pr", "comment", "103", "--edit-last", "--create-if-none", "-b", "made"],
+                   "pr-comment", exact="https://github.com/acme/demo/pull/103"
+                                       "#issuecomment-1001\n", state_dir=d)
+            served("pr comment --edit-last --create-if-none with one: edits it",
+                   ["pr", "comment", "103", "--edit-last", "--create-if-none", "-b", "again"],
+                   "comment-edit", exact="https://github.com/acme/demo/pull/103"
+                                         "#issuecomment-1001\n", state_dir=d)
+            rows.append(("…and the PR holds one comment, edited", bodies(d, "103") == ["again"]))
+            served("pr comment without --edit-last still adds a comment",
+                   ["pr", "comment", "103", "--body", "second"], "pr-comment", state_dir=d)
+            rows.append(("…and the PR holds two", bodies(d, "103") == ["again", "second"]))
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+        refused("issue comment --edit-last on an issue with none of the agent's: gh's error",
+                ["issue", "comment", "5", "--edit-last", "--body", "x"], "gh-error",
+                err_exact="no comments found for current user\n",
+                state=dict(gaps_state(), agent_login="roz"))
+        refused("pr comment --create-if-none without --edit-last: gh's flag error",
+                ["pr", "comment", "101", "--create-if-none", "--body", "x"], "gh-error",
+                err_has=("`--create-if-none` can only be used with `--edit-last`\n\n"
+                         "Usage:  gh pr comment [<number> | <url> | <branch>] [flags]\n",))
+        # F11/1 — a seeded dependency pin names nothing PyPI could hold
+        cases = os.path.join(HERE, "cases")
+        pins = []
+        for case in sorted(os.listdir(cases)):
+            try:
+                with open(os.path.join(cases, case, "seed.sh")) as f:
+                    seed = f.read()
+            except OSError:
+                continue
+            pins += [(case, m) for m in re.findall(
+                r"printf '([^=']+)==[^']*' > requirements\.lock", seed)]
+        rows.append(("the seeds that pin a dependency are found (C26, F9, F11, F13)",
+                     [c for c, _ in pins] == ["C26", "F11", "F13", "F9"]))
+        for case, name in pins:
+            rows.append(("%s's seeded pin `%s` is not a name PyPI can hold (F11/1)"
+                         % (case, name), not PYPI_NAME.match(name)))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return rows
@@ -3501,6 +3645,9 @@ def main():
         passed, failed = passed + ok, failed + (not ok)
     for name, ok in stub385_rows():
         print("%s route: #385 %s" % ("PASS" if ok else "FAIL", name))
+        passed, failed = passed + ok, failed + (not ok)
+    for name, ok in stub408_rows():
+        print("%s route: #408 %s" % ("PASS" if ok else "FAIL", name))
         passed, failed = passed + ok, failed + (not ok)
     octo = dict(STATE, repo={"owner": "octo", "name": "widgets"})
     for name, argv, route, needles in REPO_ROUTES:

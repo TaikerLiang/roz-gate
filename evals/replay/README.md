@@ -371,7 +371,12 @@ valid (#365): a `--json` field outside gh 2.82's catalog (`GH_FIELDS`,
 `Unknown JSON field` with gh's field list), an unknown subcommand of a
 routed group (`gh pr comments`: gh's `unknown command` text), and a
 review comment's id on the issue-comments endpoint or the reverse
-(GitHub's 404; the stub numbers the two kinds apart). Every URL the stub
+(GitHub's 404; the stub numbers the two kinds apart). `pr comment` /
+`issue comment --edit-last` is gh's too (#408): it edits the last comment
+`agent_login` wrote on the item (journalled `comment-edit`), is gh's `no
+comments found for current user` with none, and creates one under
+`--create-if-none`. `git/trees/<ref>` (`?recursive=1`) is read from the
+sandbox's objects, and GraphQL `viewer{login}` is `agent_login`. Every URL the stub
 prints names the fixture's `repo`, and so do a PR's `headRepositoryOwner`
 (`{login}`) and `headRepository` (`{name}`), without gh's ids, as `repo
 view`'s `owner` (#385): no fixture states a fork PR. Optional fixture facts the `--json`
