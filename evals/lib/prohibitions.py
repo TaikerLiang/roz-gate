@@ -11,6 +11,15 @@ collapsed) that occurs exactly once in it and holds exactly one hit. Every
 hit lies inside exactly one quote. So one source is one occurrence of one
 clause — a long quote cannot hide a second prohibition behind one row
 (#262: one prohibition clause, one decision question, one rule).
+
+That is the lexical half. A RULE is a semantic thing, and one prohibition
+word may govern more than one: "never deletes or force-pushes a remote
+branch" is one hit and two independently violable decisions. So the same
+`(file, quote)` may be a source of several rows when every one of those
+sources carries a `clause` — a literal piece of the quote naming the part
+that row owns — and the clauses differ. A hit still resolves to exactly one
+quote; a quote resolves to one row, or to a set of `(row, clause)` pairs.
+The scanner's token model does not set the rules' granularity.
 """
 
 import glob
@@ -64,8 +73,8 @@ def survey(root, data):
             texts[rel] = flat(f.read())
     spans = {rel: [] for rel in files}   # rel -> [(a, b, row id)]
     bad = {k: [] for k in ("out_of_scope", "absent", "repeated", "no_hit", "many_hits",
-                           "twice", "unclassified", "overlap")}
-    seen = {}
+                           "twice", "unclassified", "overlap", "clause")}
+    seen = {}      # (rel, quote) -> [(row id, clause or None)]
     for row in data.get("rows", []):
         for s in row.get("sources", []):
             rel, quote = s.get("file", ""), flat(s.get("quote", ""))
@@ -73,10 +82,13 @@ def survey(root, data):
             if rel not in texts:
                 bad["out_of_scope"].append(tag)
                 continue
+            clause = s.get("clause")
+            if clause is not None and not (clause.strip() and flat(clause) in quote):
+                bad["clause"].append("%s: clause %r is not a piece of the quote" % (tag, clause))
             if (rel, quote) in seen:
-                bad["twice"].append("%s (also %s)" % (tag, seen[(rel, quote)]))
+                seen[(rel, quote)].append((row.get("id"), clause))
                 continue
-            seen[(rel, quote)] = row.get("id")
+            seen[(rel, quote)] = [(row.get("id"), clause)]
             n = texts[rel].count(quote) if quote else 0
             if n == 0:
                 bad["absent"].append(tag)
@@ -92,6 +104,18 @@ def survey(root, data):
             elif len(inside) > 1:
                 bad["many_hits"].append("%s holds %s" % (tag, [h[2] for h in inside]))
             spans[rel].append((a, b, row.get("id")))
+    for (rel, quote), users in seen.items():
+        tag = "%s %s: %r" % ("+".join(str(u[0]) for u in users), rel, quote[:60])
+        clauses = [u[1] for u in users]
+        if len(users) == 1:
+            if clauses[0] is not None:
+                bad["clause"].append("%s: a clause on a quote only one row uses" % tag)
+        elif len({u[0] for u in users}) < len(users):
+            bad["twice"].append("%s: one row registers the quote twice" % tag)
+        elif None in clauses:
+            bad["twice"].append("%s: a shared quote needs a clause on every source" % tag)
+        elif len({flat(x) for x in clauses}) < len(clauses):
+            bad["clause"].append("%s: two rows claim the same clause %s" % (tag, clauses))
     total = 0
     for rel in files:
         for a, b, word in hits(texts[rel]):

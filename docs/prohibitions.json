@@ -2,6 +2,7 @@
   "scope": [
     "agents",
     "commands",
+    "references",
     "templates"
   ],
   "rows": [
@@ -104,6 +105,10 @@
         {
           "file": "agents/product.md",
           "quote": "Never offer merging, rebasing onto or cherry-picking from another branch as an option"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "It never proposes a merge, a rebase or a cherry-pick"
         }
       ]
     },
@@ -186,6 +191,70 @@
         {
           "file": "commands/patrol.md",
           "quote": "the audit that never ran"
+        },
+        {
+          "file": "references/branch-names.md",
+          "quote": "never asks about the CR"
+        },
+        {
+          "file": "references/branch-names.md",
+          "quote": "the adapter ops do not change"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "the workflow's vocabulary never changes"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "the review that never ran, or re-runs"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "Your three options do not change"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "do not wait for you to type them"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "the review never ran, or"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "never re-checked the head"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "the audit never ran. Implementation CR"
+        },
+        {
+          "file": "references/intake-brief.md",
+          "quote": "the summary was never requested"
+        },
+        {
+          "file": "references/gate-kit.md",
+          "quote": "in the holder's name they never made"
+        },
+        {
+          "file": "references/gate-kit.md",
+          "quote": "never threaded; its recommendation"
+        },
+        {
+          "file": "references/fidelity-brief.md",
+          "quote": "in a branch never entered"
+        },
+        {
+          "file": "references/next-stage-path-b.md",
+          "quote": "it never sees the user's checkout"
+        },
+        {
+          "file": "references/next-stage-path-b2.md",
+          "quote": "Path B never ran"
+        },
+        {
+          "file": "references/next-stage-path-b2.md",
+          "quote": "when B2.7 never did"
         }
       ]
     },
@@ -228,6 +297,34 @@
         {
           "file": "commands/patrol.md",
           "quote": "A row the pass cannot act on as written"
+        },
+        {
+          "file": "references/commit-brief.md",
+          "quote": "a hook you cannot read"
+        },
+        {
+          "file": "references/commit-brief.md",
+          "quote": "a failure you cannot classify"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "it hit something it cannot or should not decide"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "you cannot drive it"
+        },
+        {
+          "file": "references/fidelity-brief.md",
+          "quote": "cannot be ordered to produce"
+        },
+        {
+          "file": "references/next-stage-path-b.md",
+          "quote": "A contract gap you cannot resolve"
+        },
+        {
+          "file": "references/next-stage-path-b2.md",
+          "quote": "a ref that cannot fast-forward"
         }
       ]
     },
@@ -282,6 +379,14 @@
         {
           "file": "commands/spec-answers.md",
           "quote": "qa never writes spec text"
+        },
+        {
+          "file": "references/branch-names.md",
+          "quote": "A reader that may not run git"
+        },
+        {
+          "file": "references/next-stage-path-b.md",
+          "quote": "QA never persists entities or touches the persistence layer, so a Given"
         }
       ]
     },
@@ -317,6 +422,18 @@
         {
           "file": "agents/qa.md",
           "quote": "never the raw implementation"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "never the implementation**"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "never from a run of the code.** Every expected literal"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "never from a run of the code. It holds"
         }
       ]
     },
@@ -331,6 +448,10 @@
         {
           "file": "agents/qa.md",
           "quote": "never write-once snapshots"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "never write-once per-issue snapshots"
         }
       ]
     },
@@ -360,6 +481,14 @@
         {
           "file": "agents/qa.md",
           "quote": "never hand-maintained"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "never hand-maintained"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "never hand-maintained"
         }
       ]
     },
@@ -377,6 +506,38 @@
         {
           "file": "agents/qa.md",
           "quote": "never an edited assertion (QA-4, the QA brief)"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "(QA-4: never an edited assertion)"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "never an assertion edit (QA-4"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "never edits an assertion to match what it observed"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "you never edit an assertion to match what you observed (QA-4)"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "never to what the implementation returned (QA-4)"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "never edit the assertion**"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "a red is never resolved by editing an assertion"
+        },
+        {
+          "file": "references/next-stage-path-b2.md",
+          "quote": "never as an edited assertion (QA-4"
         }
       ]
     },
@@ -471,7 +632,7 @@
       "owner": "prose",
       "evidence": [],
       "reason": "unguarded — a case in which the build's contract diff and its `## Contract deviations` section disagree: a corrected clause the section does not list",
-      "note": "hook H is a supporting operational boundary (a CR whose diff touches `technical-spec.md` must carry the section), not this rule's owner: a section that says `none` passes it",
+      "note": "hook H is a supporting operational boundary (a CR whose diff touches `technical-spec.md` must carry the section), not this rule's owner: a section that says `none` passes it; whether the decidable subset (the diff touches the file and the section lists no deviation) deserves an owner is #406",
       "sources": [
         {
           "file": "templates/implementer.md",
@@ -523,12 +684,12 @@
     },
     {
       "id": "P028",
-      "rule": "The config command never edits `.claude/roz-gate.local.json`, `CLAUDE.md` or `CLAUDE.local.md` itself — `bin/roz-config` does the write",
-      "class": "prose-only",
-      "owner": "prose",
-      "evidence": [],
-      "reason": "unguarded — a replay case on `/roz-gate:config` setting a key: the local file changes only through `bin/roz-config`, with no Edit or Write on it",
-      "note": "not a deterministic candidate today: the predicate is which command is writing, not which path is written (`init` writes `CLAUDE.md` legitimately), and no tool call or local state carries a trustworthy command identity. It becomes one if the architecture introduces a command-context / capability boundary",
+      "rule": "The config command never edits `.claude/roz-gate.local.json` itself — `bin/roz-config` does the write",
+      "class": "deterministic-candidate",
+      "owner": "none yet",
+      "evidence": [
+        "#404"
+      ],
       "sources": [
         {
           "file": "commands/config.md",
@@ -536,7 +697,8 @@
         },
         {
           "file": "commands/config.md",
-          "quote": "never edit `.claude/roz-gate.local.json`, `CLAUDE.md` or `CLAUDE.local.md` yourself"
+          "quote": "never edit `.claude/roz-gate.local.json`, `CLAUDE.md` or `CLAUDE.local.md` yourself",
+          "clause": "`.claude/roz-gate.local.json`"
         }
       ]
     },
@@ -579,6 +741,14 @@
         {
           "file": "commands/patrol.md",
           "quote": "are per person, per clone, never in the block"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "`.claude/roz-gate.local.json`, never committed; default: the remote's HEAD"
+        },
+        {
+          "file": "references/reserved-words.md",
+          "quote": "A candidate is never listed"
         }
       ]
     },
@@ -638,6 +808,10 @@
         {
           "file": "commands/patrol.md",
           "quote": "Hard rules: never apply a gate label"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "never applies a gate label — and"
         }
       ]
     },
@@ -695,6 +869,10 @@
         {
           "file": "commands/init.md",
           "quote": "never scope it"
+        },
+        {
+          "file": "references/forge-gitlab.md",
+          "quote": "Never scope the lock"
         }
       ]
     },
@@ -759,6 +937,46 @@
         {
           "file": "commands/integrate.md",
           "quote": "cannot-be-covered-black-box"
+        },
+        {
+          "file": "references/branch-names.md",
+          "quote": "the forbidden implementation ref"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "| Role | Owns | Never |"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "its R&R row above (Owns / Never)"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "fights its seat's Never column"
+        },
+        {
+          "file": "references/gate-kit.md",
+          "quote": "cannot-be-covered-black-box"
+        },
+        {
+          "file": "references/fidelity-brief.md",
+          "quote": "**Cannot fail given the port**"
+        },
+        {
+          "file": "references/next-stage-path-b2.md",
+          "quote": "\"you never read the implementation\" stays in the dispatch text"
+        },
+        {
+          "file": "references/roz-state.md",
+          "quote": "### Never a fact"
+        },
+        {
+          "file": "references/roz-check.md",
+          "quote": "§ Never a fact"
+        },
+        {
+          "file": "references/roz-check.md",
+          "quote": "## What it never decides"
         }
       ]
     },
@@ -811,6 +1029,22 @@
         {
           "file": "commands/patrol.md",
           "quote": "patrol itself never runs git in the user's checkout"
+        },
+        {
+          "file": "references/commit-brief.md",
+          "quote": "never the user's checkout"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "never your checkout: it creates"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "It never runs `git checkout`, `switch`, `reset`, `stash` or `merge` in your checkout"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "never a reason to work in the checkout"
         }
       ]
     },
@@ -839,6 +1073,14 @@
         {
           "file": "commands/next-stage.md",
           "quote": "Never repair labels yourself"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "they never repair labels"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "**skip it and report it** — never repair labels"
         }
       ]
     },
@@ -865,6 +1107,18 @@
         {
           "file": "commands/spec-answers.md",
           "quote": "(never code this spec asks for)"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "`track: fast` never with a spec-stage status"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "never reached its assertion"
+        },
+        {
+          "file": "references/roz-state.md",
+          "quote": "this forge or this version cannot answer"
         }
       ]
     },
@@ -968,6 +1222,14 @@
         {
           "file": "commands/patrol.md",
           "quote": "an existing branch is found by Lookup, never guessed"
+        },
+        {
+          "file": "references/branch-names.md",
+          "quote": "**found, never guessed**"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "never another person's guessed"
         }
       ]
     },
@@ -982,6 +1244,10 @@
         {
           "file": "commands/integrate.md",
           "quote": "never at a stale local ref an earlier run left behind"
+        },
+        {
+          "file": "references/next-stage-path-b2.md",
+          "quote": "never at a stale local ref (a ref"
         }
       ]
     },
@@ -997,6 +1263,10 @@
         {
           "file": "commands/integrate.md",
           "quote": "merge what is open, never what is merged"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "never what is merged, so a pre-2.0 issue"
         }
       ]
     },
@@ -1012,6 +1282,10 @@
         {
           "file": "commands/integrate.md",
           "quote": "it never reconstructs it from stale `feat`/`qa` branch tips"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "never reconstructed from stale `feat/{n}` / `qa/{n}` tips"
         }
       ]
     },
@@ -1066,6 +1340,110 @@
         {
           "file": "commands/patrol.md",
           "quote": "so it never *newly* enters anything"
+        },
+        {
+          "file": "references/branch-names.md",
+          "quote": "they never coexist for one issue"
+        },
+        {
+          "file": "references/branch-names.md",
+          "quote": "cannot compute its name"
+        },
+        {
+          "file": "references/branch-names.md",
+          "quote": "it cannot tell a spec branch from a qa branch"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "(Bash never sets it)"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "the loop never moves the local ref"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "never the main agent's, for the same reason"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "a foreign agent it cannot reach"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "the human cannot see that cost"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "three reasons that do not depend on timing"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "an `UNKNOWN` snapshot cannot reach you"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "so the main agent never re-lists for assignees"
+        },
+        {
+          "file": "references/gate-kit.md",
+          "quote": "never a replacement for opening them"
+        },
+        {
+          "file": "references/gate-kit.md",
+          "quote": "cannot reveal drift from the *ask*"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "their comments quote the code you must not see"
+        },
+        {
+          "file": "references/fidelity-brief.md",
+          "quote": "their comments quote the code you must not see"
+        },
+        {
+          "file": "references/next-stage-path-b.md",
+          "quote": "the acceptance run never produces"
+        },
+        {
+          "file": "references/next-stage-path-b.md",
+          "quote": "the decision never reaches the ledger"
+        },
+        {
+          "file": "references/next-stage-path-c.md",
+          "quote": "cannot block it"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "cannot block it"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "cannot be cited, audited, or kept current"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "must not share its authority"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "they never compete for the same clause"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "a checker cannot fully parse"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "a reader who does not never scrolls past it"
+        },
+        {
+          "file": "references/next-stage-path-b2.md",
+          "quote": "its threads quote the code QA must not see"
+        },
+        {
+          "file": "references/next-stage-path-b2.md",
+          "quote": "the code the reviewer must not see"
         }
       ]
     },
@@ -1096,6 +1474,10 @@
         {
           "file": "commands/integrate.md",
           "quote": "never \"verified\""
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "one sentence and never more"
         }
       ]
     },
@@ -1182,6 +1564,10 @@
         {
           "file": "commands/spec-answers.md",
           "quote": "must not be folded as a ruling"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "the gate-kit comment is the loop's own, never an item"
         }
       ]
     },
@@ -1240,6 +1626,10 @@
         {
           "file": "commands/review-answers.md",
           "quote": "Silence is never consent"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "silence is never consent"
         }
       ]
     },
@@ -1362,6 +1752,14 @@
         {
           "file": "commands/patrol.md",
           "quote": "never zero threads alone"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "never zero threads alone (#95; #140)"
+        },
+        {
+          "file": "references/next-stage-path-b2.md",
+          "quote": "never merge on zero threads alone"
         }
       ]
     },
@@ -1420,6 +1818,42 @@
         {
           "file": "commands/tip.md",
           "quote": "the agent never does"
+        },
+        {
+          "file": "references/branch-names.md",
+          "quote": "an agent never deletes a remote branch"
+        },
+        {
+          "file": "references/branch-names.md",
+          "quote": "the agent never does"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "an agent never deletes or force-pushes a remote branch**), and the previous spec",
+          "clause": "deletes"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "**An agent never deletes or force-pushes a remote branch**: every remote write",
+          "clause": "deletes"
+        },
+        {
+          "file": "references/next-stage-path-c.md",
+          "quote": "the agent never does"
+        },
+        {
+          "file": "references/next-stage-path-c.md",
+          "quote": "an agent never deletes or force-pushes a remote branch",
+          "clause": "deletes"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "the agent never does"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "an agent never deletes or force-pushes a remote branch",
+          "clause": "deletes"
         }
       ]
     },
@@ -1587,6 +2021,10 @@
         {
           "file": "commands/spec-answers.md",
           "quote": "never writes `## Open Questions` itself"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "Seats never write the section directly"
         }
       ]
     },
@@ -1630,6 +2068,10 @@
         {
           "file": "commands/spec-answers.md",
           "quote": "Do NOT edit the issue body/AC"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "it never auto-edits the issue body/AC"
         }
       ]
     },
@@ -1761,6 +2203,10 @@
         {
           "file": "commands/patrol.md",
           "quote": "report it, never repair"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "report, never repair. Candidates leave"
         }
       ]
     },
@@ -1790,6 +2236,10 @@
         {
           "file": "commands/patrol.md",
           "quote": "Either way the seat never commits"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "You never commit (the commit sub-agent does)"
         }
       ]
     },
@@ -1892,6 +2342,26 @@
         {
           "file": "commands/patrol.md",
           "quote": "never holds a gate"
+        },
+        {
+          "file": "references/forge-github.md",
+          "quote": "a bot is never a gate holder"
+        },
+        {
+          "file": "references/forge-gitlab.md",
+          "quote": "a bot is never a gate holder"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "a bot identity never holds a gate"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "a bot never holds a gate"
+        },
+        {
+          "file": "references/intake-brief.md",
+          "quote": "a bot identity never holds a gate"
         }
       ]
     },
@@ -1921,6 +2391,10 @@
         {
           "file": "commands/patrol.md",
           "quote": "never patrol's own"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "clarification thinking never lives in the orchestrator's context"
         }
       ]
     },
@@ -1943,6 +2417,14 @@
         {
           "file": "commands/patrol.md",
           "quote": "never a reason to wait"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "bystander comments never fold in un-endorsed"
+        },
+        {
+          "file": "references/intake-brief.md",
+          "quote": "never content — fold a bystander's suggestion in only where"
         }
       ]
     },
@@ -1973,6 +2455,10 @@
         {
           "file": "commands/patrol.md",
           "quote": "patrol never re-batches"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "patrol never re-batches"
         }
       ]
     },
@@ -1989,6 +2475,10 @@
         {
           "file": "commands/patrol.md",
           "quote": "a bot or an agent-marker comment never counts"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "never triggers one"
         }
       ]
     },
@@ -2004,6 +2494,14 @@
         {
           "file": "commands/patrol.md",
           "quote": "it never re-asks the batch"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "it never re-asks the batch"
+        },
+        {
+          "file": "references/intake-brief.md",
+          "quote": "Never a batch question again"
         }
       ]
     },
@@ -2019,6 +2517,14 @@
         {
           "file": "commands/patrol.md",
           "quote": "never edits the body or a label"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "and never touches the body or a label"
+        },
+        {
+          "file": "references/intake-brief.md",
+          "quote": "It never edits the issue body or a label"
         }
       ]
     },
@@ -2034,6 +2540,10 @@
         {
           "file": "commands/patrol.md",
           "quote": "never @-mentions anyone"
+        },
+        {
+          "file": "references/intake-brief.md",
+          "quote": "never an @-mention"
         }
       ]
     },
@@ -2103,6 +2613,10 @@
         {
           "file": "commands/patrol.md",
           "quote": "and never `blocked:`"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "never the word `blocked`"
         }
       ]
     },
@@ -2123,6 +2637,22 @@
         {
           "file": "commands/patrol.md",
           "quote": "never read as \"no branch\""
+        },
+        {
+          "file": "references/branch-names.md",
+          "quote": "Unknown is never absent"
+        },
+        {
+          "file": "references/branch-names.md",
+          "quote": "never `NO_MATCH`"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "an unreadable history is never \"no branch\""
+        },
+        {
+          "file": "references/roz-state.md",
+          "quote": "never \"no branch\""
         }
       ]
     },
@@ -2182,6 +2712,1841 @@
         {
           "file": "commands/patrol.md",
           "quote": "never improvise"
+        }
+      ]
+    },
+    {
+      "id": "P128",
+      "rule": "The next sequence is one past the highest, never one past the count",
+      "class": "guarded-by-case",
+      "owner": "references/branch-names.md",
+      "evidence": [
+        "C31"
+      ],
+      "sources": [
+        {
+          "file": "references/branch-names.md",
+          "quote": "never 1 + the count"
+        },
+        {
+          "file": "references/next-stage-path-c.md",
+          "quote": "never 1 + the count"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "never 1 + the count"
+        }
+      ]
+    },
+    {
+      "id": "P129",
+      "rule": "An invalid `branch_template` is fixed with `/roz-gate:config`, never by a command",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case with an invalid `branch_template`: the STOP comment names the config command and the local file is unchanged",
+      "sources": [
+        {
+          "file": "references/branch-names.md",
+          "quote": "never by a command"
+        }
+      ]
+    },
+    {
+      "id": "P130",
+      "rule": "Describes what a `bin/` tool or a hook does or refuses",
+      "class": "not-a-rule",
+      "owner": "—",
+      "evidence": [],
+      "reason": "describes what a `bin/` tool or a hook does or refuses — code, tested in `hooks/tests/`; the prose forbids the agent nothing",
+      "sources": [
+        {
+          "file": "references/branch-names.md",
+          "quote": "Expand never computes the sequence itself"
+        },
+        {
+          "file": "references/branch-names.md",
+          "quote": "never a precondition of a live head"
+        },
+        {
+          "file": "references/branch-names.md",
+          "quote": "never from wherever the forge CLI resolves by default"
+        },
+        {
+          "file": "references/branch-names.md",
+          "quote": "it never creates, deletes, checks out or moves a branch"
+        },
+        {
+          "file": "references/branch-names.md",
+          "quote": "it never chooses the live attempt or the next sequence"
+        },
+        {
+          "file": "references/branch-names.md",
+          "quote": "a failed history read never makes it `unknown`"
+        },
+        {
+          "file": "references/branch-names.md",
+          "quote": "never the session's cwd"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "never overwriting"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "never written back (#122)"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "is a *present* tag, never read as absent"
+        },
+        {
+          "file": "references/roz-state.md",
+          "quote": "It never answers \"what should Roz Gate do next?\""
+        },
+        {
+          "file": "references/roz-state.md",
+          "quote": "is never an \"additive field\""
+        },
+        {
+          "file": "references/roz-state.md",
+          "quote": "A thread count is never absent under an observed CR"
+        },
+        {
+          "file": "references/roz-state.md",
+          "quote": "`dependencies.blocked_by` is never absent at all"
+        },
+        {
+          "file": "references/roz-state.md",
+          "quote": "it is never evidence that a snapshot became semantically invalid"
+        },
+        {
+          "file": "references/roz-state.md",
+          "quote": "never the whole block"
+        },
+        {
+          "file": "references/roz-state.md",
+          "quote": "never does today"
+        },
+        {
+          "file": "references/roz-state.md",
+          "quote": "A defect in the tool, never an observation"
+        },
+        {
+          "file": "references/roz-state.md",
+          "quote": "never reported as `unsupported`"
+        },
+        {
+          "file": "references/roz-state.md",
+          "quote": "never the CLI's"
+        },
+        {
+          "file": "references/roz-state.md",
+          "quote": "never absent; a live head is unaffected"
+        },
+        {
+          "file": "references/roz-state.md",
+          "quote": "never through `roz-config`"
+        },
+        {
+          "file": "references/roz-state.md",
+          "quote": "never expands a template or matches a head itself"
+        },
+        {
+          "file": "references/roz-state.md",
+          "quote": "are never compared here"
+        },
+        {
+          "file": "references/roz-check.md",
+          "quote": "It never runs the operation"
+        },
+        {
+          "file": "references/roz-check.md",
+          "quote": "never a second failure or a second unknown"
+        },
+        {
+          "file": "references/roz-check.md",
+          "quote": "the operation must not start"
+        },
+        {
+          "file": "references/roz-check.md",
+          "quote": "it never checks a spec CR at entry"
+        },
+        {
+          "file": "references/roz-check.md",
+          "quote": "counted, never ignored"
+        }
+      ]
+    },
+    {
+      "id": "P131",
+      "rule": "A name collision before a cut is a STOP naming the branch, never a silent bump of the sequence",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case whose expanded name already exists on the remote: STOP, and no branch with a bumped sequence is cut (C31 holds the prose; C11 covers the legitimate next sequence)",
+      "sources": [
+        {
+          "file": "references/branch-names.md",
+          "quote": "never a silent bump"
+        },
+        {
+          "file": "references/next-stage-path-c.md",
+          "quote": "never a silent bump"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "never a silent bump"
+        }
+      ]
+    },
+    {
+      "id": "P132",
+      "rule": "Two live matches of different kinds are an ambiguity a command must not resolve — it STOPs naming both",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case whose Lookup returns two branches of different kinds for one issue: STOP naming both, nothing bound",
+      "sources": [
+        {
+          "file": "references/branch-names.md",
+          "quote": "an ambiguity the command must not resolve"
+        }
+      ]
+    },
+    {
+      "id": "P133",
+      "rule": "A head that survives only in merged-CR history is a CR's name, never a branch — nothing checks it out, reads it or cuts from it",
+      "class": "guarded-by-case",
+      "owner": "references/branch-names.md",
+      "evidence": [
+        "A11"
+      ],
+      "sources": [
+        {
+          "file": "references/branch-names.md",
+          "quote": "never a branch**"
+        }
+      ]
+    },
+    {
+      "id": "P134",
+      "rule": "The scanner binds branch names through `bin/roz-branch match`, never by matching the template itself",
+      "class": "guarded-by-case",
+      "owner": "references/branch-names.md",
+      "evidence": [
+        "L4",
+        "C31"
+      ],
+      "sources": [
+        {
+          "file": "references/branch-names.md",
+          "quote": "never by matching the template itself"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "Never render the template yourself"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "never by a git call of your own"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "never by guessing"
+        }
+      ]
+    },
+    {
+      "id": "P135",
+      "rule": "The commands never repeat the commit rules — `commit-brief.md` is their only home",
+      "class": "guarded-by-case",
+      "owner": "references/commit-brief.md",
+      "evidence": [
+        "L3"
+      ],
+      "sources": [
+        {
+          "file": "references/commit-brief.md",
+          "quote": "the commands do not repeat them"
+        }
+      ]
+    },
+    {
+      "id": "P136",
+      "rule": "The commit sub-agent works in the one worktree the dispatch names, never another",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case with two loop worktrees present: the commit lands in the named one only",
+      "sources": [
+        {
+          "file": "references/commit-brief.md",
+          "quote": "never another worktree"
+        }
+      ]
+    },
+    {
+      "id": "P137",
+      "rule": "The commit sub-agent never stages a path outside the dispatch's file list",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case whose worktree holds a stray untracked file: the commit carries the listed files only",
+      "sources": [
+        {
+          "file": "references/commit-brief.md",
+          "quote": "is never staged"
+        }
+      ]
+    },
+    {
+      "id": "P138",
+      "rule": "The commit sub-agent never rewords the commit message",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case comparing the dispatched message with the commit's",
+      "sources": [
+        {
+          "file": "references/commit-brief.md",
+          "quote": "you never reword it"
+        }
+      ]
+    },
+    {
+      "id": "P139",
+      "rule": "The commit sub-agent never retries a failed commit more than once",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case with a pre-commit hook that always fails: at most two commit attempts",
+      "sources": [
+        {
+          "file": "references/commit-brief.md",
+          "quote": "Never retry more than once"
+        }
+      ]
+    },
+    {
+      "id": "P140",
+      "rule": "The commit sub-agent never widens the file list to make a hook pass",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — the same replay case: the staged set never grows beyond the dispatched list",
+      "sources": [
+        {
+          "file": "references/commit-brief.md",
+          "quote": "never widen the file list to make a hook pass"
+        }
+      ]
+    },
+    {
+      "id": "P141",
+      "rule": "The commit sub-agent never `--no-verify`s a failure that names a file in its list",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case whose hook fails on a listed file: no `--no-verify` commit follows",
+      "sources": [
+        {
+          "file": "references/commit-brief.md",
+          "quote": "never `--no-verify` a failure"
+        }
+      ]
+    },
+    {
+      "id": "P142",
+      "rule": "A `gh` call never passes `--repo` — the repository is the current directory's remote",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a lint or replay assertion that no forge call in a run carries `--repo`",
+      "sources": [
+        {
+          "file": "references/forge-github.md",
+          "quote": "never pass `--repo`"
+        }
+      ]
+    },
+    {
+      "id": "P143",
+      "rule": "The bot token is passed per invocation, never exported into the session environment",
+      "class": "deterministic-candidate",
+      "owner": "none yet",
+      "evidence": [
+        "#399"
+      ],
+      "sources": [
+        {
+          "file": "references/forge-github.md",
+          "quote": "Never export it into the session environment"
+        },
+        {
+          "file": "references/forge-gitlab.md",
+          "quote": "Never export it into the session environment"
+        },
+        {
+          "file": "references/identity-github-app.md",
+          "quote": "(per invocation — never exported"
+        },
+        {
+          "file": "references/identity-github-app.md",
+          "quote": "never `export`ed into the session"
+        }
+      ]
+    },
+    {
+      "id": "P144",
+      "rule": "In bot mode an issue is never created without an assignee — a bot-authored issue is never born holder-less",
+      "class": "deterministic-candidate",
+      "owner": "none yet",
+      "evidence": [
+        "#402"
+      ],
+      "sources": [
+        {
+          "file": "references/forge-github.md",
+          "quote": "must never be born holder-less"
+        },
+        {
+          "file": "references/forge-gitlab.md",
+          "quote": "must never be born holder-less"
+        }
+      ]
+    },
+    {
+      "id": "P145",
+      "rule": "The bot's git identity is given per command, never written into the repository's git config",
+      "class": "deterministic-candidate",
+      "owner": "none yet",
+      "evidence": [
+        "#400"
+      ],
+      "sources": [
+        {
+          "file": "references/forge-github.md",
+          "quote": "never writing identity into the repo's git config (the human's"
+        },
+        {
+          "file": "references/forge-gitlab.md",
+          "quote": "never writing identity into the repo's git config. ## Labels"
+        }
+      ]
+    },
+    {
+      "id": "P146",
+      "rule": "A failed blockers read is a failed read, never \"no blockers\"",
+      "class": "guarded-by-case",
+      "owner": "references/patrol-scan.md",
+      "evidence": [
+        "F15"
+      ],
+      "sources": [
+        {
+          "file": "references/forge-github.md",
+          "quote": "never \"no blockers\""
+        },
+        {
+          "file": "references/forge-gitlab.md",
+          "quote": "never \"no blockers\""
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "is `blockers unknown`, never \"none\""
+        },
+        {
+          "file": "references/roz-state.md",
+          "quote": "never \"no blockers\" (F15"
+        }
+      ]
+    },
+    {
+      "id": "P147",
+      "rule": "The loop never writes an issue relationship — blockers are read-only",
+      "class": "guarded-by-case",
+      "owner": "references/patrol-scan.md",
+      "evidence": [
+        "F15"
+      ],
+      "sources": [
+        {
+          "file": "references/forge-github.md",
+          "quote": "the loop never writes a relationship"
+        },
+        {
+          "file": "references/forge-gitlab.md",
+          "quote": "the loop never writes a link"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "the loop reads it, never writes it"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "You never write a relationship"
+        }
+      ]
+    },
+    {
+      "id": "P148",
+      "rule": "In bot mode the `{user}` slot is the first `bot_login`, never a forge call",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case in bot mode that cuts a branch: no WHOAMI call in the journal",
+      "sources": [
+        {
+          "file": "references/forge-github.md",
+          "quote": "never a forge call | Label names"
+        },
+        {
+          "file": "references/forge-gitlab.md",
+          "quote": "never a forge call | ## Change requests"
+        }
+      ]
+    },
+    {
+      "id": "P149",
+      "rule": "A command never merges a CR on the forge — CR-MERGE is the human's act at (7)",
+      "class": "deterministic-candidate",
+      "owner": "none yet",
+      "evidence": [
+        "#398"
+      ],
+      "sources": [
+        {
+          "file": "references/forge-github.md",
+          "quote": "commands never run this"
+        },
+        {
+          "file": "references/forge-gitlab.md",
+          "quote": "commands never run this"
+        }
+      ]
+    },
+    {
+      "id": "P150",
+      "rule": "The fidelity audit gives cited evidence, never a verdict",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a finding is evidence or a verdict is a reading of it",
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "cited evidence, never a verdict"
+        },
+        {
+          "file": "references/fidelity-brief.md",
+          "quote": "never a pass/fail verdict"
+        },
+        {
+          "file": "references/fidelity-brief.md",
+          "quote": "they never pass or fail the feature"
+        },
+        {
+          "file": "references/next-stage-path-b2.md",
+          "quote": "evidence for the human, never a verdict"
+        }
+      ]
+    },
+    {
+      "id": "P151",
+      "rule": "A dispatched seat never searches for plugin files — the dispatch names the plugin root",
+      "class": "guarded-by-case",
+      "owner": "references/workflow.md",
+      "evidence": [
+        "D28"
+      ],
+      "note": "hook L (D29) is a supporting boundary: a seat dispatch without the `Plugin root:` line is denied; it does not stop a seat that has the line from searching",
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "never search for plugin files"
+        }
+      ]
+    },
+    {
+      "id": "P152",
+      "rule": "A persona is swappable; the seat's contract never is",
+      "class": "guarded-by-case",
+      "owner": "references/workflow.md",
+      "evidence": [
+        "D25"
+      ],
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "the contract never is"
+        }
+      ]
+    },
+    {
+      "id": "P153",
+      "rule": "A failed seat resolve, or a spawn the runtime refuses, is the STOP exit — never another agent",
+      "class": "guarded-by-case",
+      "owner": "references/workflow.md",
+      "evidence": [
+        "D26",
+        "L22"
+      ],
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "never another agent"
+        }
+      ]
+    },
+    {
+      "id": "P154",
+      "rule": "A seat's question is moved into `spec.md`'s Open Questions, never copied",
+      "class": "guarded-by-case",
+      "owner": "references/workflow.md",
+      "evidence": [
+        "E2"
+      ],
+      "note": "hook D is a supporting boundary: a commit while `technical-spec.md` still carries an open-questions heading is refused; a question left elsewhere is not seen",
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "never copied"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "it never carries the question body"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "the owning document never carries the question body"
+        }
+      ]
+    },
+    {
+      "id": "P155",
+      "rule": "An as-built change to what a rule means takes the backward transition, never a silent edit",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether an as-built correction changes what a rule means is a reading of the diff against the spec",
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "never a silent edit"
+        }
+      ]
+    },
+    {
+      "id": "P156",
+      "rule": "QA tests through the port, never through the persistence layer or an implementation import beyond the port's declared types",
+      "class": "guarded-by-case",
+      "owner": "references/qa-brief.md",
+      "evidence": [
+        "B8"
+      ],
+      "note": "hook E is a supporting boundary (no read of the implementation during the dispatch)",
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "never through the persistence layer"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "it never persists entities or touches the persistence layer directly"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "you never persist entities or touch the persistence layer to arrange it"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "never an import of an implementation class beyond the port's declared types"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "never the persistence layer — Given-state"
+        }
+      ]
+    },
+    {
+      "id": "P157",
+      "rule": "QA or the implementer hitting a contract ambiguity mid-flight never interprets it — it stops and reports",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a choice was an interpretation of an ambiguous clause is a reading",
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "it never interprets"
+        }
+      ]
+    },
+    {
+      "id": "P158",
+      "rule": "QA or the implementer hitting a contract ambiguity never decides it unilaterally in code",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether code settles an ambiguity is a reading of it against the contract",
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "it never decides unilaterally in code"
+        },
+        {
+          "file": "references/next-stage-path-b.md",
+          "quote": "never decide unilaterally in code"
+        }
+      ]
+    },
+    {
+      "id": "P159",
+      "rule": "A review finding that is really a contract ambiguity is never settled on the implementation CR",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a finding is a contract ambiguity is a reading of it",
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "never settled on the implementation CR"
+        },
+        {
+          "file": "references/next-stage-path-b.md",
+          "quote": "never settled reviewer-to-implementer on the implementation CR"
+        }
+      ]
+    },
+    {
+      "id": "P160",
+      "rule": "The loop's `git worktree add` runs alone, from inside the repository — never as `git -C <dir>`",
+      "class": "hooked",
+      "owner": "hook J",
+      "evidence": [
+        "hooks/tests/test_guard_gate.py::RuleJ_LoopWorktreeAddRunsAlone"
+      ],
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "(never `git -C <dir>`)"
+        }
+      ]
+    },
+    {
+      "id": "P161",
+      "rule": "A gate label a bot identity applied is an illegal state — reported, never acted on, never repaired",
+      "class": "guarded-by-case",
+      "owner": "references/patrol-scan.md",
+      "evidence": [
+        "C24",
+        "F13"
+      ],
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "reported in the pass and the queue, never acted on"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "never repaired. A human's application"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "never acts on one a bot identity applied"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "applied by <login>`, skip classification, report it — never repair the label"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "never route the row to `next-stage` or to finalize"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "never one the audit flagged"
+        }
+      ]
+    },
+    {
+      "id": "P162",
+      "rule": "A dependency missing from the base is a STOP, never an option a command offers or takes",
+      "class": "guarded-by-case",
+      "owner": "references/workflow.md",
+      "evidence": [
+        "C29"
+      ],
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "is a STOP, never an option"
+        }
+      ]
+    },
+    {
+      "id": "P163",
+      "rule": "Code the spec asks this issue to build, or scope beyond the issue, is a scope question on the spec CR, never the missing-dependency STOP",
+      "class": "guarded-by-case",
+      "owner": "references/workflow.md",
+      "evidence": [
+        "C29"
+      ],
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "never this STOP"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "is an Open Question, never this STOP"
+        }
+      ]
+    },
+    {
+      "id": "P164",
+      "rule": "A Given with no control point is a contract defect QA reports, never works around",
+      "class": "guarded-by-case",
+      "owner": "references/qa-brief.md",
+      "evidence": [
+        "D22"
+      ],
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "a contract defect QA reports, never works around"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "never a workaround"
+        }
+      ]
+    },
+    {
+      "id": "P165",
+      "rule": "\"The port is the API\" never becomes \"the port is always HTTP\"",
+      "class": "guarded-by-case",
+      "owner": "references/workflow.md",
+      "evidence": [
+        "B8"
+      ],
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "never becomes \"the port is always HTTP\""
+        }
+      ]
+    },
+    {
+      "id": "P166",
+      "rule": "A port that under-exposes a promised observation point is a defect QA reports — never worked around, never silently downgraded to `uncovered`",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — D22's sibling on an observation point: a scenario whose promised observation the port does not expose is a finding, and `test-spec.md` does not mark it `uncovered` without one",
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "never works around it or silently downgrades the scenario"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "never a silent `uncovered` entry"
+        }
+      ]
+    },
+    {
+      "id": "P167",
+      "rule": "A shared fact has one home — seats read it there and never re-decide it",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a seat re-decided a fact its home already states is a reading of its deliverable",
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "never re-decide it"
+        }
+      ]
+    },
+    {
+      "id": "P168",
+      "rule": "QA never reads the implementation during its dispatch",
+      "class": "hooked",
+      "owner": "hook E",
+      "evidence": [
+        "hooks/tests/test_guard_blind.py::RuleE_QaDispatchSeat"
+      ],
+      "sources": [
+        {
+          "file": "references/workflow.md",
+          "quote": "QA never reads the implementation"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "you never read the implementation, you"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "You never read the implementation: the build reaches you"
+        },
+        {
+          "file": "references/qa-brief.md",
+          "quote": "**Forbidden.** A read of `src/`"
+        },
+        {
+          "file": "references/next-stage-path-b2.md",
+          "quote": "it may not read the code it runs against"
+        }
+      ]
+    },
+    {
+      "id": "P169",
+      "rule": "The scanner never re-derives the values the main agent handed it (the inbox filter, `default_branch`)",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay pass asserting the scanner makes no `roz-config` call and no read of the local file",
+      "sources": [
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "never re-derive them"
+        }
+      ]
+    },
+    {
+      "id": "P170",
+      "rule": "A track-less issue outside the inbox filter is never commented on, never locked, never listed as waiting — only counted",
+      "class": "guarded-by-case",
+      "owner": "references/patrol-scan.md",
+      "evidence": [
+        "F11"
+      ],
+      "note": "F11 asserts the filtered-out issue has no row; that it is neither commented on nor locked is asserted there only as the absence of a queue item",
+      "sources": [
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "never commented on"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "never locked"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "never listed as waiting"
+        }
+      ]
+    },
+    {
+      "id": "P171",
+      "rule": "A gate label on a stage that already passed is an illegal state — reported, never repaired, never routed",
+      "class": "guarded-by-case",
+      "owner": "references/patrol-scan.md",
+      "evidence": [
+        "C27",
+        "F14"
+      ],
+      "sources": [
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "merged)`, skip classification, report it — never repair the label"
+        },
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "never route the row to `next-stage`, nor on to the action"
+        }
+      ]
+    },
+    {
+      "id": "P172",
+      "rule": "A blocker is the forge's own relationship, never a `Blocked by` line in a body or a spec",
+      "class": "guarded-by-case",
+      "owner": "references/patrol-scan.md",
+      "evidence": [
+        "F15"
+      ],
+      "sources": [
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "never a `Blocked by` line in a body or a spec"
+        }
+      ]
+    },
+    {
+      "id": "P173",
+      "rule": "Nothing is re-invoked on an issue wearing `status: blocked` — it waits on the user",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay pass over a `status: blocked` issue: its row is `blocked:` with `needs you: yes`, and no dispatch or write names it",
+      "sources": [
+        {
+          "file": "references/patrol-scan.md",
+          "quote": "never re-invoke anything on it"
+        }
+      ]
+    },
+    {
+      "id": "P174",
+      "rule": "Intake captures intent — never binding terms (scenarios, schemas, guarantees)",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a sentence of the story binds a term is a reading of it",
+      "sources": [
+        {
+          "file": "references/intake-brief.md",
+          "quote": "never binding terms"
+        }
+      ]
+    },
+    {
+      "id": "P175",
+      "rule": "Live intake returns the single most important question, never a list",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case on to-issues (live mode): each seat return carries one question",
+      "sources": [
+        {
+          "file": "references/intake-brief.md",
+          "quote": "never a list. The next dispatch"
+        }
+      ]
+    },
+    {
+      "id": "P176",
+      "rule": "A question's options are one bullet each, never prose",
+      "class": "hooked",
+      "owner": "hook F",
+      "evidence": [
+        "hooks/tests/test_guard_gate.py::RuleF_QuestionOptionsAreBullets"
+      ],
+      "sources": [
+        {
+          "file": "references/intake-brief.md",
+          "quote": "One bullet per option, never prose"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "One bullet per option, never prose"
+        }
+      ]
+    },
+    {
+      "id": "P177",
+      "rule": "Acceptance criteria are observable and testable, never implementation tasks",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a criterion is an observable outcome or a task is a reading of it",
+      "sources": [
+        {
+          "file": "references/intake-brief.md",
+          "quote": "never implementation tasks"
+        }
+      ]
+    },
+    {
+      "id": "P178",
+      "rule": "The intake seat never resolves a disagreement between commenters — it carries both sides and names the summary's choice as a recommendation",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "authority — settling a disagreement is the gate holder's; whether a summary settled one is a reading of it",
+      "sources": [
+        {
+          "file": "references/intake-brief.md",
+          "quote": "never silently pick"
+        },
+        {
+          "file": "references/intake-brief.md",
+          "quote": "You never resolve a disagreement"
+        }
+      ]
+    },
+    {
+      "id": "P179",
+      "rule": "In an intake reply an answer from anyone but the gate holder is recorded as input, never as settled",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "authority — only the gate holder's label decides; whether a reply presents an answer as settled is a reading of it",
+      "sources": [
+        {
+          "file": "references/intake-brief.md",
+          "quote": "never as settled"
+        }
+      ]
+    },
+    {
+      "id": "P180",
+      "rule": "One issue is one story — never split into parent/child, tasks, layers or implementation slices at intake",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a set of stories is a split by layer or task is a reading of them",
+      "sources": [
+        {
+          "file": "references/intake-brief.md",
+          "quote": "never parent/child"
+        },
+        {
+          "file": "references/intake-brief.md",
+          "quote": "never task-splitting"
+        },
+        {
+          "file": "references/intake-brief.md",
+          "quote": "is forbidden — that is the spec stage's job"
+        }
+      ]
+    },
+    {
+      "id": "P181",
+      "rule": "Intake captures what and why, never how",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a sentence of the story states how is a reading of it",
+      "sources": [
+        {
+          "file": "references/intake-brief.md",
+          "quote": "never *how*"
+        }
+      ]
+    },
+    {
+      "id": "P182",
+      "rule": "The intake seat drives toward the smallest story — shrink, don't grow",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "persona — how the seat scopes; what counts as growing is its judgment",
+      "sources": [
+        {
+          "file": "references/intake-brief.md",
+          "quote": "don't grow"
+        }
+      ]
+    },
+    {
+      "id": "P183",
+      "rule": "The intake seat does not gold-plate the clarification — good enough to gate is the bar",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "persona — how the seat interrogates; what counts as gold-plating is its judgment",
+      "sources": [
+        {
+          "file": "references/intake-brief.md",
+          "quote": "Don't gold-plate the clarification"
+        }
+      ]
+    },
+    {
+      "id": "P184",
+      "rule": "An intake batch never holds more than five questions",
+      "class": "deterministic-candidate",
+      "owner": "none yet",
+      "evidence": [
+        "#401"
+      ],
+      "sources": [
+        {
+          "file": "references/intake-brief.md",
+          "quote": "Never more than five questions in a batch"
+        }
+      ]
+    },
+    {
+      "id": "P185",
+      "rule": "The proposed track is never treated as decided — the human confirms or overrides it",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "authority — the track is the human's to confirm",
+      "sources": [
+        {
+          "file": "references/intake-brief.md",
+          "quote": "Never treat it as decided"
+        }
+      ]
+    },
+    {
+      "id": "P186",
+      "rule": "The gate kit is never posted into a review thread — it is a top-level comment on the spec CR",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case asserting the kit's body appears in exactly one top-level comment and in no thread",
+      "sources": [
+        {
+          "file": "references/gate-kit.md",
+          "quote": "never posted into a review thread"
+        }
+      ]
+    },
+    {
+      "id": "P187",
+      "rule": "The gate kit quotes, never paraphrases",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a line is a verbatim excerpt of its source or a paraphrase needs the source read against it",
+      "sources": [
+        {
+          "file": "references/gate-kit.md",
+          "quote": "never paraphrase.** Every claim"
+        }
+      ]
+    },
+    {
+      "id": "P188",
+      "rule": "The gate kit sorts its items, never filters them",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case whose kit is compared with the spec: every rule and scenario id appears in it",
+      "sources": [
+        {
+          "file": "references/gate-kit.md",
+          "quote": "never filter**"
+        }
+      ]
+    },
+    {
+      "id": "P189",
+      "rule": "The kit's sort is on computed properties only, never the assembler's confidence",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — what an ordering was based on is not visible in the output",
+      "sources": [
+        {
+          "file": "references/gate-kit.md",
+          "quote": "never the assembler's confidence"
+        }
+      ]
+    },
+    {
+      "id": "P190",
+      "rule": "The word \"mechanical\" never appears in the gate kit",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay assertion that the kit comment does not contain the word",
+      "sources": [
+        {
+          "file": "references/gate-kit.md",
+          "quote": "never appears (\"not flagged\""
+        }
+      ]
+    },
+    {
+      "id": "P191",
+      "rule": "A verdict exemption (an observability limitation) is never granted by the implementer — it stands once the holder has seen it in the kit",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "authority — exempting a scenario from the verdict is the holder's",
+      "sources": [
+        {
+          "file": "references/gate-kit.md",
+          "quote": "the implementer never grants its own"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "the implementer never grants its own"
+        }
+      ]
+    },
+    {
+      "id": "P192",
+      "rule": "An evidence card's observation slot holds what the run emitted, never the expectation restated",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a card's observation is the run's output or the expectation reworded needs the captured output read against it",
+      "sources": [
+        {
+          "file": "references/gate-kit.md",
+          "quote": "never the expectation restated in the observation slot"
+        }
+      ]
+    },
+    {
+      "id": "P193",
+      "rule": "\"The spec you approved is byte-identical\" never appears alone when non-spec paths moved",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay re-verdict in which only non-spec paths moved since approval: the kit's since-you-approved line names the commits beside the claim",
+      "sources": [
+        {
+          "file": "references/gate-kit.md",
+          "quote": "never appears alone**"
+        }
+      ]
+    },
+    {
+      "id": "P194",
+      "rule": "The §5 observability map is a claim QA verifies against the port, never a fact it inherits",
+      "class": "guarded-by-case",
+      "owner": "references/qa-brief.md",
+      "evidence": [
+        "D22"
+      ],
+      "sources": [
+        {
+          "file": "references/qa-brief.md",
+          "quote": "never a fact to inherit"
+        }
+      ]
+    },
+    {
+      "id": "P195",
+      "rule": "QA never writes a unit test — its level is the port",
+      "class": "guarded-by-case",
+      "owner": "references/qa-brief.md",
+      "evidence": [
+        "B8"
+      ],
+      "sources": [
+        {
+          "file": "references/qa-brief.md",
+          "quote": "Never a unit test"
+        }
+      ]
+    },
+    {
+      "id": "P196",
+      "rule": "The QA seat never posts to the forge — its findings are returned and the main agent posts them",
+      "class": "guarded-by-case",
+      "owner": "references/workflow.md",
+      "evidence": [
+        "E9"
+      ],
+      "sources": [
+        {
+          "file": "references/qa-brief.md",
+          "quote": "never post to the forge"
+        }
+      ]
+    },
+    {
+      "id": "P197",
+      "rule": "The QA seat never touches the implementation branch or the spec branch",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a QA-frame replay assertion that the remote's implementation and spec refs are unchanged by the dispatch",
+      "note": "hook E is a supporting boundary: during the dispatch a git action on the implementation ref is denied; the spec branch is not covered",
+      "sources": [
+        {
+          "file": "references/qa-brief.md",
+          "quote": "never touch `<feat-branch>` or `<spec-branch>`"
+        }
+      ]
+    },
+    {
+      "id": "P198",
+      "rule": "The fidelity reviewer never reads the implementation",
+      "class": "hooked",
+      "owner": "hook E",
+      "evidence": [
+        "hooks/tests/test_guard_blind.py::RuleE_FidelityDispatchIsBlind"
+      ],
+      "sources": [
+        {
+          "file": "references/fidelity-brief.md",
+          "quote": "You never read the implementation"
+        }
+      ]
+    },
+    {
+      "id": "P199",
+      "rule": "A fidelity dispatch never continues a context that has seen the implementation",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay assertion that the fidelity dispatch is a fresh agent, not a continuation of the code reviewer's",
+      "sources": [
+        {
+          "file": "references/fidelity-brief.md",
+          "quote": "this dispatch must not continue a context that has"
+        },
+        {
+          "file": "references/next-stage-path-b2.md",
+          "quote": "never a continuation of B5's"
+        }
+      ]
+    },
+    {
+      "id": "P200",
+      "rule": "The blind fidelity reviewer never opens the implementation CR's threads",
+      "class": "guarded-by-case",
+      "owner": "references/fidelity-brief.md",
+      "evidence": [
+        "D6"
+      ],
+      "sources": [
+        {
+          "file": "references/fidelity-brief.md",
+          "quote": "Implementation-CR threads are never yours"
+        },
+        {
+          "file": "references/next-stage-path-b2.md",
+          "quote": "never opens the implementation CR (its threads"
+        }
+      ]
+    },
+    {
+      "id": "P201",
+      "rule": "Mapping defects are an itemized list, never folded into the fidelity count",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay fidelity audit seeded with a mapping defect: the summary lists it apart from the count",
+      "sources": [
+        {
+          "file": "references/fidelity-brief.md",
+          "quote": "never folded into the fidelity count"
+        }
+      ]
+    },
+    {
+      "id": "P202",
+      "rule": "A fidelity finding is a new thread, never posted into an existing unresolved thread",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — C17's seed with an open thread on the QA CR: the audit's findings are new threads and the open one gains no reply",
+      "sources": [
+        {
+          "file": "references/fidelity-brief.md",
+          "quote": "Never post into an existing unresolved thread"
+        }
+      ]
+    },
+    {
+      "id": "P203",
+      "rule": "A scenario that is not assertable as written is a spec finding reported to the main agent, not routed to QA",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a finding is a test defect or a spec defect is a reading of it",
+      "sources": [
+        {
+          "file": "references/fidelity-brief.md",
+          "quote": "don't route it to QA"
+        }
+      ]
+    },
+    {
+      "id": "P204",
+      "rule": "A scenario-meaning dispute is a spec ambiguity — never settled reviewer-to-QA on the QA CR",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a finding is a dispute about a scenario's meaning is a reading of it",
+      "sources": [
+        {
+          "file": "references/fidelity-brief.md",
+          "quote": "never settled reviewer-to-QA on the QA CR"
+        }
+      ]
+    },
+    {
+      "id": "P205",
+      "rule": "At the reserved-word STOP each row is decided on its own, never one action for all",
+      "class": "guarded-by-case",
+      "owner": "references/next-stage-path-b.md",
+      "evidence": [
+        "B10"
+      ],
+      "sources": [
+        {
+          "file": "references/next-stage-path-b.md",
+          "quote": "never one action for all"
+        }
+      ]
+    },
+    {
+      "id": "P206",
+      "rule": "A rule or contract line born from a deferred item carries `(assumed)`, never `(from Q<k>)`",
+      "class": "guarded-by-case",
+      "owner": "references/next-stage-path-b.md",
+      "evidence": [
+        "E11"
+      ],
+      "sources": [
+        {
+          "file": "references/next-stage-path-b.md",
+          "quote": "never `(from Q<k>)`"
+        }
+      ]
+    },
+    {
+      "id": "P207",
+      "rule": "The code reviewer reviews against the claim it is handed, never against its own inference of intent",
+      "class": "guarded-by-case",
+      "owner": "references/next-stage-path-b.md",
+      "evidence": [
+        "D1"
+      ],
+      "sources": [
+        {
+          "file": "references/next-stage-path-b.md",
+          "quote": "it never reviews code against its own inference of intent"
+        }
+      ]
+    },
+    {
+      "id": "P208",
+      "rule": "A branch is cut only from a base the remote has — never from anything else",
+      "class": "guarded-by-case",
+      "owner": "references/branch-names.md",
+      "evidence": [
+        "C7"
+      ],
+      "sources": [
+        {
+          "file": "references/next-stage-path-c.md",
+          "quote": "never cut from anything else"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "never cut from anything else"
+        }
+      ]
+    },
+    {
+      "id": "P209",
+      "rule": "The spec's rule enumeration is the content itself in numbered form, never a second prose copy",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a passage restates the numbered rules is a reading of the document",
+      "sources": [
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "never a second prose copy that can drift from it"
+        }
+      ]
+    },
+    {
+      "id": "P210",
+      "rule": "A reserved word loose in a sentence is reworded, never waved through as a false positive",
+      "class": "guarded-by-case",
+      "owner": "references/reserved-words.md",
+      "evidence": [
+        "B6",
+        "B10"
+      ],
+      "sources": [
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "never to wave it through as a false positive"
+        },
+        {
+          "file": "references/reserved-words.md",
+          "quote": "never to allow the hit"
+        }
+      ]
+    },
+    {
+      "id": "P211",
+      "rule": "Accepting a risk is never evidence for an empirical premise",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a tag claims evidence the spec does not have is a reading of the premise and its tag",
+      "sources": [
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "accepting a risk is never evidence"
+        }
+      ]
+    },
+    {
+      "id": "P212",
+      "rule": "The supplement fold changes placement, never the shapes the hooks and checkers parse (headings, IDs, tags, the §5 table)",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay spec refinement whose documents are parsed afterwards: every heading, id, tag and the §5 table are in their exact shapes",
+      "sources": [
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "never the things the hooks and checkers parse"
+        }
+      ]
+    },
+    {
+      "id": "P213",
+      "rule": "A Glossary definition a seat finds insufficient or contradicted goes through that seat's channel, never settled locally",
+      "class": "guarded-by-case",
+      "owner": "references/next-stage-path-a.md",
+      "evidence": [
+        "D24"
+      ],
+      "note": "D24's replay half asserts it for QA; for the implementer only the lint anchor holds the sentence",
+      "sources": [
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "never settled locally"
+        }
+      ]
+    },
+    {
+      "id": "P214",
+      "rule": "Review guidance or a note for QA is a rule or a note under its rule, never a scenario",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a scenario is falsifiable behaviour or guidance is a reading of it",
+      "sources": [
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "never a scenario"
+        }
+      ]
+    },
+    {
+      "id": "P215",
+      "rule": "Example text shown to illustrate a shape",
+      "class": "not-a-rule",
+      "owner": "—",
+      "evidence": [],
+      "reason": "example text — a sample rule, comment or sentence shown to illustrate a shape; forbids no act",
+      "sources": [
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "Expired offers don't count"
+        }
+      ]
+    },
+    {
+      "id": "P216",
+      "rule": "In a comment, thread or report the first mention of an ID is written in full with its link, never the bare code",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay assertion over posted comments: the first occurrence of each `R<k>` / `S<k>` / `C<k>` carries its title and a link",
+      "sources": [
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "never the bare code"
+        }
+      ]
+    },
+    {
+      "id": "P217",
+      "rule": "A gate-kit update edits the kit's one comment in place, never posts a sibling",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay re-verdict or spec-answers run: the spec CR carries exactly one kit comment afterwards",
+      "sources": [
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "never posts a sibling"
+        }
+      ]
+    },
+    {
+      "id": "P218",
+      "rule": "Path A writes the two spec documents and never code",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — F3's seed with an assertion that the spec branch's diff against its base touches only `<specs_dir>/<n>/`",
+      "sources": [
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "Never write code beyond the two spec docs"
+        }
+      ]
+    },
+    {
+      "id": "P219",
+      "rule": "With a contract question still unsettled, QA is not dispatched — the question routes to the spec CR first",
+      "class": "guarded-by-case",
+      "owner": "references/next-stage-path-b2.md",
+      "evidence": [
+        "D6"
+      ],
+      "sources": [
+        {
+          "file": "references/next-stage-path-b2.md",
+          "quote": "do not dispatch"
+        }
+      ]
+    },
+    {
+      "id": "P220",
+      "rule": "QA never opens the implementation CR — the as-built changes reach it as the dispatch's copy",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a QA-frame replay assertion that no tool call under the dispatch names the implementation CR (D6 asserts it for the fidelity dispatch)",
+      "sources": [
+        {
+          "file": "references/next-stage-path-b2.md",
+          "quote": "QA never opens the implementation CR"
+        }
+      ]
+    },
+    {
+      "id": "P221",
+      "rule": "The blind dispatch's worktrees are removed after the marker is gone, never while it is on",
+      "class": "deterministic-candidate",
+      "owner": "none yet",
+      "evidence": [
+        "#403"
+      ],
+      "sources": [
+        {
+          "file": "references/next-stage-path-b2.md",
+          "quote": "never while it is on"
+        }
+      ]
+    },
+    {
+      "id": "P222",
+      "rule": "The audited party never closes the audit's findings — the reviewer re-checks and resolves them",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay address-review on a QA CR with fidelity threads: each thread is resolved under a `reviewer` dispatch, not a `qa` one",
+      "sources": [
+        {
+          "file": "references/next-stage-path-b2.md",
+          "quote": "never closes the audit's findings"
+        }
+      ]
+    },
+    {
+      "id": "P223",
+      "rule": "An unknown fact neither satisfies nor refutes a precondition — a consumer never reads it as `0`, `false` or empty",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a lint over the commands' preconditions needs a parseable precondition form; `hooks/tests/` hold it for `roz-check` only",
+      "note": "`roz-check` implements the invariant in code for the operations it knows (`unknown` → `may_start: false`)",
+      "sources": [
+        {
+          "file": "references/roz-state.md",
+          "quote": "never reads it as `0`, `false` or empty"
+        }
+      ]
+    },
+    {
+      "id": "P224",
+      "rule": "A STOP message or a later audit reads why a rule came out as it did from the check result, never reconstructs it",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay STOP after a failed check: the comment's reason matches the result's `failed` codes",
+      "sources": [
+        {
+          "file": "references/roz-check.md",
+          "quote": "it never reconstructs it"
+        }
+      ]
+    },
+    {
+      "id": "P225",
+      "rule": "A caller of `roz-check` reads `verdict`, `may_start`, `failed` and `unknown` — codes, never the prose",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — no command consumes `roz-check` yet (shadow mode); the guard is a lint on the consuming step once one does",
+      "sources": [
+        {
+          "file": "references/roz-check.md",
+          "quote": "codes, never prose"
+        }
+      ]
+    },
+    {
+      "id": "P226",
+      "rule": "Creating the bot's credentials is the human's task — a command never automates a step of it",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "authority — credentials are the human's to create; no case observes a command attempting it",
+      "sources": [
+        {
+          "file": "references/identity-github-app.md",
+          "quote": "they never automate any step on this page"
+        }
+      ]
+    },
+    {
+      "id": "P227",
+      "rule": "The bot credential is never written into git config or any repository file",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case in bot mode: no file in the work tree and no git config value holds the token after the run",
+      "sources": [
+        {
+          "file": "references/identity-github-app.md",
+          "quote": "never written into git config or any repo file"
+        }
+      ]
+    },
+    {
+      "id": "P228",
+      "rule": "An agent never force-pushes a remote branch — every remote write a command makes is additive",
+      "class": "deterministic-candidate",
+      "owner": "none yet",
+      "evidence": [
+        "#394"
+      ],
+      "sources": [
+        {
+          "file": "references/branch-names.md",
+          "quote": "never a force-push"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "an agent never deletes or force-pushes a remote branch**), and the previous spec",
+          "clause": "force-pushes"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "**An agent never deletes or force-pushes a remote branch**: every remote write",
+          "clause": "force-pushes"
+        },
+        {
+          "file": "references/next-stage-path-c.md",
+          "quote": "an agent never deletes or force-pushes a remote branch",
+          "clause": "force-pushes"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "an agent never deletes or force-pushes a remote branch",
+          "clause": "force-pushes"
+        }
+      ]
+    },
+    {
+      "id": "P229",
+      "rule": "The config command never edits `CLAUDE.md` or `CLAUDE.local.md` itself",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case on `/roz-gate:config` setting a key: neither file changes",
+      "note": "not a deterministic candidate today: the predicate is which command is writing, not which path is written (`init` writes `CLAUDE.md` legitimately), and no tool call or local state carries a trustworthy command identity. It becomes one if the architecture introduces a command-context / capability boundary",
+      "sources": [
+        {
+          "file": "commands/config.md",
+          "quote": "never edit `.claude/roz-gate.local.json`, `CLAUDE.md` or `CLAUDE.local.md` yourself",
+          "clause": "`CLAUDE.md` or `CLAUDE.local.md`"
         }
       ]
     }

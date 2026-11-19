@@ -404,6 +404,9 @@ classification, in that file, not a rewording:
    `sources`. When unsure, it is a new row.
 2. **The quote** is the clause as written: once in the file, one
    prohibition word in it. A sentence with two prohibitions is two sources.
+   One word over two independently violable acts (`never X or Y`) is two
+   rows sharing the quote: each source adds `clause`, the piece of the
+   quote that row owns.
 3. **The class**, strongest first: `hooked` (name the rule and a hook-test
    case that denies the act — the act itself, not a neighbouring
    operational boundary) · `deterministic-candidate` (the rule's whole
