@@ -91,6 +91,15 @@ c.expect(SRC, "L23: no quote is registered twice, and every source is a scoped f
             if BAD["twice"] or BAD["out_of_scope"] else ""),
          not BAD["twice"] and not BAD["out_of_scope"])
 
+# The detector itself: a prohibition inside an `only … may` span is its own
+# hit (codex review, PR #393 — the long match consumed it, so one quote over
+# the sentence held "one" prohibition and passed).
+_probe = [w.lower() for _, _, w in P.hits(
+    "Only the owner, who must not change the contract, may approve. Only QA may not.")]
+c.expect("evals/lib/prohibitions.py",
+         "L23: a prohibition inside an `only … may` span is counted beside it (got %s)" % _probe,
+         _probe == ["only", "must not", "may not"])
+
 HOOKS = set(re.findall(r"^\| \*\*([A-Z])\*\* ", read("hooks/README.md"), re.M))
 LEDGER = set(re.findall(r"^\| ([A-Z]\d+) \|", read("evals/LEDGER.md"), re.M))
 shape, owner, evidence, reason = [], [], [], []
