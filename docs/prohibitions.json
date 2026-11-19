@@ -1,6 +1,7 @@
 {
   "scope": [
     "agents",
+    "commands",
     "templates"
   ],
   "rows": [
@@ -121,6 +122,70 @@
         {
           "file": "agents/reviewer.md",
           "quote": "The author cannot see their own blind spots"
+        },
+        {
+          "file": "commands/config.md",
+          "quote": "this prompt never runs"
+        },
+        {
+          "file": "commands/config.md",
+          "quote": "seats are never configured"
+        },
+        {
+          "file": "commands/init.md",
+          "quote": "routine plugin upgrades never demand a re-init"
+        },
+        {
+          "file": "commands/uninit.md",
+          "quote": "don't block retirement"
+        },
+        {
+          "file": "commands/uninit.md",
+          "quote": "a plugin command cannot uninstall its own plugin"
+        },
+        {
+          "file": "commands/integrate.md",
+          "quote": "the user's checkout was never touched"
+        },
+        {
+          "file": "commands/review-answers.md",
+          "quote": "report what never landed"
+        },
+        {
+          "file": "commands/tip.md",
+          "quote": "the close-out never ran"
+        },
+        {
+          "file": "commands/tip.md",
+          "quote": "it was never gated"
+        },
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "was never read"
+        },
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "they do not hold the issue"
+        },
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "the user's checkout was never touched"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "It never changes the model this command itself runs on"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "the review that never ran"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "(or never re-checked)"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "the audit that never ran"
         }
       ]
     },
@@ -139,6 +204,30 @@
         {
           "file": "templates/implementer.md",
           "quote": "a definition you cannot build to is a question"
+        },
+        {
+          "file": "commands/next-stage.md",
+          "quote": "anything this command cannot or should not decide"
+        },
+        {
+          "file": "commands/integrate.md",
+          "quote": "A local ref that cannot fast-forward"
+        },
+        {
+          "file": "commands/review-answers.md",
+          "quote": "Anything you cannot read as a clear yes"
+        },
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "On anything this command cannot or should not decide"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "A row you cannot act on as written"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "A row the pass cannot act on as written"
         }
       ]
     },
@@ -176,15 +265,23 @@
     },
     {
       "id": "P011",
-      "rule": "Describes another seat's rule",
+      "rule": "Describes another seat's or command's rule",
       "class": "not-a-rule",
       "owner": "—",
       "evidence": [],
-      "reason": "describes QA's rule to the implementer (it is stated to QA in `references/qa-brief.md`); forbids the reader nothing",
+      "reason": "describes another seat's or command's rule to the reader (the rule is stated to its owner elsewhere); forbids the reader nothing",
       "sources": [
         {
           "file": "templates/implementer.md",
           "quote": "QA never touches the persistence layer"
+        },
+        {
+          "file": "commands/tip.md",
+          "quote": "patrol never re-invokes anything on `blocked`"
+        },
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "qa never writes spec text"
         }
       ]
     },
@@ -421,6 +518,1670 @@
         {
           "file": "templates/implementer.md",
           "quote": "never silently assume: collect open questions"
+        }
+      ]
+    },
+    {
+      "id": "P028",
+      "rule": "The config command never edits `.claude/roz-gate.local.json`, `CLAUDE.md` or `CLAUDE.local.md` itself — `bin/roz-config` does the write",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case on `/roz-gate:config` setting a key: the local file changes only through `bin/roz-config`, with no Edit or Write on it",
+      "note": "not a deterministic candidate today: the predicate is which command is writing, not which path is written (`init` writes `CLAUDE.md` legitimately), and no tool call or local state carries a trustworthy command identity. It becomes one if the architecture introduces a command-context / capability boundary",
+      "sources": [
+        {
+          "file": "commands/config.md",
+          "quote": "never by this prompt"
+        },
+        {
+          "file": "commands/config.md",
+          "quote": "never edit `.claude/roz-gate.local.json`, `CLAUDE.md` or `CLAUDE.local.md` yourself"
+        }
+      ]
+    },
+    {
+      "id": "P029",
+      "rule": "Says where a value lives or what state a file is in",
+      "class": "not-a-rule",
+      "owner": "—",
+      "evidence": [],
+      "reason": "says where a value lives or what state a file is in (a local key is per person and not committed); forbids no act",
+      "sources": [
+        {
+          "file": "commands/config.md",
+          "quote": "per person, per clone, never committed"
+        },
+        {
+          "file": "commands/init.md",
+          "quote": "(`.claude/roz-gate.local.json`, never committed). Say so"
+        },
+        {
+          "file": "commands/init.md",
+          "quote": "(`.claude/roz-gate.local.json`, never committed; the write"
+        },
+        {
+          "file": "commands/next-stage.md",
+          "quote": "are per person, per clone, never in the block"
+        },
+        {
+          "file": "commands/integrate.md",
+          "quote": "are per person, per clone, never in the block"
+        },
+        {
+          "file": "commands/review-answers.md",
+          "quote": "are per person, per clone, never in the block"
+        },
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "are per person, per clone, never in the block"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "are per person, per clone, never in the block"
+        }
+      ]
+    },
+    {
+      "id": "P030",
+      "rule": "A multi-value config key is passed one value per quoted argument, never split on spaces",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case on `/roz-gate:config` setting `inbox_label` to a label that holds a space",
+      "sources": [
+        {
+          "file": "commands/config.md",
+          "quote": "never split on spaces"
+        }
+      ]
+    },
+    {
+      "id": "P031",
+      "rule": "Describes a constraint the tool enforces",
+      "class": "not-a-rule",
+      "owner": "—",
+      "evidence": [],
+      "reason": "describes a value the tool refuses (`bin/roz-config` validates it); the prose forbids the agent nothing",
+      "sources": [
+        {
+          "file": "commands/config.md",
+          "quote": "never a directory or a `.gitignore`"
+        }
+      ]
+    },
+    {
+      "id": "P032",
+      "rule": "An agent never applies a gate label (`ready-for-spec`, `ready-for-dev`) — the gate is the human's",
+      "class": "hooked",
+      "owner": "hook B",
+      "evidence": [
+        "hooks/tests/test_guard_gate.py::RuleB_GateLabelsAreHumanOnly"
+      ],
+      "sources": [
+        {
+          "file": "commands/config.md",
+          "quote": "never apply a gate label"
+        },
+        {
+          "file": "commands/to-issues.md",
+          "quote": "This command never applies a gate label"
+        },
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "Do NOT touch the gate"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "3. Clear the lock. Never apply a gate label"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "Hard rules: never apply a gate label"
+        }
+      ]
+    },
+    {
+      "id": "P033",
+      "rule": "The config command never creates forge labels",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case on `/roz-gate:config` whose forge journal holds no label-create call",
+      "sources": [
+        {
+          "file": "commands/config.md",
+          "quote": "never create forge labels"
+        }
+      ]
+    },
+    {
+      "id": "P034",
+      "rule": "init says, where it asks for `test` and `acceptance_test`, that they run in a linked worktree, never in the checkout",
+      "class": "guarded-by-case",
+      "owner": "references/workflow.md",
+      "evidence": [
+        "L6"
+      ],
+      "sources": [
+        {
+          "file": "commands/init.md",
+          "quote": "never in the checkout"
+        }
+      ]
+    },
+    {
+      "id": "P035",
+      "rule": "init never automates the bot credential's creation — it points the user at the one-time setup",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "authority — creating a credential is the human's act",
+      "sources": [
+        {
+          "file": "commands/init.md",
+          "quote": "never automated here"
+        }
+      ]
+    },
+    {
+      "id": "P036",
+      "rule": "On GitLab the `processing` lock label is created plain, never scoped — it must coexist with a phase label",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a lint on init's GitLab label list, or a replay of init on GitLab whose journal creates `processing` unscoped (C3 checks label coexistence, not how init creates the label)",
+      "sources": [
+        {
+          "file": "commands/init.md",
+          "quote": "never scope it"
+        }
+      ]
+    },
+    {
+      "id": "P037",
+      "rule": "A `type:` label is never a gate — no command applies, removes, validates or dispatches on one",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case in which an issue carries a `type:` label and no gate label: nothing is dispatched",
+      "sources": [
+        {
+          "file": "commands/init.md",
+          "quote": "informational, never a gate"
+        }
+      ]
+    },
+    {
+      "id": "P038",
+      "rule": "init never copies the workflow prose into the project's `CLAUDE.md` — only the pointer and the config block",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case on init whose resulting `CLAUDE.md` section is the template's pointer and block and nothing from `references/workflow.md`",
+      "sources": [
+        {
+          "file": "commands/init.md",
+          "quote": "is never copied into the project"
+        }
+      ]
+    },
+    {
+      "id": "P039",
+      "rule": "init never copies, moves or renames a user's agent file when it links a seat",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case on init linking a seat: the user's agent file is byte-identical and in place afterwards",
+      "sources": [
+        {
+          "file": "commands/init.md",
+          "quote": "Never copy, move, or rename the user's file"
+        }
+      ]
+    },
+    {
+      "id": "P040",
+      "rule": "The word is part of a name",
+      "class": "not-a-rule",
+      "owner": "—",
+      "evidence": [],
+      "reason": "the word is part of a name — the R&R table's `Never` column, the kit's `cannot-be-covered-black-box` bucket",
+      "sources": [
+        {
+          "file": "commands/init.md",
+          "quote": "R&R row (Owns / Never)"
+        },
+        {
+          "file": "commands/init.md",
+          "quote": "Text that fights the Never column"
+        },
+        {
+          "file": "commands/integrate.md",
+          "quote": "cannot-be-covered-black-box"
+        }
+      ]
+    },
+    {
+      "id": "P041",
+      "rule": "init never links a persona that fails the seat's contract check without showing the violating lines",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a persona's text fights the seat's Never column is a reading of that text",
+      "sources": [
+        {
+          "file": "commands/init.md",
+          "quote": "Never link a failing persona silently"
+        }
+      ]
+    },
+    {
+      "id": "P042",
+      "rule": "init never edits an existing `CLAUDE.md` section without showing the change first",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case on init over a project that already has the section: the change is shown before any write to `CLAUDE.md`",
+      "sources": [
+        {
+          "file": "commands/init.md",
+          "quote": "never edits an existing CLAUDE.md section without showing the change first"
+        }
+      ]
+    },
+    {
+      "id": "P043",
+      "rule": "A command's git work runs in a linked worktree, never in the user's checkout",
+      "class": "guarded-by-case",
+      "owner": "references/workflow.md",
+      "evidence": [
+        "C9",
+        "F8"
+      ],
+      "sources": [
+        {
+          "file": "commands/next-stage.md",
+          "quote": "runs in a linked worktree, never in the user's checkout"
+        },
+        {
+          "file": "commands/next-stage.md",
+          "quote": "never touch the user's checkout"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "patrol itself never runs git in the user's checkout"
+        }
+      ]
+    },
+    {
+      "id": "P044",
+      "rule": "next-stage never scans for Path B2 — it is reached by number only",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case in which a QA-ready issue exists and next-stage runs with no number: it is not picked",
+      "sources": [
+        {
+          "file": "commands/next-stage.md",
+          "quote": "never scans for it"
+        }
+      ]
+    },
+    {
+      "id": "P045",
+      "rule": "next-stage never repairs a label-invariant violation itself — it stops and reports",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case on next-stage over an issue with two `track:` labels: the labels are unchanged and the run reports",
+      "sources": [
+        {
+          "file": "commands/next-stage.md",
+          "quote": "Never repair labels yourself"
+        }
+      ]
+    },
+    {
+      "id": "P046",
+      "rule": "Defines a term",
+      "class": "not-a-rule",
+      "owner": "—",
+      "evidence": [],
+      "reason": "defines a term by what it is not; forbids no act",
+      "sources": [
+        {
+          "file": "commands/next-stage.md",
+          "quote": "(never code this issue would build)"
+        },
+        {
+          "file": "commands/integrate.md",
+          "quote": "never reached its assertion"
+        },
+        {
+          "file": "commands/tip.md",
+          "quote": "(never `spec` + `ready-for-dev`"
+        },
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "(never code this spec asks for)"
+        }
+      ]
+    },
+    {
+      "id": "P047",
+      "rule": "The loop never merges another issue's branch into the issue branch — the remedy is to sync the base",
+      "class": "hooked",
+      "owner": "hook K",
+      "evidence": [
+        "hooks/tests/test_guard_gate.py::RuleK_LoopMergesOnlyBaseOrOwn"
+      ],
+      "note": "rule K acts in a loop worktree — where every command's git work runs; a merge in the person's own checkout is not the loop's and is not judged",
+      "sources": [
+        {
+          "file": "commands/next-stage.md",
+          "quote": "Never merge that branch into the issue branch instead"
+        },
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "never merges another branch into the spec branch"
+        }
+      ]
+    },
+    {
+      "id": "P048",
+      "rule": "The fast track's escalation valve (C3) never uses the STOP exit — it is a designed transition",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case that escalates a fast-track issue: labels end on the spec track's gate, not `status: blocked`, and no STOP comment is posted",
+      "sources": [
+        {
+          "file": "commands/next-stage.md",
+          "quote": "never uses the STOP exit"
+        }
+      ]
+    },
+    {
+      "id": "P049",
+      "rule": "to-issues relays the intake seat's question to the user verbatim — it does not answer, soften or batch it",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case on to-issues in which the seat returns a question: the text shown to the user is the seat's, unaltered",
+      "sources": [
+        {
+          "file": "commands/to-issues.md",
+          "quote": "do not answer it, soften it, or batch it with your own commentary"
+        }
+      ]
+    },
+    {
+      "id": "P050",
+      "rule": "uninit never retires the loop mid-flight — open loop issues or CRs stop it",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case on uninit with an open `spec/*` CR: it stops and lists it, removing nothing",
+      "sources": [
+        {
+          "file": "commands/uninit.md",
+          "quote": "never mid-flight"
+        }
+      ]
+    },
+    {
+      "id": "P051",
+      "rule": "uninit never deletes the work products — specs, the acceptance suite, issue and CR history",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case on uninit: `<specs_dir>` and `<acceptance_dir>` are intact afterwards",
+      "sources": [
+        {
+          "file": "commands/uninit.md",
+          "quote": "Never delete them"
+        }
+      ]
+    },
+    {
+      "id": "P052",
+      "rule": "An existing branch is found by Lookup, never guessed",
+      "class": "guarded-by-case",
+      "owner": "references/branch-names.md",
+      "evidence": [
+        "C31"
+      ],
+      "sources": [
+        {
+          "file": "commands/integrate.md",
+          "quote": "an existing branch is found by Lookup, never guessed"
+        },
+        {
+          "file": "commands/review-answers.md",
+          "quote": "an existing branch is found by Lookup, never guessed"
+        },
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "an existing branch is found by Lookup, never guessed"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "an existing branch is found by Lookup, never guessed"
+        }
+      ]
+    },
+    {
+      "id": "P053",
+      "rule": "integrate's worktree starts at the remote's spec-branch tip, never at a stale local ref",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay seed whose local spec ref is behind the remote's (every seed today has local = remote, so only the source shows it)",
+      "sources": [
+        {
+          "file": "commands/integrate.md",
+          "quote": "never at a stale local ref an earlier run left behind"
+        }
+      ]
+    },
+    {
+      "id": "P054",
+      "rule": "integrate merges a CR that is open, never one already merged",
+      "class": "guarded-by-case",
+      "owner": "commands/integrate.md",
+      "evidence": [
+        "C12"
+      ],
+      "sources": [
+        {
+          "file": "commands/integrate.md",
+          "quote": "merge what is open, never what is merged"
+        }
+      ]
+    },
+    {
+      "id": "P055",
+      "rule": "Once both CRs are merged, integrate validates the current spec-branch tip — it never reconstructs it from stale `feat` / `qa` tips",
+      "class": "guarded-by-case",
+      "owner": "commands/integrate.md",
+      "evidence": [
+        "C12"
+      ],
+      "sources": [
+        {
+          "file": "commands/integrate.md",
+          "quote": "it never reconstructs it from stale `feat`/`qa` branch tips"
+        }
+      ]
+    },
+    {
+      "id": "P056",
+      "rule": "States a fact that explains a neighbouring rule",
+      "class": "not-a-rule",
+      "owner": "—",
+      "evidence": [],
+      "reason": "states a fact given as the reason for a neighbouring rule; forbids no act",
+      "sources": [
+        {
+          "file": "commands/integrate.md",
+          "quote": "a feature-scoped run cannot see (a sync"
+        },
+        {
+          "file": "commands/integrate.md",
+          "quote": "this command never moves the local ref"
+        },
+        {
+          "file": "commands/integrate.md",
+          "quote": "exactly the code a feature-scoped run cannot see"
+        },
+        {
+          "file": "commands/review-answers.md",
+          "quote": "a reaction cannot select which"
+        },
+        {
+          "file": "commands/tip.md",
+          "quote": "This command cannot tell a live lock from a stale one"
+        },
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "the item itself never changes"
+        },
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "the two axes never share a tag"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "never queues behind machine work"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "must not starve the rest of the loop"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "so a quiet inbox is never a mystery"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "so it never *newly* enters anything"
+        }
+      ]
+    },
+    {
+      "id": "P057",
+      "rule": "On a re-verdict the final-gate kit's cards are regenerated wholesale from the new run, never patched",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay re-verdict whose kit comment afterwards carries the new run's cards and a re-stamped `cards-sha`, with none of the earlier run's text",
+      "sources": [
+        {
+          "file": "commands/integrate.md",
+          "quote": "never patched"
+        }
+      ]
+    },
+    {
+      "id": "P058",
+      "rule": "A green verdict states what the run licenses — \"green against the pre-rework spec, at SHA x\" — never \"verified\"",
+      "class": "guarded-by-case",
+      "owner": "commands/integrate.md",
+      "evidence": [
+        "F4",
+        "C12"
+      ],
+      "sources": [
+        {
+          "file": "commands/integrate.md",
+          "quote": "never \"verified\""
+        }
+      ]
+    },
+    {
+      "id": "P059",
+      "rule": "A classifiable RED at integration is routed to its fix, never finalized",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case with a red integration: labels do not reach `in-user-review` and the spec branch is not pushed as green",
+      "sources": [
+        {
+          "file": "commands/integrate.md",
+          "quote": "route each fix, never finalize"
+        }
+      ]
+    },
+    {
+      "id": "P060",
+      "rule": "An integration RED is fixed in the implementation, the harness or the contract, never in a QA assertion (QA-4 at stage 6)",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case with an integration red that is a contract disagreement: the assertion is unchanged afterwards (D9 / D19 assert QA-4 at the QA dispatch, not at integration)",
+      "sources": [
+        {
+          "file": "commands/integrate.md",
+          "quote": "never to a QA assertion"
+        }
+      ]
+    },
+    {
+      "id": "P061",
+      "rule": "On a STOP `status: blocked` is worn alone, never beside a gate or phase label",
+      "class": "guarded-by-case",
+      "owner": "references/workflow.md",
+      "evidence": [
+        "C1",
+        "F5"
+      ],
+      "note": "C1 and F5 assert `blocked` alone on next-stage's STOP; integrate's re-verdict STOP (entered from `in-user-review`) has no case of its own",
+      "sources": [
+        {
+          "file": "commands/integrate.md",
+          "quote": "never beside a phase label"
+        }
+      ]
+    },
+    {
+      "id": "P062",
+      "rule": "A red integration is never silently merged",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case with a red integration: the spec CR is not merged and the report says red",
+      "sources": [
+        {
+          "file": "commands/integrate.md",
+          "quote": "Never silently merge a red integration"
+        }
+      ]
+    },
+    {
+      "id": "P063",
+      "rule": "The gate-kit comment is never a review item",
+      "class": "guarded-by-case",
+      "owner": "commands/review-answers.md",
+      "evidence": [
+        "E8"
+      ],
+      "sources": [
+        {
+          "file": "commands/review-answers.md",
+          "quote": "never an item"
+        },
+        {
+          "file": "commands/tip.md",
+          "quote": "the gate-kit comment is the loop's own, never an item"
+        },
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "The gate-kit comment is the loop's own, never an item"
+        },
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "must not be folded as a ruling"
+        }
+      ]
+    },
+    {
+      "id": "P064",
+      "rule": "A behavioural claim in a review answer cites a spec rule or a test, never a code line alone",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a claim is behavioural and what it rests on is a reading of the answer",
+      "sources": [
+        {
+          "file": "commands/review-answers.md",
+          "quote": "never a code line alone"
+        }
+      ]
+    },
+    {
+      "id": "P065",
+      "rule": "A marker-carrying comment never opens with a quote block",
+      "class": "hooked",
+      "owner": "hook C",
+      "evidence": [
+        "hooks/tests/test_guard_gate.py::RuleC_MarkerCommentNeverOpensWithAQuote"
+      ],
+      "sources": [
+        {
+          "file": "commands/review-answers.md",
+          "quote": "Never open with a quote block"
+        }
+      ]
+    },
+    {
+      "id": "P066",
+      "rule": "A stage-(7) answer never resolves the user's thread — the user's satisfaction closes it",
+      "class": "guarded-by-case",
+      "owner": "commands/review-answers.md",
+      "evidence": [
+        "F2"
+      ],
+      "sources": [
+        {
+          "file": "commands/review-answers.md",
+          "quote": "it never resolves the thread"
+        }
+      ]
+    },
+    {
+      "id": "P067",
+      "rule": "Silence is never consent to a change at stage (7)",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "authority — only the user's word authorizes a change; whether a reply is that word is a reading of it",
+      "sources": [
+        {
+          "file": "commands/review-answers.md",
+          "quote": "Silence is never consent"
+        }
+      ]
+    },
+    {
+      "id": "P068",
+      "rule": "A reaction is consent to a readback proposing one change, never to one proposing several",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "authority — only the user's word authorizes a change; whether a readback proposes one change or several is a reading of it",
+      "sources": [
+        {
+          "file": "commands/review-answers.md",
+          "quote": "never to a readback proposing several"
+        }
+      ]
+    },
+    {
+      "id": "P069",
+      "rule": "At stage (7) an ambiguous reply resolves to asking, never to acting",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether a reply is ambiguous is a reading of it",
+      "sources": [
+        {
+          "file": "commands/review-answers.md",
+          "quote": "never to acting"
+        }
+      ]
+    },
+    {
+      "id": "P070",
+      "rule": "A failing assertion that faithfully states the contract is never classified as \"they authorized it\" — the user rules",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "authority — ruling on a contract defect is the user's; whether an assertion faithfully states the contract is a reading",
+      "sources": [
+        {
+          "file": "commands/review-answers.md",
+          "quote": "never yours to classify as \"they authorized it\""
+        }
+      ]
+    },
+    {
+      "id": "P071",
+      "rule": "The back-to-intake door is taken on the user's word, never by the agent on its own",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "authority — abandoning the issue's work is the user's decision",
+      "sources": [
+        {
+          "file": "commands/review-answers.md",
+          "quote": "you never do"
+        }
+      ]
+    },
+    {
+      "id": "P072",
+      "rule": "tip is typed by the user; patrol never runs it",
+      "class": "guarded-by-case",
+      "owner": "commands/tip.md",
+      "evidence": [
+        "C19"
+      ],
+      "sources": [
+        {
+          "file": "commands/tip.md",
+          "quote": "patrol never does"
+        }
+      ]
+    },
+    {
+      "id": "P073",
+      "rule": "Asked to act on what it finds, tip names the command or the human act — it never does it itself",
+      "class": "guarded-by-case",
+      "owner": "commands/tip.md",
+      "evidence": [
+        "F12"
+      ],
+      "sources": [
+        {
+          "file": "commands/tip.md",
+          "quote": "never do it here"
+        }
+      ]
+    },
+    {
+      "id": "P074",
+      "rule": "A lock tip finds is part of its answer, never something it waits on or clears",
+      "class": "guarded-by-case",
+      "owner": "commands/tip.md",
+      "evidence": [
+        "F12"
+      ],
+      "note": "F12 asserts zero writes (the lock is not cleared); nothing asserts that tip does not wait",
+      "sources": [
+        {
+          "file": "commands/tip.md",
+          "quote": "never something it waits on or clears"
+        }
+      ]
+    },
+    {
+      "id": "P075",
+      "rule": "Review-clean is the code-review record current and zero open threads, never zero threads alone",
+      "class": "guarded-by-case",
+      "owner": "references/workflow.md",
+      "evidence": [
+        "C22"
+      ],
+      "note": "C22 asserts it at next-stage B2.1; tip's own reading of review-clean has no case",
+      "sources": [
+        {
+          "file": "commands/tip.md",
+          "quote": "never zero threads alone"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "never zero threads alone"
+        }
+      ]
+    },
+    {
+      "id": "P076",
+      "rule": "tip's answer is a reading of the documents, never a new rule",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether an answer adds a rule the documents do not give is a reading of it",
+      "sources": [
+        {
+          "file": "commands/tip.md",
+          "quote": "never a new rule"
+        }
+      ]
+    },
+    {
+      "id": "P077",
+      "rule": "tip names the repair for an illegal or stuck state and never performs it",
+      "class": "guarded-by-case",
+      "owner": "commands/tip.md",
+      "evidence": [
+        "F12"
+      ],
+      "sources": [
+        {
+          "file": "commands/tip.md",
+          "quote": "Never perform the repair here"
+        }
+      ]
+    },
+    {
+      "id": "P078",
+      "rule": "tip never declares a `processing` lock stale — it reports the pair and the evidence",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case on tip over `processing` beside a phase label: the answer reports the pair and does not call the lock stale",
+      "sources": [
+        {
+          "file": "commands/tip.md",
+          "quote": "it never declares the lock stale"
+        }
+      ]
+    },
+    {
+      "id": "P079",
+      "rule": "An agent never deletes a remote branch — `git push origin --delete` is the human's to run",
+      "class": "deterministic-candidate",
+      "owner": "none yet",
+      "evidence": [
+        "#394"
+      ],
+      "sources": [
+        {
+          "file": "commands/tip.md",
+          "quote": "the agent never does"
+        }
+      ]
+    },
+    {
+      "id": "P080",
+      "rule": "tip never writes — no label, no comment, no commit, no branch, no cleared `blocked`",
+      "class": "guarded-by-case",
+      "owner": "commands/tip.md",
+      "evidence": [
+        "C19",
+        "F12"
+      ],
+      "sources": [
+        {
+          "file": "commands/tip.md",
+          "quote": "never apply or remove a label"
+        },
+        {
+          "file": "commands/tip.md",
+          "quote": "never post a comment, a reply or a review"
+        },
+        {
+          "file": "commands/tip.md",
+          "quote": "never commit;"
+        },
+        {
+          "file": "commands/tip.md",
+          "quote": "never cut, delete or push a branch"
+        },
+        {
+          "file": "commands/tip.md",
+          "quote": "never clear `blocked`"
+        }
+      ]
+    },
+    {
+      "id": "P081",
+      "rule": "tip never dispatches a seat",
+      "class": "guarded-by-case",
+      "owner": "commands/tip.md",
+      "evidence": [
+        "F12"
+      ],
+      "sources": [
+        {
+          "file": "commands/tip.md",
+          "quote": "never dispatch a seat"
+        }
+      ]
+    },
+    {
+      "id": "P082",
+      "rule": "The agent-marker predicate (`**[`, `✅ [`) never swallows a human's bare `✅` answer",
+      "class": "guarded-by-case",
+      "owner": "references/patrol-scan.md",
+      "evidence": [
+        "A1"
+      ],
+      "sources": [
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "the marker must not swallow it"
+        }
+      ]
+    },
+    {
+      "id": "P083",
+      "rule": "A ruling's authority tag and an empirical premise's `(unverified)` evidence tag are never merged into one parenthesis",
+      "class": "deterministic-candidate",
+      "owner": "none yet",
+      "evidence": [
+        "#396"
+      ],
+      "sources": [
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "never merged into one parenthesis"
+        }
+      ]
+    },
+    {
+      "id": "P084",
+      "rule": "A question a depth-0 fold raises is a new `Q<k>` with its own thread, never a reply in the folded question's thread",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case in which a depth-0 fold raises a question: a new thread exists and the folded thread gains no question reply (E11 covers depth 1)",
+      "sources": [
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "never as a reply in Q<j>'s thread"
+        }
+      ]
+    },
+    {
+      "id": "P085",
+      "rule": "On a post-integration re-entry a question the fold surfaces is one top-level `[review] · question` comment, never a new seat thread",
+      "class": "guarded-by-case",
+      "owner": "commands/spec-answers.md",
+      "evidence": [
+        "C5"
+      ],
+      "sources": [
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "never as a new `**[<role>]` thread"
+        },
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "never a thread,"
+        }
+      ]
+    },
+    {
+      "id": "P086",
+      "rule": "On a post-integration re-entry a question the fold surfaces is never deferred",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay re-entry whose fold surfaces a question: no `· deferred` entry and no `[spec-answers] · deferred` comment",
+      "sources": [
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "never deferred (the resumed"
+        }
+      ]
+    },
+    {
+      "id": "P087",
+      "rule": "A rule born from an amendment carries `(from A<k>)` as its provenance, never `(assumed)`",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay amendment fold (E6's or E8's seed): the rule it adds is tagged `(from A<k>)`",
+      "sources": [
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "never `(assumed)`"
+        }
+      ]
+    },
+    {
+      "id": "P088",
+      "rule": "A resolved Open Questions entry never restates rule, scenario or contract text — it points at IDs",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether an entry restates a rule or points at it is a reading of the entry",
+      "sources": [
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "never restates rule/scenario/contract text"
+        }
+      ]
+    },
+    {
+      "id": "P089",
+      "rule": "The re-spawned folding seat never writes `## Open Questions` itself — em owns the section",
+      "class": "guarded-by-case",
+      "owner": "references/workflow.md",
+      "evidence": [
+        "E11"
+      ],
+      "sources": [
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "never writes `## Open Questions` itself"
+        }
+      ]
+    },
+    {
+      "id": "P090",
+      "rule": "A `· follow-up` reply on the same question is never deferred",
+      "class": "guarded-by-case",
+      "owner": "commands/spec-answers.md",
+      "evidence": [
+        "E11"
+      ],
+      "sources": [
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "is never deferred. The chain"
+        }
+      ]
+    },
+    {
+      "id": "P091",
+      "rule": "A seat that needs more information never resolves the thread — it replies `· follow-up` and leaves it open",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case in which the folding seat returns a follow-up: the thread carries the reply and is still unresolved",
+      "sources": [
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "it must NOT resolve"
+        }
+      ]
+    },
+    {
+      "id": "P092",
+      "rule": "spec-answers never edits the issue body or acceptance criteria — it comments, and the user decides whether to amend",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case whose resolution changes the user story: the journal holds an ISSUE-COMMENT and no ISSUE-EDIT-BODY (the call alone does not decide it: intake's finalize edits the body legitimately)",
+      "sources": [
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "Do NOT edit the issue body/AC"
+        }
+      ]
+    },
+    {
+      "id": "P093",
+      "rule": "Fold threads and the `[spec-answers] · deferred` comment are posted after the push, never before",
+      "class": "guarded-by-case",
+      "owner": "commands/spec-answers.md",
+      "evidence": [
+        "E11"
+      ],
+      "sources": [
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "after the push, never before"
+        }
+      ]
+    },
+    {
+      "id": "P094",
+      "rule": "A post-integration fold never returns the issue to implementation",
+      "class": "guarded-by-case",
+      "owner": "commands/spec-answers.md",
+      "evidence": [
+        "C5"
+      ],
+      "sources": [
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "this never returns to implementation"
+        }
+      ]
+    },
+    {
+      "id": "P095",
+      "rule": "A red on a post-integration re-entry is never resolved by editing an assertion to match (QA-4)",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay re-entry whose acceptance run is red: the assertion is unchanged afterwards",
+      "sources": [
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "never an assertion edited to match (QA-4)"
+        }
+      ]
+    },
+    {
+      "id": "P096",
+      "rule": "When a post-integration fold changed behaviour, the stale pair is not taken as evidence — the suite is not run for it, the cards are not regenerated, `cards-sha` is not re-stamped",
+      "class": "guarded-by-case",
+      "owner": "commands/spec-answers.md",
+      "evidence": [
+        "C5"
+      ],
+      "sources": [
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "do not run it as evidence"
+        },
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "do not regenerate the cards"
+        },
+        {
+          "file": "commands/spec-answers.md",
+          "quote": "do not re-stamp `cards-sha`"
+        }
+      ]
+    },
+    {
+      "id": "P097",
+      "rule": "patrol never re-reads the forge to confirm a row of the scanner's table",
+      "class": "guarded-by-case",
+      "owner": "commands/patrol.md",
+      "evidence": [
+        "A8",
+        "F9"
+      ],
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "Never re-read the forge to confirm a row"
+        }
+      ]
+    },
+    {
+      "id": "P098",
+      "rule": "A row patrol cannot act on as written is reported as an illegal state, never re-derived",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay pass whose scanner table carries a verdict outside the brief's list: the row is reported `illegal:` and the forge is not re-read for it",
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "is reported as an illegal state, never re-derived"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "never re-derived. The table"
+        }
+      ]
+    },
+    {
+      "id": "P099",
+      "rule": "patrol never re-scans between the actions of one pass",
+      "class": "guarded-by-case",
+      "owner": "commands/patrol.md",
+      "evidence": [
+        "F9"
+      ],
+      "note": "F9 asserts the main agent lists nothing after the table; a second scanner dispatch in an N>1 pass (C26) has no assertion of its own",
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "never re-scan between actions"
+        }
+      ]
+    },
+    {
+      "id": "P100",
+      "rule": "A merged CR on an issue in an unexpected status is an illegal state patrol reports and never repairs",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay pass over a merged CR whose issue wears a status other than the close-out's: no label or close is written and the row is `illegal:` (C24 / C27 / F13 / F14 cover gate-label illegal states)",
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "report it, never repair"
+        }
+      ]
+    },
+    {
+      "id": "P101",
+      "rule": "The implementer is never dispatched onto a fast-track branch — the main agent addresses its own CR's threads",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay address-review pass on a fast CR: no `implementer` dispatch",
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "is never dispatched onto `<fast-branch>`"
+        }
+      ]
+    },
+    {
+      "id": "P102",
+      "rule": "A seat never commits — every commit goes through the commit sub-agent",
+      "class": "guarded-by-case",
+      "owner": "references/commit-brief.md",
+      "evidence": [
+        "L3"
+      ],
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "Either way the seat never commits"
+        }
+      ]
+    },
+    {
+      "id": "P103",
+      "rule": "patrol's code-review action never commits",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — C23's seed with an assertion that the remote's refs are unchanged by the action",
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "rather than duplicated. It never commits"
+        }
+      ]
+    },
+    {
+      "id": "P104",
+      "rule": "patrol's code-review action never resolves a thread",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — C23's seed with an assertion that the journal holds no thread-resolve",
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "commits, never resolves a thread"
+        }
+      ]
+    },
+    {
+      "id": "P105",
+      "rule": "patrol's fidelity-audit action never commits",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — C17's seed with an assertion that the remote's refs are unchanged by the action",
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "to produce. It never commits"
+        }
+      ]
+    },
+    {
+      "id": "P106",
+      "rule": "patrol's fidelity-audit action never touches the implementation branch",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — C17's seed with an assertion that no call of the action names the implementation branch",
+      "note": "hook E is a supporting operational boundary (while the marker exists a git action on the implementation ref is denied), not this rule's owner: the action also runs before the marker is written and after it is removed",
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "never touches `<feat-branch>`"
+        }
+      ]
+    },
+    {
+      "id": "P107",
+      "rule": "patrol's fidelity-audit action never resolves a thread",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — C17's seed with an assertion that the journal holds no thread-resolve",
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "`<feat-branch>`, never resolves a thread"
+        }
+      ]
+    },
+    {
+      "id": "P108",
+      "rule": "The gate holder is read from the scanner's table, never re-listed",
+      "class": "guarded-by-case",
+      "owner": "commands/patrol.md",
+      "evidence": [
+        "A8",
+        "F9"
+      ],
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "read from the table, never re-listed"
+        }
+      ]
+    },
+    {
+      "id": "P109",
+      "rule": "A bot identity never holds a gate",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay pass over a bot-authored, unassigned inbox issue: no summary is written and the report says it needs an assignee (C24 / F13 cover a bot-applied label, not a bot holder)",
+      "note": "hook A is a supporting operational boundary: an `[intake] · summary` on a bot-authored, unassigned issue is denied (`has no holder`)",
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "never holds a gate"
+        }
+      ]
+    },
+    {
+      "id": "P110",
+      "rule": "On an issue with no gate holder only the questions batch may be posted",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — the same replay pass: the journal holds the `[intake]` batch and no other comment on that issue",
+      "note": "hook A is a supporting operational boundary (a summary with no holder is denied), not the whole rule",
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "only the questions batch may be posted on it"
+        }
+      ]
+    },
+    {
+      "id": "P111",
+      "rule": "Intake's clarification thinking is the dispatched `product` seat's, never patrol's own",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay intake pass: a `product` dispatch precedes every `[intake]` comment and the comment is its text",
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "never patrol's own"
+        }
+      ]
+    },
+    {
+      "id": "P112",
+      "rule": "At finalize, comments from anyone but the gate holder are thread discussion — never folded in, never listed, never a reason to wait",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay finalize on an issue whose latest summary is followed by a non-holder comment: the summary is finalized verbatim and nothing waits",
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "never folded in"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "never listed"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "never a reason to wait"
+        }
+      ]
+    },
+    {
+      "id": "P113",
+      "rule": "A summary request from anyone but the gate holder never triggers an intake summary",
+      "class": "hooked",
+      "owner": "hook A",
+      "evidence": [
+        "hooks/tests/test_guard_gate.py::RuleA_IntakeSummaryTrigger"
+      ],
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "A summary request from anyone else never triggers"
+        }
+      ]
+    },
+    {
+      "id": "P114",
+      "rule": "The intake question batch is asked once — patrol never re-batches",
+      "class": "deterministic-candidate",
+      "owner": "none yet",
+      "evidence": [
+        "#395"
+      ],
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "patrol never re-batches"
+        }
+      ]
+    },
+    {
+      "id": "P115",
+      "rule": "A bot's or an agent-marker comment never counts as a human comment on an intake thread",
+      "class": "guarded-by-case",
+      "owner": "references/patrol-scan.md",
+      "evidence": [
+        "A9"
+      ],
+      "note": "hook I is a supporting boundary: a reply where no human comment follows the latest `[intake]` comment is denied",
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "a bot or an agent-marker comment never counts"
+        }
+      ]
+    },
+    {
+      "id": "P116",
+      "rule": "An intake reply never re-asks the question batch",
+      "class": "guarded-by-case",
+      "owner": "commands/patrol.md",
+      "evidence": [
+        "A9"
+      ],
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "it never re-asks the batch"
+        }
+      ]
+    },
+    {
+      "id": "P117",
+      "rule": "An intake reply never edits the issue body or a label",
+      "class": "guarded-by-case",
+      "owner": "commands/patrol.md",
+      "evidence": [
+        "A9"
+      ],
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "never edits the body or a label"
+        }
+      ]
+    },
+    {
+      "id": "P118",
+      "rule": "An intake reply never @-mentions anyone",
+      "class": "guarded-by-case",
+      "owner": "commands/patrol.md",
+      "evidence": [
+        "A9"
+      ],
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "never @-mentions anyone"
+        }
+      ]
+    },
+    {
+      "id": "P119",
+      "rule": "A `this pass` cell is one clause from the vocabulary, never a list and never a commit log",
+      "class": "guarded-by-case",
+      "owner": "commands/patrol.md",
+      "evidence": [
+        "B7",
+        "F11"
+      ],
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "Never a list"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "never a commit log"
+        }
+      ]
+    },
+    {
+      "id": "P120",
+      "rule": "An actionable row the pass did not reach is `queued: <action>`, never `in progress`",
+      "class": "guarded-by-case",
+      "owner": "commands/patrol.md",
+      "evidence": [
+        "C30"
+      ],
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "never `in progress`"
+        }
+      ]
+    },
+    {
+      "id": "P121",
+      "rule": "An in-flight `track: spec` row never needs a label from the holder",
+      "class": "guarded-by-case",
+      "owner": "commands/patrol.md",
+      "evidence": [
+        "C30"
+      ],
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "never needs a label from the holder"
+        }
+      ]
+    },
+    {
+      "id": "P122",
+      "rule": "A gated row waiting on an open blocker reads `waits on #<n>` alone — never `queued: waits on …`, never `blocked:`",
+      "class": "guarded-by-case",
+      "owner": "commands/patrol.md",
+      "evidence": [
+        "F15"
+      ],
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "never `queued: waits on …`"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "and never `blocked:`"
+        }
+      ]
+    },
+    {
+      "id": "P123",
+      "rule": "A row whose branches are unknown is never acted on and never read as \"no branch\"",
+      "class": "guarded-by-case",
+      "owner": "references/branch-names.md",
+      "evidence": [
+        "C31",
+        "A11"
+      ],
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "on the same ground: never acted on"
+        },
+        {
+          "file": "commands/patrol.md",
+          "quote": "never read as \"no branch\""
+        }
+      ]
+    },
+    {
+      "id": "P124",
+      "rule": "A queue item is never written without its link",
+      "class": "guarded-by-case",
+      "owner": "commands/patrol.md",
+      "evidence": [
+        "B7",
+        "F11"
+      ],
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "never written without it"
+        }
+      ]
+    },
+    {
+      "id": "P125",
+      "rule": "An illegal state is a table row and a queue item, never a note under Details",
+      "class": "guarded-by-case",
+      "owner": "commands/patrol.md",
+      "evidence": [
+        "B7"
+      ],
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "never a note under Details"
+        }
+      ]
+    },
+    {
+      "id": "P126",
+      "rule": "patrol never runs intake for the user beyond the protocol",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether an act is beyond the protocol is a reading of it",
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "never run intake for the user beyond the protocol above"
+        }
+      ]
+    },
+    {
+      "id": "P127",
+      "rule": "On anything unexpected patrol stops and reports, never improvises",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "semantic — whether an act is an improvisation is a reading of it against the command",
+      "sources": [
+        {
+          "file": "commands/patrol.md",
+          "quote": "never improvise"
         }
       ]
     }

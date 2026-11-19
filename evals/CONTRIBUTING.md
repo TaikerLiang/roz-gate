@@ -406,11 +406,13 @@ classification, in that file, not a rewording:
    prohibition word in it. A sentence with two prohibitions is two sources.
 3. **The class**, strongest first: `hooked` (name the rule and a hook-test
    case that denies the act — the act itself, not a neighbouring
-   operational boundary) · `deterministic-candidate` (files, git and one
-   call's input could decide it and nothing does — open its issue, red
-   first; the issue chooses the owner: remove the invalid choice, generate
-   the value, verify in `roz-check`, deny in a hook, or leave it prose, in
-   that order) · `guarded-by-case` (ledger ids of cases that
+   operational boundary) · `deterministic-candidate` (the rule's whole
+   predicate is decidable from files, git and one call's input, and
+   nothing decides it — open its issue; the issue chooses the owner:
+   remove the invalid choice, generate the value, verify in `roz-check`,
+   deny in a hook, or leave it prose, in that order, and the evidence it
+   owes is that owner's — only a runtime deny needs a red first;
+   `docs/prose-inventory.md` § Prohibitions has the table) · `guarded-by-case` (ledger ids of cases that
    assert *this* prohibition) · `prose-only` (say why: `semantic`,
    `persona`, `authority`, or `unguarded — <what would guard it>`) ·
    `not-a-rule` (add the fragment under its reason; there is no pattern
