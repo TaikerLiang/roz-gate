@@ -17,6 +17,10 @@ prose, in the directories the data scopes (it grows PR by PR: `agents/` and
   word — one source is one occurrence of one clause, so a long quote cannot
   classify two independent prohibitions (#262), and a `not-a-rule` group is
   a shared reason over explicit fragments, never a pattern;
+- one prohibition word may govern more than one rule ("never deletes or
+  force-pushes"): rows may share a quote only when each source names its
+  `clause` — a literal piece of the quote — and the clauses differ; a quote
+  one row uses carries none. Lexical coverage does not set rule granularity;
 - `owner` and `evidence` are separate and each resolves: a `hooked` row
   names a rule `hooks/README.md` lists and hook-test cases that exist; a
   `guarded-by-case` row ids the ledger lists; a `deterministic-candidate`
@@ -32,7 +36,10 @@ editing a registered clause in the prose (stale quote); widening a quote
 over a second `never`; a quote that matches twice; two rows quoting
 overlapping text; `hook Z`; a hook-test case that does not exist; a ledger
 id that does not exist; a `deterministic-candidate` with no issue; a `prose-only`
-row with no reason; a new file with a `never` under a scoped directory.
+row with no reason; a new file with a `never` under a scoped directory;
+a quote shared by two rows with no `clause`; with the same `clause` twice;
+with a `clause` that is not in the quote; a `clause` on an unshared quote;
+one row registering a quote twice.
 """
 
 import os
@@ -49,7 +56,9 @@ META = {
               "`may not`, `only … may`, and their contractions) in the `*.md` files of the "
               "directories `docs/prohibitions.json` scopes lies inside exactly one quote a row "
               "registers for that file; every quote occurs exactly once in its file and holds "
-              "exactly one prohibition word; a `hooked` row names a rule `hooks/README.md` "
+              "exactly one prohibition word; two rows share a quote only when each source "
+              "names a distinct `clause` that is a literal piece of it (one word, two "
+              "rules); a `hooked` row names a rule `hooks/README.md` "
               "lists and hook-test cases that exist, a `guarded-by-case` row ids the ledger "
               "lists, a `deterministic-candidate` row its owner-selection issue, a "
               "`prose-only` or `not-a-rule` row a "
@@ -86,7 +95,11 @@ c.expect(SRC, "L23: every quote holds exactly one prohibition word%s"
          % (" — " + show(BAD["no_hit"] + BAD["many_hits"])
             if BAD["no_hit"] or BAD["many_hits"] else ""),
          not BAD["no_hit"] and not BAD["many_hits"])
-c.expect(SRC, "L23: no quote is registered twice, and every source is a scoped file%s"
+c.expect(SRC, "L23: rows share a quote only by naming distinct clauses of it, each a literal "
+         "piece of the quote; an unshared quote carries no clause%s"
+         % (" — " + show(BAD["clause"]) if BAD["clause"] else ""), not BAD["clause"])
+c.expect(SRC, "L23: no quote is registered twice without a clause, and every source is a "
+         "scoped file%s"
          % (" — " + show(BAD["twice"] + BAD["out_of_scope"])
             if BAD["twice"] or BAD["out_of_scope"] else ""),
          not BAD["twice"] and not BAD["out_of_scope"])

@@ -292,14 +292,18 @@ def render_prohibitions():
     def files(row):
         names = []
         for src in row["sources"]:
-            if src["file"] not in names:
-                names.append(src["file"])
-        return " · ".join("`%s`" % n for n in names)
+            name = "`%s`" % src["file"]
+            if src.get("clause"):   # a quote this row shares: say which part is its
+                name += " (“%s”)" % cell(src["clause"])
+            if name not in names:
+                names.append(name)
+        return " · ".join(names)
 
     by = {c: [r for r in rows if r["class"] == c] for c in P.CLASSES}
     unguarded = [r for r in by["prose-only"] if r.get("reason", "").startswith("unguarded")]
     rules = [r for r in rows if r["class"] != "not-a-rule"]
-    out = ["Scope: %s — %d files, %d prohibition words, each inside one quote of one row."
+    out = ["Scope: %s — %d files, %d prohibition words, each inside one quote. A quote belongs "
+           "to one row, or — one word, two rules — to several, each naming its clause."
            % (", ".join("`%s/`" % d for d in data.get("scope", [])), len(survey["files"]),
               survey["hits"]), "",
            "| class | rules | sources |", "|---|---|---|"]

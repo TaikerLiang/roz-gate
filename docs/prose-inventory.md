@@ -356,6 +356,13 @@ between the two words is a clause of its own. A line number is never stored: an 
 alone leaves the row alone, and one that changes the clause makes the row
 stale — which is when to look at it again.
 
+**One word may govern two rules.** The quote rule is lexical; a rule is a
+decision that can be violated on its own. "Never deletes or force-pushes a
+remote branch" is one prohibition word and two rules. Rows share such a
+quote by each naming its `clause` — a literal piece of the quote — and the
+clauses differ; a quote one row uses carries none. The scanner's token
+model never sets the rules' granularity.
+
 | class | meaning | `owner` | `evidence` |
 |---|---|---|---|
 | `hooked` | a hook denies the act itself — not a narrower operational boundary beside it (rule E stops QA reading the implementation; it does not make an assertion follow the contract) | `hook <rule>` | the hook-test cases |
@@ -385,7 +392,7 @@ at all are listed under *Unguarded executable prose*, by section — a
 different unit, kept apart.
 
 <!-- prohibitions -->
-Scope: `agents/`, `commands/`, `references/`, `templates/` — 36 files, 523 prohibition words, each inside one quote of one row.
+Scope: `agents/`, `commands/`, `references/`, `templates/` — 36 files, 523 prohibition words, each inside one quote. A quote belongs to one row, or — one word, two rules — to several, each naming its clause.
 
 | class | rules | sources |
 |---|---|---|
