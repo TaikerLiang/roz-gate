@@ -684,12 +684,12 @@
     },
     {
       "id": "P028",
-      "rule": "The config command never edits `.claude/roz-gate.local.json`, `CLAUDE.md` or `CLAUDE.local.md` itself — `bin/roz-config` does the write",
-      "class": "prose-only",
-      "owner": "prose",
-      "evidence": [],
-      "reason": "unguarded — a replay case on `/roz-gate:config` setting a key: the local file changes only through `bin/roz-config`, with no Edit or Write on it",
-      "note": "not a deterministic candidate today: the predicate is which command is writing, not which path is written (`init` writes `CLAUDE.md` legitimately), and no tool call or local state carries a trustworthy command identity. It becomes one if the architecture introduces a command-context / capability boundary",
+      "rule": "The config command never edits `.claude/roz-gate.local.json` itself — `bin/roz-config` does the write",
+      "class": "deterministic-candidate",
+      "owner": "none yet",
+      "evidence": [
+        "#404"
+      ],
       "sources": [
         {
           "file": "commands/config.md",
@@ -697,7 +697,8 @@
         },
         {
           "file": "commands/config.md",
-          "quote": "never edit `.claude/roz-gate.local.json`, `CLAUDE.md` or `CLAUDE.local.md` yourself"
+          "quote": "never edit `.claude/roz-gate.local.json`, `CLAUDE.md` or `CLAUDE.local.md` yourself",
+          "clause": "`.claude/roz-gate.local.json`"
         }
       ]
     },
@@ -1807,7 +1808,7 @@
     },
     {
       "id": "P079",
-      "rule": "An agent never deletes or force-pushes a remote branch — `git push origin --delete` is the human's to run",
+      "rule": "An agent never deletes a remote branch — `git push origin --delete` is the human's to run",
       "class": "deterministic-candidate",
       "owner": "none yet",
       "evidence": [
@@ -1820,10 +1821,6 @@
         },
         {
           "file": "references/branch-names.md",
-          "quote": "never a force-push"
-        },
-        {
-          "file": "references/branch-names.md",
           "quote": "an agent never deletes a remote branch"
         },
         {
@@ -1832,11 +1829,13 @@
         },
         {
           "file": "references/workflow.md",
-          "quote": "an agent never deletes or force-pushes a remote branch**), and the previous spec"
+          "quote": "an agent never deletes or force-pushes a remote branch**), and the previous spec",
+          "clause": "deletes"
         },
         {
           "file": "references/workflow.md",
-          "quote": "**An agent never deletes or force-pushes a remote branch**: every remote write"
+          "quote": "**An agent never deletes or force-pushes a remote branch**: every remote write",
+          "clause": "deletes"
         },
         {
           "file": "references/next-stage-path-c.md",
@@ -1844,7 +1843,8 @@
         },
         {
           "file": "references/next-stage-path-c.md",
-          "quote": "an agent never deletes or force-pushes a remote branch"
+          "quote": "an agent never deletes or force-pushes a remote branch",
+          "clause": "deletes"
         },
         {
           "file": "references/next-stage-path-a.md",
@@ -1852,7 +1852,8 @@
         },
         {
           "file": "references/next-stage-path-a.md",
-          "quote": "an agent never deletes or force-pushes a remote branch"
+          "quote": "an agent never deletes or force-pushes a remote branch",
+          "clause": "deletes"
         }
       ]
     },
@@ -3058,9 +3059,10 @@
     {
       "id": "P142",
       "rule": "A `gh` call never passes `--repo` — the repository is the current directory's remote",
-      "class": "deterministic-candidate",
-      "owner": "none yet",
+      "class": "prose-only",
+      "owner": "prose",
       "evidence": [],
+      "reason": "unguarded — a lint or replay assertion that no forge call in a run carries `--repo`",
       "sources": [
         {
           "file": "references/forge-github.md",
@@ -3073,7 +3075,9 @@
       "rule": "The bot token is passed per invocation, never exported into the session environment",
       "class": "deterministic-candidate",
       "owner": "none yet",
-      "evidence": [],
+      "evidence": [
+        "#399"
+      ],
       "sources": [
         {
           "file": "references/forge-github.md",
@@ -3098,7 +3102,9 @@
       "rule": "In bot mode an issue is never created without an assignee — a bot-authored issue is never born holder-less",
       "class": "deterministic-candidate",
       "owner": "none yet",
-      "evidence": [],
+      "evidence": [
+        "#402"
+      ],
       "sources": [
         {
           "file": "references/forge-github.md",
@@ -3115,7 +3121,9 @@
       "rule": "The bot's git identity is given per command, never written into the repository's git config",
       "class": "deterministic-candidate",
       "owner": "none yet",
-      "evidence": [],
+      "evidence": [
+        "#400"
+      ],
       "sources": [
         {
           "file": "references/forge-github.md",
@@ -3204,7 +3212,9 @@
       "rule": "A command never merges a CR on the forge — CR-MERGE is the human's act at (7)",
       "class": "deterministic-candidate",
       "owner": "none yet",
-      "evidence": [],
+      "evidence": [
+        "#398"
+      ],
       "sources": [
         {
           "file": "references/forge-github.md",
@@ -3412,10 +3422,11 @@
     {
       "id": "P160",
       "rule": "The loop's `git worktree add` runs alone, from inside the repository — never as `git -C <dir>`",
-      "class": "deterministic-candidate",
-      "owner": "none yet",
-      "evidence": [],
-      "note": "hook J is a supporting boundary: it denies the add when anything is chained to it, not the `-C` spelling on its own",
+      "class": "hooked",
+      "owner": "hook J",
+      "evidence": [
+        "hooks/tests/test_guard_gate.py::RuleJ_LoopWorktreeAddRunsAlone"
+      ],
       "sources": [
         {
           "file": "references/workflow.md",
@@ -3839,7 +3850,9 @@
       "rule": "An intake batch never holds more than five questions",
       "class": "deterministic-candidate",
       "owner": "none yet",
-      "evidence": [],
+      "evidence": [
+        "#401"
+      ],
       "sources": [
         {
           "file": "references/intake-brief.md",
@@ -3864,9 +3877,10 @@
     {
       "id": "P186",
       "rule": "The gate kit is never posted into a review thread — it is a top-level comment on the spec CR",
-      "class": "deterministic-candidate",
-      "owner": "none yet",
+      "class": "prose-only",
+      "owner": "prose",
       "evidence": [],
+      "reason": "unguarded — a replay case asserting the kit's body appears in exactly one top-level comment and in no thread",
       "sources": [
         {
           "file": "references/gate-kit.md",
@@ -3919,9 +3933,10 @@
     {
       "id": "P190",
       "rule": "The word \"mechanical\" never appears in the gate kit",
-      "class": "deterministic-candidate",
-      "owner": "none yet",
+      "class": "prose-only",
+      "owner": "prose",
       "evidence": [],
+      "reason": "unguarded — a replay assertion that the kit comment does not contain the word",
       "sources": [
         {
           "file": "references/gate-kit.md",
@@ -4389,7 +4404,9 @@
       "rule": "The blind dispatch's worktrees are removed after the marker is gone, never while it is on",
       "class": "deterministic-candidate",
       "owner": "none yet",
-      "evidence": [],
+      "evidence": [
+        "#403"
+      ],
       "sources": [
         {
           "file": "references/next-stage-path-b2.md",
@@ -4479,6 +4496,57 @@
         {
           "file": "references/identity-github-app.md",
           "quote": "never written into git config or any repo file"
+        }
+      ]
+    },
+    {
+      "id": "P228",
+      "rule": "An agent never force-pushes a remote branch — every remote write a command makes is additive",
+      "class": "deterministic-candidate",
+      "owner": "none yet",
+      "evidence": [
+        "#394"
+      ],
+      "sources": [
+        {
+          "file": "references/branch-names.md",
+          "quote": "never a force-push"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "an agent never deletes or force-pushes a remote branch**), and the previous spec",
+          "clause": "force-pushes"
+        },
+        {
+          "file": "references/workflow.md",
+          "quote": "**An agent never deletes or force-pushes a remote branch**: every remote write",
+          "clause": "force-pushes"
+        },
+        {
+          "file": "references/next-stage-path-c.md",
+          "quote": "an agent never deletes or force-pushes a remote branch",
+          "clause": "force-pushes"
+        },
+        {
+          "file": "references/next-stage-path-a.md",
+          "quote": "an agent never deletes or force-pushes a remote branch",
+          "clause": "force-pushes"
+        }
+      ]
+    },
+    {
+      "id": "P229",
+      "rule": "The config command never edits `CLAUDE.md` or `CLAUDE.local.md` itself",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case on `/roz-gate:config` setting a key: neither file changes",
+      "note": "not a deterministic candidate today: the predicate is which command is writing, not which path is written (`init` writes `CLAUDE.md` legitimately), and no tool call or local state carries a trustworthy command identity. It becomes one if the architecture introduces a command-context / capability boundary",
+      "sources": [
+        {
+          "file": "commands/config.md",
+          "quote": "never edit `.claude/roz-gate.local.json`, `CLAUDE.md` or `CLAUDE.local.md` yourself",
+          "clause": "`CLAUDE.md` or `CLAUDE.local.md`"
         }
       ]
     }

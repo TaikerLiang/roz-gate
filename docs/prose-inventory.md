@@ -396,13 +396,13 @@ Scope: `agents/`, `commands/`, `references/`, `templates/` — 36 files, 523 pro
 
 | class | rules | sources |
 |---|---|---|
-| `hooked` | 7 | 18 |
-| `deterministic-candidate` | 15 | 34 |
+| `hooked` | 8 | 19 |
+| `deterministic-candidate` | 13 | 36 |
 | `guarded-by-case` | 72 | 159 |
-| `prose-only` | 121 | 157 |
+| `prose-only` | 124 | 159 |
 | `not-a-rule` (reasons) | 12 | 155 |
 
-Of the `prose-only` rules, **71 are `unguarded`** — not semantic, and nothing enforces them yet.
+Of the `prose-only` rules, **74 are `unguarded`** — not semantic, and nothing enforces them yet.
 
 | id | rule | stated in | class | owner | evidence / reason |
 |---|---|---|---|---|---|
@@ -428,7 +428,7 @@ Of the `prose-only` rules, **71 are `unguarded`** — not semantic, and nothing 
 | P025 | The implementer never substitutes a local reading for a Glossary definition it cannot build to | `templates/implementer.md` | `prose-only` | prose | semantic — whether the build follows the definition is a reading of the code against the Glossary |
 | P026 | The implementer never waits on an open question mid-job — it returns its open questions with the deliverable | `templates/implementer.md` | `prose-only` | prose | unguarded — a replay case in which the dispatched implementer holds an open question and must return it rather than end its turn asking (E3 guards that the route exists, not that it is taken) |
 | P027 | The implementer never silently assumes an answer to an open question | `templates/implementer.md` | `prose-only` | prose | semantic — whether a choice was an assumption is a reading of the build against the spec |
-| P028 | The config command never edits `.claude/roz-gate.local.json`, `CLAUDE.md` or `CLAUDE.local.md` itself — `bin/roz-config` does the write | `commands/config.md` | `prose-only` | prose | unguarded — a replay case on `/roz-gate:config` setting a key: the local file changes only through `bin/roz-config`, with no Edit or Write on it — not a deterministic candidate today: the predicate is which command is writing, not which path is written (`init` writes `CLAUDE.md` legitimately), and no tool call or local state carries a trustworthy command identity. It becomes one if the architecture introduces a command-context / capability boundary |
+| P028 | The config command never edits `.claude/roz-gate.local.json` itself — `bin/roz-config` does the write | `commands/config.md` · `commands/config.md` (“`.claude/roz-gate.local.json`”) | `deterministic-candidate` | none yet | #404 |
 | P030 | A multi-value config key is passed one value per quoted argument, never split on spaces | `commands/config.md` | `prose-only` | prose | unguarded — a replay case on `/roz-gate:config` setting `inbox_label` to a label that holds a space |
 | P032 | An agent never applies a gate label (`ready-for-spec`, `ready-for-dev`) — the gate is the human's | `commands/config.md` · `commands/to-issues.md` · `commands/spec-answers.md` · `commands/patrol.md` · `references/workflow.md` | `hooked` | hook B | `hooks/tests/test_guard_gate.py::RuleB_GateLabelsAreHumanOnly` |
 | P033 | The config command never creates forge labels | `commands/config.md` | `prose-only` | prose | unguarded — a replay case on `/roz-gate:config` whose forge journal holds no label-create call |
@@ -474,7 +474,7 @@ Of the `prose-only` rules, **71 are `unguarded`** — not semantic, and nothing 
 | P076 | tip's answer is a reading of the documents, never a new rule | `commands/tip.md` | `prose-only` | prose | semantic — whether an answer adds a rule the documents do not give is a reading of it |
 | P077 | tip names the repair for an illegal or stuck state and never performs it | `commands/tip.md` | `guarded-by-case` | commands/tip.md | F12 |
 | P078 | tip never declares a `processing` lock stale — it reports the pair and the evidence | `commands/tip.md` | `prose-only` | prose | unguarded — a replay case on tip over `processing` beside a phase label: the answer reports the pair and does not call the lock stale |
-| P079 | An agent never deletes or force-pushes a remote branch — `git push origin --delete` is the human's to run | `commands/tip.md` · `references/branch-names.md` · `references/workflow.md` · `references/next-stage-path-c.md` · `references/next-stage-path-a.md` | `deterministic-candidate` | none yet | #394 |
+| P079 | An agent never deletes a remote branch — `git push origin --delete` is the human's to run | `commands/tip.md` · `references/branch-names.md` · `references/workflow.md` (“deletes”) · `references/next-stage-path-c.md` · `references/next-stage-path-c.md` (“deletes”) · `references/next-stage-path-a.md` · `references/next-stage-path-a.md` (“deletes”) | `deterministic-candidate` | none yet | #394 |
 | P080 | tip never writes — no label, no comment, no commit, no branch, no cleared `blocked` | `commands/tip.md` | `guarded-by-case` | commands/tip.md | C19, F12 |
 | P081 | tip never dispatches a seat | `commands/tip.md` | `guarded-by-case` | commands/tip.md | F12 |
 | P082 | The agent-marker predicate (`**[`, `✅ [`) never swallows a human's bare `✅` answer | `commands/spec-answers.md` | `guarded-by-case` | references/patrol-scan.md | A1 |
@@ -536,14 +536,14 @@ Of the `prose-only` rules, **71 are `unguarded`** — not semantic, and nothing 
 | P139 | The commit sub-agent never retries a failed commit more than once | `references/commit-brief.md` | `prose-only` | prose | unguarded — a replay case with a pre-commit hook that always fails: at most two commit attempts |
 | P140 | The commit sub-agent never widens the file list to make a hook pass | `references/commit-brief.md` | `prose-only` | prose | unguarded — the same replay case: the staged set never grows beyond the dispatched list |
 | P141 | The commit sub-agent never `--no-verify`s a failure that names a file in its list | `references/commit-brief.md` | `prose-only` | prose | unguarded — a replay case whose hook fails on a listed file: no `--no-verify` commit follows |
-| P142 | A `gh` call never passes `--repo` — the repository is the current directory's remote | `references/forge-github.md` | `deterministic-candidate` | none yet | — |
-| P143 | The bot token is passed per invocation, never exported into the session environment | `references/forge-github.md` · `references/forge-gitlab.md` · `references/identity-github-app.md` | `deterministic-candidate` | none yet | — |
-| P144 | In bot mode an issue is never created without an assignee — a bot-authored issue is never born holder-less | `references/forge-github.md` · `references/forge-gitlab.md` | `deterministic-candidate` | none yet | — |
-| P145 | The bot's git identity is given per command, never written into the repository's git config | `references/forge-github.md` · `references/forge-gitlab.md` | `deterministic-candidate` | none yet | — |
+| P142 | A `gh` call never passes `--repo` — the repository is the current directory's remote | `references/forge-github.md` | `prose-only` | prose | unguarded — a lint or replay assertion that no forge call in a run carries `--repo` |
+| P143 | The bot token is passed per invocation, never exported into the session environment | `references/forge-github.md` · `references/forge-gitlab.md` · `references/identity-github-app.md` | `deterministic-candidate` | none yet | #399 |
+| P144 | In bot mode an issue is never created without an assignee — a bot-authored issue is never born holder-less | `references/forge-github.md` · `references/forge-gitlab.md` | `deterministic-candidate` | none yet | #402 |
+| P145 | The bot's git identity is given per command, never written into the repository's git config | `references/forge-github.md` · `references/forge-gitlab.md` | `deterministic-candidate` | none yet | #400 |
 | P146 | A failed blockers read is a failed read, never "no blockers" | `references/forge-github.md` · `references/forge-gitlab.md` · `references/workflow.md` · `references/roz-state.md` | `guarded-by-case` | references/patrol-scan.md | F15 |
 | P147 | The loop never writes an issue relationship — blockers are read-only | `references/forge-github.md` · `references/forge-gitlab.md` · `references/workflow.md` · `references/patrol-scan.md` | `guarded-by-case` | references/patrol-scan.md | F15 |
 | P148 | In bot mode the `{user}` slot is the first `bot_login`, never a forge call | `references/forge-github.md` · `references/forge-gitlab.md` | `prose-only` | prose | unguarded — a replay case in bot mode that cuts a branch: no WHOAMI call in the journal |
-| P149 | A command never merges a CR on the forge — CR-MERGE is the human's act at (7) | `references/forge-github.md` · `references/forge-gitlab.md` | `deterministic-candidate` | none yet | — |
+| P149 | A command never merges a CR on the forge — CR-MERGE is the human's act at (7) | `references/forge-github.md` · `references/forge-gitlab.md` | `deterministic-candidate` | none yet | #398 |
 | P150 | The fidelity audit gives cited evidence, never a verdict | `references/workflow.md` · `references/fidelity-brief.md` · `references/next-stage-path-b2.md` | `prose-only` | prose | semantic — whether a finding is evidence or a verdict is a reading of it |
 | P151 | A dispatched seat never searches for plugin files — the dispatch names the plugin root | `references/workflow.md` | `guarded-by-case` | references/workflow.md | D28 — hook L (D29) is a supporting boundary: a seat dispatch without the `Plugin root:` line is denied; it does not stop a seat that has the line from searching |
 | P152 | A persona is swappable; the seat's contract never is | `references/workflow.md` | `guarded-by-case` | references/workflow.md | D25 |
@@ -554,7 +554,7 @@ Of the `prose-only` rules, **71 are `unguarded`** — not semantic, and nothing 
 | P157 | QA or the implementer hitting a contract ambiguity mid-flight never interprets it — it stops and reports | `references/workflow.md` | `prose-only` | prose | semantic — whether a choice was an interpretation of an ambiguous clause is a reading |
 | P158 | QA or the implementer hitting a contract ambiguity never decides it unilaterally in code | `references/workflow.md` · `references/next-stage-path-b.md` | `prose-only` | prose | semantic — whether code settles an ambiguity is a reading of it against the contract |
 | P159 | A review finding that is really a contract ambiguity is never settled on the implementation CR | `references/workflow.md` · `references/next-stage-path-b.md` | `prose-only` | prose | semantic — whether a finding is a contract ambiguity is a reading of it |
-| P160 | The loop's `git worktree add` runs alone, from inside the repository — never as `git -C <dir>` | `references/workflow.md` | `deterministic-candidate` | none yet | — — hook J is a supporting boundary: it denies the add when anything is chained to it, not the `-C` spelling on its own |
+| P160 | The loop's `git worktree add` runs alone, from inside the repository — never as `git -C <dir>` | `references/workflow.md` | `hooked` | hook J | `hooks/tests/test_guard_gate.py::RuleJ_LoopWorktreeAddRunsAlone` |
 | P161 | A gate label a bot identity applied is an illegal state — reported, never acted on, never repaired | `references/workflow.md` · `references/patrol-scan.md` | `guarded-by-case` | references/patrol-scan.md | C24, F13 |
 | P162 | A dependency missing from the base is a STOP, never an option a command offers or takes | `references/workflow.md` | `guarded-by-case` | references/workflow.md | C29 |
 | P163 | Code the spec asks this issue to build, or scope beyond the issue, is a scope question on the spec CR, never the missing-dependency STOP | `references/workflow.md` · `references/next-stage-path-a.md` | `guarded-by-case` | references/workflow.md | C29 |
@@ -578,13 +578,13 @@ Of the `prose-only` rules, **71 are `unguarded`** — not semantic, and nothing 
 | P181 | Intake captures what and why, never how | `references/intake-brief.md` | `prose-only` | prose | semantic — whether a sentence of the story states how is a reading of it |
 | P182 | The intake seat drives toward the smallest story — shrink, don't grow | `references/intake-brief.md` | `prose-only` | prose | persona — how the seat scopes; what counts as growing is its judgment |
 | P183 | The intake seat does not gold-plate the clarification — good enough to gate is the bar | `references/intake-brief.md` | `prose-only` | prose | persona — how the seat interrogates; what counts as gold-plating is its judgment |
-| P184 | An intake batch never holds more than five questions | `references/intake-brief.md` | `deterministic-candidate` | none yet | — |
+| P184 | An intake batch never holds more than five questions | `references/intake-brief.md` | `deterministic-candidate` | none yet | #401 |
 | P185 | The proposed track is never treated as decided — the human confirms or overrides it | `references/intake-brief.md` | `prose-only` | prose | authority — the track is the human's to confirm |
-| P186 | The gate kit is never posted into a review thread — it is a top-level comment on the spec CR | `references/gate-kit.md` | `deterministic-candidate` | none yet | — |
+| P186 | The gate kit is never posted into a review thread — it is a top-level comment on the spec CR | `references/gate-kit.md` | `prose-only` | prose | unguarded — a replay case asserting the kit's body appears in exactly one top-level comment and in no thread |
 | P187 | The gate kit quotes, never paraphrases | `references/gate-kit.md` | `prose-only` | prose | semantic — whether a line is a verbatim excerpt of its source or a paraphrase needs the source read against it |
 | P188 | The gate kit sorts its items, never filters them | `references/gate-kit.md` | `prose-only` | prose | unguarded — a replay case whose kit is compared with the spec: every rule and scenario id appears in it |
 | P189 | The kit's sort is on computed properties only, never the assembler's confidence | `references/gate-kit.md` | `prose-only` | prose | semantic — what an ordering was based on is not visible in the output |
-| P190 | The word "mechanical" never appears in the gate kit | `references/gate-kit.md` | `deterministic-candidate` | none yet | — |
+| P190 | The word "mechanical" never appears in the gate kit | `references/gate-kit.md` | `prose-only` | prose | unguarded — a replay assertion that the kit comment does not contain the word |
 | P191 | A verdict exemption (an observability limitation) is never granted by the implementer — it stands once the holder has seen it in the kit | `references/gate-kit.md` · `references/next-stage-path-a.md` | `prose-only` | prose | authority — exempting a scenario from the verdict is the holder's |
 | P192 | An evidence card's observation slot holds what the run emitted, never the expectation restated | `references/gate-kit.md` | `prose-only` | prose | semantic — whether a card's observation is the run's output or the expectation reworded needs the captured output read against it |
 | P193 | "The spec you approved is byte-identical" never appears alone when non-spec paths moved | `references/gate-kit.md` | `prose-only` | prose | unguarded — a replay re-verdict in which only non-spec paths moved since approval: the kit's since-you-approved line names the commits beside the claim |
@@ -614,13 +614,15 @@ Of the `prose-only` rules, **71 are `unguarded`** — not semantic, and nothing 
 | P218 | Path A writes the two spec documents and never code | `references/next-stage-path-a.md` | `prose-only` | prose | unguarded — F3's seed with an assertion that the spec branch's diff against its base touches only `<specs_dir>/<n>/` |
 | P219 | With a contract question still unsettled, QA is not dispatched — the question routes to the spec CR first | `references/next-stage-path-b2.md` | `guarded-by-case` | references/next-stage-path-b2.md | D6 |
 | P220 | QA never opens the implementation CR — the as-built changes reach it as the dispatch's copy | `references/next-stage-path-b2.md` | `prose-only` | prose | unguarded — a QA-frame replay assertion that no tool call under the dispatch names the implementation CR (D6 asserts it for the fidelity dispatch) |
-| P221 | The blind dispatch's worktrees are removed after the marker is gone, never while it is on | `references/next-stage-path-b2.md` | `deterministic-candidate` | none yet | — |
+| P221 | The blind dispatch's worktrees are removed after the marker is gone, never while it is on | `references/next-stage-path-b2.md` | `deterministic-candidate` | none yet | #403 |
 | P222 | The audited party never closes the audit's findings — the reviewer re-checks and resolves them | `references/next-stage-path-b2.md` | `prose-only` | prose | unguarded — a replay address-review on a QA CR with fidelity threads: each thread is resolved under a `reviewer` dispatch, not a `qa` one |
 | P223 | An unknown fact neither satisfies nor refutes a precondition — a consumer never reads it as `0`, `false` or empty | `references/roz-state.md` | `prose-only` | prose | unguarded — a lint over the commands' preconditions needs a parseable precondition form; `hooks/tests/` hold it for `roz-check` only — `roz-check` implements the invariant in code for the operations it knows (`unknown` → `may_start: false`) |
 | P224 | A STOP message or a later audit reads why a rule came out as it did from the check result, never reconstructs it | `references/roz-check.md` | `prose-only` | prose | unguarded — a replay STOP after a failed check: the comment's reason matches the result's `failed` codes |
 | P225 | A caller of `roz-check` reads `verdict`, `may_start`, `failed` and `unknown` — codes, never the prose | `references/roz-check.md` | `prose-only` | prose | unguarded — no command consumes `roz-check` yet (shadow mode); the guard is a lint on the consuming step once one does |
 | P226 | Creating the bot's credentials is the human's task — a command never automates a step of it | `references/identity-github-app.md` | `prose-only` | prose | authority — credentials are the human's to create; no case observes a command attempting it |
 | P227 | The bot credential is never written into git config or any repository file | `references/identity-github-app.md` | `prose-only` | prose | unguarded — a replay case in bot mode: no file in the work tree and no git config value holds the token after the run |
+| P228 | An agent never force-pushes a remote branch — every remote write a command makes is additive | `references/branch-names.md` · `references/workflow.md` (“force-pushes”) · `references/next-stage-path-c.md` (“force-pushes”) · `references/next-stage-path-a.md` (“force-pushes”) | `deterministic-candidate` | none yet | #394 |
+| P229 | The config command never edits `CLAUDE.md` or `CLAUDE.local.md` itself | `commands/config.md` (“`CLAUDE.md` or `CLAUDE.local.md`”) | `prose-only` | prose | unguarded — a replay case on `/roz-gate:config` setting a key: neither file changes — not a deterministic candidate today: the predicate is which command is writing, not which path is written (`init` writes `CLAUDE.md` legitimately), and no tool call or local state carries a trustworthy command identity. It becomes one if the architecture introduces a command-context / capability boundary |
 
 **Not a rule** — a prohibition word that forbids an agent nothing. One row per reason; every fragment is listed, none is matched by pattern.
 
