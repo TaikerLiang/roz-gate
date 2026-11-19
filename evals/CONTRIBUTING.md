@@ -392,6 +392,35 @@ constant, then `python3 tools/ledger.py` — and say so in its
 file needs a cap in the same PR. A cap is a ceiling, not a target: a cut
 leaves room, and lowering a cap is the maintainer's, at release.
 
+## 10. You wrote a `never`
+
+Lint L23 goes red when a `never`, `cannot`, `do not`, `must not`,
+`forbidden`, `may not` or `only … may` appears in a scoped runtime
+directory (`docs/prohibitions.json` § `scope`) with no row. The fix is a
+classification, in that file, not a rewording:
+
+1. **Is it the rule of an existing row?** Only if predicate, consequence
+   and scope are the same — then add `{file, quote}` to that row's
+   `sources`. When unsure, it is a new row.
+2. **The quote** is the clause as written: once in the file, one
+   prohibition word in it. A sentence with two prohibitions is two sources.
+3. **The class**, strongest first: `hooked` (name the rule and a hook-test
+   case that denies the act — the act itself, not a neighbouring
+   operational boundary) · `deterministic-candidate` (files, git and one
+   call's input could decide it and nothing does — open its issue, red
+   first; the issue chooses the owner: remove the invalid choice, generate
+   the value, verify in `roz-check`, deny in a hook, or leave it prose, in
+   that order) · `guarded-by-case` (ledger ids of cases that
+   assert *this* prohibition) · `prose-only` (say why: `semantic`,
+   `persona`, `authority`, or `unguarded — <what would guard it>`) ·
+   `not-a-rule` (add the fragment under its reason; there is no pattern
+   form).
+4. `python3 tools/ledger.py` re-renders `docs/prose-inventory.md`
+   § Prohibitions.
+
+`unguarded` is an honest answer. A class the evidence does not support is
+not.
+
 ## Instruments that lied — check yours against each
 
 | case | what the instrument missed | the class |

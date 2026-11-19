@@ -284,6 +284,7 @@ a single rule and has its own row above.
 | L19 | the documents' own lint — recorded baselines are data and rendered; the retired headline figures and phrasings stay out (#280) |
 | L20 | `next-stage`'s own lint — the route table names one path file per row, every step id is a heading in exactly one file, the hand-off instruction is present (#279) |
 | L21 | rules about the prose itself — the repo's runtime prose total and each command file's word count stay within their caps (#278) |
+| L23 | the prohibition audit's own lint — `docs/prohibitions.json` held to the runtime prose, one quote per clause (#380) |
 | D27 | rule E's own wiring lint — the dispatch's `Implementation:` line is rendered by the reader the hook enforces from (`hooks/implementation_dirs.py`, #281); the behaviour is the hook tests' |
 | D21 | the dispatch steps' own lint — a step that enumerates a dispatch's contents names the seat's R&R row (#294) |
 | J2 | Judgment V1's own lint — the corpus is approved and leak-free, and the scorer reproduces hand-computed numbers (#258) |
@@ -332,12 +333,102 @@ integrate's entry: an `unknown` fact makes the rule `unknown` and the
 verdict never `eligible` (no lock), and `shadow_check` is the signal. The
 other restatements of review-clean are still prose only.
 
+## Prohibitions
+
+Every `never`, `cannot`, `do not`, `must not`, `forbidden`, `may not` and
+`only … may` the runtime prose states, and who enforces it (#380). "In a
+prompt, the agent decides whether to obey. With a hook, the call is blocked
+every time" — this section records which of the two each prohibition is.
+The data is `docs/prohibitions.json`; the block below is rendered from it
+by `tools/ledger.py`, and lint L23 holds the data to the prose.
+
+**A row is one distinct rule.** Two prohibitions share a row only when they
+have the same **predicate**, the same **consequence** and the same
+**scope**; when uncertain they are separate rows (#262: one prohibition
+clause, one decision question, one rule). A later issue may prove two rows
+one invariant and merge them; the audit does not.
+
+**A source is one clause.** `{file, quote}`: the quote occurs exactly once
+in its file and holds exactly one prohibition word, and every prohibition
+word lies inside exactly one quote. A sentence with two prohibitions is two
+sources — and `only … may` is counted at its `only`, so a prohibition
+between the two words is a clause of its own. A line number is never stored: an edit that leaves the clause
+alone leaves the row alone, and one that changes the clause makes the row
+stale — which is when to look at it again.
+
+| class | meaning | `owner` | `evidence` |
+|---|---|---|---|
+| `hooked` | a hook denies the act itself — not a narrower operational boundary beside it (rule E stops QA reading the implementation; it does not make an assertion follow the contract) | `hook <rule>` | the hook-test cases |
+| `deterministic-candidate` | files, git and one call's input could decide it, and nothing does. Its issue chooses the owner, red first, in this order: the architecture removes the invalid choice · a generator produces the value · `roz-check` verifies it · a hook denies it · it stays prose (#352, #354: push a failure down the trust stack; eliminate before denying) | `none yet` | the follow-up issue |
+| `guarded-by-case` | a lint, replay or judgment case asserts this prohibition — not a neighbouring one | the prose or kernel rule that owns it | ledger ids |
+| `prose-only` | nothing enforces it. The reason says why: `semantic`, `persona`, `authority` — or `unguarded — <what would guard it>`, a gap recorded as a gap | `prose` | — |
+| `not-a-rule` | the word forbids an agent nothing: a fact, a condition, another seat's rule described, a line addressed to the human | — | — |
+
+Where a prohibition could be both, the stronger claim on enforcement wins:
+`hooked`, then `deterministic-candidate`, then `guarded-by-case`.
+
+**What the lint cannot see.** A prohibition spelled with none of these
+words ("no force-push", "is not yours to …"); whether a class is right;
+whether the evidence is enough. Those are review. Sections no case touches
+at all are listed under *Unguarded executable prose*, by section — a
+different unit, kept apart.
+
+<!-- prohibitions -->
+Scope: `agents/`, `templates/` — 7 files, 34 prohibition words, each inside one quote of one row.
+
+| class | rules | sources |
+|---|---|---|
+| `hooked` | 0 | 0 |
+| `deterministic-candidate` | 2 | 3 |
+| `guarded-by-case` | 4 | 5 |
+| `prose-only` | 16 | 18 |
+| `not-a-rule` (reasons) | 5 | 8 |
+
+Of the `prose-only` rules, **3 are `unguarded`** — not semantic, and nothing enforces them yet.
+
+| id | rule | stated in | class | owner | evidence / reason |
+|---|---|---|---|---|---|
+| P001 | Dispatched with no one to ask, a spec seat never waits for an answer — it returns its open questions with the deliverable | `agents/em.md` · `agents/product.md` | `prose-only` | prose | unguarded — a replay case in which a dispatched seat holds an open question and must return it rather than end its turn asking (E2 guards where a returned question lands, not that the seat returns it) |
+| P002 | A dispatched spec seat never silently assumes an answer to an open question | `agents/em.md` · `agents/product.md` | `prose-only` | prose | semantic — whether a choice was an assumption is a reading of the deliverable against the spec |
+| P003 | A seat folding an answer never posts its follow-up question to the forge itself — the main agent posts or defers it | `agents/em.md` · `agents/product.md` | `deterministic-candidate` | none yet | #391 |
+| P004 | em never accepts a vague answer to a requirement | `agents/em.md` | `prose-only` | prose | persona — how the seat interrogates; what counts as vague is its judgment |
+| P005 | product never accepts a happy-path-only answer | `agents/product.md` | `prose-only` | prose | persona — how the seat interrogates; what counts as happy-path-only is its judgment |
+| P006 | A spec seat never offers merging, rebasing onto or cherry-picking from another branch as an option — it reports the missing dependency | `agents/em.md` · `agents/product.md` | `guarded-by-case` | references/workflow.md | C29 |
+| P012 | QA never resolves an ambiguity in the spec by interpretation — an ambiguity is a finding it reports | `agents/qa.md` | `guarded-by-case` | references/qa-brief.md | D24, E14 |
+| P013 | QA tests against the contract, never the raw implementation | `agents/qa.md` | `guarded-by-case` | references/qa-brief.md | B8, D9, D10, D13 — hook E is a supporting operational boundary (no read of the implementation during the dispatch), not this rule's owner: a seat can obey E and still assert what it observed |
+| P014 | The acceptance tests are a maintained suite, never write-once snapshots | `agents/qa.md` | `prose-only` | prose | semantic — whether a suite is maintained or a snapshot is a reading of how it was written |
+| P015 | QA never flags a project-sanctioned test layout as a violation | `agents/qa.md` | `prose-only` | prose | semantic — whether a finding is about the layout is a reading of the finding |
+| P016 | `test-spec.md`'s scenario→test map is derived from the trace markers in the test source, never hand-maintained | `agents/qa.md` | `deterministic-candidate` | none yet | #392 |
+| P017 | A QA red is a harness issue fixed or a finding reported, never an edited assertion (QA-4) | `agents/qa.md` | `guarded-by-case` | kernel QA-4 (`references/qa-brief.md`) | B8, D9, D13 |
+| P018 | QA references exact scenario names, never a paraphrase | `agents/qa.md` | `prose-only` | prose | persona — how the seat communicates |
+| P019 | QA does not negotiate on violations | `agents/qa.md` | `prose-only` | prose | persona — how the seat communicates |
+| P020 | The reviewer does not redesign the architecture | `agents/reviewer.md` | `prose-only` | prose | persona — the seat's role boundary; whether a comment is a redesign is its judgment |
+| P021 | The reviewer does not re-test behaviour against the spec | `agents/reviewer.md` | `prose-only` | prose | persona — the seat's role boundary |
+| P022 | A review comment is never a vague "consider refactoring" | `agents/reviewer.md` | `prose-only` | prose | persona — how the seat communicates |
+| P023 | The reviewer never invents problems to look thorough | `agents/reviewer.md` | `prose-only` | prose | persona — how the seat communicates |
+| P024 | A contract corrected while building is declared under `## Contract deviations`, never silently changed | `templates/implementer.md` | `prose-only` | prose | unguarded — a case in which the build's contract diff and its `## Contract deviations` section disagree: a corrected clause the section does not list — hook H is a supporting operational boundary (a CR whose diff touches `technical-spec.md` must carry the section), not this rule's owner: a section that says `none` passes it |
+| P025 | The implementer never substitutes a local reading for a Glossary definition it cannot build to | `templates/implementer.md` | `prose-only` | prose | semantic — whether the build follows the definition is a reading of the code against the Glossary |
+| P026 | The implementer never waits on an open question mid-job — it returns its open questions with the deliverable | `templates/implementer.md` | `prose-only` | prose | unguarded — a replay case in which the dispatched implementer holds an open question and must return it rather than end its turn asking (E3 guards that the route exists, not that it is taken) |
+| P027 | The implementer never silently assumes an answer to an open question | `templates/implementer.md` | `prose-only` | prose | semantic — whether a choice was an assumption is a reading of the build against the spec |
+
+**Not a rule** — a prohibition word that forbids an agent nothing. One row per reason; every fragment is listed, none is matched by pattern.
+
+| id | reason | fragments |
+|---|---|---|
+| P007 | states a fact or the persona's stance; forbids no act | `agents/qa.md` “You do not care how elegant the code is” · `agents/reviewer.md` “The author cannot see their own blind spots” |
+| P008 | a condition — what to do when something cannot be done — not a prohibition | `agents/reviewer.md` “If you cannot explain why a line is correct” · `templates/implementer.md` “a definition you cannot build to is a question” |
+| P009 | example text inside the implementer template's commented-out stack block, which the project replaces with its own | `templates/implementer.md` “Raw SQL only when the ORM cannot express it cleanly” |
+| P010 | addressed to the human who fills in the template, not to an agent | `templates/claude-workflow.md` “the seat names never change” · `templates/idea.md` “Don't add labels” |
+| P011 | describes QA's rule to the implementer (it is stated to QA in `references/qa-brief.md`); forbids the reader nothing | `templates/implementer.md` “QA never touches the persistence layer” |
+<!-- /prohibitions -->
+
 ## Unguarded executable prose
 
 Sections of at least 80 words that no lint literal lies inside and no replay
 `check.py` cites in a `source:` line (computed when this page was written;
 re-run by hand). Persona sections are expected here — they are semantic by
 nature. The rest wait for a case or a reason.
+Sentences that forbid something are classified one by one under *Prohibitions*.
 
 | source § section | note |
 |---|---|
