@@ -21,9 +21,13 @@ import re
 DATA = "docs/prohibitions.json"
 # never · cannot · do not · must not · forbidden · may not, their
 # contractions, and `only … may` within one sentence. Case-insensitive.
+# `only … may` is anchored on its `only`: the hit is that word, when a `may`
+# (not `may not`) follows within the sentence. The span between them is not
+# consumed, so a prohibition inside it is a hit of its own and a quote over
+# the whole sentence holds two.
 WORD = re.compile(
     r"\b(?:never|cannot|can't|do not|don't|must not|mustn't|forbidden|may not)\b"
-    r"|\bonly\b[^.]{0,80}?\bmay\b(?! not\b)", re.I)
+    r"|\bonly\b(?=[^.]{0,80}?\bmay\b(?! not\b))", re.I)
 CLASSES = ("hooked", "deterministic-candidate", "guarded-by-case", "prose-only", "not-a-rule")
 PROSE_REASON = re.compile(r"\A(semantic|persona|authority|unguarded — \S)")
 

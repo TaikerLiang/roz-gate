@@ -370,11 +370,11 @@
     {
       "id": "P024",
       "rule": "A contract corrected while building is declared under `## Contract deviations`, never silently changed",
-      "class": "hooked",
-      "owner": "hook H",
-      "evidence": [
-        "hooks/tests/test_guard_gate.py::RuleH_CrOpenDeclaresDeviations"
-      ],
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a case in which the build's contract diff and its `## Contract deviations` section disagree: a corrected clause the section does not list",
+      "note": "hook H is a supporting operational boundary (a CR whose diff touches `technical-spec.md` must carry the section), not this rule's owner: a section that says `none` passes it",
       "sources": [
         {
           "file": "templates/implementer.md",

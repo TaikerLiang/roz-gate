@@ -351,7 +351,8 @@ one invariant and merge them; the audit does not.
 **A source is one clause.** `{file, quote}`: the quote occurs exactly once
 in its file and holds exactly one prohibition word, and every prohibition
 word lies inside exactly one quote. A sentence with two prohibitions is two
-sources. A line number is never stored: an edit that leaves the clause
+sources — and `only … may` is counted at its `only`, so a prohibition
+between the two words is a clause of its own. A line number is never stored: an edit that leaves the clause
 alone leaves the row alone, and one that changes the clause makes the row
 stale — which is when to look at it again.
 
@@ -377,13 +378,13 @@ Scope: `agents/`, `templates/` — 7 files, 34 prohibition words, each inside on
 
 | class | rules | sources |
 |---|---|---|
-| `hooked` | 1 | 1 |
+| `hooked` | 0 | 0 |
 | `deterministic-candidate` | 2 | 3 |
 | `guarded-by-case` | 4 | 5 |
-| `prose-only` | 15 | 17 |
+| `prose-only` | 16 | 18 |
 | `not-a-rule` (reasons) | 5 | 8 |
 
-Of the `prose-only` rules, **2 are `unguarded`** — not semantic, and nothing enforces them yet.
+Of the `prose-only` rules, **3 are `unguarded`** — not semantic, and nothing enforces them yet.
 
 | id | rule | stated in | class | owner | evidence / reason |
 |---|---|---|---|---|---|
@@ -405,7 +406,7 @@ Of the `prose-only` rules, **2 are `unguarded`** — not semantic, and nothing e
 | P021 | The reviewer does not re-test behaviour against the spec | `agents/reviewer.md` | `prose-only` | prose | persona — the seat's role boundary |
 | P022 | A review comment is never a vague "consider refactoring" | `agents/reviewer.md` | `prose-only` | prose | persona — how the seat communicates |
 | P023 | The reviewer never invents problems to look thorough | `agents/reviewer.md` | `prose-only` | prose | persona — how the seat communicates |
-| P024 | A contract corrected while building is declared under `## Contract deviations`, never silently changed | `templates/implementer.md` | `hooked` | hook H | `hooks/tests/test_guard_gate.py::RuleH_CrOpenDeclaresDeviations` |
+| P024 | A contract corrected while building is declared under `## Contract deviations`, never silently changed | `templates/implementer.md` | `prose-only` | prose | unguarded — a case in which the build's contract diff and its `## Contract deviations` section disagree: a corrected clause the section does not list — hook H is a supporting operational boundary (a CR whose diff touches `technical-spec.md` must carry the section), not this rule's owner: a section that says `none` passes it |
 | P025 | The implementer never substitutes a local reading for a Glossary definition it cannot build to | `templates/implementer.md` | `prose-only` | prose | semantic — whether the build follows the definition is a reading of the code against the Glossary |
 | P026 | The implementer never waits on an open question mid-job — it returns its open questions with the deliverable | `templates/implementer.md` | `prose-only` | prose | unguarded — a replay case in which the dispatched implementer holds an open question and must return it rather than end its turn asking (E3 guards that the route exists, not that it is taken) |
 | P027 | The implementer never silently assumes an answer to an open question | `templates/implementer.md` | `prose-only` | prose | semantic — whether a choice was an assumption is a reading of the build against the spec |
