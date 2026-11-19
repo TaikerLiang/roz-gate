@@ -2,7 +2,58 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
-## v2.21.0 — implementation_dirs and plugin-root dispatch — 2026-11-17
+## v2.22.0 — seat dispatches carry their contract — 2026-11-19
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.22.0>
+
+**Behavior:** a seat dispatch without its `Plugin root:` line or its R&R row is denied (hook rule L); a legal demotion folds as `(assumed-empirical: <named risk>)`; an answered review item gets `· answer` first.
+
+### Behavior
+- **A legal demotion folds as `(assumed-empirical: <named risk>)`** (#383, PR #386).
+  - The premise's `(unverified)` is replaced with that tag (A3), and the ruling keeps `(from Q<j>)`.
+  - Before, spec-answers only pointed to the rule for an illegal demotion.
+- **An answered item gets `· answer` first** (#384, PR #388). When it also needs a decision, the decision is asked in a separate `· question`. This is `review-answers` § 3 rule 1.
+
+### Hooks
+- **Rule L: a seat dispatch carries its contract** (#382, PR #389). The new `guard-dispatch` hook judges Agent and Task calls.
+  - A dispatch to a seat is denied unless its prompt carries both:
+    - `Plugin root: <dir>`, where `<dir>` holds `references/workflow.md`;
+    - every Owns and Never term of the seat's R&R row in `references/workflow.md`.
+  - A seat is a `roz-gate:<seat>` type, the personas block's agent, or the `implementer` default.
+  - The deny message prints the plugin root and the row to paste. Continuation pings are judged too.
+  - Not judged: the commit helper, the scanner, `general-purpose` and other non-seat sub-agents.
+  - Why: in the 2026-11-17/18 sweep, 9 of 245 seat dispatches had no `Plugin root:` line, and they caused that sweep's only sandbox leaks.
+
+### Evals
+- **Every runtime prohibition is classified** (#380, PRs #393, #397 and #405).
+  - Lint `L23` fails on a `never`, `cannot`, `do not`, `must not`, `forbidden`, `may not` or `only … may` under `agents/`, `commands/`, `references/` or `templates/` that has no row in `docs/prohibitions.json`.
+  - It also fails on a stale, repeated or double quote, and on a row whose owner or evidence does not resolve.
+  - Rows may share a quote when they name distinct `clause`s of it. `evals/lib/prohibitions.py` holds this rule once, for both the lint and the renderer.
+- **First recorded haiku55 baseline: `haiku55-sweep-2026-11-18`** (PR #390). It covers 70 cases at k=3. 25 of its results are marked superseded, because #386, #387 and #388 moved their fingerprints.
+- **Replay checkers accept what the prose allows** (#384, PR #388):
+  - D9 accepts a clause whose observed value differs from the expected one, or one the suite's red output carries;
+  - C22 accepts `pr view --json …comments…`;
+  - D6 selects dispatches by seat or brief;
+  - F4 accepts "not a claim that … verified";
+  - E15's raised item may be R2, G2, S2 or AC-2 (PR #386).
+- **The forge stub serves `headRepositoryOwner` / `headRepository`**, and every patrol fixture's PRs state `author` (#385, PR #387). This fixes the D2/1 and F9/1 INVALIDs.
+- **Hook row D29** (rule L). The replay harness ignores a dispatch the hook refused.
+- **Re-baselines needed:**
+  - 20 fingerprints moved in PR #387: A1, A11, A2–A5, A7, C13, C17, C23, C26, C30, D2, D5–D7, F9, F11, F13, F14;
+  - also D9, C22, D6, F4, F2 and E15;
+  - after rule L: D3, D25, E11, C5 and D10.
+- **Prose caps** (lint `L21`):
+  - `TOTAL_CAP` 52,652 → 52,693;
+  - `commands/spec-answers.md` 3,430 → 3,454 and `commands/review-answers.md` 1,822 → 1,839.
+
+### Docs
+- **`docs/prose-inventory.md` § Prohibitions** is rendered from `docs/prohibitions.json`: 229 rows covering 523 prohibition words (#380). Each row is hooked, a deterministic hook candidate (#391, #392, #394–#396), guarded by a case, prose-only (with a reason) or not a rule.
+- **`evals/CONTRIBUTING.md` § 10:** what to do when you write a `never`.
+
+### Checks
+Hook tests 1691/1691 · lint 1981/1981 · red-proofs 59/59 · ruff · judgment `--check` · ledger `--check` current
+
+## v2.21.0 — implementation_dirs and plugin-root dispatch — 2026-11-18
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.21.0>
 
