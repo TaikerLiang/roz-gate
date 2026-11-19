@@ -43,9 +43,11 @@
     {
       "id": "P003",
       "rule": "A seat folding an answer never posts its follow-up question to the forge itself — the main agent posts or defers it",
-      "class": "hook-candidate",
+      "class": "deterministic-candidate",
       "owner": "none yet",
-      "evidence": [],
+      "evidence": [
+        "#391"
+      ],
       "sources": [
         {
           "file": "agents/em.md",
@@ -205,11 +207,15 @@
     {
       "id": "P013",
       "rule": "QA tests against the contract, never the raw implementation",
-      "class": "hooked",
-      "owner": "hook E",
+      "class": "guarded-by-case",
+      "owner": "references/qa-brief.md",
       "evidence": [
-        "hooks/tests/test_guard_blind.py::RuleE_QaDispatchSeat"
+        "B8",
+        "D9",
+        "D10",
+        "D13"
       ],
+      "note": "hook E is a supporting operational boundary (no read of the implementation during the dispatch), not this rule's owner: a seat can obey E and still assert what it observed",
       "sources": [
         {
           "file": "agents/qa.md",
@@ -248,9 +254,11 @@
     {
       "id": "P016",
       "rule": "`test-spec.md`'s scenario→test map is derived from the trace markers in the test source, never hand-maintained",
-      "class": "hook-candidate",
+      "class": "deterministic-candidate",
       "owner": "none yet",
-      "evidence": [],
+      "evidence": [
+        "#392"
+      ],
       "sources": [
         {
           "file": "agents/qa.md",

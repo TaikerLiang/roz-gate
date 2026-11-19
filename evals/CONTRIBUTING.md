@@ -405,9 +405,12 @@ classification, in that file, not a rewording:
 2. **The quote** is the clause as written: once in the file, one
    prohibition word in it. A sentence with two prohibitions is two sources.
 3. **The class**, strongest first: `hooked` (name the rule and a hook-test
-   case that denies the act) · `hook-candidate` (one tool call plus local
-   state could decide it — open its issue, red first, `hooks/README.md`
-   § How to add a rule) · `guarded-by-case` (ledger ids of cases that
+   case that denies the act — the act itself, not a neighbouring
+   operational boundary) · `deterministic-candidate` (files, git and one
+   call's input could decide it and nothing does — open its issue, red
+   first; the issue chooses the owner: remove the invalid choice, generate
+   the value, verify in `roz-check`, deny in a hook, or leave it prose, in
+   that order) · `guarded-by-case` (ledger ids of cases that
    assert *this* prohibition) · `prose-only` (say why: `semantic`,
    `persona`, `authority`, or `unguarded — <what would guard it>`) ·
    `not-a-rule` (add the fragment under its reason; there is no pattern

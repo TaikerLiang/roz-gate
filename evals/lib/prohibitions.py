@@ -24,7 +24,7 @@ DATA = "docs/prohibitions.json"
 WORD = re.compile(
     r"\b(?:never|cannot|can't|do not|don't|must not|mustn't|forbidden|may not)\b"
     r"|\bonly\b[^.]{0,80}?\bmay\b(?! not\b)", re.I)
-CLASSES = ("hooked", "hook-candidate", "guarded-by-case", "prose-only", "not-a-rule")
+CLASSES = ("hooked", "deterministic-candidate", "guarded-by-case", "prose-only", "not-a-rule")
 PROSE_REASON = re.compile(r"\A(semantic|persona|authority|unguarded — \S)")
 
 

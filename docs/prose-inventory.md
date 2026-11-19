@@ -357,14 +357,14 @@ stale — which is when to look at it again.
 
 | class | meaning | `owner` | `evidence` |
 |---|---|---|---|
-| `hooked` | a hook denies the act | `hook <rule>` | the hook-test cases |
-| `hook-candidate` | one tool call plus local state could decide it (question 2 of `hooks/README.md`'s check); no hook does. Evidence and fail direction are settled in its own issue — red first | `none yet` | the follow-up issue |
+| `hooked` | a hook denies the act itself — not a narrower operational boundary beside it (rule E stops QA reading the implementation; it does not make an assertion follow the contract) | `hook <rule>` | the hook-test cases |
+| `deterministic-candidate` | files, git and one call's input could decide it, and nothing does. Its issue chooses the owner, red first, in this order: the architecture removes the invalid choice · a generator produces the value · `roz-check` verifies it · a hook denies it · it stays prose (#352, #354: push a failure down the trust stack; eliminate before denying) | `none yet` | the follow-up issue |
 | `guarded-by-case` | a lint, replay or judgment case asserts this prohibition — not a neighbouring one | the prose or kernel rule that owns it | ledger ids |
 | `prose-only` | nothing enforces it. The reason says why: `semantic`, `persona`, `authority` — or `unguarded — <what would guard it>`, a gap recorded as a gap | `prose` | — |
 | `not-a-rule` | the word forbids an agent nothing: a fact, a condition, another seat's rule described, a line addressed to the human | — | — |
 
 Where a prohibition could be both, the stronger claim on enforcement wins:
-`hooked`, then `hook-candidate`, then `guarded-by-case`.
+`hooked`, then `deterministic-candidate`, then `guarded-by-case`.
 
 **What the lint cannot see.** A prohibition spelled with none of these
 words ("no force-push", "is not yours to …"); whether a class is right;
@@ -377,9 +377,9 @@ Scope: `agents/`, `templates/` — 7 files, 34 prohibition words, each inside on
 
 | class | rules | sources |
 |---|---|---|
-| `hooked` | 2 | 2 |
-| `hook-candidate` | 2 | 3 |
-| `guarded-by-case` | 3 | 4 |
+| `hooked` | 1 | 1 |
+| `deterministic-candidate` | 2 | 3 |
+| `guarded-by-case` | 4 | 5 |
 | `prose-only` | 15 | 17 |
 | `not-a-rule` (reasons) | 5 | 8 |
 
@@ -389,15 +389,15 @@ Of the `prose-only` rules, **2 are `unguarded`** — not semantic, and nothing e
 |---|---|---|---|---|---|
 | P001 | Dispatched with no one to ask, a spec seat never waits for an answer — it returns its open questions with the deliverable | `agents/em.md` · `agents/product.md` | `prose-only` | prose | unguarded — a replay case in which a dispatched seat holds an open question and must return it rather than end its turn asking (E2 guards where a returned question lands, not that the seat returns it) |
 | P002 | A dispatched spec seat never silently assumes an answer to an open question | `agents/em.md` · `agents/product.md` | `prose-only` | prose | semantic — whether a choice was an assumption is a reading of the deliverable against the spec |
-| P003 | A seat folding an answer never posts its follow-up question to the forge itself — the main agent posts or defers it | `agents/em.md` · `agents/product.md` | `hook-candidate` | none yet | — |
+| P003 | A seat folding an answer never posts its follow-up question to the forge itself — the main agent posts or defers it | `agents/em.md` · `agents/product.md` | `deterministic-candidate` | none yet | #391 |
 | P004 | em never accepts a vague answer to a requirement | `agents/em.md` | `prose-only` | prose | persona — how the seat interrogates; what counts as vague is its judgment |
 | P005 | product never accepts a happy-path-only answer | `agents/product.md` | `prose-only` | prose | persona — how the seat interrogates; what counts as happy-path-only is its judgment |
 | P006 | A spec seat never offers merging, rebasing onto or cherry-picking from another branch as an option — it reports the missing dependency | `agents/em.md` · `agents/product.md` | `guarded-by-case` | references/workflow.md | C29 |
 | P012 | QA never resolves an ambiguity in the spec by interpretation — an ambiguity is a finding it reports | `agents/qa.md` | `guarded-by-case` | references/qa-brief.md | D24, E14 |
-| P013 | QA tests against the contract, never the raw implementation | `agents/qa.md` | `hooked` | hook E | `hooks/tests/test_guard_blind.py::RuleE_QaDispatchSeat` |
+| P013 | QA tests against the contract, never the raw implementation | `agents/qa.md` | `guarded-by-case` | references/qa-brief.md | B8, D9, D10, D13 — hook E is a supporting operational boundary (no read of the implementation during the dispatch), not this rule's owner: a seat can obey E and still assert what it observed |
 | P014 | The acceptance tests are a maintained suite, never write-once snapshots | `agents/qa.md` | `prose-only` | prose | semantic — whether a suite is maintained or a snapshot is a reading of how it was written |
 | P015 | QA never flags a project-sanctioned test layout as a violation | `agents/qa.md` | `prose-only` | prose | semantic — whether a finding is about the layout is a reading of the finding |
-| P016 | `test-spec.md`'s scenario→test map is derived from the trace markers in the test source, never hand-maintained | `agents/qa.md` | `hook-candidate` | none yet | — |
+| P016 | `test-spec.md`'s scenario→test map is derived from the trace markers in the test source, never hand-maintained | `agents/qa.md` | `deterministic-candidate` | none yet | #392 |
 | P017 | A QA red is a harness issue fixed or a finding reported, never an edited assertion (QA-4) | `agents/qa.md` | `guarded-by-case` | kernel QA-4 (`references/qa-brief.md`) | B8, D9, D13 |
 | P018 | QA references exact scenario names, never a paraphrase | `agents/qa.md` | `prose-only` | prose | persona — how the seat communicates |
 | P019 | QA does not negotiate on violations | `agents/qa.md` | `prose-only` | prose | persona — how the seat communicates |

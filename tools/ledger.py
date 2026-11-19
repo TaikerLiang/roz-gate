@@ -315,7 +315,7 @@ def render_prohibitions():
         proof = ", ".join("`%s`" % e if "::" in e else e for e in r.get("evidence", []))
         out.append("| %s | %s | %s | `%s` | %s | %s |" % (
             r["id"], cell(r["rule"]), files(r), r["class"], cell(r["owner"]),
-            cell(proof or r.get("reason", "—"))))
+            cell(" — ".join(x for x in (proof or r.get("reason", "—"), r.get("note")) if x))))
     out += ["", "**Not a rule** — a prohibition word that forbids an agent nothing. One row "
             "per reason; every fragment is listed, none is matched by pattern.", "",
             "| id | reason | fragments |", "|---|---|---|"]

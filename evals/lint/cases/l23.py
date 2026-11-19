@@ -6,7 +6,8 @@ recorded which did. About 510 `never` / `cannot` / `must not` … sat in the
 runtime prose, and the cheapest edit was to write one more.
 
 `docs/prohibitions.json` now records, per distinct rule, its class
-(`hooked`, `hook-candidate`, `guarded-by-case`, `prose-only`, `not-a-rule`),
+(`hooked`, `deterministic-candidate`, `guarded-by-case`, `prose-only`,
+`not-a-rule`),
 its owner, and the evidence for the class. This case holds the data to the
 prose, in the directories the data scopes (it grows PR by PR: `agents/` and
 `templates/` first, then `commands/`, then `references/`):
@@ -18,8 +19,9 @@ prose, in the directories the data scopes (it grows PR by PR: `agents/` and
   a shared reason over explicit fragments, never a pattern;
 - `owner` and `evidence` are separate and each resolves: a `hooked` row
   names a rule `hooks/README.md` lists and hook-test cases that exist; a
-  `guarded-by-case` row ids the ledger lists; a `hook-candidate` row its
-  follow-up issue; `prose-only` and `not-a-rule` rows a reason.
+  `guarded-by-case` row ids the ledger lists; a `deterministic-candidate`
+  row its follow-up issue (where the owner is chosen — a hook is one of
+  five possible answers, and the last tried); `prose-only` and `not-a-rule` rows a reason.
 
 What it does not do: judge whether a classification is right, or whether
 the evidence is enough (that is review); find a prohibition spelled with
@@ -29,7 +31,7 @@ Red-proofed by appending an unclassified `never` sentence to an agent file;
 editing a registered clause in the prose (stale quote); widening a quote
 over a second `never`; a quote that matches twice; two rows quoting
 overlapping text; `hook Z`; a hook-test case that does not exist; a ledger
-id that does not exist; a `hook-candidate` with no issue; a `prose-only`
+id that does not exist; a `deterministic-candidate` with no issue; a `prose-only`
 row with no reason; a new file with a `never` under a scoped directory.
 """
 
@@ -49,7 +51,8 @@ META = {
               "registers for that file; every quote occurs exactly once in its file and holds "
               "exactly one prohibition word; a `hooked` row names a rule `hooks/README.md` "
               "lists and hook-test cases that exist, a `guarded-by-case` row ids the ledger "
-              "lists, a `hook-candidate` row an issue, a `prose-only` or `not-a-rule` row a "
+              "lists, a `deterministic-candidate` row its owner-selection issue, a "
+              "`prose-only` or `not-a-rule` row a "
               "reason — `owner` and `evidence` are separate fields (#380: about 510 "
               "prohibitions, and for most nothing recorded who enforces them).",
 }
@@ -115,7 +118,7 @@ for row in DATA.get("rows", []):
             owner.append("%s: no owner" % rid)
         if not ev or any(e not in LEDGER for e in ev):
             evidence.append("%s: %s" % (rid, ev))
-    elif cls == "hook-candidate":
+    elif cls == "deterministic-candidate":
         if row.get("owner") != "none yet":
             owner.append("%s: %r" % (rid, row.get("owner")))
         if not ev or any(not re.fullmatch(r"#\d+", e) for e in ev):
