@@ -9,7 +9,10 @@ bash "$(dirname "$0")/../../lib/seed-common.sh" "$1"
 # What #6 presupposes (#328, C26's shape): an HTTP client pinned below 3.2
 # in a lockfile. On a base without it every run rightly routed #6 to the
 # human, and its row could never be the queued machine work F11 scores.
-printf 'httpclient==3.1\n' > requirements.lock
+# The name is one no package index can hold (#408): a project name starts
+# with a letter or digit, so a seat's index lookup has nothing to contradict
+# the pin with — `httpclient` is a real PyPI project with no 3.x.
+printf '_acme_httpclient==3.1\n' > requirements.lock
 # And the suite #6's "the suite stays green" runs (#367, C26's shape):
 # seed-common's `test: true` is the shell builtin over no test files, and a
 # seat at C4 STOPs on "no test suite" — #6 turns `blocked` and the human's.
