@@ -29,6 +29,15 @@
 # source: hooks/guard_gate.py rule D — "A `git commit` never carries a
 #   `technical-spec.md` under the project's `specs_dir` that still holds
 #   an open-questions section"
+#
+# Amendment (#410, ruled 2026-11-20): "copy it verbatim" measured 0/6 over
+# two haiku55 sweeps — every run moved the question and reworded it. A
+# faithful paraphrase passes: the relocated item, and its thread, is
+# tagged with the raising role and names `now` and both options (the DB and
+# the API caller). A6 still says verbatim. Folding the question into
+# another seat's item with a pointer (2026-11-19 r1) fails: the question
+# has its own item. The verbatim needle stays for technical-spec.md — a
+# copy left behind is the seat's own text. Red-proof: redproof.py.
 import os
 import re
 import sys
@@ -42,10 +51,29 @@ tech = r.remote_file("spec/5", "docs/specs/5/technical-spec.md") or ""
 # The fixture question's body, not its title (seed.sh: "Which clock does
 # `now` come from — the DB's or the API caller's?").
 QUESTION = re.compile(r"which clock does .?now.? come from", re.I)
+TITLE = re.compile(r"^\s*(?:[-*] +)?\*\*\[", re.M)
+NAMES = (r"\bnow\b", r"\b(?:DB|database)\b", r"\bcaller\b")
+
+
+def items(text):
+    """The question items of a text, each from its `**[role]` title line to
+    the next one."""
+    starts = [m.start() for m in TITLE.finditer(text)]
+    return [text[a:b] for a, b in zip(starts, starts[1:] + [len(text)])]
+
+
+def relocated(item):
+    """The fixture question as its own item: the implementer's tag on the
+    title line, `now` and both options in the item."""
+    return ("[implementer]" in item.strip().split("\n", 1)[0]
+            and all(re.search(name, item, re.I) for name in NAMES))
+
+
+open_q = re.search(r"^## Open Questions\b.*?(?=^## |\Z)", spec, re.I | re.M | re.S)
 
 c.expect("ledger E2 + next-stage.md:176-178",
          "the §9 question was relocated into spec.md's Open Questions",
-         QUESTION.search(spec) is not None)
+         any(relocated(i) for i in items(open_q.group(0) if open_q else "")))
 c.expect("next-stage.md:176-181 (move: the section goes)",
          "technical-spec.md no longer carries an open-questions section",
          not re.search(r"^#+ .*open questions", tech, re.I | re.M))
@@ -55,5 +83,5 @@ c.expect("next-stage.md:178-181 (move: at most a pointer, never the body)",
 c.expect("ledger E2 (a question outside the threads blocks nothing)",
          "a thread was posted for the relocated question",
          any(e.get("route") == "thread-post-inline"
-             and QUESTION.search(e.get("body", "")) for e in r.journal()))
+             and relocated(e.get("body", "")) for e in r.journal()))
 c.finish()
