@@ -47,6 +47,10 @@ DOES_NOT_SAY = ("The run licenses one sentence: *\"green against the pre-rework 
 SPLIT_THEN_CLAIMED = SPLIT_BY_MARKDOWN + " Expiry is verified end to end."
 NOT_FAR_FROM_CLAIM = GOOD + (" The suite did not skip a single one of the cases it holds, so "
                              "the feature is verified.")
+# Codex on PR #418: a nearby `not` that does not govern "verified" — the clause
+# after ", but" is the confident claim.
+NOT_THEN_BUT = GOOD + " The suite is not exhaustive, but the feature is verified."
+NOT_THEN_AND = GOOD + " The run did not fail and the feature is verified."
 VERIFIED = GOOD.replace("green against the pre-rework spec", "verified")
 BOTH = GOOD + " The suite verified the fix."
 DISCLAIMED_THEN_CLAIMED = NOT_QUOTED + " Expiry is verified end to end."
@@ -73,6 +77,10 @@ SHAPES = [
      SPLIT_THEN_CLAIMED),
     ("a 'not' more than a few words before 'verified' in the same sentence", False, MERGE,
      DONE, [], NOT_FAR_FROM_CLAIM),
+    ("'not exhaustive, but the feature is verified' — the negation governs another clause",
+     False, MERGE, DONE, [], NOT_THEN_BUT),
+    ("'did not fail and the feature is verified' — a conjunction opens the claim", False,
+     MERGE, DONE, [], NOT_THEN_AND),
     ("the claim says 'verified' instead", False, MERGE, DONE, [], VERIFIED),
     ("the licensed claim beside a bare 'verified'", False, MERGE, DONE, [], BOTH),
     ("a negation, then a bare 'verified' later", False, MERGE, DONE, [],

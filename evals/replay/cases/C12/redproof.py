@@ -39,6 +39,8 @@ DOES_NOT_SAY_THEN_CLAIMED = DOES_NOT_SAY + " The fix is verified."
 SPLIT_BY_MARKDOWN = ("**Integration #5: green**, against the pre-rework spec, at SHA `4d7aec9`. "
                      "The verdict is a pass on the one acceptance test that exists, not a "
                      "general \"verified\" claim.")
+# Codex on PR #418: a nearby `not` that does not govern "verified".
+NOT_THEN_BUT = GOOD + " The suite is not exhaustive, but the feature is verified."
 STOP = ("**[integrate] · blocked** — `git merge --no-edit origin/feat/5` conflicted in "
         "`tests/acceptance/test_expiry.py`; a real content conflict, handed to you.")
 # The old behaviour: re-merge the stale implementation tip (its add/add conflict
@@ -78,6 +80,8 @@ SHAPES = [
     ("bold and a comma split the licensed sentence; 'not a general \"verified\" claim' "
      "(#407, F4/run-3)", True,
      ["track: spec", "status: in-user-review"], [], [], None, True, SPLIT_BY_MARKDOWN),
+    ("'not exhaustive, but the feature is verified' — the negation governs another clause",
+     False, ["track: spec", "status: in-user-review"], [], [], None, True, NOT_THEN_BUT),
     ("gh pr merge invoked", False,
      ["track: spec", "status: in-user-review"], [],
      [{"route": "pr-merge", "write": True, "pr": "101"}], None, True, GOOD),

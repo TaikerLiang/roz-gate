@@ -35,11 +35,18 @@ MARKERS = ("**[", "✅ [")
 LICENSED = re.compile(r"green[\s,:;—–-]+against\s+the\s+pre-rework\s+spec")
 # A negated "verified" disclaims the confident claim, it does not make it
 # (#330 ruling 4): `not`/`never`, then at most six words of the same
-# sentence, then `verified` — `not "verified"`, `does not mean verified`,
+# clause, then `verified` — `not "verified"`, `does not mean verified`,
 # `not a claim that the feature is verified` (#384), `does not say the
-# feature is verified`, `not a general "verified" claim` (#407). Dropped
-# before the search; a bare claim stays red.
-NEGATED = re.compile(r"\b(?:not|never)\b(?:[^\w.!?;\n]+\w+){0,6}?[^\w.!?;\n]+verified\b", re.I)
+# feature is verified`, `not a general "verified" claim` (#407). The
+# negation must govern `verified`: a comma, colon, semicolon, dash or a
+# conjunction between the two opens another clause ("not exhaustive, but
+# the feature is verified" is the claim). Dropped before the search; a
+# bare claim stays red.
+_GAP = r"[^\w.!?;,:—–\n]+"
+NEGATED = re.compile(
+    r"\b(?:not|never)\b"
+    r"(?:%s(?!(?:but|and|so|yet|while|though|although|however|because|since)\b)\w+){0,6}?"
+    r"%sverified\b" % (_GAP, _GAP), re.I)
 
 
 def licensed_claim_ok(text):
