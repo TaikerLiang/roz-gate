@@ -478,6 +478,8 @@ def blank_variable_bodies(raw, cmd, scanned):
 #     reference as written;
 #   - the reference sits in a word with no single quote and no backslash
 #     (`'$W/…'` is not expanded by the shell either).
+# A reference inside a body already blanked stays blanked — a mention is not
+# refilled (codex review, PR #415: `W=src/x; gh pr comment 1 --body "$W"`).
 LITERAL = re.compile(r"""(['"]?)([\w./-]+)\1""")
 ONLY_CD_AND_LITERALS = re.compile(
     r"(?:\s*(?:cd[ \t]+[\w./-]+|[A-Za-z_]\w*=[\w./-]*)[ \t]*(?:&&|;|\n))*\s*")
@@ -520,7 +522,8 @@ def expand_literal_variables(raw, cmd, scanned):
             continue
         plain = [(a, b) for a, b in word_spans(cmd, e) if not set("'\\") & set(cmd[a:b])]
         edits += [(m.start(), m.end(), value.group(2)) for m in refs
-                  if any(a <= m.start() and m.end() <= b for a, b in plain)]
+                  if any(a <= m.start() and m.end() <= b for a, b in plain)
+                  and scanned[m.start():m.end()] == m.group(0)]
     for a, b, value in sorted(edits, reverse=True):
         scanned = scanned[:a] + value + scanned[b:]
     return scanned

@@ -369,6 +369,11 @@ BASH_ALLOWED = [
      "cd tests && " + D7_RUN3),
     ("rule E #409: S=$'…'; glab mr note -m \"${S}\" allowed",
      "S=$'see `src/pricing.py:6`\\n\\nit\\'s the port'; glab mr note 103 -m \"${S}\""),
+    # Codex review, PR #415: a literal written out must not refill a blanked body.
+    ("rule E #409: W=src/…; gh pr comment --body \"$W\" stays a mention allowed",
+     "W=src/app.txt; gh pr comment 1 --body \"$W\""),
+    ("rule E #409: W=src/…; gh api -f body=\"$W\" stays a mention allowed",
+     "W=src/app.txt; gh api repos/acme/demo/issues/5/comments -f body=\"$W\""),
     ("rule E #409: an inline --body $'… src/ …' is the body allowed",
      "gh pr comment 103 --body $'see src/pricing.py:6\\n$(cat src/app.txt) is text here'"),
 ]
