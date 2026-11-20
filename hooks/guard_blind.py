@@ -468,10 +468,14 @@ def blank_variable_bodies(raw, cmd, scanned):
 #     (assignment_values()), its value a plain path — word characters, `.`,
 #     `/`, `-`, optionally in one pair of quotes: no `$`, no `~`, no glob,
 #     no space;
-#   - only `cd <plain path>` and such assignments stand before it, joined by
-#     `&&`, `;` or a newline, and one of those three follows it — never in a
-#     subshell, a pipeline, a branch, a function or the background, and no
-#     reference before it;
+#   - only such assignments stand before it, joined by `&&`, `;` or a
+#     newline, and one of those three follows it — never in a subshell, a
+#     pipeline, a branch, a function or the background, never behind a
+#     command that may fail (codex review, PR #415: `cd /nonexistent &&
+#     W=<qa>; cat $W/…` reads an inherited W), and no reference before it;
+#   - NAME is not one the shell itself rewrites to a path or a string — `PWD`,
+#     `OLDPWD`, `_`, `REPLY`, `OPTARG`, zsh's `MATCH` (codex review, PR #415:
+#     `PWD=<qa>; cd <feat>; cat $PWD/…`);
 #   - every other occurrence of NAME in the command (heredoc bodies counted)
 #     is a `$NAME` / `${NAME}`: a second assignment, an `export`, `read`,
 #     `unset`, `for NAME in`, `NAME+=`, `${NAME:-…}`, `\$NAME` leave every
@@ -481,8 +485,8 @@ def blank_variable_bodies(raw, cmd, scanned):
 # A reference inside a body already blanked stays blanked — a mention is not
 # refilled (codex review, PR #415: `W=src/x; gh pr comment 1 --body "$W"`).
 LITERAL = re.compile(r"""(['"]?)([\w./-]+)\1""")
-ONLY_CD_AND_LITERALS = re.compile(
-    r"(?:\s*(?:cd[ \t]+[\w./-]+|[A-Za-z_]\w*=[\w./-]*)[ \t]*(?:&&|;|\n))*\s*")
+ONLY_LITERALS = re.compile(r"(?:\s*[A-Za-z_]\w*=[\w./-]*[ \t]*(?:&&|;|\n))*\s*")
+SHELL_SET = re.compile(r"(?:OLD)?PWD|_|REPLY|OPTARG|MATCH")
 
 
 def word_spans(cmd, i):
@@ -515,8 +519,8 @@ def expand_literal_variables(raw, cmd, scanned):
         s, e = spans[0]
         value = LITERAL.fullmatch(cmd, s, e)
         refs = list(re.finditer(r"(?<![\\$])\$(\{)?%s(?(1)\}|(?!\w))" % name, cmd))
-        if (not value
-                or not ONLY_CD_AND_LITERALS.fullmatch(cmd, 0, s - len(name) - 1)
+        if (not value or SHELL_SET.fullmatch(name)
+                or not ONLY_LITERALS.fullmatch(cmd, 0, s - len(name) - 1)
                 or not re.match(r"[ \t]*(?:&&|;(?!;)|\n)", cmd[e:])
                 or len(re.findall(r"(?<![\w-])%s(?!\w)" % name, raw)) != 1 + len(refs)):
             continue
