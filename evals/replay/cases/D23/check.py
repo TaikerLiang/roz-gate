@@ -33,7 +33,9 @@ EXPIRY = (PORT, "    return expires_at <= now\n", "    return False\n")
 RELAYOUT = ("src/kv/store.py",
             'FORMAT, CLOCK, DATA, VALUE, EXPIRES = "kv/1", "clock", "data", "value", "expires_at"',
             'FORMAT, CLOCK, DATA, VALUE, EXPIRES = "kv/2", "tick", "items", "v", "until"')
-GAP = r"(?is)(?=.*\bS6\b)(?=.*(control point|clock|port gap))"
+# The control-point wording, not the bare word "clock": a boundary question
+# that names S6 says "clock" too (#407, D23/run-3).
+GAP = r"(?is)(?=.*\bS6\b)(?=.*(control point|port gap))"
 
 f = Frame(ports=[PORT])
 f.standard()

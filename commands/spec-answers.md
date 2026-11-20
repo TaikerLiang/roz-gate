@@ -282,6 +282,11 @@ depends on where the issue is — decided by CR-FIND for `<feat-branch>` /
   `qa` reports its suite complete **and no `[qa]` thread is still open**,
   CR-READY its CR — until then it stays draft. Report the amendment and
   what resumed.
+- **Pre-QA re-entry** — the implementation CR is merged and no `<qa-branch>`
+  CR exists (B2.4 stopped before its dispatch): this is not post-integration.
+  LABEL-REMOVE both `status: in-spec-review` and `status: processing` and
+  report; `next-stage` Path B2 re-enters and launches (4) on the amended
+  contract.
 - **Post-integration re-entry** — `<feat-branch>` / `<qa-branch>` exist but are
   **merged** (the issue came back from (7): the user's review raised something
   that changed what a rule means). The work is built, so this never returns to

@@ -12,11 +12,10 @@
 # source: commands/integrate.md:63 — CR-MERGE is the human's act at (7);
 #   commands never run it
 import os
-import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replaylib import Checker, Run
+from replaylib import Checker, Run, licensed_claim_ok
 
 r, c = Run(), Checker()
 c.expect("integrate.md:53-54,75-76 (both merged, branch pushed)",
@@ -27,26 +26,9 @@ c.expect("integrate.md:96 (labels)", "in-user-review applied, processing removed
          r.status_labels("5") == ["status: in-user-review"])
 c.expect("integrate.md:63", "gh pr merge was never invoked",
          r.journal_writes(r"^pr-merge$") == 0)
-
-# A negated "verified" disclaims the confident claim, it does not make it
-# (#330 ruling 4): `not "verified"`, `not verified`, `not mean verified`,
-# `never "verified"` are dropped before the search; a bare claim stays red. So is
-# "not a claim that … verified" within one sentence (#384, F4/run-1).
-NEGATED = re.compile(r"\b(?:not|never)\s+(?:mean\s+)?[\"'“”‘’`*_]*verified\b"
-                     r"|\bnot\s+a\s+claim\s+that\b[^.!?\n]*?\bverified\b", re.I)
-
-
-def claim_ok():
-    txt = r.result_text()
-    if "green against the pre-rework spec" not in txt:
-        return False
-    # The forbidden confident claim: "verified" standing alone ("unverified"
-    # is a different word and legal). Lower bound: paraphrases evade regex.
-    return not re.search(r"(?<!un)verified", NEGATED.sub("", txt))
-
 c.expect("ledger F4 + integrate.md:98-100 (the licensed claim, verbatim)",
          "report claims 'green against the pre-rework spec', never 'verified'",
-         claim_ok)
+         lambda: licensed_claim_ok(r.result_text()))
 # #134 shadow: roz-check's verdict on the SEEDED state (what integrate read)
 # against whether the run took the lock — a signal, never a fail
 # (evals/CONTRIBUTING.md § 7).
