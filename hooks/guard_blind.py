@@ -461,13 +461,15 @@ def blank_variable_bodies(raw, cmd, scanned):
 # the marker names and was denied — `$W/src/…` is no operand a readable root
 # recognizes. A reference is written out as its value and the command is
 # then judged as if it had been spelled that way: the port resolves,
-# `$W/src/main.py` is the read it is, and `W=src; cat $W/app.txt` — allowed
-# until now — is one too. Only where the shell certainly expands it so; any
+# `$W/src/main.py` is the read it is, and `W=/repo/src; cat $W/app.txt` —
+# allowed until now — is one too. Only where the shell certainly expands it so; any
 # other reference stays as written, and `$W/src/…` as written is denied:
 #   - NAME is assigned alone in its simple command, no command substitution
-#     (assignment_values()), its value a plain path — word characters, `.`,
-#     `/`, `-`, optionally in one pair of quotes: no `$`, no `~`, no glob,
-#     no space;
+#     (assignment_values()), its value a plain ABSOLUTE path — `/`, then
+#     word characters, `.`, `/`, `-`, optionally in one pair of quotes: no
+#     `$`, no `~`, no glob, no space; a relative value is the cwd's at the
+#     reference, which a `cd` in between moves (codex review, PR #415: `W=.;
+#     cd <feat>; cat $W/<port>`);
 #   - only such assignments stand before it, joined by `&&`, `;` or a
 #     newline, and one of those three follows it — never in a subshell, a
 #     pipeline, a branch, a function or the background, never behind a
@@ -484,7 +486,7 @@ def blank_variable_bodies(raw, cmd, scanned):
 #     (`'$W/…'` is not expanded by the shell either).
 # A reference inside a body already blanked stays blanked — a mention is not
 # refilled (codex review, PR #415: `W=src/x; gh pr comment 1 --body "$W"`).
-LITERAL = re.compile(r"""(['"]?)([\w./-]+)\1""")
+LITERAL = re.compile(r"""(['"]?)(/[\w./-]*)\1""")
 ONLY_LITERALS = re.compile(r"(?:\s*[A-Za-z_]\w*=[\w./-]*[ \t]*(?:&&|;|\n))*\s*")
 SHELL_SET = re.compile(r"(?:OLD)?PWD|_|REPLY|OPTARG|MATCH")
 

@@ -230,8 +230,6 @@ BASH_DENIED = [
      "gh api repos/acme/demo/issues/5/comments -F body=$'@src/app.txt'", "read of src/"),
     ("rule E #409: \"$'\" inside double quotes opens nothing — the read after it denied",
      "gh pr comment 103 --body \"$'\"; cat src/app.txt", "read of src/"),
-    # #409: a variable holding a literal is written out — and is then the read it is.
-    ("rule E #409: W=.; cat ${W}/src/app.txt denied", "W=.; cat ${W}/src/app.txt", "read of src/"),
 ]
 # (name, command) -- Bash calls under the marker that name src/ without reading it.
 BASH_ALLOWED = [
@@ -989,11 +987,9 @@ class RuleE_PortThroughAVariable(HookTest):
              "N=5 && W=%s; cat $W/%s" % (qa, port)),
             ("variable: the port and a spec doc through the same variable allowed",
              "W=%s; cat $W/%s $W/docs/specs/5/spec.md" % (qa, port)),
-            ("variable: W=.; cat $W/<port> from the qa/5 worktree allowed", None),
         ]:
             with self.case(name):
-                self.assertAllowed(self.run_bash(cmd) if cmd
-                                   else self.run_bash("W=.; cat $W/%s" % port, cwd=qa))
+                self.assertAllowed(self.run_bash(cmd))
 
     def test_what_does_not_resolve_to_the_port_stays_denied(self):
         qa, feat, port = self.qa, self.feat, self.PORT
@@ -1034,6 +1030,16 @@ class RuleE_PortThroughAVariable(HookTest):
              "OLDPWD=%s; cd %s; cd /; cat $OLDPWD/%s" % (qa, feat, port)),
             ("variable: REPLY is the shell's (a bare `read` sets it) — denied",
              "REPLY=%s; read < where; cat $REPLY/%s" % (qa, port)),
+            # Codex review, PR #415 round 3: a relative value is the cwd's at the
+            # reference, not the hook's — only an absolute value is written out.
+            ("variable: W=.; cd <feat/5 worktree>; cat $W/<port> — denied",
+             "W=.; cd %s; cat $W/%s" % (feat, port)),
+            ("variable: W=.; cat $W/<port> (relative, no cd) is left as written — denied",
+             "W=.; cat $W/%s" % port),
+            ("variable: W=..; cd <feat/5 worktree>/src; cat $W/<port> — denied",
+             "W=..; cd %s/src; cat $W/%s" % (feat, port)),
+            ("variable: W=src/test; cd <feat/5 worktree>; cat $W/offer_port.py — denied",
+             "W=src/test; cd %s; cat $W/offer_port.py" % feat),
             ("variable: assigned in a branch — denied",
              "if true; then\nW=%s\nfi; cat $W/%s" % (qa, port)),
             ("variable: read from stdin after the assignment — denied",
