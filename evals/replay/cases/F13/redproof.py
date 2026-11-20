@@ -199,7 +199,7 @@ def seed_holds_six(work):
     STOPs #6 as undoable (#328)."""
     p = subprocess.run(["git", "show", "main:requirements.lock"], cwd=work,
                        capture_output=True, text=True)
-    m = re.search(r"^httpclient==3\.(\d+)", p.stdout, re.M)
+    m = re.search(r"^_acme_httpclient==3\.(\d+)", p.stdout, re.M)
     return p.returncode == 0 and m is not None and int(m.group(1)) < 2
 
 
