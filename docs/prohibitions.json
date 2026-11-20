@@ -4549,6 +4549,21 @@
           "clause": "`CLAUDE.md` or `CLAUDE.local.md`"
         }
       ]
+    },
+    {
+      "id": "P230",
+      "rule": "A seat never posts a CR comment with `gh pr comment --edit-last` — it would overwrite the operator's own last comment",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a hook deny on `--edit-last` in a `gh pr comment` call",
+      "note": "the predicate is decidable from one call's input; the maintainer ruled prose, no hook (#408, 2026-11-20). The forge stub implements `--edit-last` as gh does, so a run that uses it is scored on what gh would have done",
+      "sources": [
+        {
+          "file": "references/forge-github.md",
+          "quote": "never `--edit-last`"
+        }
+      ]
     }
   ]
 }
