@@ -67,7 +67,10 @@ and it is why the next step's blindness is the hook's, not the topology's.
   CR. A thread that settled a contract question on the implementation CR is
   the (5) breach — route it to a spec-CR thread through you, LABEL-ADD
   `status: in-spec-review` (the backward transition), and **do not
-  dispatch**; the paused side resumes through (2a). Otherwise assemble two
+  dispatch**; the paused side resumes through (2a). A
+  `## Contract deviations` entry that changes what a rule `R<k>` means is
+  the same stop, raised by you: B2.5's append and thread, role
+  `[<the role that declared it>]`, the label, no dispatch. Otherwise assemble two
   lists for the dispatch text: the **amendment list** — every amendment
   agreed in spec-CR threads and issue comments since `technical-spec.md`'s
   last commit, under the heading `Amendment list:`, one line per amendment,

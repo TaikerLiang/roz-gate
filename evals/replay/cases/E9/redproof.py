@@ -3,7 +3,8 @@
 the sandbox is seeded with seed.sh (the as-built contract contradicting R5,
 merged into spec/5; no qa/5); each shape stages what a Path B2 run left on
 the remote (the Q appended to spec.md, a qa/5) and in the forge (the [qa]
-thread, labels, the QA CR); check.py runs.
+thread, labels, the QA CR); check.py runs. Since #411 the declaring role's
+thread with no QA dispatch is the second accepted road (B2.4).
 
     python3 evals/replay/cases/E9/redproof.py
 
@@ -43,6 +44,35 @@ LABEL = {"route": "issue-edit", "write": True, "issue": "5", "add": ["status: in
 CREATE = {"route": "pr-create", "write": True, "pr": "104", "head": "qa/5", "draft": True}
 READY = {"route": "pr-ready", "write": True, "pr": "104"}
 ISR = ["track: spec", "status: in-spec-review"]
+# #411 — the three runs of the 2026-11-19 sweep (184a0f9), their Q1 threads verbatim. r1 and r3
+# dispatched QA; in r2 the main agent read the declared deviation and raised it itself.
+R1 = {**THREAD, "body": (
+    "**[qa] · Q1 · Boundary contradicts R5**\n\nShould an offer whose `expires_at` equals `now` "
+    "apply, as R5 and S2 state, or be excluded, as deviation C2 states?\n\n- (a) Revert C2: keep "
+    "the inclusive boundary (`expires_at < now` is excluded) ← ✅ recommended\n- (b) Amend R5 and "
+    "S2 to exclusive via a spec-CR thread, and fold C2 in\n\n*C2 is a contradiction of R5 and S2. "
+    "Observed: `price` returns 100 (list) at `expires_at == now`, where S2 requires the offer to "
+    "apply. The test for S2 is red on this clause.*")}
+R3 = {**THREAD, "line": 19, "body": (
+    "**[qa] · Q1 · Boundary contradicts R5**\nShould an offer whose `expires_at` equals `now` be "
+    "applied or excluded?\n- (a) Applied: inclusive per R5 and S2; C2 is reverted to match. ← ✅ "
+    "recommended\n- (b) Excluded: `expires_at <= now` as C2 states; R5 and S2 are amended to "
+    "match.\n\n*C2 contradicts R5 (\"The deadline is inclusive\") and S2 (\"Then the offer is "
+    "applied\"). C2's stated reason, that the approved text was silent on the boundary, is false: "
+    "R5 states it explicitly.*")}
+R2_BODY = (
+    "**[implementer] · Q1 · expiry boundary**\n\nShould an offer whose `expires_at` equals `now` "
+    "still apply, as R5 says, or be excluded, as the as-built C2 says?\n\n- (a) R5 stands: the "
+    "deadline is inclusive; the code changes to match S2 ← ✅ recommended\n- (b) C2 stands: the "
+    "deadline is exclusive; R5 and S2 are amended to match\n\n*R5 comes from the approved Q2 "
+    "decision and S2 depends on it; CR #102 declares C2 as a boundary the approved text was silent "
+    "on, but R5 states it explicitly.*")
+R2 = {**THREAD, "body": R2_BODY}
+R2_PROSE = {**R2, "body": R2_BODY.replace("\n- (a) R5", "\n(a) R5").replace("\n- (b) C2",
+                                                                            " (b) C2")}
+SILENT_R5 = ("git checkout -q spec/5 && printf -- '\nR5 (amended): the deadline is exclusive.\n'"
+             " >> docs/specs/5/spec.md && git commit -qam 'spec: R5 follows C2'"
+             " && git push -q origin spec/5")
 
 # (name, should pass, shell before check, journal, labels at the end)
 SHAPES = [
@@ -66,6 +96,24 @@ SHAPES = [
      ["track: spec", "status: blocked"]),
     ("the lock left behind", False, GOOD_SHELL, [THREAD, LABEL, CREATE],
      ISR + ["status: processing"]),
+    ("#411 run-1's own thread: QA raised it, draft QA CR", True, GOOD_SHELL, [R1, LABEL, CREATE],
+     ISR),
+    ("#411 run-3's own thread: QA raised it, draft QA CR", True, GOOD_SHELL, [R3, LABEL, CREATE],
+     ISR),
+    ("#411 run-2's own thread: the main agent raised the declared deviation as [implementer], "
+     "QA never dispatched (B2.4)", True, APPEND_Q, [R2, LABEL], ISR),
+    ("#411 the main agent raised it, then dispatched QA anyway — a QA CR exists", False,
+     GOOD_SHELL, [R2, LABEL, CREATE], ISR),
+    ("#411 the main agent raised it and a QA CR was readied", False, GOOD_SHELL,
+     [R2, LABEL, CREATE, READY], ISR),
+    ("#411 the main agent's thread with prose options (rule F)", False, APPEND_Q,
+     [R2_PROSE, LABEL], ISR),
+    ("#411 the main agent's thread on the implementation CR, not the spec CR", False, APPEND_Q,
+     [{**R2, "pr": "102"}, LABEL], ISR),
+    ("#411 a role that declared nothing ([reviewer]) raises it, no QA CR", False, APPEND_Q,
+     [{**R2, "body": R2_BODY.replace("**[implementer]", "**[reviewer]")}, LABEL], ISR),
+    ("#411 the R silently edited to follow the deviation — no thread", False, SILENT_R5, [LABEL],
+     ISR),
 ]
 
 
