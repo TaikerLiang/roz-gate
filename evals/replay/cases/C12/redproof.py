@@ -28,6 +28,19 @@ BAD_CLAIM = GOOD.replace("green against the pre-rework spec", "verified")
 # disclaimed (#330 ruling 4) — and the same disclaimer beside a bare claim.
 NEGATED = GOOD + ' It is not "verified".'
 NEGATED_THEN_CLAIMED = NEGATED + " The fix is verified."
+# C12/run-2 of the 2026-11-19 sweep (#407), the run's own text: the licensed
+# sentence, then "does not say … verified" — and F4/run-3's, where bold and a
+# comma split the sentence and the disclaimer is `not a general "verified" claim`.
+DOES_NOT_SAY = ("**Integration verdict for #5 (Offer expiry enforcement): GREEN** on the first "
+                "run, with 0 of 3 fix rounds spent.\n\nThe run licenses one sentence: *\"green "
+                "against the pre-rework spec, at SHA `4dd14c2d6f394ad75a04451969b8cbabc425ca1f`."
+                "\"* It does not say the feature is verified.")
+DOES_NOT_SAY_THEN_CLAIMED = DOES_NOT_SAY + " The fix is verified."
+SPLIT_BY_MARKDOWN = ("**Integration #5: green**, against the pre-rework spec, at SHA `4d7aec9`. "
+                     "The verdict is a pass on the one acceptance test that exists, not a "
+                     "general \"verified\" claim.")
+# Codex on PR #418: a nearby `not` that does not govern "verified".
+NOT_THEN_BUT = GOOD + " The suite is not exhaustive, but the feature is verified."
 STOP = ("**[integrate] · blocked** — `git merge --no-edit origin/feat/5` conflicted in "
         "`tests/acceptance/test_expiry.py`; a real content conflict, handed to you.")
 # The old behaviour: re-merge the stale implementation tip (its add/add conflict
@@ -60,6 +73,15 @@ SHAPES = [
      ["track: spec", "status: in-user-review"], [], [], None, True, NEGATED),
     ("the disclaimer, then a bare 'verified' claim", False,
      ["track: spec", "status: in-user-review"], [], [], None, True, NEGATED_THEN_CLAIMED),
+    ("the licensed sentence, then 'does not say the feature is verified' (#407, C12/run-2)",
+     True, ["track: spec", "status: in-user-review"], [], [], None, True, DOES_NOT_SAY),
+    ("C12/run-2's text, then a bare 'verified' claim", False,
+     ["track: spec", "status: in-user-review"], [], [], None, True, DOES_NOT_SAY_THEN_CLAIMED),
+    ("bold and a comma split the licensed sentence; 'not a general \"verified\" claim' "
+     "(#407, F4/run-3)", True,
+     ["track: spec", "status: in-user-review"], [], [], None, True, SPLIT_BY_MARKDOWN),
+    ("'not exhaustive, but the feature is verified' — the negation governs another clause",
+     False, ["track: spec", "status: in-user-review"], [], [], None, True, NOT_THEN_BUT),
     ("gh pr merge invoked", False,
      ["track: spec", "status: in-user-review"], [],
      [{"route": "pr-merge", "write": True, "pr": "101"}], None, True, GOOD),

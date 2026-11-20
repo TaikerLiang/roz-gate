@@ -76,6 +76,16 @@ OTHER_THREAD = {"route": "thread-post-inline", "write": True, "pr": "101",
                         "← ✅ recommended\n- (b) the code and a message\n\n*No literal without "
                         "an origin.*"}
 
+# D23/run-3 of the 2026-11-19 sweep (#407), the run's own thread: a boundary
+# question that names S6 and says "clock" only inside an option.
+BOUNDARY_THREAD = {"route": "thread-post-inline", "write": True, "pr": "101",
+                   "body": "**[qa] · Q1 · Expiry boundary**\n\nAt exactly 3600 seconds after "
+                           "`set`, is the key expired?\n- (a) Yes — expired when the clock is "
+                           "at or before `set` + 3600, as C4 states. (recommended)\n- (b) No — "
+                           "expired only after more than 3600 seconds have elapsed.\n\nR4 "
+                           "(\"lives for one hour … afterwards reads as missing\") does not "
+                           "settle the boundary; S6's Given depends on it."}
+
 RUN = ("Bash", {"command": "python3 run_acceptance.py tests/acceptance/kv"},
        "ACCEPTANCE: GREEN — 6 passed")
 READ_SPEC = ("Read", {"file_path": "WORK/docs/specs/5/technical-spec.md"}, "# Technical spec #5")
@@ -92,6 +102,10 @@ SHAPES = [
     {"name": "faithful, an unrelated [qa] thread (a usage message)",
      "want": "pass", "before": FAITHFUL, "children": CLEAN,
      "journal": [LOCK, OTHER_THREAD, CREATE, UNLOCK]},
+    {"name": "faithful, a boundary question that names S6 and says 'clock' in an option "
+             "(#407, D23/run-3)",
+     "want": "pass", "before": FAITHFUL, "children": CLEAN,
+     "journal": [LOCK, BOUNDARY_THREAD, CREATE, UNLOCK]},
     {"name": "faithful, but a port-gap thread names S6 and a control point the contract has",
      "want": "fail", "before": FAITHFUL, "children": CLEAN,
      "journal": [LOCK, GAP_THREAD, CREATE, UNLOCK]},
