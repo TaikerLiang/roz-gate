@@ -138,6 +138,10 @@ real verdict.
   seeded test asserts something. The shared base has the offers table and
   the checkout service; anything else a case's issues presuppose, its own
   seed adds.
+- A dependency the seed pins carries a name no package index can hold —
+  `_acme_httpclient`: a project name starts with a letter or digit — so a
+  seat's lookup on live PyPI finds nothing that contradicts the fixture
+  (#408: `httpclient` is a real project with no 3.x, and a seat stopped on it).
 - Editing `lib/seed-common.sh` moves **every** case's fingerprint
   (`replaylib.SHARED_FINGERPRINT_INPUTS`): mark the replay batches in
   `baselines.json` `superseded` in the same PR.

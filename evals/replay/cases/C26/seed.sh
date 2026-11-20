@@ -13,7 +13,10 @@ bash "$(dirname "$0")/../../lib/seed-common.sh" "$1"
 # a base without them a seat that stops (#213) is right, and the N is never
 # reached.
 mkdir -p src/server
-printf 'httpclient==3.1\n' > requirements.lock
+# The name is one no package index can hold (#408): a project name starts
+# with a letter or digit, so a seat's index lookup has nothing to contradict
+# the pin with — `httpclient` is a real PyPI project with no 3.x.
+printf '_acme_httpclient==3.1\n' > requirements.lock
 cat > src/server/app.py <<'PY'
 """The HTTP server: a route table and one handler."""
 
