@@ -29,6 +29,27 @@ from lib.checkkit import Checker  # noqa: E402,F401
 
 MARKERS = ("**[", "✅ [")
 
+# ---- integrate's licensed claim — one test for C12 and F4 (#407).
+# The sentence, read with markdown emphasis stripped; punctuation may stand
+# between "green" and the rest ("**Integration #5: green**, against the …").
+LICENSED = re.compile(r"green[\s,:;—–-]+against\s+the\s+pre-rework\s+spec")
+# A negated "verified" disclaims the confident claim, it does not make it
+# (#330 ruling 4): `not`/`never`, then at most six words of the same
+# sentence, then `verified` — `not "verified"`, `does not mean verified`,
+# `not a claim that the feature is verified` (#384), `does not say the
+# feature is verified`, `not a general "verified" claim` (#407). Dropped
+# before the search; a bare claim stays red.
+NEGATED = re.compile(r"\b(?:not|never)\b(?:[^\w.!?;\n]+\w+){0,6}?[^\w.!?;\n]+verified\b", re.I)
+
+
+def licensed_claim_ok(text):
+    """True iff `text` carries integrate's licensed claim ('green against
+    the pre-rework spec') and no bare 'verified'. "unverified" is a
+    different word and legal. Lower bound: paraphrases evade regex."""
+    text = re.sub(r"[*_]+", "", text)
+    return bool(LICENSED.search(text)) \
+        and not re.search(r"(?<!un)verified", NEGATED.sub("", text))
+
 
 # ---- session validity — shared by the runner (check.py path) and the
 # drivers (F6): one classifier, or the two paths drift and the driver

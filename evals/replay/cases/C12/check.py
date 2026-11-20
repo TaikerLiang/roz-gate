@@ -16,11 +16,10 @@
 # source: commands/integrate.md step 5 — finalize, the licensed claim
 # source: commands/integrate.md step 6 — the STOP exit this run must not take
 import os
-import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replaylib import Checker, Run
+from replaylib import Checker, Run, licensed_claim_ok
 
 r, c = Run(), Checker()
 MOVED = 'reason({"expires_at": 1}, now=2), "offer expired"'
@@ -44,24 +43,9 @@ c.expect("integrate.md step 6 (no STOP exit)", "no blocked comment on the issue"
 c.expect("integrate.md (CR-MERGE is the human's act at (7))", "gh pr merge was never invoked",
          r.journal_writes(r"^pr-merge$") == 0)
 
-
-# A negated "verified" disclaims the confident claim, it does not make it
-# (#330 ruling 4): `not "verified"`, `not verified`, `not mean verified`,
-# `never "verified"` are dropped before the search; a bare claim stays red.
-NEGATED = re.compile(r"\b(?:not|never)\s+(?:mean\s+)?[\"'“”‘’`*_]*verified\b", re.I)
-
-
-def claim_ok():
-    txt = r.result_text()
-    if "green against the pre-rework spec" not in txt:
-        return False
-    # "verified" standing alone is the forbidden claim; "unverified" is legal.
-    return not re.search(r"(?<!un)verified", NEGATED.sub("", txt))
-
-
 c.expect("integrate.md step 5 (the licensed claim, verbatim)",
          "report claims 'green against the pre-rework spec', never 'verified'",
-         claim_ok)
+         lambda: licensed_claim_ok(r.result_text()))
 # #135 shadow: the names integrate looked up (CR-FIND heads) against Lookup
 # over the final heads (a signal, never a fail).
 r.shadow_branch([("spec", "5"), ("feat", "5"), ("qa", "5")], acts=("find",))

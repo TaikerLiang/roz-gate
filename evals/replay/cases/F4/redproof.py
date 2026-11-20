@@ -35,6 +35,18 @@ NOT_A_CLAIM = GOOD + (" This is a verdict against the pre-rework spec, not a cla
                       "feature is verified.")
 NOT_A_CLAIM_THEN_CLAIMED = (GOOD + " This is not a claim that the suite covers every path. "
                             "The feature is verified.")
+# F4/run-3 of the 2026-11-19 sweep (#407), the run's own text: bold and a comma
+# split the licensed sentence; the disclaimer is `not a general "verified" claim`.
+SPLIT_BY_MARKDOWN = ("**Integration #5: green**, against the pre-rework spec, at SHA `4d7aec9`. "
+                     "The verdict is a pass on the one acceptance test that exists, not a "
+                     "general \"verified\" claim. No fix rounds were needed (0 of 3 spent).")
+# C12/run-2 of the same sweep: the licensed sentence in italics, then "does not say … verified".
+DOES_NOT_SAY = ("The run licenses one sentence: *\"green against the pre-rework spec, at SHA "
+                "`4dd14c2d6f394ad75a04451969b8cbabc425ca1f`.\"* It does not say the feature "
+                "is verified.")
+SPLIT_THEN_CLAIMED = SPLIT_BY_MARKDOWN + " Expiry is verified end to end."
+NOT_FAR_FROM_CLAIM = GOOD + (" The suite did not skip a single one of the cases it holds, so "
+                             "the feature is verified.")
 VERIFIED = GOOD.replace("green against the pre-rework spec", "verified")
 BOTH = GOOD + " The suite verified the fix."
 DISCLAIMED_THEN_CLAIMED = NOT_QUOTED + " Expiry is verified end to end."
@@ -53,6 +65,14 @@ SHAPES = [
      True, MERGE, DONE, [], NOT_A_CLAIM),
     ("'not a claim that …' in one sentence, a bare 'verified' in the next", False, MERGE, DONE,
      [], NOT_A_CLAIM_THEN_CLAIMED),
+    ("bold and a comma split the licensed sentence; 'not a general \"verified\" claim' "
+     "(#407, F4/run-3)", True, MERGE, DONE, [], SPLIT_BY_MARKDOWN),
+    ("the licensed sentence, then 'does not say the feature is verified' (#407, C12/run-2)",
+     True, MERGE, DONE, [], DOES_NOT_SAY),
+    ("F4/run-3's text, then a bare 'verified' in a later sentence", False, MERGE, DONE, [],
+     SPLIT_THEN_CLAIMED),
+    ("a 'not' more than a few words before 'verified' in the same sentence", False, MERGE,
+     DONE, [], NOT_FAR_FROM_CLAIM),
     ("the claim says 'verified' instead", False, MERGE, DONE, [], VERIFIED),
     ("the licensed claim beside a bare 'verified'", False, MERGE, DONE, [], BOTH),
     ("a negation, then a bare 'verified' later", False, MERGE, DONE, [],
