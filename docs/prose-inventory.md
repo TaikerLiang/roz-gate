@@ -392,17 +392,17 @@ at all are listed under *Unguarded executable prose*, by section — a
 different unit, kept apart.
 
 <!-- prohibitions -->
-Scope: `agents/`, `commands/`, `references/`, `templates/` — 36 files, 523 prohibition words, each inside one quote. A quote belongs to one row, or — one word, two rules — to several, each naming its clause.
+Scope: `agents/`, `commands/`, `references/`, `templates/` — 36 files, 524 prohibition words, each inside one quote. A quote belongs to one row, or — one word, two rules — to several, each naming its clause.
 
 | class | rules | sources |
 |---|---|---|
 | `hooked` | 8 | 19 |
 | `deterministic-candidate` | 13 | 36 |
 | `guarded-by-case` | 72 | 159 |
-| `prose-only` | 124 | 159 |
+| `prose-only` | 125 | 160 |
 | `not-a-rule` (reasons) | 12 | 155 |
 
-Of the `prose-only` rules, **74 are `unguarded`** — not semantic, and nothing enforces them yet.
+Of the `prose-only` rules, **75 are `unguarded`** — not semantic, and nothing enforces them yet.
 
 | id | rule | stated in | class | owner | evidence / reason |
 |---|---|---|---|---|---|
@@ -623,6 +623,7 @@ Of the `prose-only` rules, **74 are `unguarded`** — not semantic, and nothing 
 | P227 | The bot credential is never written into git config or any repository file | `references/identity-github-app.md` | `prose-only` | prose | unguarded — a replay case in bot mode: no file in the work tree and no git config value holds the token after the run |
 | P228 | An agent never force-pushes a remote branch — every remote write a command makes is additive | `references/branch-names.md` · `references/workflow.md` (“force-pushes”) · `references/next-stage-path-c.md` (“force-pushes”) · `references/next-stage-path-a.md` (“force-pushes”) | `deterministic-candidate` | none yet | #394 |
 | P229 | The config command never edits `CLAUDE.md` or `CLAUDE.local.md` itself | `commands/config.md` (“`CLAUDE.md` or `CLAUDE.local.md`”) | `prose-only` | prose | unguarded — a replay case on `/roz-gate:config` setting a key: neither file changes — not a deterministic candidate today: the predicate is which command is writing, not which path is written (`init` writes `CLAUDE.md` legitimately), and no tool call or local state carries a trustworthy command identity. It becomes one if the architecture introduces a command-context / capability boundary |
+| P230 | A seat never posts a CR comment with `gh pr comment --edit-last` — it would overwrite the operator's own last comment | `references/forge-github.md` | `prose-only` | prose | unguarded — a hook deny on `--edit-last` in a `gh pr comment` call — the predicate is decidable from one call's input; the maintainer ruled prose, no hook (#408, 2026-11-20). The forge stub implements `--edit-last` as gh does, so a run that uses it is scored on what gh would have done |
 
 **Not a rule** — a prohibition word that forbids an agent nothing. One row per reason; every fragment is listed, none is matched by pattern.
 
