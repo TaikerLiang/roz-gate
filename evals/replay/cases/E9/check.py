@@ -12,6 +12,9 @@
 # source: commands/next-stage.md B2.5 — QA's findings → threads on the spec CR
 # source: references/qa-brief.md § Step zero — the contract review
 # source: commands/next-stage.md B2.6 — CR-READY only with no [qa] thread open
+# source: references/next-stage-path-b2.md B2.4 — "entry that changes what a rule `R<k>` means
+#   is the same stop, raised by you: B2.5's append and thread, role `[<the role that declared
+#   it>]`, the label, no dispatch" (#411: either raiser passes; the end state is the rule)
 import os
 import re
 import sys
@@ -21,16 +24,28 @@ from replaylib import Checker, Run
 
 r, c = Run(), Checker()
 journal = r.journal()
-qa_threads = [e for e in journal if e.get("write") and e.get("route") == "thread-post-inline"
-              and str(e.get("pr")) == "101"
-              and re.match(r"\s*\*\*\[qa\]", e.get("body") or "")]
-c.expect("next-stage.md B2.5 (the finding batch → [qa] threads on the spec CR)",
-         "at least one thread on #101 opens with **[qa]", len(qa_threads) >= 1)
+
+
+def threads(role):
+    return [e for e in journal if e.get("write") and e.get("route") == "thread-post-inline"
+            and str(e.get("pr")) == "101"
+            and re.match(r"\s*\*\*\[%s\]" % role, e.get("body") or "")]
+
+
+# Two roads to the same end state (#411, ruled 2026-11-20): QA's contract
+# review raises it (B2.5), or the main agent reads the declared deviation at
+# B2.4 and raises it for the role that declared it — the implementer —
+# with QA never dispatched.
+qa_threads = threads("qa")
+raised = qa_threads or threads("implementer")
+c.expect("next-stage.md B2.5 / B2.4 (the question → a thread on the spec CR)",
+         "at least one thread on #101 opens with **[qa] — or, QA undispatched, **[implementer]",
+         len(raised) >= 1)
 c.expect("next-stage.md B2.5 (rule F: options as bullets)",
-         "each [qa] thread carries at least two option bullets",
-         bool(qa_threads) and all(
+         "each such thread carries at least two option bullets",
+         bool(raised) and all(
              len(re.findall(r"(?m)^\s*(?:[-*+]|\d+[.)])\s+\([a-z]\)", e.get("body") or "")) >= 2
-             for e in qa_threads))
+             for e in raised))
 c.expect("next-stage.md B2.5 (the backward transition)",
          "in-spec-review applied, processing released",
          r.status_labels("5") == ["status: in-spec-review"])
@@ -39,9 +54,9 @@ c.expect("next-stage.md B2.5 (the item is appended to spec.md's Open Questions)"
          lambda: r.remote_commits_touching("spec/5", "docs/specs/5/spec.md") >= 2)
 creates = [e for e in journal if e.get("write") and e.get("route") == "pr-create"
            and e.get("head") == "qa/5"]
-c.expect("next-stage.md B2.6 (the QA CR opens as a draft and stays one)",
-         "one draft QA CR, never readied while the [qa] thread is open",
-         len(creates) == 1 and creates[0].get("draft") is True
+c.expect("next-stage.md B2.6 / B2.4 (the QA CR opens as a draft and stays one; none without QA)",
+         "one draft QA CR behind a [qa] thread — none if the main agent raised it — never readied",
+         (len(creates) == 1 and creates[0].get("draft") is True if qa_threads else not creates)
          and not any(e.get("write") and e.get("route") == "pr-ready" for e in journal))
 c.expect("next-stage.md B2.5 (no thread on the QA CR or the implementation CR for this)",
          "no [qa] thread posted anywhere but the spec CR",

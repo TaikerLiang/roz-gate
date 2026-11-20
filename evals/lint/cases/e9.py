@@ -19,6 +19,11 @@ src("E9: the brief gives the finding the question shape", "references/qa-brief.m
     "`**[qa] · Q<k> · <2–3-word\nlabel>**`")
 src("E9: the brief — QA does not stop on a finding", "references/qa-brief.md",
     "**A finding does not stop you**")
+src("E9: B2.4 — the main agent raises a declared rule-moving deviation, QA undispatched (#411)",
+    "references/next-stage-path-b2.md",
+    "entry that changes what a rule `R<k>` means is\n"
+    "  the same stop, raised by you: B2.5's append and thread, role\n"
+    "  `[<the role that declared it>]`, the label, no dispatch")
 src("E9: B2.5 appends the item to spec.md's Open Questions", "references/next-stage-path-b2.md",
     "append each item to `spec.md`'s `## Open Questions`")
 src("E9: B2.5 posts the threads on the spec CR", "references/next-stage-path-b2.md",
