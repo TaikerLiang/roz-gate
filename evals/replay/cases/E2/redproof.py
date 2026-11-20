@@ -48,6 +48,7 @@ POINTER = ("\n**Design-session draft.** The draft's clock-source question (its �
            "answered by spec Q6 (a), which C1 and C3 implement, so the section is not "
            "carried into this file. The gate holder's answer to Q6 decides it.\n")
 
+# The runs' text is kept as posted, long lines included (noqa: E501).
 # opus 2026-09-16 r1: the copy is verbatim.
 VERBATIM = """**[implementer] · Q7 · Clock source**
 
@@ -64,7 +65,7 @@ Should `now` come from the API caller or from the database clock?
 - (a) The API caller passes `now` on every call ← ✅ recommended
 - (b) The database's current time, read by the port
 
-*The choice decides whether expiry is testable with a frozen clock; the contract's C1 assumes (a).*"""
+*The choice decides whether expiry is testable with a frozen clock; the contract's C1 assumes (a).*"""  # noqa: E501
 # haiku55 2026-11-19 r3: `now` survives in option (b) only.
 R3 = """**[implementer] · Q10 · Clock source**
 
@@ -72,7 +73,7 @@ Should the evaluation instant come from the API caller (passed into the port) or
 - (a) The API caller passes it ← ✅ recommended
 - (b) The database `NOW()`
 
-_Why: the contract's testability with a controlled clock depends on it (§5 `set_clock`)._"""
+_Why: the contract's testability with a controlled clock depends on it (§5 `set_clock`)._"""  # noqa: E501
 # haiku55 2026-11-19 r1: em's own question, the one §9 was folded into …
 R1_Q6 = """**[em] · Q6 · pricing instant source**
 
@@ -81,7 +82,7 @@ Should the pricing instant be an explicit argument passed by the caller, or read
 - (a) Caller passes the pricing instant explicitly ← ✅ recommended
 - (b) Pricing function reads the system clock itself
 
-*Why: the implementer contract keeps pricing a pure function of its arguments and tables; an explicit instant also lets S4 price the same cart at two instants in one check.*"""
+*Why: the implementer contract keeps pricing a pure function of its arguments and tables; an explicit instant also lets S4 price the same cart at two instants in one check.*"""  # noqa: E501
 # … and the implementer item that run did post.
 R1_Q8 = """**[implementer] · Q8 · checkout seam**
 
@@ -90,7 +91,7 @@ Is `checkout()` in `src/checkout/service.py` the seam that reprices, reconfirms,
 - (a) Yes, as built in the contract's C6 ← ✅ recommended
 - (b) Checkout lives outside this repo; then G8 to G10 and S7, S9, S10 become limitations and only O1 to O3 are the port
 
-*Why: no checkout, charge, or order code exists in `src/`, so S7 to S10 have no seam without this decision.*"""
+*Why: no checkout, charge, or order code exists in `src/`, so S7 to S10 have no seam without this decision.*"""  # noqa: E501
 # opus 2026-09-16 r2: em's clock question — `now` and the database, no caller.
 EM_CLOCK = """**[em] · Q2 · Clock source**
 
@@ -98,7 +99,7 @@ Which clock defines "now" for the expiry comparison?
 - (a) Checkout service server time, UTC, compared as an absolute instant ← ✅ recommended
 - (b) Database clock (`NOW()` at query time)
 
-*Either is acceptable as long as it is one authoritative server-side source; the choice fixes whether S3/S4 are testable via injected service time or via DB fixture time, and shopper-local time must be ruled out explicitly (S9).*"""
+*Either is acceptable as long as it is one authoritative server-side source; the choice fixes whether S3/S4 are testable via injected service time or via DB fixture time, and shopper-local time must be ruled out explicitly (S9).*"""  # noqa: E501
 
 # Cut from the runs' text: one of the three names dropped.
 R2_NO_DB = R2.replace(" or from the database clock", "").replace(
