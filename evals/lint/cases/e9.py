@@ -34,6 +34,12 @@ src("E9: B2.6 — ready only with no [qa] thread open", "references/next-stage-p
     "CR-READY only\n  if `qa` reported its suite complete **and** B2.5 posted no thread")
 src("E9: spec-answers resumes qa after a [qa] finding", "commands/spec-answers.md",
     "QA's `[qa]` contract-review findings")
+src("E9: spec-answers — a merged implementation with no QA CR returns to Path B2 (#411)",
+    "commands/spec-answers.md",
+    "the implementation CR is merged and no `<qa-branch>`\n"
+    "  CR exists (B2.4 stopped before its dispatch): this is not post-integration.\n"
+    "  LABEL-REMOVE both `status: in-spec-review` and `status: processing` and\n"
+    "  report; `next-stage` Path B2 re-enters")
 src("E9: spec-answers readies only with no [qa] thread open", "commands/spec-answers.md",
     "**and no `[qa]` thread is still open**")
 src("E9: workflow's qa row names the contract review", "references/workflow.md",
