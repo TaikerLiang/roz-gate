@@ -632,7 +632,7 @@
       "owner": "prose",
       "evidence": [],
       "reason": "unguarded — a case in which the build's contract diff and its `## Contract deviations` section disagree: a corrected clause the section does not list",
-      "note": "hook H is a supporting operational boundary (a CR whose diff touches `technical-spec.md` must carry the section), not this rule's owner: a section that says `none` passes it; whether the decidable subset (the diff touches the file and the section lists no deviation) deserves an owner is #406",
+      "note": "hook H is a supporting operational boundary (a CR whose diff touches `technical-spec.md` must carry the section), not this rule's owner: a section that says `none` passes it. The decidable subset (the diff touches the file and the section lists no deviation) is not a rule (#406): touching the file is not correcting the contract — the stage-(2) spec CR creates the file, so rule H fires on it and `none` is its only honest section (all 26 `none` sections on a touching diff in the stored replay runs are that CR; no run opens an implementation CR). Narrowed to a file the diff modifies, it is still wider than the rule (B4 counts changed clauses, not edits — a typo fix is `none`) and narrower than the risk (one bullet for three edits passes); the (5) reviewer, handed the as-built diff and the section, judges the whole of it",
       "sources": [
         {
           "file": "templates/implementer.md",
@@ -685,11 +685,11 @@
     {
       "id": "P028",
       "rule": "The config command never edits `.claude/roz-gate.local.json` itself — `bin/roz-config` does the write",
-      "class": "deterministic-candidate",
-      "owner": "none yet",
-      "evidence": [
-        "#404"
-      ],
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case on the `/roz-gate:config` fallback prompt setting a key: the transcript holds no Edit, Write or shell write to the file, and its content is what `bin/roz-config` wrote",
+      "note": "owner chosen under #404 (2026-11-21) — it stays prose, and nothing blocks the act in a real repository: no hook judges an Edit / Write on this path, and lint L2 holds only that the sentence is in `commands/config.md`. Not eliminated: the tool and an Edit run as one OS user, so a permission bit is friction, not removal; where the mod loads (`hooks/config-menu.tsx`, lint L8) no model turn runs and this prompt is only the fallback. Not hooked: no replay red and no shipped defect (`hooks/README.md`), and the path alone is wider than the rule — it would deny every session's edit of the person's own file, not the config command's. What a direct edit skips is three write checks: `branch_template` and `worktree_copy` are checked again by their readers (`roz-state`, `guard-acceptance`, `sync-worktree`); `patrol_issues_per_pass` is not — `roz-config --json` prints the stored value as it is. Validating on read would own that for every writer, the person's editor included",
       "sources": [
         {
           "file": "commands/config.md",
@@ -3115,11 +3115,10 @@
     {
       "id": "P145",
       "rule": "The bot's git identity is given per command, never written into the repository's git config",
-      "class": "deterministic-candidate",
-      "owner": "none yet",
-      "evidence": [
-        "#400"
-      ],
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a bot-mode replay case asserting the clone's git config holds no `user.name` / `user.email` after a commit point (no replay case runs in bot mode; #400: a deny on `git config user.*` would miss a file edit of `.git/config` and `--global`, and no such write is on record)",
       "sources": [
         {
           "file": "references/forge-github.md",
