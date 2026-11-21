@@ -14,6 +14,7 @@
     roz-config worktree_copy ""                 # copy nothing
     roz-config patrol_issues_per_pass 2         # in-loop issues one patrol pass acts on (default 1)
     roz-config inbox_label                      # no value: remove the override
+    roz-config bot_key ~/keys/roz-bot.pem       # bot mode: where bin/roz-forge finds the credential
 
 Stored in `.claude/roz-gate.local.json` at the repository root — one file per
 person per clone, like Claude Code's own `settings.local.json`; the first
@@ -66,6 +67,9 @@ LIST_KEYS = ("inbox_label", "inbox_assignee", "worktree_copy")
 COPY_DEFAULT = [".env"]  # worktree_copy absent; stored "" (or []) = copy nothing (#122)
 NONE = ('', '""', "''")  # how `worktree_copy` is told "nothing": an empty argument, or
                          # the two quote characters the mod's pane passes through
+# Not a loop key: the bot credential's path for bin/roz-forge (#413) — no menu
+# entry, no default to print; `--json` shows it only when set.
+BOT_KEY = "bot_key"
 REL = ".claude/roz-gate.local.json"
 USAGE = __doc__.split("\n\n")[1]
 
@@ -168,7 +172,8 @@ def migrate(root, path, stored):
 def write(root, path, stored):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
-        json.dump({k: stored[k] for k in KEYS if k in stored}, f, indent=2, ensure_ascii=False)
+        json.dump({k: stored[k] for k in KEYS + (BOT_KEY,) if k in stored}, f, indent=2,
+                  ensure_ascii=False)
         f.write("\n")
     exclude(root)
 
@@ -225,7 +230,7 @@ def show(eff, as_json):
         print(json.dumps({k: v for k, (v, _) in eff.items()}, ensure_ascii=False))
         return
     _, has_head = default_branch()
-    for k in KEYS:
+    for k in [k for k in KEYS + (BOT_KEY,) if k in eff]:
         v, dflt = eff[k]
         shown = ", ".join(v) if isinstance(v, list) else v
         note = ""
@@ -293,7 +298,22 @@ def main(argv):
     path = os.path.join(root, REL)
     stored = migrate(root, path, load(path))
     if not argv or argv == ["--json"]:
-        show(effective(stored), as_json=bool(argv))
+        eff = effective(stored)
+        if stored.get(BOT_KEY):
+            eff[BOT_KEY] = (stored[BOT_KEY], False)
+        show(eff, as_json=bool(argv))
+        return 0
+    if argv[0] == BOT_KEY:
+        if len(argv) > 2:
+            sys.stderr.write("roz-config: bot_key takes one path\n")
+            return 2
+        value = argv[1].strip() if len(argv) == 2 else ""
+        if value:
+            stored[BOT_KEY] = value
+        else:
+            stored.pop(BOT_KEY, None)
+        write(root, path, stored)
+        print("bot_key %s  [%s]" % ("set → " + value if value else "removed", REL))
         return 0
     key, values = argv[0], argv[1:]
     if key not in KEYS:

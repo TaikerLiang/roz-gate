@@ -1,0 +1,268 @@
+#!/usr/bin/env python3
+"""roz-forge — one bot-mode forge call, the credential set in that child alone (#413).
+
+    roz-forge gh <args…>                                  # GitHub: mint, then gh <args…>
+    roz-forge glab <args…>                                # GitLab: gh's twin
+    roz-forge git push [-u | --set-upstream] origin <branch>
+
+Bot mode only (`agent_identity: bot` in the config block). The tool obtains
+the bot's credential and puts it in the environment of exactly one `gh`,
+`glab` or `git` child: never on stdout or stderr, never in argv, never in the
+parent's environment, never on disk. It owns acquisition and injection,
+never authorization — the guards judge the command as written, and the
+`gh` / `glab` word stays in it so they keep matching (#399).
+
+Where the credential comes from:
+- GitHub: an installation token minted on every call (no cache) from
+  `bot_app_id` (config block) and the App's private key;
+- GitLab: the project access token, read from its file;
+- the file: `~/.config/roz-gate/<first bot_login>.pem` (GitHub) or `.token`
+  (GitLab), or the path `roz-config bot_key <path>` stored — a regular file,
+  readable by its owner only.
+
+Fails closed: a refusal or a failed mint exits 2 and starts no child — no
+fallback to the human's `gh` / `glab` login or git credentials. Ambient
+credentials (`GITHUB_TOKEN`, `GITLAB_ACCESS_TOKEN`, `GIT_ASKPASS`,
+env-injected git config, …) are removed from the child. `git push` keeps
+`origin`'s semantics (upstream, tracking refs): the token-free HTTPS URL goes
+in as `remote.origin.pushurl`, and a one-shot credential helper reads the
+token from the git child's environment after every stored helper is reset.
+
+This reduces the credential's exposure through the documented path; it is
+not isolation. The key file is readable by the agent's own user, and the
+child's own subprocesses inherit the token. Stdlib only, Python 3.9-compatible.
+"""
+
+import json
+import os
+import re
+import stat
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "hooks"))
+from config_block import find_block, main_checkout  # noqa: E402 — the one config reader
+
+GITHUB_API = "https://api.github.com"
+GITHUB_HOST = "github.com"
+LOCAL = ".claude/roz-gate.local.json"
+USAGE = __doc__.split("\n\n")[1]
+PUSH_USER = {"github": "x-access-token", "gitlab": "oauth2"}
+# Credentials no child inherits, whatever it is: each would answer instead of
+# the bot's (a `gh` child's own `git` would read the git ones, say).
+SCRUB = ("GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN", "GH_HOST",
+         "GITLAB_TOKEN", "GITLAB_ACCESS_TOKEN", "OAUTH_TOKEN", "GITLAB_HOST", "GL_HOST",
+         "GIT_ASKPASS", "SSH_ASKPASS", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT")
+HELPER = '!f() { echo "username=%s"; echo "password=$ROZ_FORGE_TOKEN"; }; f'
+
+
+class Refused(Exception):
+    """Exit 2 with this one-line reason — it never carries a credential."""
+
+
+def git(*args):
+    p = subprocess.run(["git", *args], capture_output=True, text=True)
+    return p.stdout.strip() if p.returncode == 0 else None
+
+
+def config():
+    top = git("rev-parse", "--show-toplevel")
+    block = find_block(top) if top else None
+    if block is None:
+        raise Refused("no `### Roz Gate config` block — not a roz-gate project")
+    values = {}
+    for m in re.finditer(r"^-\s*([a-z_]+):\s*(.*?)\s*$", block, re.M):
+        values.setdefault(m.group(1), m.group(2).strip("`"))
+    if values.get("agent_identity") != "bot":
+        raise Refused("agent_identity is not `bot` — in user mode run gh / glab / git directly")
+    if values.get("forge") not in ("github", "gitlab"):
+        raise Refused("the config block's `forge:` is not github or gitlab")
+    login = (values.get("bot_login") or "").split(",")[0].strip()
+    if not login:
+        raise Refused("the config block has no `bot_login`")
+    values["bot_login"] = login
+    values["top"] = top
+    return values
+
+
+def stored_key(top):
+    """`bot_key` from the local file — the worktree's, then the main checkout's
+    (the file is untracked, so a loop worktree does not carry it)."""
+    for root in (top, main_checkout(top)):
+        if not root:
+            continue
+        try:
+            with open(os.path.join(root, LOCAL), encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, ValueError):
+            continue
+        if isinstance(data, dict) and isinstance(data.get("bot_key"), str) and data["bot_key"].strip():
+            return data["bot_key"].strip()
+    return None
+
+
+def key_file(cfg):
+    ext = ".pem" if cfg["forge"] == "github" else ".token"
+    path = stored_key(cfg["top"]) or os.path.join("~", ".config", "roz-gate", cfg["bot_login"] + ext)
+    path = os.path.realpath(os.path.expanduser(path))
+    try:
+        st = os.stat(path)
+    except OSError:
+        raise Refused("no credential file at %s (set another with `roz-config bot_key <path>`)" % path)
+    if not stat.S_ISREG(st.st_mode):
+        raise Refused("%s is not a regular file" % path)
+    if st.st_mode & 0o077:
+        raise Refused("%s is readable by others — chmod 600 it" % path)
+    return path
+
+
+def origin():
+    """(host, path) of `origin`'s configured URL — raw, before any insteadOf."""
+    url = git("config", "--get", "remote.origin.url")
+    for pat in (r"^https://(?:[^@/]+@)?([^/:]+)(?::\d+)?/(.+?)/*$",
+                r"^ssh://(?:[^@/]+@)?([^/:]+)(?::\d+)?/(.+?)/*$",
+                r"^[^@/:]+@([^/:]+):(.+?)/*$"):
+        m = re.match(pat, url or "")
+        if m:
+            path = m.group(2)[:-4] if m.group(2).endswith(".git") else m.group(2)
+            if path and ".." not in path.split("/"):
+                return m.group(1).lower(), path
+    raise Refused("cannot read `origin`'s URL (%s)" % (url or "unset"))
+
+
+def mint(cfg, key, repo):
+    """A GitHub App installation token for `repo`, held in memory only."""
+    app_id = cfg.get("bot_app_id", "")
+    if not re.fullmatch(r"\d+", app_id):
+        raise Refused("the config block has no numeric `bot_app_id`")
+
+    def b64(raw):
+        p = subprocess.run(["openssl", "base64", "-A"], input=raw, capture_output=True)
+        if p.returncode:
+            raise Refused("mint failed: openssl base64")
+        return p.stdout.decode().translate(str.maketrans("+/", "-_")).rstrip("=")
+
+    now = int(time.time())
+    head = b64(b'{"alg":"RS256","typ":"JWT"}')
+    body = b64(json.dumps({"iat": now - 60, "exp": now + 540, "iss": app_id}).encode())
+    sig = subprocess.run(["openssl", "dgst", "-sha256", "-sign", key, "-binary"],
+                         input=("%s.%s" % (head, body)).encode(), capture_output=True)
+    if sig.returncode or not sig.stdout:
+        raise Refused("mint failed: openssl could not sign with %s" % key)
+    jwt = "%s.%s.%s" % (head, body, b64(sig.stdout))
+
+    def api(path, method="GET"):
+        req = urllib.request.Request(GITHUB_API + path, method=method, headers={
+            "Authorization": "Bearer " + jwt, "Accept": "application/vnd.github+json"})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return json.load(r)
+        except urllib.error.HTTPError as e:
+            raise Refused("mint failed: %s %s → HTTP %d" % (method, path, e.code))
+        except (urllib.error.URLError, OSError, ValueError) as e:
+            raise Refused("mint failed: %s %s → %s" % (method, path, type(e).__name__))
+
+    inst = api("/repos/%s/installation" % repo).get("id")
+    if not isinstance(inst, int):
+        raise Refused("mint failed: no installation id for %s" % repo)
+    token = api("/app/installations/%d/access_tokens" % inst, "POST").get("token")
+    if not isinstance(token, str) or not token.strip():
+        raise Refused("mint failed: the API returned no token")
+    return token.strip()
+
+
+def credential(cfg):
+    """(token, host) — minted or read; refuses before any child starts."""
+    host, path = origin()
+    key = key_file(cfg)
+    if cfg["forge"] == "github":
+        if host != GITHUB_HOST:
+            raise Refused("origin is %s, not github.com — GitHub Enterprise is not supported" % host)
+        return mint(cfg, key, path), host
+    with open(key, encoding="utf-8") as f:
+        token = f.read().strip()
+    if not token or any(c.isspace() for c in token):
+        raise Refused("%s holds no single token" % key)
+    return token, host
+
+
+def child_env(extra):
+    env = {k: v for k, v in os.environ.items()
+           if k not in SCRUB and not re.match(r"GIT_CONFIG_(KEY|VALUE)_\d+$", k)}
+    env.update(extra)
+    return env
+
+
+def push_args(rest):
+    """`[-u] origin <branch>` → (upstream flag or None, branch); anything else refused."""
+    flags = [a for a in rest if a in ("-u", "--set-upstream")]
+    words = [a for a in rest if a not in ("-u", "--set-upstream")]
+    if len(flags) > 1 or len(words) != 2 or words[0] != "origin":
+        raise Refused("usage: roz-forge git push [-u | --set-upstream] origin <branch>")
+    branch = words[1]
+    if branch.startswith(("-", "+")) or ":" in branch \
+            or subprocess.run(["git", "check-ref-format", "--branch", branch],
+                              capture_output=True).returncode:
+        raise Refused("%r is not a plain branch name" % branch)
+    return (flags[0] if flags else None), branch
+
+
+def helper_config(user):
+    """`-c` pairs: every stored credential helper reset, then the one-shot one.
+    An empty `credential.helper` (or `credential.<url>.helper`) clears the list
+    built so far; `-c` is read after every config file, so nothing stored answers."""
+    pairs = ["credential.helper="]
+    listed = git("config", "--name-only", "--get-regexp", r"^credential\..+\.helper$") or ""
+    pairs += ["%s=" % k for k in sorted(set(listed.split())) if k != "credential.helper"]
+    pairs.append("credential.helper=" + HELPER % user)
+    out = []
+    for p in pairs:
+        out += ["-c", p]
+    return out
+
+
+def run_push(cfg, rest):
+    upstream, branch = push_args(rest)
+    if git("config", "--get-all", "remote.origin.pushurl"):
+        raise Refused("remote.origin.pushurl is set — roz-forge would add a second push destination")
+    host, path = origin()
+    url = "https://%s/%s.git" % (host, path)
+    seen = git("-c", "remote.origin.pushurl=" + url, "remote", "get-url", "--push", "origin")
+    if seen != url:
+        raise Refused("origin's push URL would resolve to %r, not %s (an insteadOf rule?)" % (seen, url))
+    token, _ = credential(cfg)
+    argv = ["git", "-c", "remote.origin.pushurl=" + url] + helper_config(PUSH_USER[cfg["forge"]]) \
+        + ["push"] + ([upstream] if upstream else []) + ["origin", branch]
+    env = child_env({"ROZ_FORGE_TOKEN": token, "GIT_TERMINAL_PROMPT": "0"})
+    return subprocess.run(argv, env=env).returncode
+
+
+def main(argv):
+    if not argv or argv[0] in ("-h", "--help"):
+        print(USAGE)
+        return 0 if argv else 64
+    kind, rest = argv[0], argv[1:]
+    if kind not in ("gh", "glab", "git") or (kind == "git" and rest[:1] != ["push"]):
+        sys.stderr.write("roz-forge: one of gh / glab / git push\n" + USAGE + "\n")
+        return 64
+    try:
+        cfg = config()
+        if kind == "git":
+            return run_push(cfg, rest[1:])
+        want = "github" if kind == "gh" else "gitlab"
+        if cfg["forge"] != want:
+            raise Refused("`%s` under forge: %s" % (kind, cfg["forge"]))
+        token, host = credential(cfg)
+    except Refused as e:
+        sys.stderr.write("roz-forge: %s — no forge call made\n" % e)
+        return 2
+    extra = {"GH_TOKEN": token, "GH_HOST": GITHUB_HOST, "GH_PROMPT_DISABLED": "1"} if kind == "gh" \
+        else {"GITLAB_TOKEN": token, "GITLAB_HOST": host}
+    return subprocess.run([kind, *rest], env=child_env(extra)).returncode
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

@@ -467,6 +467,29 @@ class RozConfigTest(unittest.TestCase):
                 self.assertFalse((self.root / REL).exists())
         self.assertIn("integer", self.run_tool("patrol_issues_per_pass", "x").stderr)
 
+    # ---- bot_key (#413) ---------------------------------------------------
+    def test_bot_key_set_show_remove(self):
+        with self.subTest("roz-config: bot_key is set, shown by --json only when set, kept by "
+                          "another key's write, removed"):
+            self.assertNotIn("bot_key", json.loads(self.run_tool("--json").stdout))
+            p = self.run_tool("bot_key", "~/.config/roz-gate/elsewhere.pem")
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertEqual(self.stored(), {"bot_key": "~/.config/roz-gate/elsewhere.pem"})
+            self.assertEqual(json.loads(self.run_tool("--json").stdout)["bot_key"],
+                             "~/.config/roz-gate/elsewhere.pem")
+            self.run_tool("helper_model", "claude-haiku-5-5")
+            self.assertEqual(self.stored()["bot_key"], "~/.config/roz-gate/elsewhere.pem")
+            self.assertIn("removed", self.run_tool("bot_key").stdout)
+            self.assertNotIn("bot_key", self.stored())
+
+    def test_bot_key_is_not_a_loop_key(self):
+        with self.subTest("roz-config: bot_key is not one of the eight loop keys (no menu entry)"):
+            src = TOOL.read_text()
+            keys = src[src.index("KEYS = ("):src.index(")", src.index("KEYS = ("))]
+            self.assertNotIn("bot_key", keys)
+            menu = (HOOKS / "config-menu.tsx").read_text()
+            self.assertNotIn("bot_key", menu)
+
 
 if __name__ == "__main__":
     unittest.main()
