@@ -3119,11 +3119,10 @@
     {
       "id": "P145",
       "rule": "The bot's git identity is given per command, never written into the repository's git config",
-      "class": "deterministic-candidate",
-      "owner": "none yet",
-      "evidence": [
-        "#400"
-      ],
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a bot-mode replay case asserting the clone's git config holds no `user.name` / `user.email` after a commit point (no replay case runs in bot mode; #400: a deny on `git config user.*` would miss a file edit of `.git/config` and `--global`, and no such write is on record)",
       "sources": [
         {
           "file": "references/forge-github.md",
