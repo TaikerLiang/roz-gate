@@ -476,19 +476,22 @@ def blank_variable_bodies(raw, cmd, scanned):
 #     command that may fail (codex review, PR #415: `cd /nonexistent &&
 #     W=<qa>; cat $W/…` reads an inherited W), and no reference before it;
 #   - NAME is not one the shell itself rewrites to a path or a string — `PWD`,
-#     `OLDPWD`, `_`, `REPLY`, `OPTARG`, zsh's `MATCH` (codex review, PR #415:
-#     `PWD=<qa>; cd <feat>; cat $PWD/…`);
+#     `OLDPWD`, `_`, `REPLY`, `OPTARG`, `BASH_REMATCH`, `MAPFILE`, `DIRSTACK`,
+#     zsh's `MATCH`, `match`, `reply` (codex review, PR #415: `PWD=<qa>; cd
+#     <feat>; cat $PWD/…`, `BASH_REMATCH=<qa>; [[ <feat> =~ .* ]]; …`);
 #   - every other occurrence of NAME in the command (heredoc bodies counted)
 #     is a `$NAME` / `${NAME}`: a second assignment, an `export`, `read`,
 #     `unset`, `for NAME in`, `NAME+=`, `${NAME:-…}`, `\$NAME` leave every
-#     reference as written;
+#     reference as written — and so does NAME attached to an option, a
+#     builtin's destination (codex review, PR #415: `printf -vW`, `read -aW`);
 #   - the reference sits in a word with no single quote and no backslash
 #     (`'$W/…'` is not expanded by the shell either).
 # A reference inside a body already blanked stays blanked — a mention is not
 # refilled (codex review, PR #415: `W=src/x; gh pr comment 1 --body "$W"`).
 LITERAL = re.compile(r"""(['"]?)(/[\w./-]*)\1""")
 ONLY_LITERALS = re.compile(r"(?:\s*[A-Za-z_]\w*=[\w./-]*[ \t]*(?:&&|;|\n))*\s*")
-SHELL_SET = re.compile(r"(?:OLD)?PWD|_|REPLY|OPTARG|MATCH")
+SHELL_SET = re.compile(r"(?:OLD)?PWD|_|REPLY|OPTARG|BASH_REMATCH|MAPFILE|DIRSTACK"
+                       r"|MATCH|match|reply")
 
 
 def word_spans(cmd, i):
@@ -524,7 +527,8 @@ def expand_literal_variables(raw, cmd, scanned):
         if (not value or SHELL_SET.fullmatch(name)
                 or not ONLY_LITERALS.fullmatch(cmd, 0, s - len(name) - 1)
                 or not re.match(r"[ \t]*(?:&&|;(?!;)|\n)", cmd[e:])
-                or len(re.findall(r"(?<![\w-])%s(?!\w)" % name, raw)) != 1 + len(refs)):
+                or len(re.findall(r"(?<![\w-])(?:-[A-Za-z]+)?%s(?!\w)" % name, raw))
+                != 1 + len(refs)):
             continue
         plain = [(a, b) for a, b in word_spans(cmd, e) if not set("'\\") & set(cmd[a:b])]
         edits += [(m.start(), m.end(), value.group(2)) for m in refs

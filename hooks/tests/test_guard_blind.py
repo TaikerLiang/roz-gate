@@ -1040,6 +1040,15 @@ class RuleE_PortThroughAVariable(HookTest):
              "W=..; cd %s/src; cat $W/%s" % (feat, port)),
             ("variable: W=src/test; cd <feat/5 worktree>; cat $W/offer_port.py — denied",
              "W=src/test; cd %s; cat $W/offer_port.py" % feat),
+            # Codex review, PR #415 round 4: a builtin's destination attached to
+            # its option (`printf -vW`, `read -aW`) is a write to W; BASH_REMATCH
+            # is the shell's — a `[[ =~ ]]` rewrites it.
+            ("variable: written by `printf -vW` (attached option) — denied",
+             "W=%s; printf -vW %%s %s; cat $W/%s" % (qa, feat, port)),
+            ("variable: written by `read -aW` (attached option) — denied",
+             "W=%s; read -aW < where; cat $W/%s" % (qa, port)),
+            ("variable: BASH_REMATCH is the shell's — denied",
+             "BASH_REMATCH=%s; [[ %s =~ .* ]]; cat $BASH_REMATCH/%s" % (qa, feat, port)),
             ("variable: assigned in a branch — denied",
              "if true; then\nW=%s\nfi; cat $W/%s" % (qa, port)),
             ("variable: read from stdin after the assignment — denied",
