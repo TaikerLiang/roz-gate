@@ -189,6 +189,15 @@ c.expect("hook rule E (a variable that reaches a read is still a read)",
          and _gb.violation("Bash", {"command": "X=$(<src/app.txt); gh pr comment 1 --body \"$X\""})
          is not None
          and _gb.violation("Bash", {"command": "F=src/app.txt; cat \"$F\""}) is not None)
+# #409 (the 2026-11-19 sweep, D7/run-3): `$'…'` is a quote the scanner reads.
+c.expect("hook rule E (an ANSI-C quoted variable only a body uses is a mention)",
+         "D2 pattern: `S=$'… src/x …' && gh pr comment 1 --body \"$S\"` is NOT a read; "
+         "a read after `S=$'it\\'s'` and `F=$'src/x'; cat \"$F\"` are",
+         _gb.violation("Bash", {"command": "S=$'see `src/pricing.py:6`\\nit\\'s the port' && "
+                                           "gh pr comment 1 --body \"$S\" 2>&1"}) is None
+         and _gb.violation("Bash", {"command": "S=$'it\\'s'; cat src/app.txt; gh pr comment 1 "
+                                               "--body \"$S\""}) is not None
+         and _gb.violation("Bash", {"command": "F=$'src/app.txt'; cat \"$F\""}) is not None)
 # Issue #81 (1.29.1): the suite is not the implementation. A Maven layout's
 # acceptance dir sits under src/test/…; the hook exempts it (outside the
 # four regexes, which stay byte-identical above) and the prose says so.

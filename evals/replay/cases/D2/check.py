@@ -245,8 +245,8 @@ def blank_heredoc_bodies(cmd):
 # delimiter — the idiom for a long body, a heredoc (#220) with no expansion
 # inside — ended by its FIRST terminator line, which `)` must follow, and
 # with no backslash in the delimiter (heredoc_words() refuses one too). A
-# form the scanner does not read — a backtick, ANSI-C quoting, a heredoc or
-# a comment inside another substitution, a quote left open — raises
+# form the scanner does not read — a backtick, a heredoc or a comment inside
+# another substitution, a quote left open — raises
 # Unsupported and ends the scan: as #227 scoped it, the bodies already
 # blanked stay blanked and nothing after is.
 FORGE_WRITE = re.compile(
@@ -261,8 +261,10 @@ CAT_HEREDOC = re.compile(
 def shell_word(cmd, i):
     """(end, substituted) of the shell word that starts at `i`: quotes,
     backslash escapes, a quoted-delimiter `$(cat <<'EOF' … EOF)` (text) and
-    any other `$(…)` (skipped balanced; `substituted` is then True) carried.
-    A backtick, ANSI-C quoting or a quote left open raises Unsupported."""
+    any other `$(…)` (skipped balanced; `substituted` is then True) carried;
+    ANSI-C quoting (`$'…'`, #409) is a quote a backslash escapes in — `\\'`
+    does not close it, and `$(` or a backtick inside it is text. A backtick
+    or a quote left open raises Unsupported."""
     quote, sub = None, False
     while i < len(cmd):
         ch = cmd[i]
@@ -271,6 +273,8 @@ def shell_word(cmd, i):
         elif ch == "\\":
             i += 2
             continue
+        elif quote == "$'":
+            quote = None if ch == "'" else quote
         elif cmd.startswith("$(", i):
             m = CAT_HEREDOC.match(cmd, i)
             i, sub = (m.end(), sub) if m else (skip_substitution(cmd, i + 2), True)
@@ -280,7 +284,7 @@ def shell_word(cmd, i):
         elif quote:
             quote = None if ch == '"' else quote
         elif cmd.startswith("$'", i):
-            raise Unsupported("ANSI-C quoting")
+            quote, i = "$'", i + 1
         elif ch in "'\"":
             quote = ch
         elif ch in " \t\n;&|<>()":
@@ -374,6 +378,8 @@ def blank_forge_bodies(cmd):
 # in any other word (`cat "$F"`, `--body-file
 # "$F"`, `-F body="$F"`, `export F` keep the assignment a read; so does an
 # assignment no body uses).
+# #409 (D7/run-3 of the 2026-11-19 sweep): `S=$'…'` is such a value — an
+# ANSI-C quoted word, read by shell_word() like the other two quotes.
 
 
 def assignment_values(cmd):
