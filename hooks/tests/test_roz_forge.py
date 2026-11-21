@@ -465,8 +465,8 @@ class GitAuth(BaseHTTPRequestHandler):
 
 class StoredHeaders(ForgeTest):
     """Real git against a local HTTP server: a stored `Authorization` extra
-    header (generic or URL-scoped) never rides along; the bot's Basic auth does
-    (codex review, PR #424)."""
+    header (generic or URL-scoped) never rides along, nor a `~/.netrc` entry
+    for the host; the bot's Basic auth does (codex review, PR #424)."""
 
     def test_extra_headers_reset(self):
         import base64
@@ -487,25 +487,37 @@ class StoredHeaders(ForgeTest):
         spec = importlib.util.spec_from_loader("roz_forge", loader)
         mod = importlib.util.module_from_spec(spec)
         loader.exec_module(mod)
-        cwd, old = os.getcwd(), os.environ.get("GIT_CONFIG_GLOBAL")
+        netrc = self.home / ".netrc"
+        netrc.write_text("machine 127.0.0.1 login human password humanpw\n")
+        netrc.chmod(0o600)
+        empty = Path(tempfile.mkdtemp(dir=str(self.tmp)))
+        cwd = os.getcwd()
+        saved = {k: os.environ.get(k) for k in ("GIT_CONFIG_GLOBAL", "HOME")}
         os.chdir(str(self.repo))
-        os.environ["GIT_CONFIG_GLOBAL"] = str(glob)
+        os.environ.update(GIT_CONFIG_GLOBAL=str(glob), HOME=str(self.home))
         try:
             args = mod.helper_config("x-access-token")
+            env = mod.push_env(TOKEN, str(empty))
         finally:
             os.chdir(cwd)
-            if old is None:
-                os.environ.pop("GIT_CONFIG_GLOBAL")
-            else:
-                os.environ["GIT_CONFIG_GLOBAL"] = old
-        env = dict(os.environ, HOME=str(self.home), GIT_CONFIG_GLOBAL=str(glob),
-                   GIT_CONFIG_NOSYSTEM="1", GIT_TERMINAL_PROMPT="0", ROZ_FORGE_TOKEN=TOKEN)
+            for k, v in saved.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+        env["GIT_CONFIG_NOSYSTEM"] = "1"
+        with self.subTest("roz-forge: the push child's HOME is empty; the global config stays"):
+            self.assertEqual(env["HOME"], str(empty))
+            self.assertEqual(env["GIT_CONFIG_GLOBAL"], str(glob))
         subprocess.run(["git", *args, "ls-remote", url], cwd=str(self.repo), env=env,
                        capture_output=True, text=True, timeout=30)
         want = "Basic " + base64.b64encode(("x-access-token:%s" % TOKEN).encode()).decode()
-        with self.subTest("roz-forge: no stored Authorization header reaches the server"):
+        sent = [base64.b64decode(a[6:]).decode() if a.startswith("Basic ") else a
+                for a in srv.seen]
+        with self.subTest("roz-forge: no stored Authorization header and no netrc entry "
+                          "reaches the server"):
             self.assertTrue(srv.seen, "git made no request")
-            self.assertFalse([a for a in srv.seen if "human" in a], srv.seen)
+            self.assertFalse([a for a in sent if "human" in a], sent)
         with self.subTest("roz-forge: the server got the bot's Basic auth from the one-shot "
                           "helper"):
             self.assertIn(want, srv.seen)

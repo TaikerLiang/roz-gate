@@ -23,7 +23,7 @@ Where the credential comes from:
 Fails closed: a refusal or a failed mint exits 2 and starts no child — no
 fallback to the human's `gh` / `glab` login or git credentials. Ambient
 credentials (`GITHUB_TOKEN`, `GITLAB_ACCESS_TOKEN`, `GIT_ASKPASS`,
-env-injected git config, …) are removed from the child. `git push` keeps
+env-injected git config, `~/.netrc`, …) are removed from the child. `git push` keeps
 `origin`'s semantics (upstream, tracking refs): the token-free HTTPS URL goes
 in as `remote.origin.pushurl`, and a one-shot credential helper reads the
 token from the git child's environment after every stored helper is reset.
@@ -39,6 +39,7 @@ import re
 import stat
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -248,8 +249,22 @@ def run_push(cfg, rest):
     token, _ = credential(cfg)
     argv = ["git", "-c", "remote.origin.pushurl=" + url] + helper_config(PUSH_USER[cfg["forge"]]) \
         + ["push"] + ([upstream] if upstream else []) + ["origin", branch]
-    env = child_env({"ROZ_FORGE_TOKEN": token, "GIT_TERMINAL_PROMPT": "0"})
-    return subprocess.run(argv, env=env).returncode
+    with tempfile.TemporaryDirectory(prefix="roz-forge-home-") as home:
+        return subprocess.run(argv, env=push_env(token, home)).returncode
+
+
+def push_env(token, home):
+    """The git child's environment: the token as `ROZ_FORGE_TOKEN`, and `HOME`
+    an empty directory — libcurl reads `~/.netrc` whatever the helpers say, and
+    a stored machine entry would answer as the human (codex review, PR #424).
+    The global git config stays the person's: `GIT_CONFIG_GLOBAL` when set,
+    else `~/.gitconfig` when it exists, else `$XDG_CONFIG_HOME/git/config`."""
+    env = child_env({"ROZ_FORGE_TOKEN": token, "GIT_TERMINAL_PROMPT": "0", "HOME": home})
+    real = os.path.expanduser("~")
+    env.setdefault("XDG_CONFIG_HOME", os.path.join(real, ".config"))
+    if "GIT_CONFIG_GLOBAL" not in env and os.path.isfile(os.path.join(real, ".gitconfig")):
+        env["GIT_CONFIG_GLOBAL"] = os.path.join(real, ".gitconfig")
+    return env
 
 
 def main(argv):
