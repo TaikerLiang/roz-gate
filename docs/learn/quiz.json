@@ -409,7 +409,7 @@
     "`evals/`——lint、replay、judgment 三層，只在開發時、pre-push 與 CI 上跑，target repo 碰不到。",
     "`tools/`——naming 檢查、dev-setup 等，只有開發這個 plugin repo 的人才會去跑。",
     "`hooks/`——guard-gate、guard-blind、guard-acceptance，只在 CI 上驗證 plugin 行為。",
-    "`scripts/`——`gh-app-token.sh` 之類的腳本，只有 plugin 開發者本機測試時才會用到。",
+    "`bin/`——`roz-config`、`roz-forge` 之類的工具，只有 plugin 開發者本機測試時才會用到。",
     "`.githooks/`——這個 repo 自己的 pre-commit 與 pre-push gate，target repo 端不存在。"
    ],
    "a": [
@@ -417,9 +417,9 @@
     1,
     4
    ],
-   "why": "hooks/ 在 target repo 的機器上每次 tool call 都會跑（tool time）；scripts/ 是給 target repo／operator 在 runtime 用的工具（例如 gh-app-token.sh）。tools/、evals/、.githooks/ 是 dev time。",
+   "why": "hooks/ 在 target repo 的機器上每次 tool call 都會跑（tool time）；bin/ 是 agent 在 target repo 的 runtime 透過 shell 呼叫的工具（例如 roz-config、bot 模式的 roz-forge）。tools/、evals/、.githooks/ 是 dev time。",
    "src": "README.md § Repository layout",
-   "bg": "Layout 表的「when it takes effect」欄有三種值：install、runtime、dev time。這一題要你分辨哪些目錄是「開發這個 plugin repo 本身」才會用到、在 target repo 的機器上跑 plugin 時永遠不會被碰的。注意 `hooks/` 和 `scripts/` 都是在 target repo 端執行的。"
+   "bg": "Layout 表的「when it takes effect」欄有三種值：install、runtime、dev time。這一題要你分辨哪些目錄是「開發這個 plugin repo 本身」才會用到、在 target repo 的機器上跑 plugin 時永遠不會被碰的。注意 `hooks/` 和 `bin/` 都是在 target repo 端執行的。"
   },
   {
    "id": 14,

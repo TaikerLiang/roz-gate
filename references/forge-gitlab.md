@@ -18,10 +18,11 @@ Two modes, set by `agent_identity` in the Roz Gate config (key absent →
   token** bot (`bot_login` = its full username,
   `project_<id>_bot_<hash>`; one-time setup in
   `references/identity-github-app.md`, GitLab section):
-  - Pass the token **per invocation**: `GITLAB_TOKEN=<token> glab …` —
-    honored by both `glab api` and the CLI subcommands (`issue note`,
-    `issue update`, `issue list`, …). **Never export it into the session
-    environment.**
+  - Prefix every CAPITALIZED-OP with `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-forge`
+    (`… roz-forge glab issue note …`, `glab api` alike): it reads the token
+    file and sets it in that one `glab`'s environment. Never read, print or
+    export the token yourself. Exit 2 (`no forge call made`) is a STOP,
+    never a retry as bare `glab`.
   - `glab api` POST/PUT bodies with array or nested params (e.g.
     `scopes`, `position`) must be sent as JSON —
     `--input -` plus `-H 'Content-Type: application/json'`; form
@@ -29,9 +30,8 @@ Two modes, set by `agent_identity` in the Roz Gate config (key absent →
   - ISSUE-CREATE always sets `assignee_ids` to the config's `operator` —
     a bot-authored issue must never be born holder-less; a bot is never
     a gate holder.
-  - Git: push over HTTPS —
-    `git push https://<any-name>:<token>@gitlab.com/<path>.git <branch>`
-    (the basic-auth username is arbitrary) — and commit with per-command
+  - Git: push with `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-forge git push [-u] origin <branch>`
+    (no other shape) — and commit with per-command
     `git -c user.name/-c user.email` author flags, never writing
     identity into the repo's git config.
 

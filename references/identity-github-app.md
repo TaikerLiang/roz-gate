@@ -19,17 +19,15 @@ verified against live forges on 2026-08-10.
 2. **Install it** on the repo(s) the loop runs in (Install App → choose
    "Only select repositories").
 3. **Collect credentials**: note the **App ID** (About page) and generate
-   a **private key** (.pem). Store the .pem **outside every repo** (e.g.
-   `~/.config/roz-gate/<slug>.pem`, mode 600).
+   a **private key** (.pem). Store the .pem **outside every repo**, at
+   `~/.config/roz-gate/<slug>.pem`, mode 600 (`chmod 600`).
 4. **Config block** (project CLAUDE.md, `### Roz Gate config`):
    - `agent_identity: bot`
    - `bot_login: <slug>`
+   - `bot_app_id: <App ID>`
    - `operator: <your GitHub login>`
-5. **Tokens at run time**: installation tokens are short-lived (~1 hour).
-   Mint per run with the bundled helper:
-   `${CLAUDE_PLUGIN_ROOT}/scripts/gh-app-token.sh <app-id> <key.pem> <owner>/<repo>`
-   → prints a token for `GH_TOKEN=<token> gh …` (per invocation — never
-   exported; see the forge adapter's Identity section).
+5. **Run time**: nothing to run — `bin/roz-forge` mints a token per forge
+   call, no cache (the forge adapter's Identity section).
 
 Author shapes to expect for the same App: `app/<slug>` (gh `--json`
 issue/PR author), bare `<slug>` (gh `--json comments`, GraphQL),
@@ -51,19 +49,29 @@ accounts.
      `glab api -X POST -H 'Content-Type: application/json' projects/<id>/access_tokens --input -`
      with `{"name":"roz-bot","scopes":["api","write_repository"],"access_level":40,"expires_at":"<date>"}`.
 2. **Find the bot username**: creating the token creates a project bot
-   member, `project_<id>_bot_<hash>` —
-   `GITLAB_TOKEN=<token> glab api user` shows it. That full username is
-   your `bot_login`.
+   member, `project_<id>_bot_<hash>` — your own session lists it:
+   `glab api projects/<id>/members/all` (this command not re-verified live
+   since 2026-08-10). That full username is your `bot_login`.
 3. **Config block**: `agent_identity: bot`, `bot_login: project_<id>_bot_<hash>`,
    `operator: <your GitLab username>`.
-4. **Run time**: the token is a static value — pass it per invocation as
-   `GITLAB_TOKEN=<token> glab …` (CLI subcommands and `glab api` both
-   honor it). Git pushes: `https://<any-name>:<token>@gitlab.com/<path>.git`.
+4. **Store the token** outside every repo, alone, at
+   `~/.config/roz-gate/<bot_login>.token`, mode 600; `bin/roz-forge` reads
+   it per call.
+
+## A key stored elsewhere
+
+The default is `~/.config/roz-gate/<first bot_login>.pem` (GitHub) or
+`.token` (GitLab). Elsewhere: `roz-config bot_key <path>` (per clone,
+uncommitted). A regular file, mode 600.
 
 ## Security rules (both forges)
 
-- The bot credential is passed **per invocation only** — never `export`ed
-  into the session, never written into git config or any repo file.
+- The bot credential reaches the forge only through `bin/roz-forge`, set
+  in one child's environment — never `export`ed into the session,
+  never written into git config or any repo file. A failed mint makes no
+  forge call; there is no fallback to your login.
+- This is not isolation: the key file is readable by the agent's own
+  user, and the child's subprocesses inherit the token.
 - Revocation: GitHub — uninstall the App or delete the key; GitLab —
   revoke the token (Settings → Access tokens).
 - The human's own CLI auth (`gh auth login` / `glab auth login`) stays

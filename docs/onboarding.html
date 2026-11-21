@@ -266,6 +266,7 @@
         <label>agent_identity</label><div class="seg" data-key="ident"><button data-v="user" class="on">user</button><button data-v="bot">bot</button></div>
         <div class="hint"><span class="en"><b>user</b>: agents act as your <code>gh</code> session — zero setup, but your own account's comments never notify you. <b>bot</b>: a GitHub App / GitLab project token; your phone rings, and a bot never holds a gate.</span><span class="zh"><b>user</b>:agents 用你的 <code>gh</code> session——零設定,但自己帳號的留言不會通知你。<b>bot</b>:GitHub App / GitLab project token;手機會響,而且 bot 永遠不持有 gate。</span></div>
         <label>bot_login</label><input id="f_bot" placeholder="roz-gatekeeper" disabled>
+        <label>bot_app_id</label><input id="f_appid" placeholder="123456 — GitHub App ID" disabled>
         <label>operator</label><input id="f_op" placeholder="your-login" disabled>
 
         <label>fix_rounds</label><input id="f_rounds" placeholder="3">
@@ -553,6 +554,7 @@ const OPT = [
   ['trace_marker',   () => $('f_trace').value.trim()],
   ['agent_identity', () => seg.ident==='bot' ? 'bot' : ''],
   ['bot_login',      () => seg.ident==='bot' ? $('f_bot').value.trim() : ''],
+  ['bot_app_id',     () => seg.ident==='bot' && seg.forge==='github' ? $('f_appid').value.trim() : ''],
   ['operator',       () => seg.ident==='bot' ? $('f_op').value.trim() : ''],
   ['fix_rounds',      () => $('f_rounds').value.trim()],
 ];
@@ -585,14 +587,14 @@ function renderCfg(){
     : `<p style="font-size:.9rem;color:var(--muted)">${B('Nothing local set — the defaults are the remote\'s HEAD branch and no inbox filter. Come back the day your tracker fills with issues that aren\'t ideas (<code>/roz-gate:config inbox_label discuss</code>), or when a sprint hands over (<code>/roz-gate:config default_branch release/20261020</code>).',
         '沒設本地 key——預設是 remote 的 HEAD 分支、inbox 不篩。哪天 tracker 塞滿不是 idea 的 issue(<code>/roz-gate:config inbox_label discuss</code>),或 sprint 交接(<code>/roz-gate:config default_branch release/20261020</code>),再回來。')}</p>`;
   $('cfgsteps').innerHTML = steps;
-  store.set('cfg', {seg, f: Object.fromEntries(['f_branch','f_test','f_adir','f_atest','f_sync','f_lock','f_regen','f_specs','f_layout','f_impl','f_trace','f_bot','f_op','f_tpl','f_rounds','f_ilabel','f_iassg','f_model','f_buser','f_wcopy','f_npass'].map(id => [id, $(id).value]))});
+  store.set('cfg', {seg, f: Object.fromEntries(['f_branch','f_test','f_adir','f_atest','f_sync','f_lock','f_regen','f_specs','f_layout','f_impl','f_trace','f_bot','f_appid','f_op','f_tpl','f_rounds','f_ilabel','f_iassg','f_model','f_buser','f_wcopy','f_npass'].map(id => [id, $(id).value]))});
 }
 function wireCfg(){
   document.querySelectorAll('#cfgform .seg').forEach(g => g.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
     seg[g.dataset.key] = b.dataset.v;
     g.querySelectorAll('button').forEach(x => x.classList.toggle('on', x===b));
     if(g.dataset.key==='stack') applyPreset();
-    if(g.dataset.key==='ident'){ const bot = seg.ident==='bot'; $('f_bot').disabled = !bot; $('f_op').disabled = !bot; }
+    if(g.dataset.key==='ident'){ const bot = seg.ident==='bot'; $('f_bot').disabled = !bot; $('f_appid').disabled = !bot; $('f_op').disabled = !bot; }
     renderCfg();
   })));
   document.querySelectorAll('#cfgform input').forEach(i => i.addEventListener('input', renderCfg));
@@ -601,7 +603,7 @@ function wireCfg(){
     Object.assign(seg, saved.seg);
     document.querySelectorAll('#cfgform .seg').forEach(g => g.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v===seg[g.dataset.key])));
     Object.entries(saved.f || {}).forEach(([id, v]) => { if($(id)) $(id).value = v });
-    const bot = seg.ident==='bot'; $('f_bot').disabled = !bot; $('f_op').disabled = !bot;
+    const bot = seg.ident==='bot'; $('f_bot').disabled = !bot; $('f_appid').disabled = !bot; $('f_op').disabled = !bot;
   } else applyPreset();
   cfgReady = true;
   renderCfg();

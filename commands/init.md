@@ -75,6 +75,7 @@ user, one compact block, not twenty questions:
   - `agent_identity: bot`
   - `bot_login: <app slug / project-bot username>` (comma-separated if
     several)
+  - `bot_app_id: <App ID>` (GitHub)
   - `operator: <the human's forge username>` — the default assignee for
     bot-created issues, nothing more; reassigning an issue moves the gate
     as usual.

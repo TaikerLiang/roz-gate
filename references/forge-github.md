@@ -16,17 +16,17 @@ Two modes, set by `agent_identity` in the Roz Gate config (key absent →
 - **`bot`**: every CAPITALIZED-OP runs as the project's GitHub App
   (`bot_login` = the app slug; one-time setup in
   `references/identity-github-app.md`):
-  - Mint a short-lived installation token
-    (`${CLAUDE_PLUGIN_ROOT}/scripts/gh-app-token.sh`) and pass it
-    **per invocation**: `GH_TOKEN=<token> gh …`. **Never export it into
-    the session environment** — a bare `gh` outside a CAPITALIZED-OP must
-    keep the human's identity.
+  - Prefix every CAPITALIZED-OP with `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-forge`
+    (`… roz-forge gh issue comment …`): it mints the installation token per
+    call and sets it in that one `gh`'s environment. Never mint, print or
+    export a token yourself — a bare `gh` outside a CAPITALIZED-OP keeps
+    the human's identity. Exit 2 (`no forge call made`) is a STOP, never a
+    retry as bare `gh`.
   - ISSUE-CREATE always adds `--assignee <operator>` (the config's
     `operator`) — a bot-authored issue must never be born holder-less; a
     bot is never a gate holder.
-  - Git: push over HTTPS —
-    `git push https://x-access-token:<token>@github.com/<owner>/<repo>.git <branch>`
-    — and commit with per-command author flags,
+  - Git: push with `python3 ${CLAUDE_PLUGIN_ROOT}/bin/roz-forge git push [-u] origin <branch>`
+    (no other shape) — and commit with per-command author flags,
     `git -c user.name="<slug>[bot]" -c user.email="<app-id>+<slug>[bot]@users.noreply.github.com" commit …`,
     never writing identity into the repo's git config (the human's own
     commits in the same clone stay theirs).
