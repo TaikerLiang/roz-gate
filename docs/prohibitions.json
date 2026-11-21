@@ -632,7 +632,7 @@
       "owner": "prose",
       "evidence": [],
       "reason": "unguarded — a case in which the build's contract diff and its `## Contract deviations` section disagree: a corrected clause the section does not list",
-      "note": "hook H is a supporting operational boundary (a CR whose diff touches `technical-spec.md` must carry the section), not this rule's owner: a section that says `none` passes it; whether the decidable subset (the diff touches the file and the section lists no deviation) deserves an owner is #406",
+      "note": "hook H is a supporting operational boundary (a CR whose diff touches `technical-spec.md` must carry the section), not this rule's owner: a section that says `none` passes it. The decidable subset (the diff touches the file and the section lists no deviation) is not a rule (#406): touching the file is not correcting the contract — the stage-(2) spec CR creates the file, so rule H fires on it and `none` is its only honest section (all 26 `none` sections on a touching diff in the stored replay runs are that CR; no run opens an implementation CR). Narrowed to a file the diff modifies, it is still wider than the rule (B4 counts changed clauses, not edits — a typo fix is `none`) and narrower than the risk (one bullet for three edits passes); the (5) reviewer, handed the as-built diff and the section, judges the whole of it",
       "sources": [
         {
           "file": "templates/implementer.md",
