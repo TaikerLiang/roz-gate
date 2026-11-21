@@ -27,5 +27,7 @@
     "as built, not as drafted"
   ],
   "approved_by": null,
-  "approved_on": null
+  "approved_on": null,
+  "approved_ref": null,
+  "approved_fp": null
 }

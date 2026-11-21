@@ -32,5 +32,7 @@
   ],
   "key_point": "Does the document say that the QA change request carries no fidelity audit record (or that nothing shows a fidelity audit ran), as the reason not to integrate?",
   "approved_by": null,
-  "approved_on": null
+  "approved_on": null,
+  "approved_ref": null,
+  "approved_fp": null
 }

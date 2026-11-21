@@ -288,7 +288,7 @@ a single rule and has its own row above.
 | L24 | rules about the documentation itself — bot mode documents only `bin/roz-forge`, never a credential-in-text form (#413); the credential handling is `test_roz_forge.py`'s |
 | D27 | rule E's own wiring lint — the dispatch's `Implementation:` line is rendered by the reader the hook enforces from (`hooks/implementation_dirs.py`, #281); the behaviour is the hook tests' |
 | D21 | the dispatch steps' own lint — a step that enumerates a dispatch's contents names the seat's R&R row (#294) |
-| J2 | Judgment V1's own lint — the corpus is approved and leak-free, and the scorer reproduces hand-computed numbers (#258) |
+| J2 | Judgment V1's own lint — the corpus is leak-free, an approval is whole and still matches the record and snapshot it was given for (#296), and the scorer reproduces hand-computed numbers (#258) |
 | J3 | the Workflow Value pilot's own lint — the baseline is told nothing of the loop, the gold is the retrospective record, an invalid or unreviewed pair is never compared (#259) |
 
 ## Duplicated mechanical interpretation

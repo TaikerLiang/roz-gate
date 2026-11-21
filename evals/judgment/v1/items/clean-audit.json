@@ -27,5 +27,7 @@
     "positive evidence"
   ],
   "approved_by": null,
-  "approved_on": null
+  "approved_on": null,
+  "approved_ref": null,
+  "approved_fp": null
 }

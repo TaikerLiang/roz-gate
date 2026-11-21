@@ -41,7 +41,13 @@ ARMS = ("treatment", "baseline")
 BASELINE_CONTEXT = "You have no instructions beyond this message."
 REQUIRED = ("id", "family", "set", "seat", "brief", "sources", "reconstruction", "snapshot",
             "gold", "materiality", "changes_if_answered_differently",
-            "acceptable_alternates", "forbidden_shortcuts", "approved_by", "approved_on")
+            "acceptable_alternates", "forbidden_shortcuts", "approved_by", "approved_on",
+            "approved_ref", "approved_fp")
+# an approval: who, when, a permalink to the review comment that quotes the
+# item id and its review fingerprint, and that fingerprint (README § Approval)
+APPROVAL = ("approved_by", "approved_on", "approved_ref", "approved_fp")
+REF_RE = re.compile(r"^https://github\.com/[\w.-]+/[\w.-]+/(?:pull|issues)/\d+"
+                    r"#(?:issuecomment-|pullrequestreview-|discussion_r)\d+$")
 SESSION_ERR_RE = re.compile(
     r"(?i)hit your session limit|usage limit reached|rate.?limit.?error"
     r"|overloaded.?error|credit balance is too low|invalid x-api-key"
@@ -88,14 +94,14 @@ def check(items=None, actions=None):
             continue
         if not re.match(r"^J-[a-z0-9-]+$", iid):
             bad.append("%s: id is not J-<kebab>" % where)
-        # approval is a state, not a defect: both null (awaiting the
-        # maintainer's review of the full record) or both stamped. Anything
-        # in between claims a review the repository cannot show.
-        by, on = it["approved_by"], it["approved_on"]
-        stamped = bool(by) and bool(re.match(r"^\d{4}-\d{2}-\d{2}$", str(on)))
-        if not stamped and not (by is None and on is None):
-            bad.append("%s: half-stamped approval — approved_by and approved_on are both "
-                       "null, or a name and a YYYY-MM-DD date" % where)
+        # approval is a state, not a defect: all four fields null (awaiting
+        # the maintainer's review of the full record) or all four stamped.
+        # Anything in between claims a review the repository cannot show.
+        if not stamped(it) and any(it[k] is not None for k in APPROVAL):
+            bad.append("%s: half-stamped approval — approved_by, approved_on, approved_ref "
+                       "and approved_fp are all null, or a name, a YYYY-MM-DD date, a "
+                       "permalink to the review comment and the 16-hex review fingerprint"
+                       % where)
         if it["set"] not in ("development", "holdout"):
             bad.append("%s: set is %r" % (where, it["set"]))
         sets.setdefault(it["family"], set()).add(it["set"])
@@ -141,24 +147,67 @@ def check(items=None, actions=None):
     for slot in ("{context}", "{actions}", "{snapshot}"):
         if frame.count(slot) != 1:
             bad.append("prompt.md must carry %s exactly once" % slot)
+    return bad + stale_approvals(items)
+
+
+def stamped(it):
+    """All four approval fields present and shaped. Shape only: nothing
+    here fetches the comment or learns who wrote it."""
+    return (bool(it.get("approved_by")) and isinstance(it["approved_by"], str)
+            and bool(re.match(r"^\d{4}-\d{2}-\d{2}$", str(it.get("approved_on"))))
+            and bool(REF_RE.match(str(it.get("approved_ref"))))
+            and bool(re.match(r"^[0-9a-f]{16}$", str(it.get("approved_fp")))))
+
+
+def review_fingerprint(it):
+    """What an approval is given for: the record — every field but the
+    approval's own, the snapshot's path among them — as canonical JSON, and
+    the snapshot's bytes. None when the snapshot cannot be read. Not the
+    brief, the frame, the vocabulary or the judge: those change on their
+    own schedule and are result identity's business (run_fingerprint)."""
+    record = {k: v for k, v in it.items() if k != "_file" and k not in APPROVAL}
+    try:
+        with open(os.path.join(S, it["snapshot"]), "rb") as f:
+            snapshot = f.read()
+    except (OSError, KeyError, TypeError):
+        return None
+    canon = json.dumps(record, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(canon.encode("utf-8") + b"\0" + snapshot).hexdigest()[:16]
+
+
+def stale_approvals(items):
+    """Defects, as text: a stamped item whose record or snapshot is no
+    longer what its approval names. The gold being scored is not the gold
+    that was reviewed — a corpus defect, and nothing may be spent on it."""
+    bad = []
+    for iid, it in sorted(items.items()):
+        if stamped(it) and it["approved_fp"] != review_fingerprint(it):
+            bad.append("%s (%s): stale approval — the record or its snapshot changed since the "
+                       "review (approved %s, now %s); reset the four approval fields to null "
+                       "and ask for the review again"
+                       % (iid, it.get("_file", "?"), it["approved_fp"],
+                          review_fingerprint(it) or "no readable snapshot"))
     return bad
 
 
 def unapproved(items):
-    """Ids whose full gold record the maintainer has not signed. Approving
-    a plan, a class table or a pull request is not this signature."""
-    return sorted(iid for iid, it in items.items()
-                  if not (it.get("approved_by") and it.get("approved_on")))
+    """Ids whose full gold record carries no approval. Approving a plan, a
+    class table or a pull request is not that approval."""
+    return sorted(iid for iid, it in items.items() if not stamped(it))
 
 
 def spend_refusal(items):
     """Why no model call may be made on `items`, or None. SUT and judge
-    alike: an unreviewed oracle produces numbers nobody may read."""
+    alike: an unreviewed oracle produces numbers nobody may read, and so
+    does one that changed after its review."""
+    stale = stale_approvals(items)
+    if stale:
+        return "refused: " + "; ".join(stale)
     todo = unapproved(items)
     if not todo:
         return None
     return ("refused: %d item(s) await the maintainer's review of their full gold record "
-            "(approved_by / approved_on are null): %s" % (len(todo), ", ".join(todo)))
+            "(the four approval fields are null): %s" % (len(todo), ", ".join(todo)))
 
 
 def class_counts(items):
@@ -346,7 +395,12 @@ def sha(text):
 
 
 def item_hash(it):
-    return sha(json.dumps({k: v for k, v in it.items() if k != "_file"}, sort_keys=True))
+    """Result identity, not approval: unchanged by #296. The two evidence
+    fields are left out, so an item hashes as it did before they existed
+    and an edit to the approval trail moves no result."""
+    return sha(json.dumps({k: v for k, v in it.items()
+                           if k not in ("_file", "approved_ref", "approved_fp")},
+                          sort_keys=True))
 
 
 def run_fingerprint(it, arm, actions):
@@ -462,17 +516,28 @@ def main(argv):
         print("%d items%s — %s" % (len(items), "".join(" · %s %d" % kv for kv in cc.items()),
                                    "ok" if not bad else "%d defect(s)" % len(bad)))
         todo = unapproved(items)
-        print("approved %d/%d%s" % (len(items) - len(todo), len(items),
-                                    "" if not todo else " — not runnable until reviewed: "
-                                    + ", ".join(todo)))
+        print("approval recorded %d/%d%s" % (len(items) - len(todo), len(items),
+                                             "" if not todo else " — not runnable until "
+                                             "reviewed: " + ", ".join(todo)))
+        print("recorded = the four fields are stamped and the fingerprint matches; auditable "
+              "by hand at approved_ref; human authorization: not verified by this runner")
+        if todo:
+            print("review fingerprints, for the review comment to quote:")
+            for iid in todo:
+                print("  %s %s" % (iid, review_fingerprint(items[iid])))
         return 3 if bad else 0
-    bad = check(items, actions) + scorer_redproof(items, actions)
-    if bad:
-        for b in bad:
+    # A stale approval fails every path that spends or reads results. The
+    # scorer's red-proof calls no model and scores canned answers against
+    # the records as they stand, so it runs first and says so.
+    stale = stale_approvals(items)
+    bad = [b for b in check(items, actions) if b not in stale] + scorer_redproof(items, actions)
+    if "--redproof" in argv and not bad:
+        print("PASS scorer red-proof (no model)")
+    if bad or stale:
+        for b in bad + stale:
             print("FAIL " + b)
         return 3
     if "--redproof" in argv:
-        print("PASS scorer red-proof (no model)")
         if spend_refusal(items):
             die("judge red-proof " + spend_refusal(items), 3)
         return 3 if judge_redproof(items, "--rejudge" in argv) else 0

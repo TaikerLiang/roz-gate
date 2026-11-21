@@ -33,5 +33,7 @@
   ],
   "key_point": "Does the document say that the unit, scale or format of `expires_at` (or of `now`) is not specified by the contract?",
   "approved_by": null,
-  "approved_on": null
+  "approved_on": null,
+  "approved_ref": null,
+  "approved_fp": null
 }

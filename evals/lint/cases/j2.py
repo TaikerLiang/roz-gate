@@ -18,7 +18,11 @@ META = {
     "id": "J2",
     "title": "the Judgment V1 corpus is approved, leak-free and scored as stated",
     "tier": "lint (#258)",
-    "ledger": "Every Judgment V1 item validates, is approved, takes its next action from its "
+    "ledger": "Every Judgment V1 item validates, is unapproved or carries a whole approval — "
+              "name, date, a permalink to the review comment, and the fingerprint of the record "
+              "and snapshot reviewed, which must still match (#296: a stale approval is a "
+              "defect, starts no model call, and leaves the scorer red-proof runnable) — takes "
+              "its next action from its "
               "seat's one vocabulary and belongs to a family that sits in one set only; no "
               "snapshot names its source issue, a forbidden phrase or a decision class; all "
               "three classes are present; the scorer reproduces the hand-computed numbers and "
@@ -125,7 +129,9 @@ try:
     _ok = (not run_v1.check(_un, _actions)
            and sorted(run_v1.unapproved(_un)) == sorted(_un)
            and not run_v1.unapproved(
-               {k: dict(v, approved_by="Paul Liang", approved_on="2026-11-13")
+               {k: dict(v, approved_by="Paul Liang", approved_on="2026-11-13",
+                        approved_ref="https://github.com/o/r/pull/1#pullrequestreview-1",
+                        approved_fp=run_v1.review_fingerprint(v))
                 for k, v in _items.items()})
            and "refuse" in (run_v1.spend_refusal(_un) or "")
            and run_v1.spend_refusal({}) is None)
@@ -143,3 +149,178 @@ c.expect("pattern", "J2: the README freezes family provenance",
          "cannot be relabelled or split after a holdout run" in _fam)
 c.expect("pattern", "J2: the README reports run-level frequency, not a pass/fail",
          "the human decides whether it warrants a brief change" in _fam)
+
+# #296 — an approval is bound to the content it was given for. A stamp is
+# four fields: who, when, a permalink to the review comment, and the
+# fingerprint of the record and snapshot reviewed. The runner checks shape
+# and fingerprint; it never fetches the comment and never learns who wrote
+# it — the README says so, and J2 holds the sentence.
+import contextlib  # noqa: E402
+import io  # noqa: E402
+import re  # noqa: E402
+import shutil  # noqa: E402
+
+_REF = "https://github.com/TaikerLiang/roz-gate/pull/1#issuecomment-1"
+_rf = getattr(run_v1, "review_fingerprint", lambda it: None)
+
+
+def _stamp(it, **over):
+    return dict(it, approved_by="Paul Liang", approved_on="2026-11-22", approved_ref=_REF,
+                approved_fp=_rf(it), **over)
+
+
+def _with(it):
+    return dict(_items, **{"J-expiry-unit": it})
+
+
+def _defects(it):
+    try:
+        return run_v1.check(_with(it), _actions)
+    except Exception as _e:  # noqa: BLE001
+        return ["raised %s" % type(_e).__name__]
+
+
+_good = _stamp(_qa)
+try:
+    _ok = (not _defects(_good) and "J-expiry-unit" not in run_v1.unapproved(_with(_good))
+           and run_v1.spend_refusal({"J-expiry-unit": _good}) is None)
+except Exception as _e:  # noqa: BLE001
+    _ok = False
+c.expect("pattern", "J2: an approved record whose content is unchanged validates and may be run",
+         _ok)
+
+_gold = dict(_good, gold=dict(_good["gold"], decision="BLOCK"))
+c.expect("pattern", "J2: a gold decision changed after the approval is a stale approval",
+         any("stale approval" in b for b in _defects(_gold)))
+_mat = dict(_good, materiality=_good["materiality"] + " And more.")
+c.expect("pattern", "J2: any reviewed field changed after the approval is a stale approval",
+         any("stale approval" in b for b in _defects(_mat)))
+
+with tempfile.TemporaryDirectory() as _d:
+    _same = os.path.join(_d, "same.md")
+    shutil.copyfile(os.path.join(V1, _qa["snapshot"]), _same)
+    _edited = os.path.join(_d, "edited.md")
+    with open(_edited, "w", encoding="utf-8") as _f:
+        _f.write(read("evals/judgment/v1/" + _qa["snapshot"]) + "\nOne more line.\n")
+    # the approval names its evidence source: another path is another
+    # record, even when the bytes there happen to match
+    c.expect("pattern", "J2: a snapshot changed after the approval is a stale approval",
+             any("stale approval" in b for b in _defects(dict(_good, snapshot=_edited))))
+    c.expect("pattern", "J2: another snapshot path with the same bytes is a stale approval",
+             any("stale approval" in b for b in _defects(dict(_good, snapshot=_same))))
+    c.expect("pattern", "J2: a stamp whose snapshot is gone cannot be run",
+             "stale" in (run_v1.spend_refusal(
+                 {"J-expiry-unit": dict(_good, snapshot=os.path.join(_d, "absent.md"))}) or ""))
+
+for _name, _over in (
+        ("no approved_ref", {"approved_ref": None}),
+        ("no approved_fp", {"approved_fp": None}),
+        ("a bare pull request as approved_ref",
+         {"approved_ref": "https://github.com/TaikerLiang/roz-gate/pull/1"}),
+        ("an approved_ref that is not a GitHub comment",
+         {"approved_ref": "https://example.com/pull/1#issuecomment-1"}),
+        ("an approved_fp that is not 16 hex", {"approved_fp": "abc"}),
+        ("evidence with no name and date", {"approved_by": None, "approved_on": None})):
+    c.expect("pattern", "J2: incomplete approval evidence is a defect (%s)" % _name,
+             any("half-stamped" in b for b in _defects(dict(_good, **_over))))
+_draft = dict(_qa, approved_by=None, approved_on=None, approved_ref=None, approved_fp=None)
+c.expect("pattern", "J2: a draft with four null approval fields validates and cannot be run",
+         not _defects(_draft) and "J-expiry-unit" in run_v1.unapproved(_with(_draft)))
+
+# the fingerprint: canonical, scoped to the record and its snapshot
+_shuffled = dict(reversed(list(_qa.items())), gold=dict(reversed(list(_qa["gold"].items()))))
+c.expect("pattern", "J2: the review fingerprint does not depend on key order or the file name",
+         bool(_rf(_qa)) and _rf(_qa) == _rf(dict(_shuffled, _file="elsewhere.json")))
+c.expect("pattern", "J2: the review fingerprint does not cover the approval fields",
+         _rf(_good) == _rf(_qa) == _rf(_draft))
+c.expect("pattern", "J2: the review fingerprint is 16 hex over the record and the snapshot",
+         bool(re.match(r"^[0-9a-f]{16}$", str(_rf(_qa))))
+         and len({_rf(_qa), _rf(_gold), _rf(_mat), _rf(dict(_qa, family="other")),
+                  _rf(dict(_qa, key_point="Other?"))}) == 5)
+
+# result identity is a separate thing and does not move: a result is still
+# filed under the hash it had before the two evidence fields existed, and
+# editing the approval trail alone neither moves it nor changes the gold
+_legacy = {k: v for k, v in _qa.items() if k not in ("_file", "approved_ref", "approved_fp")}
+c.expect("pattern", "J2: the evidence fields leave an item's result identity where it was",
+         run_v1.item_hash(_draft) == run_v1.sha(json.dumps(_legacy, sort_keys=True))
+         and "approved_ref" in _qa)
+_ref2 = dict(_good, approved_ref=_REF + "2")
+c.expect("pattern", "J2: editing only approved_ref moves neither the results nor the gold",
+         run_v1.run_fingerprint(_ref2, "treatment", _actions)
+         == run_v1.run_fingerprint(_good, "treatment", _actions)
+         and _rf(_ref2) == _rf(_good) and not _defects(_ref2))
+with tempfile.TemporaryDirectory() as _d:
+    _row = {"item": "J-expiry-unit", "arm": "treatment", "valid": True,
+            "decision": "FLAG_AND_CONTINUE", "next_action": "raise_question_and_write_the_test",
+            "surfaced": True, "key_point": None}
+    _p = os.path.join(_d, "sut", "treatment", "J-expiry-unit",
+                      "fp-%s" % run_v1.run_fingerprint(_good, "treatment", _actions), "run-1")
+    os.makedirs(_p)
+    with open(os.path.join(_p, "result.json"), "w", encoding="utf-8") as _f:
+        json.dump(_row, _f)
+    try:
+        _cur, _ = run_v1.load_results("sut", _with(_ref2), _actions, root=_d, judge_fp="j")
+        _cur2, _stale2 = run_v1.load_results("sut", _with(_stamp(_gold)), _actions, root=_d,
+                                             judge_fp="j")
+        _ok = len(_cur) == 1 and not _cur2 and len(_stale2) == 1
+    except Exception as _e:  # noqa: BLE001
+        _ok = False
+    c.expect("pattern", "J2: a result survives an approval-trail edit and goes stale with its gold",
+             _ok)
+
+
+# a stale approval spends nothing — and the scorer's red-proof, which
+# calls no model, still runs on that corpus
+def _main_on(items, argv):
+    """(exit code, stdout, model calls) of run_v1.main on a patched corpus."""
+    calls = []
+
+    def _model(*a, **k):
+        calls.append(a)
+        raise RuntimeError("a model call was started")
+
+    saved = (run_v1.load_items, run_v1.subprocess.run, run_v1.judge_module)
+    run_v1.load_items, run_v1.subprocess.run, run_v1.judge_module = (lambda: items), _model, _model
+    out = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
+            code = run_v1.main(argv)
+    except SystemExit as e:
+        code = e.code
+    except Exception as e:  # noqa: BLE001
+        code = "raised %s" % type(e).__name__
+    finally:
+        run_v1.load_items, run_v1.subprocess.run, run_v1.judge_module = saved
+    return code, out.getvalue(), len(calls)
+
+
+_stale_corpus = {k: _stamp(v) for k, v in _items.items()}
+_stale_corpus["J-expiry-unit"] = _mat    # the gold classes stand, so the scorer's numbers do
+for _argv in (["--sut", "haiku55", "--arm", "treatment"],
+              ["--sut", "haiku55", "--arm", "baseline", "J-clean-audit"],
+              ["--redproof", "--rejudge"]):
+    _code, _out, _calls = _main_on(_stale_corpus, _argv)
+    c.expect("pattern", "J2: a stale approval starts no model call (%s → exit %s, %d call(s))"
+             % (" ".join(_argv), _code, _calls),
+             _code == 3 and _calls == 0 and "stale approval" in _out)
+_code, _out, _calls = _main_on(_stale_corpus, ["--redproof"])
+c.expect("pattern", "J2: on a stale approval the scorer red-proof still runs, with no model call",
+         "PASS scorer red-proof (no model)" in _out and _calls == 0 and _code == 3)
+_code, _out, _calls = _main_on(_stale_corpus, ["--check"])
+c.expect("pattern", "J2: --check names the stale approval and what to do about it",
+         _code == 3 and "reset the four approval fields to null" in _out)
+_code, _out, _calls = _main_on(_items, ["--check"])
+c.expect("pattern", "J2: --check prints each unapproved item's review fingerprint",
+         _code == 0 and all("%s %s" % (k, _rf(v)) in _out for k, v in _items.items()
+                            if k in run_v1.unapproved(_items)))
+c.expect("pattern", "J2: --check does not call a recorded approval a verified one",
+         "human authorization: not verified" in _out)
+
+# the README's three levels — a well-shaped reference is an audit trail
+_ap = " ".join(read("evals/judgment/v1/README.md").split())
+for _phrase in ("**Recorded approval**", "**Auditable approval**",
+                "**Verified human authorization** — not established",
+                "never fetches the comment and cannot tell who wrote it"):
+    c.expect("pattern", "J2: the README separates recorded, auditable and verified (%s)" % _phrase,
+             _phrase in _ap)
