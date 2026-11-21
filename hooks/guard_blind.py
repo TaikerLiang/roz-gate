@@ -265,8 +265,8 @@ def blank_heredoc_bodies(cmd):
 # delimiter — the idiom for a long body, a heredoc (#220) with no expansion
 # inside — ended by its FIRST terminator line, which `)` must follow, and
 # with no backslash in the delimiter (heredoc_words() refuses one too). A
-# form the scanner does not read — a backtick, ANSI-C quoting, a heredoc or
-# a comment inside another substitution, a quote left open — raises
+# form the scanner does not read — a backtick, a heredoc or a comment inside
+# another substitution, a quote left open — raises
 # Unsupported and ends the scan: as #227 scoped it, the bodies already
 # blanked stay blanked and nothing after is.
 FORGE_WRITE = re.compile(
@@ -281,8 +281,10 @@ CAT_HEREDOC = re.compile(
 def shell_word(cmd, i):
     """(end, substituted) of the shell word that starts at `i`: quotes,
     backslash escapes, a quoted-delimiter `$(cat <<'EOF' … EOF)` (text) and
-    any other `$(…)` (skipped balanced; `substituted` is then True) carried.
-    A backtick, ANSI-C quoting or a quote left open raises Unsupported."""
+    any other `$(…)` (skipped balanced; `substituted` is then True) carried;
+    ANSI-C quoting (`$'…'`, #409) is a quote a backslash escapes in — `\\'`
+    does not close it, and `$(` or a backtick inside it is text. A backtick
+    or a quote left open raises Unsupported."""
     quote, sub = None, False
     while i < len(cmd):
         ch = cmd[i]
@@ -291,6 +293,8 @@ def shell_word(cmd, i):
         elif ch == "\\":
             i += 2
             continue
+        elif quote == "$'":
+            quote = None if ch == "'" else quote
         elif cmd.startswith("$(", i):
             m = CAT_HEREDOC.match(cmd, i)
             i, sub = (m.end(), sub) if m else (skip_substitution(cmd, i + 2), True)
@@ -300,7 +304,7 @@ def shell_word(cmd, i):
         elif quote:
             quote = None if ch == '"' else quote
         elif cmd.startswith("$'", i):
-            raise Unsupported("ANSI-C quoting")
+            quote, i = "$'", i + 1
         elif ch in "'\"":
             quote = ch
         elif ch in " \t\n;&|<>()":
@@ -394,6 +398,8 @@ def blank_forge_bodies(cmd):
 # in any other word (`cat "$F"`, `--body-file
 # "$F"`, `-F body="$F"`, `export F` keep the assignment a read; so does an
 # assignment no body uses).
+# #409 (D7/run-3 of the 2026-11-19 sweep): `S=$'…'` is such a value — an
+# ANSI-C quoted word, read by shell_word() like the other two quotes.
 
 
 def assignment_values(cmd):
@@ -447,6 +453,101 @@ def blank_variable_bodies(raw, cmd, scanned):
             for s, e in spans:
                 out = out[:s] + re.sub(r"[^\n]", " ", out[s:e]) + out[e:]
     return out
+
+
+
+# The port through a variable (#409, D7/run-2 of the 2026-11-19 sweep):
+# `W=<the qa/<n> worktree>; cat -n $W/src/test/offer_port.py` reads the port
+# the marker names and was denied — `$W/src/…` is no operand a readable root
+# recognizes. A reference is written out as its value and the command is
+# then judged as if it had been spelled that way: the port resolves,
+# `$W/src/main.py` is the read it is, and `W=/repo/src; cat $W/app.txt` —
+# allowed until now — is one too. Only where the shell certainly expands it so; any
+# other reference stays as written, and `$W/src/…` as written is denied:
+#   - NAME is assigned alone in its simple command, no command substitution
+#     (assignment_values()), its value a plain ABSOLUTE path — `/`, then
+#     word characters, `.`, `/`, `-`, optionally in one pair of quotes: no
+#     `$`, no `~`, no glob, no space; a relative value is the cwd's at the
+#     reference, which a `cd` in between moves (codex review, PR #415: `W=.;
+#     cd <feat>; cat $W/<port>`);
+#   - only such assignments stand before it, joined by `&&`, `;` or a
+#     newline, and one of those three follows it — never in a subshell, a
+#     pipeline, a branch, a function or the background, never behind a
+#     command that may fail (codex review, PR #415: `cd /nonexistent &&
+#     W=<qa>; cat $W/…` reads an inherited W), and no reference before it;
+#   - NAME is not one the shell itself rewrites to a path or a string — `PWD`,
+#     `OLDPWD`, `_`, `REPLY`, `OPTARG`, `BASH_REMATCH`, `MAPFILE`, `DIRSTACK`,
+#     zsh's `MATCH`, `match`, `reply` (codex review, PR #415: `PWD=<qa>; cd
+#     <feat>; cat $PWD/…`, `BASH_REMATCH=<qa>; [[ <feat> =~ .* ]]; …`);
+#   - every other occurrence of NAME in the command (heredoc bodies counted)
+#     is a `$NAME` / `${NAME}`: a second assignment, an `export`, `read`,
+#     `unset`, `for NAME in`, `NAME+=`, `${NAME:-…}`, `\$NAME` leave every
+#     reference as written — and so does NAME attached to an option, a
+#     builtin's destination (codex review, PR #415: `printf -vW`, `read -aW`);
+#   - the reference sits in a word with no single quote and no backslash
+#     (`'$W/…'` is not expanded by the shell either);
+#   - the reference is in the simple command right behind the assignment —
+#     only literal assignments between: a command in between runs in this
+#     shell and may rewrite NAME unseen (codex review, PR #415: `W=<qa>;
+#     source ./env.sh; cat $W/…`; an `eval`, a function).
+# And nothing at all where the command names `IFS`: it decides how an
+# unquoted reference splits (codex review, PR #415: `IFS=/; W=<qa>; cat
+# $W/…` reads `5/src/…` of the cwd).
+# A reference inside a body already blanked stays blanked — a mention is not
+# refilled (codex review, PR #415: `W=src/x; gh pr comment 1 --body "$W"`).
+LITERAL = re.compile(r"""(['"]?)(/[\w./-]*)\1""")
+ONLY_LITERALS = re.compile(r"(?:\s*[A-Za-z_]\w*=[\w./-]*[ \t]*(?:&&|;|\n))*\s*")
+NEXT_COMMAND = re.compile(r"[ \t]*(?:&&|;|\n)" + ONLY_LITERALS.pattern + r"[^;&|\n]*")
+SHELL_SET = re.compile(r"(?:OLD)?PWD|_|REPLY|OPTARG|BASH_REMATCH|MAPFILE|DIRSTACK"
+                       r"|MATCH|match|reply")
+
+
+def word_spans(cmd, i):
+    """The (start, end) of every shell word from `i` on, comments skipped;
+    an Unsupported word ends the walk."""
+    while True:
+        while i < len(cmd) and cmd[i] in " \t\n;&|<>()":
+            i += 1
+        if i >= len(cmd):
+            return
+        if cmd[i] == "#":
+            j = cmd.find("\n", i)
+            i = len(cmd) if j < 0 else j
+            continue
+        try:
+            end = shell_word(cmd, i)[0]
+        except Unsupported:
+            return
+        yield i, end
+        i = end
+
+
+def expand_literal_variables(raw, cmd, scanned):
+    """`scanned` (cmd, its mentions blanked) with every reference to a
+    variable the command assigns one literal written out as that literal —
+    the conditions are the comment's above; `raw` is the command before the
+    heredoc bodies were blanked."""
+    edits = []
+    if re.search(r"(?<!\w)IFS(?!\w)", raw):
+        return scanned
+    for name, spans in assignment_values(cmd).items():
+        s, e = spans[0]
+        value = LITERAL.fullmatch(cmd, s, e)
+        refs = list(re.finditer(r"(?<![\\$])\$(\{)?%s(?(1)\}|(?!\w))" % name, cmd))
+        if (not value or SHELL_SET.fullmatch(name)
+                or not ONLY_LITERALS.fullmatch(cmd, 0, s - len(name) - 1)
+                or not re.match(r"[ \t]*(?:&&|;(?!;)|\n)", cmd[e:])
+                or len(re.findall(r"(?<![\w-])(?:-[A-Za-z]+)?%s(?!\w)" % name, raw))
+                != 1 + len(refs)):
+            continue
+        plain = [(a, b) for a, b in word_spans(cmd, e) if not set("'\\") & set(cmd[a:b])]
+        edits += [(m.start(), m.end(), value.group(2)) for m in refs
+                  if any(a <= m.start() and m.end() <= b for a, b in plain)
+                  and NEXT_COMMAND.fullmatch(cmd, e, m.start())
+                  and scanned[m.start():m.end()] == m.group(0)]
+    for a, b, value in sorted(edits, reverse=True):
+        scanned = scanned[:a] + value + scanned[b:]
+    return scanned
 
 
 # ---- one engine, two membership predicates (#281) -------------------------
@@ -685,7 +786,8 @@ def exempt(value, roots, top, tops, base=None, member=None):
 def bash_reads(cmd, member, roots, top, tops, trees=None, base=None):
     """The directory a command reads the implementation under, or None."""
     text = blank_heredoc_bodies(cmd)
-    cmd = blank_variable_bodies(cmd, text, blank_forge_bodies(text))
+    cmd = expand_literal_variables(
+        cmd, text, blank_variable_bodies(cmd, text, blank_forge_bodies(text)))
     cmd = SRC_MENTIONED.sub(" ", member.excluded.sub(" ", cmd))
     for root in roots:
         cmd = suite_operand_re(root, top).sub(

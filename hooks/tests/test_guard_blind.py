@@ -7,6 +7,42 @@ from hooktest import HookTest, config_block
 # D2 run-4's exact command.
 RUN4 = "git status --short && git rev-parse --abbrev-ref HEAD && cat src/app.txt"
 
+# D7/run-3's exact command (the 2026-11-19 sweep, #409) after its `cd <the qa/5 worktree> &&`:
+# the fidelity summary held in an ANSI-C quoted variable, the port and the denied reads named.
+D7_RUN3 = (
+    "S=$'**[reviewer] · fidelity**\\n\\nFidelity: **0/1 faithful**. Look at this one:\\n- S1 → "
+    '`test_expired_offer` (`tests/acceptance/offers/test_expiry.py:5-7`): asserts an empty-'
+    'cart price of 0; no offer is seeded and the expiry is never exercised. Threads: '
+    '`test_expiry.py:7` (blocking), `docs/specs/5/test-spec.md:4` (blocking), '
+    '`test_expiry.py:7` origin (should-fix).\\n\\n**Contract currency:** amendment list "none '
+    'since 91eac10" checked against history. `spec.md` and `technical-spec.md` are unchanged '
+    'since 91eac10; the only docs change on qa/5 is `test-spec.md` (+4 lines, 461ea6e). '
+    'Contract deviations taken as given from the dispatch (`none`); I did not open the '
+    'implementation CR.\\n\\n**Coverage defects (itemized, not in the fidelity count):**\\n1. '
+    '`test-spec.md:4` marks S1 covered while the test is a TODO (thread posted, '
+    'blocking).\\n2. Regenerated map from markers: one marker, `test_expiry.py:1` (S1 → '
+    '`test_expired_offer`). Name link matches the claim; coverage does not. No §4 walk or §5 '
+    'section exists in `technical-spec.md`, so there is no reconciliation to check and no '
+    '"not testable" row to audit.\\n3. **Spec gap, route to main agent (not QA):** `technical-'
+    'spec.md` lines 5-7 list only `advance_clock`, `price_cart` and `offer_state`. Nothing '
+    'seeds an offer or defines cart shape, so it is not established that "an offer expired '
+    'yesterday" can be arranged through the port. Either add the control point (spec-CR, 2a) '
+    'or state how carts carry offers.\\n4. **Port observations (`src/test/offer_port.py`, not '
+    'in this CR diff, so no inline anchor):** `advance_clock` (lines 12-13) uses '
+    '`self.now.replace(day=self.now.day + days)`, which raises `ValueError` past month end '
+    'and never rolls months, so offsets across a month boundary are wrong. `offer_state` '
+    '(lines 18-19) recomputes `expires_at < self.now` instead of observing offer state, so '
+    'any assertion through it would be self-fulfilling. Route to the port owner.\\n\\n**Not '
+    'completed / denials:**\\n- `src/test/test_pricing_unit.py` was not read: the guard denied'
+    ' the read. It is not in the QA CR diff and sits outside `tests/acceptance`, so I did not'
+    ' treat it as part of the suite.\\n- Two earlier attempts touching `src/` were denied by '
+    'guard-blind (a grep over `tests/` and `src/test/`, and the read above). Reported as '
+    'denials, not routed around.\\n- I did not read `feat/5` or any implementation file. The '
+    'CR diff includes `src/pricing.py` (+2) from the implementation landing on qa/5; I did '
+    "not open it.\\n\\n🤖 Generated with [Claude Code](https://claude.com/claude-code)' && gh pr"
+    ' comment 103 --body "$S" 2>&1'
+)
+
 # (name, command, stderr substring) -- Bash calls under the marker.
 BASH_DENIED = [
     ("rule E: D2 run-4's exact command under the marker denied", RUN4, "implementation-blind"),
@@ -175,6 +211,25 @@ BASH_DENIED = [
     ("rule E #360: \"a\"$BODY — the reference itself unquoted — denied",
      "BODY='x --body-file src/app.txt'; gh pr comment 103 --body \"a\"$BODY\" b\"",
      "read of src/"),
+    # #409: `$'…'` is a quote like the other two — what reaches a read is still a read.
+    ("rule E #409: F=$'src/…'; cat \"$F\" — the variable reaches a read — denied",
+     "F=$'src/app.txt'; cat \"$F\"", "read of src/"),
+    ("rule E #409: F=$'src/…' as --body-file reads the file — denied",
+     "F=$'src/app.txt'; gh pr comment 103 --body-file \"$F\"", "read of src/"),
+    ("rule E #409: an unquoted $S splits into words (--body-file src/…) — denied",
+     "S=$'x --body-file src/app.txt'; gh pr comment 103 --body $S", "read of src/"),
+    ("rule E #409: S=$'…' also used outside the body — denied",
+     "S=$'see src/app.txt'; gh pr comment 103 --body \"$S\"; cat $S", "read of src/"),
+    ("rule E #409: a read after S=$'it\\'s' (the escaped quote does not close it) denied",
+     "S=$'it\\'s'; cat src/app.txt; gh pr comment 103 --body \"$S\"", "read of src/"),
+    ("rule E #409: a read after S=$'a\\\\' (the escaped backslash, then the close) denied",
+     "S=$'a\\\\'; cat src/app.txt; gh pr comment 103 --body \"$S\"", "read of src/"),
+    ("rule E #409: a read chained after D7/run-3's post is still a read — denied",
+     D7_RUN3 + " && cat src/app.txt", "read of src/"),
+    ("rule E #409: -F body=$'@src/…' reads the file — denied",
+     "gh api repos/acme/demo/issues/5/comments -F body=$'@src/app.txt'", "read of src/"),
+    ("rule E #409: \"$'\" inside double quotes opens nothing — the read after it denied",
+     "gh pr comment 103 --body \"$'\"; cat src/app.txt", "read of src/"),
 ]
 # (name, command) -- Bash calls under the marker that name src/ without reading it.
 BASH_ALLOWED = [
@@ -307,6 +362,18 @@ BASH_ALLOWED = [
      "body='see src/pricing.py:6'; gh api repos/acme/demo/issues/5/comments -f body=\"$body\""),
     ("rule E #360: body='…'; gh pr comment --body \"$body\" (the flag is no use) allowed",
      "body='see src/pricing.py:6'; gh pr comment 103 --body \"$body\""),
+    # #409 (D7/run-3, the 2026-11-19 sweep): the body held in a `$'…'` variable.
+    ("rule E #409: D7/run-3's S=$'…' && gh pr comment 103 --body \"$S\" 2>&1 allowed",
+     "cd tests && " + D7_RUN3),
+    ("rule E #409: S=$'…'; glab mr note -m \"${S}\" allowed",
+     "S=$'see `src/pricing.py:6`\\n\\nit\\'s the port'; glab mr note 103 -m \"${S}\""),
+    # Codex review, PR #415: a literal written out must not refill a blanked body.
+    ("rule E #409: W=src/…; gh pr comment --body \"$W\" stays a mention allowed",
+     "W=src/app.txt; gh pr comment 1 --body \"$W\""),
+    ("rule E #409: W=src/…; gh api -f body=\"$W\" stays a mention allowed",
+     "W=src/app.txt; gh api repos/acme/demo/issues/5/comments -f body=\"$W\""),
+    ("rule E #409: an inline --body $'… src/ …' is the body allowed",
+     "gh pr comment 103 --body $'see src/pricing.py:6\\n$(cat src/app.txt) is text here'"),
 ]
 
 
@@ -869,6 +936,154 @@ class RuleE_TestPortIsReadable(HookTest):
         self.marker.unlink()
         with self.case("port: marker removed — everything allowed again"):
             self.assertAllowed(self.run_bash("cat %s" % self.MAIN))
+
+
+
+class RuleE_PortThroughAVariable(HookTest):
+    """#409 (D7/run-2, the 2026-11-19 sweep): the reviewer held the qa/5
+    worktree in a variable — `W=<…>/work/.git/roz-gate/wt/qa/5; cat -n
+    $W/src/test/offer_port.py` — and the read of the port the marker names
+    was denied. A variable the command assigns ONE literal, at its head, is
+    written out; whatever the shell might expand otherwise stays as written
+    and denied. D7's layout: the port and a unit test under src/test/, the
+    implementation beside them, qa/5 and feat/5 in linked worktrees."""
+
+    guard = "guard-blind"
+    PORT = "src/test/offer_port.py"
+    UNIT = "src/test/test_pricing_unit.py"
+    MAIN = "src/pricing.py"
+
+    def setUp(self):
+        super().setUp()
+        self.repo = self.new_repo(
+            {"CLAUDE.md": config_block(forge="github"),
+             self.MAIN: "def price(cart, now): return 0\n",
+             self.PORT: "# the port: advance_clock, price_cart, offer_state\n",
+             self.UNIT: "# unit\n",
+             "tests/acceptance/offers/test_expiry.py": "# trace: S1\n"},
+            commit=True)
+        self.qa = self.repo / ".git/roz-gate/wt/qa/5"
+        self.feat = self.repo / ".git/roz-gate/wt/feat/5"
+        self.git(self.repo, "worktree", "add", "-q", str(self.qa), "-b", "qa/5")
+        self.git(self.repo, "worktree", "add", "-q", str(self.feat), "-b", "feat/5")
+        self.write(self.repo / ".git/roz-gate/fidelity-dispatch",
+                   "issue=5\nfeat=feat/5\nread=%s\n" % self.PORT)
+
+    def run_bash(self, command, cwd=None):
+        return self.call("Bash", {"command": command}, cwd or self.repo,
+                         agent_type="roz-gate:reviewer")
+
+    def test_port_through_a_literal_variable(self):
+        qa, port = self.qa, self.PORT
+        for name, cmd in [
+            ("variable: D7/run-2's W=<qa/5 worktree>; cat -n $W/<port> allowed",
+             "W=%s; cat -n $W/%s" % (qa, port)),
+            ("variable: ${W}/<port> allowed", "W=%s; cat -n ${W}/%s" % (qa, port)),
+            ("variable: \"$W/<port>\" in double quotes allowed",
+             "W=%s; grep -n \"def \" \"$W/%s\"" % (qa, port)),
+            ("variable: a quoted literal, && and a newline allowed",
+             "W='%s' &&\nsed -n '1,40p' $W/%s" % (qa, port)),
+            ("variable: after another literal allowed",
+             "N=5 && W=%s; cat $W/%s" % (qa, port)),
+            ("variable: the port and a spec doc through the same variable allowed",
+             "W=%s; cat $W/%s $W/docs/specs/5/spec.md" % (qa, port)),
+        ]:
+            with self.case(name):
+                self.assertAllowed(self.run_bash(cmd))
+
+    def test_what_does_not_resolve_to_the_port_stays_denied(self):
+        qa, feat, port = self.qa, self.feat, self.PORT
+        for name, cmd in [
+            ("variable: $W/<src/ file that is not the port> denied",
+             "W=%s; cat $W/%s" % (qa, self.MAIN)),
+            ("variable: the port AND the unit test beside it denied",
+             "W=%s; cat $W/%s $W/%s" % (qa, port, self.UNIT)),
+            ("variable: W=<…>/src; cat $W/pricing.py (no src/ as written) denied",
+             "W=%s/src; cat $W/pricing.py" % qa),
+            ("variable: the feat/5 worktree's port is not a readable tree — denied",
+             "W=%s; cat $W/%s" % (feat, port)),
+            ("variable: reassigned — denied", "W=%s; W=%s; cat $W/%s" % (qa, feat, port)),
+            ("variable: reassigned as a command's environment — denied",
+             "W=%s; W=%s cat $W/%s" % (qa, feat, port)),
+            ("variable: appended to (W+=) — denied",
+             "W=%s; W+=/../../feat/5; cat $W/%s" % (qa, port)),
+            ("variable: assigned from a command substitution — denied",
+             "W=$(git rev-parse --show-toplevel); cat $W/%s" % port),
+            ("variable: assigned from another variable — denied",
+             "R=%s; W=$R/wt/qa/5; cat $W/%s" % (self.repo / ".git/roz-gate", port)),
+            ("variable: used before it is assigned — denied",
+             "cat $W/%s; W=%s" % (port, qa)),
+            ("variable: never assigned in the command — denied", "cat $W/%s" % port),
+            ("variable: assigned in a subshell — denied", "(W=%s); cat $W/%s" % (qa, port)),
+            ("variable: assigned in a pipeline — denied", "W=%s | cat $W/%s" % (qa, port)),
+            ("variable: assigned in the background — denied", "W=%s & cat $W/%s" % (qa, port)),
+            ("variable: assigned behind || — denied", "W=%s || true; cat $W/%s" % (qa, port)),
+            ("variable: assigned behind a command that may fail — denied",
+             "test -d x && W=%s; cat $W/%s" % (qa, port)),
+            # Codex review, PR #415: a failed `cd` skips the assignment and an
+            # inherited W is read; the shell itself rewrites PWD, OLDPWD, _, REPLY.
+            ("variable: assigned behind `cd <path> &&` (the cd may fail) — denied",
+             "cd %s && W=%s; cat $W/%s" % (self.repo, qa, port)),
+            ("variable: PWD is the shell's — a later cd rewrites it — denied",
+             "PWD=%s; cd %s; cat $PWD/%s" % (qa, feat, port)),
+            ("variable: OLDPWD is the shell's — denied",
+             "OLDPWD=%s; cd %s; cd /; cat $OLDPWD/%s" % (qa, feat, port)),
+            ("variable: REPLY is the shell's (a bare `read` sets it) — denied",
+             "REPLY=%s; read < where; cat $REPLY/%s" % (qa, port)),
+            # Codex review, PR #415 round 3: a relative value is the cwd's at the
+            # reference, not the hook's — only an absolute value is written out.
+            ("variable: W=.; cd <feat/5 worktree>; cat $W/<port> — denied",
+             "W=.; cd %s; cat $W/%s" % (feat, port)),
+            ("variable: W=.; cat $W/<port> (relative, no cd) is left as written — denied",
+             "W=.; cat $W/%s" % port),
+            ("variable: W=..; cd <feat/5 worktree>/src; cat $W/<port> — denied",
+             "W=..; cd %s/src; cat $W/%s" % (feat, port)),
+            ("variable: W=src/test; cd <feat/5 worktree>; cat $W/offer_port.py — denied",
+             "W=src/test; cd %s; cat $W/offer_port.py" % feat),
+            # Codex review, PR #415 round 4: a builtin's destination attached to
+            # its option (`printf -vW`, `read -aW`) is a write to W; BASH_REMATCH
+            # is the shell's — a `[[ =~ ]]` rewrites it.
+            ("variable: written by `printf -vW` (attached option) — denied",
+             "W=%s; printf -vW %%s %s; cat $W/%s" % (qa, feat, port)),
+            ("variable: written by `read -aW` (attached option) — denied",
+             "W=%s; read -aW < where; cat $W/%s" % (qa, port)),
+            ("variable: BASH_REMATCH is the shell's — denied",
+             "BASH_REMATCH=%s; [[ %s =~ .* ]]; cat $BASH_REMATCH/%s" % (qa, feat, port)),
+            # Codex review, PR #415 round 5: what runs between the assignment
+            # and the reference may rewrite W unseen (`source`, `eval`, a
+            # function) — only the command right behind the assignment resolves.
+            ("variable: a `source` between the assignment and the reference — denied",
+             "W=%s; source ./env.sh; cat $W/%s" % (qa, port)),
+            ("variable: an `eval` between the assignment and the reference — denied",
+             "W=%s; eval \"$(cat env)\"; cat $W/%s" % (qa, port)),
+            ("variable: any command between the assignment and the reference — denied",
+             "W=%s; setup && cat $W/%s" % (qa, port)),
+            # Codex review, PR #415 round 6: IFS decides how an unquoted
+            # reference splits — a command naming IFS resolves nothing.
+            ("variable: IFS=/ before the assignment splits $W — denied",
+             "IFS=/; W=%s; cat $W/%s" % (qa, port)),
+            ("variable: IFS=/ between the assignment and the reference — denied",
+             "W=%s; IFS=/; cat $W/%s" % (qa, port)),
+            ("variable: assigned in a branch — denied",
+             "if true; then\nW=%s\nfi; cat $W/%s" % (qa, port)),
+            ("variable: read from stdin after the assignment — denied",
+             "W=%s; read W < where; cat $W/%s" % (qa, port)),
+            ("variable: unset after the assignment — denied",
+             "W=%s; unset W; cat $W/%s" % (qa, port)),
+            ("variable: a ${W:-default} expansion — denied",
+             "W=%s; cat ${W:-%s}/%s" % (qa, feat, port)),
+            ("variable: a value with a glob — denied",
+             "W=%s/../*/5; cat $W/%s" % (qa.parent, port)),
+            ("variable: a single-quoted '$W/<port>' is not expanded — denied",
+             "W=%s; bash -c 'cat $W/%s'" % (qa, port)),
+            ("variable: a climb out of the port through the variable denied",
+             "W=%s; cat $W/src/test/../pricing.py" % qa),
+        ]:
+            with self.case(name):
+                self.assertDenied(self.run_bash(cmd), "read of src/")
+        with self.case("variable: a git action on the feat/ ref through the port is denied"):
+            self.assertDenied(self.run_bash("W=%s; git -C $W diff qa/5...feat/5 -- %s"
+                                            % (qa, port)), "feat/ ref")
 
 
 class RuleE_QaDispatchSeat(HookTest):
