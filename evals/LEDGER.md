@@ -230,6 +230,7 @@ text follows the experiment; the driver's citation was updated to match.
 | L21 | runtime prose stays within its caps | lint (#278) |
 | L22 | seats resolve through one reader | lint (#198) |
 | L23 | every runtime prohibition is classified | lint (#380) |
+| L24 | bot mode documents only the non-printing credential path | lint (#413) |
 
 ## The judgment corpus
 
