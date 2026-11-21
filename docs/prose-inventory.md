@@ -397,12 +397,12 @@ Scope: `agents/`, `commands/`, `references/`, `templates/` — 36 files, 524 pro
 | class | rules | sources |
 |---|---|---|
 | `hooked` | 8 | 19 |
-| `deterministic-candidate` | 13 | 36 |
+| `deterministic-candidate` | 12 | 34 |
 | `guarded-by-case` | 72 | 159 |
-| `prose-only` | 125 | 160 |
+| `prose-only` | 126 | 162 |
 | `not-a-rule` (reasons) | 12 | 155 |
 
-Of the `prose-only` rules, **75 are `unguarded`** — not semantic, and nothing enforces them yet.
+Of the `prose-only` rules, **76 are `unguarded`** — not semantic, and nothing enforces them yet.
 
 | id | rule | stated in | class | owner | evidence / reason |
 |---|---|---|---|---|---|
@@ -539,7 +539,7 @@ Of the `prose-only` rules, **75 are `unguarded`** — not semantic, and nothing 
 | P142 | A `gh` call never passes `--repo` — the repository is the current directory's remote | `references/forge-github.md` | `prose-only` | prose | unguarded — a lint or replay assertion that no forge call in a run carries `--repo` |
 | P143 | The bot token is passed per invocation, never exported into the session environment | `references/forge-github.md` · `references/forge-gitlab.md` · `references/identity-github-app.md` | `deterministic-candidate` | none yet | #399 |
 | P144 | In bot mode an issue is never created without an assignee — a bot-authored issue is never born holder-less | `references/forge-github.md` · `references/forge-gitlab.md` | `deterministic-candidate` | none yet | #402 |
-| P145 | The bot's git identity is given per command, never written into the repository's git config | `references/forge-github.md` · `references/forge-gitlab.md` | `deterministic-candidate` | none yet | #400 |
+| P145 | The bot's git identity is given per command, never written into the repository's git config | `references/forge-github.md` · `references/forge-gitlab.md` | `prose-only` | prose | unguarded — a bot-mode replay case asserting the clone's git config holds no `user.name` / `user.email` after a commit point (no replay case runs in bot mode; #400: a deny on `git config user.*` would miss a file edit of `.git/config` and `--global`, and no such write is on record) |
 | P146 | A failed blockers read is a failed read, never "no blockers" | `references/forge-github.md` · `references/forge-gitlab.md` · `references/workflow.md` · `references/roz-state.md` | `guarded-by-case` | references/patrol-scan.md | F15 |
 | P147 | The loop never writes an issue relationship — blockers are read-only | `references/forge-github.md` · `references/forge-gitlab.md` · `references/workflow.md` · `references/patrol-scan.md` | `guarded-by-case` | references/patrol-scan.md | F15 |
 | P148 | In bot mode the `{user}` slot is the first `bot_login`, never a forge call | `references/forge-github.md` · `references/forge-gitlab.md` | `prose-only` | prose | unguarded — a replay case in bot mode that cuts a branch: no WHOAMI call in the journal |
