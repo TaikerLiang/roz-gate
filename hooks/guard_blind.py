@@ -485,11 +485,16 @@ def blank_variable_bodies(raw, cmd, scanned):
 #     reference as written — and so does NAME attached to an option, a
 #     builtin's destination (codex review, PR #415: `printf -vW`, `read -aW`);
 #   - the reference sits in a word with no single quote and no backslash
-#     (`'$W/…'` is not expanded by the shell either).
+#     (`'$W/…'` is not expanded by the shell either);
+#   - the reference is in the simple command right behind the assignment —
+#     only literal assignments between: a command in between runs in this
+#     shell and may rewrite NAME unseen (codex review, PR #415: `W=<qa>;
+#     source ./env.sh; cat $W/…`; an `eval`, a function).
 # A reference inside a body already blanked stays blanked — a mention is not
 # refilled (codex review, PR #415: `W=src/x; gh pr comment 1 --body "$W"`).
 LITERAL = re.compile(r"""(['"]?)(/[\w./-]*)\1""")
 ONLY_LITERALS = re.compile(r"(?:\s*[A-Za-z_]\w*=[\w./-]*[ \t]*(?:&&|;|\n))*\s*")
+NEXT_COMMAND = re.compile(r"[ \t]*(?:&&|;|\n)" + ONLY_LITERALS.pattern + r"[^;&|\n]*")
 SHELL_SET = re.compile(r"(?:OLD)?PWD|_|REPLY|OPTARG|BASH_REMATCH|MAPFILE|DIRSTACK"
                        r"|MATCH|match|reply")
 
@@ -533,6 +538,7 @@ def expand_literal_variables(raw, cmd, scanned):
         plain = [(a, b) for a, b in word_spans(cmd, e) if not set("'\\") & set(cmd[a:b])]
         edits += [(m.start(), m.end(), value.group(2)) for m in refs
                   if any(a <= m.start() and m.end() <= b for a, b in plain)
+                  and NEXT_COMMAND.fullmatch(cmd, e, m.start())
                   and scanned[m.start():m.end()] == m.group(0)]
     for a, b, value in sorted(edits, reverse=True):
         scanned = scanned[:a] + value + scanned[b:]

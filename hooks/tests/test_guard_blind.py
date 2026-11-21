@@ -1049,6 +1049,15 @@ class RuleE_PortThroughAVariable(HookTest):
              "W=%s; read -aW < where; cat $W/%s" % (qa, port)),
             ("variable: BASH_REMATCH is the shell's — denied",
              "BASH_REMATCH=%s; [[ %s =~ .* ]]; cat $BASH_REMATCH/%s" % (qa, feat, port)),
+            # Codex review, PR #415 round 5: what runs between the assignment
+            # and the reference may rewrite W unseen (`source`, `eval`, a
+            # function) — only the command right behind the assignment resolves.
+            ("variable: a `source` between the assignment and the reference — denied",
+             "W=%s; source ./env.sh; cat $W/%s" % (qa, port)),
+            ("variable: an `eval` between the assignment and the reference — denied",
+             "W=%s; eval \"$(cat env)\"; cat $W/%s" % (qa, port)),
+            ("variable: any command between the assignment and the reference — denied",
+             "W=%s; setup && cat $W/%s" % (qa, port)),
             ("variable: assigned in a branch — denied",
              "if true; then\nW=%s\nfi; cat $W/%s" % (qa, port)),
             ("variable: read from stdin after the assignment — denied",
