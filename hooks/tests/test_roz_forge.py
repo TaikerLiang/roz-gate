@@ -523,6 +523,44 @@ class StoredHeaders(ForgeTest):
             self.assertIn(want, srv.seen)
 
 
+class PushGlobalConfig(ForgeTest):
+    def test_both_global_files_survive_the_empty_home(self):
+        import importlib.machinery
+        import importlib.util
+        loader = importlib.machinery.SourceFileLoader("roz_forge", str(TOOL))
+        spec = importlib.util.spec_from_loader("roz_forge", loader)
+        mod = importlib.util.module_from_spec(spec)
+        loader.exec_module(mod)
+        (self.home / ".gitconfig").write_text("[http]\n\tsslCAInfo = /corp/ca.pem\n")
+        (self.home / ".config" / "git").mkdir(parents=True)
+        (self.home / ".config" / "git" / "config").write_text(
+            "[http]\n\tproxy = http://proxy:3128\n")
+        empty = Path(tempfile.mkdtemp(dir=str(self.tmp)))
+        saved = {k: os.environ.get(k) for k in ("HOME", "GIT_CONFIG_GLOBAL", "XDG_CONFIG_HOME")}
+        os.environ["HOME"] = str(self.home)
+        os.environ.pop("GIT_CONFIG_GLOBAL", None)
+        os.environ.pop("XDG_CONFIG_HOME", None)
+        try:
+            env = mod.push_env(TOKEN, str(empty))
+        finally:
+            for k, v in saved.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+        env["GIT_CONFIG_NOSYSTEM"] = "1"
+
+        def get(key):
+            return subprocess.run(["git", "config", "--get", key], cwd=str(self.repo), env=env,
+                                  capture_output=True, text=True).stdout.strip()
+        with self.subTest("roz-forge: the push child still reads ~/.gitconfig and the XDG "
+                          "config (codex review, PR #424)"):
+            self.assertEqual(get("http.sslCAInfo"), "/corp/ca.pem")
+            self.assertEqual(get("http.proxy"), "http://proxy:3128")
+        with self.subTest("roz-forge: the push child's HOME holds no .netrc"):
+            self.assertEqual(sorted(p.name for p in empty.iterdir()), [".gitconfig"])
+
+
 class NoCache(ForgeTest):
     def test_nothing_written(self):
         def tree():

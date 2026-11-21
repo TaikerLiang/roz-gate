@@ -257,13 +257,17 @@ def push_env(token, home):
     """The git child's environment: the token as `ROZ_FORGE_TOKEN`, and `HOME`
     an empty directory — libcurl reads `~/.netrc` whatever the helpers say, and
     a stored machine entry would answer as the human (codex review, PR #424).
-    The global git config stays the person's: `GIT_CONFIG_GLOBAL` when set,
-    else `~/.gitconfig` when it exists, else `$XDG_CONFIG_HOME/git/config`."""
+    The global git config stays the person's, both files as git reads them
+    (codex review, PR #424): `$XDG_CONFIG_HOME/git/config` through
+    `XDG_CONFIG_HOME`, and `~/.gitconfig` through an include in the empty
+    home's own `.gitconfig`; a `GIT_CONFIG_GLOBAL` already set is kept as is.
+    Limit: a `~` inside the person's own includes resolves to the empty home."""
     env = child_env({"ROZ_FORGE_TOKEN": token, "GIT_TERMINAL_PROMPT": "0", "HOME": home})
     real = os.path.expanduser("~")
     env.setdefault("XDG_CONFIG_HOME", os.path.join(real, ".config"))
-    if "GIT_CONFIG_GLOBAL" not in env and os.path.isfile(os.path.join(real, ".gitconfig")):
-        env["GIT_CONFIG_GLOBAL"] = os.path.join(real, ".gitconfig")
+    if os.path.isfile(os.path.join(real, ".gitconfig")):
+        with open(os.path.join(home, ".gitconfig"), "w", encoding="utf-8") as f:
+            f.write("[include]\n\tpath = %s\n" % json.dumps(os.path.join(real, ".gitconfig")))
     return env
 
 
