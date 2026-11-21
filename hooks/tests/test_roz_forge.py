@@ -303,6 +303,15 @@ class KeyPath(ForgeTest):
         with self.subTest("roz-forge: a linked worktree finds `bot_key` in the main checkout"):
             p = self.run_tool("gh", "issue", "list", cwd=wt)
             self.assertEqual(p.returncode, 0, p.stderr)
+        (repo / "keys").mkdir()
+        moved.rename(repo / "keys" / "bot.pem")
+        local.write_text(json.dumps({"bot_key": "keys/bot.pem"}))
+        (repo / "sub").mkdir()
+        for where, cwd in (("a subdirectory", repo / "sub"), ("a linked worktree", wt)):
+            with self.subTest("roz-forge: a relative `bot_key` is the repository's, found from "
+                              "%s (codex review, PR #424)" % where):
+                p = self.run_tool("gh", "issue", "list", cwd=cwd)
+                self.assertEqual(p.returncode, 0, p.stderr)
 
 
 class Push(ForgeTest):
@@ -342,6 +351,19 @@ class Push(ForgeTest):
             p = self.run_tool("git", "push", "origin", "fix/9", cwd=repo)
             self.assertEqual(p.returncode, 0, p.stderr)
             self.assertIn("remote.origin.pushurl=https://github.com/o/r.git",
+                          self.children()[0]["argv"])
+
+    def test_https_port_kept(self):
+        repo = self.new_repo("https://gitlab.example.com:8443/g/p.git", forge="gitlab",
+                             bot_login="pb")
+        tok = self.home / ".config" / "roz-gate" / "pb.token"
+        tok.write_text("glpat-dummy\n")
+        tok.chmod(0o600)
+        with self.subTest("roz-forge git push: an HTTPS origin's explicit port is kept "
+                          "(codex review, PR #424)"):
+            p = self.run_tool("git", "push", "origin", "fix/9", cwd=repo)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertIn("remote.origin.pushurl=https://gitlab.example.com:8443/g/p.git",
                           self.children()[0]["argv"])
 
     def test_refused_shapes(self):
@@ -421,6 +443,72 @@ class CredentialFill(ForgeTest):
             self.assertEqual(store.read_text(), "https://human:storedpw@github.com\n")
             self.assertEqual(sorted(p.name for p in (self.home / ".config" / "roz-gate").iterdir()),
                              ["roz-bot.pem"])
+
+
+class GitAuth(BaseHTTPRequestHandler):
+    """A git smart-HTTP endpoint that wants Basic auth: 401 until it gets one."""
+
+    def log_message(self, *a):
+        pass
+
+    def do_GET(self):
+        auth = self.headers.get("Authorization", "")
+        self.server.seen.append(auth)
+        if not auth.startswith("Basic "):
+            self.send_response(401)
+            self.send_header("WWW-Authenticate", 'Basic realm="x"')
+            self.end_headers()
+            return
+        self.send_response(404)
+        self.end_headers()
+
+
+class StoredHeaders(ForgeTest):
+    """Real git against a local HTTP server: a stored `Authorization` extra
+    header (generic or URL-scoped) never rides along; the bot's Basic auth does
+    (codex review, PR #424)."""
+
+    def test_extra_headers_reset(self):
+        import base64
+        import importlib.machinery
+        import importlib.util
+        srv = HTTPServer(("127.0.0.1", 0), GitAuth)
+        srv.seen = []
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        self.addCleanup(srv.server_close)
+        self.addCleanup(srv.shutdown)
+        url = "http://127.0.0.1:%d/o/r.git" % srv.server_port
+        glob = self.tmp / "global.gitconfig"
+        glob.write_text('[http]\n\textraHeader = "Authorization: Bearer human-generic"\n'
+                        '[http "http://127.0.0.1:%d/"]\n'
+                        '\textraHeader = "Authorization: Bearer human-scoped"\n'
+                        % srv.server_port)
+        loader = importlib.machinery.SourceFileLoader("roz_forge", str(TOOL))
+        spec = importlib.util.spec_from_loader("roz_forge", loader)
+        mod = importlib.util.module_from_spec(spec)
+        loader.exec_module(mod)
+        cwd, old = os.getcwd(), os.environ.get("GIT_CONFIG_GLOBAL")
+        os.chdir(str(self.repo))
+        os.environ["GIT_CONFIG_GLOBAL"] = str(glob)
+        try:
+            args = mod.helper_config("x-access-token")
+        finally:
+            os.chdir(cwd)
+            if old is None:
+                os.environ.pop("GIT_CONFIG_GLOBAL")
+            else:
+                os.environ["GIT_CONFIG_GLOBAL"] = old
+        env = dict(os.environ, HOME=str(self.home), GIT_CONFIG_GLOBAL=str(glob),
+                   GIT_CONFIG_NOSYSTEM="1", GIT_TERMINAL_PROMPT="0", ROZ_FORGE_TOKEN=TOKEN)
+        subprocess.run(["git", *args, "ls-remote", url], cwd=str(self.repo), env=env,
+                       capture_output=True, text=True, timeout=30)
+        want = "Basic " + base64.b64encode(("x-access-token:%s" % TOKEN).encode()).decode()
+        with self.subTest("roz-forge: no stored Authorization header reaches the server"):
+            self.assertTrue(srv.seen, "git made no request")
+            self.assertFalse([a for a in srv.seen if "human" in a], srv.seen)
+        with self.subTest("roz-forge: the server got the bot's Basic auth from the one-shot "
+                          "helper"):
+            self.assertIn(want, srv.seen)
 
 
 class NoCache(ForgeTest):

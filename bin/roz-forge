@@ -99,8 +99,10 @@ def stored_key(top):
                 data = json.load(f)
         except (OSError, ValueError):
             continue
-        if isinstance(data, dict) and isinstance(data.get("bot_key"), str) and data["bot_key"].strip():
-            return data["bot_key"].strip()
+        value = data.get("bot_key") if isinstance(data, dict) else None
+        if isinstance(value, str) and value.strip():
+            # a relative path is the repository's, never the caller's cwd (codex, PR #424)
+            return os.path.join(root, os.path.expanduser(value.strip()))
     return None
 
 
@@ -120,16 +122,22 @@ def key_file(cfg):
 
 
 def origin():
-    """(host, path) of `origin`'s configured URL — raw, before any insteadOf."""
+    """(host, path) of `origin`'s configured URL — raw, before any insteadOf.
+    An HTTPS URL's explicit port stays on the host (`gitlab.example.com:8443`,
+    codex review PR #424); an SSH URL's port is the SSH service's, so its
+    HTTPS twin takes the default."""
     url = git("config", "--get", "remote.origin.url")
-    for pat in (r"^https://(?:[^@/]+@)?([^/:]+)(?::\d+)?/(.+?)/*$",
-                r"^ssh://(?:[^@/]+@)?([^/:]+)(?::\d+)?/(.+?)/*$",
-                r"^[^@/:]+@([^/:]+):(.+?)/*$"):
+    for pat, keep_port in ((r"^https://(?:[^@/]+@)?([^/:]+)(:\d+)?/(.+?)/*$", True),
+                           (r"^ssh://(?:[^@/]+@)?([^/:]+)(:\d+)?/(.+?)/*$", False),
+                           (r"^[^@/:]+@([^/:]+)():(.+?)/*$", False)):
         m = re.match(pat, url or "")
         if m:
-            path = m.group(2)[:-4] if m.group(2).endswith(".git") else m.group(2)
+            host = m.group(1).lower()
+            if keep_port and m.group(2) and m.group(2) != ":443":
+                host += m.group(2)
+            path = m.group(3)[:-4] if m.group(3).endswith(".git") else m.group(3)
             if path and ".." not in path.split("/"):
-                return m.group(1).lower(), path
+                return host, path
     raise Refused("cannot read `origin`'s URL (%s)" % (url or "unset"))
 
 
@@ -211,12 +219,16 @@ def push_args(rest):
 
 
 def helper_config(user):
-    """`-c` pairs: every stored credential helper reset, then the one-shot one.
-    An empty `credential.helper` (or `credential.<url>.helper`) clears the list
-    built so far; `-c` is read after every config file, so nothing stored answers."""
-    pairs = ["credential.helper="]
-    listed = git("config", "--name-only", "--get-regexp", r"^credential\..+\.helper$") or ""
-    pairs += ["%s=" % k for k in sorted(set(listed.split())) if k != "credential.helper"]
+    """`-c` pairs: every stored credential helper and extra header reset, then
+    the one-shot helper. An empty `credential.helper` / `http.extraHeader` (or
+    its `<url>`-scoped twin) clears the list built so far, and `-c` is read
+    after every config file — so no stored helper answers and no stored
+    `Authorization` header rides along (codex review, PR #424)."""
+    pairs = ["credential.helper=", "http.extraHeader="]
+    for pattern, generic in ((r"^credential\..+\.helper$", "credential.helper"),
+                             (r"^http\..+\.extraheader$", "http.extraheader")):
+        listed = git("config", "--name-only", "--get-regexp", pattern) or ""
+        pairs += ["%s=" % k for k in sorted(set(listed.split())) if k.lower() != generic]
     pairs.append("credential.helper=" + HELPER % user)
     out = []
     for p in pairs:
