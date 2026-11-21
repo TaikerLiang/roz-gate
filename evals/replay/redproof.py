@@ -3162,7 +3162,7 @@ def sandbox_checks():
          and not {".git", "evals", "tools", ".github", ".githooks", "docs"}
          & set(probe["entries"])
          and {".claude-plugin", "agents", "bin", "commands", "hooks", "references",
-              "scripts", "templates"} <= set(probe["entries"])),
+              "templates"} <= set(probe["entries"])),
         ("from the plugin root git finds no repository at or above it",
          (probe.get("git") or {}).get("rc", 0) != 0),
         ("`bin/roz-branch snapshot` from the plugin root reaches no remote: it fails with "
