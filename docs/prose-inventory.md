@@ -397,12 +397,12 @@ Scope: `agents/`, `commands/`, `references/`, `templates/` — 36 files, 524 pro
 | class | rules | sources |
 |---|---|---|
 | `hooked` | 8 | 19 |
-| `deterministic-candidate` | 13 | 36 |
+| `deterministic-candidate` | 12 | 34 |
 | `guarded-by-case` | 72 | 159 |
-| `prose-only` | 125 | 160 |
+| `prose-only` | 126 | 162 |
 | `not-a-rule` (reasons) | 12 | 155 |
 
-Of the `prose-only` rules, **75 are `unguarded`** — not semantic, and nothing enforces them yet.
+Of the `prose-only` rules, **76 are `unguarded`** — not semantic, and nothing enforces them yet.
 
 | id | rule | stated in | class | owner | evidence / reason |
 |---|---|---|---|---|---|
@@ -428,7 +428,7 @@ Of the `prose-only` rules, **75 are `unguarded`** — not semantic, and nothing 
 | P025 | The implementer never substitutes a local reading for a Glossary definition it cannot build to | `templates/implementer.md` | `prose-only` | prose | semantic — whether the build follows the definition is a reading of the code against the Glossary |
 | P026 | The implementer never waits on an open question mid-job — it returns its open questions with the deliverable | `templates/implementer.md` | `prose-only` | prose | unguarded — a replay case in which the dispatched implementer holds an open question and must return it rather than end its turn asking (E3 guards that the route exists, not that it is taken) |
 | P027 | The implementer never silently assumes an answer to an open question | `templates/implementer.md` | `prose-only` | prose | semantic — whether a choice was an assumption is a reading of the build against the spec |
-| P028 | The config command never edits `.claude/roz-gate.local.json` itself — `bin/roz-config` does the write | `commands/config.md` · `commands/config.md` (“`.claude/roz-gate.local.json`”) | `deterministic-candidate` | none yet | #404 |
+| P028 | The config command never edits `.claude/roz-gate.local.json` itself — `bin/roz-config` does the write | `commands/config.md` · `commands/config.md` (“`.claude/roz-gate.local.json`”) | `prose-only` | prose | unguarded — a replay case on the `/roz-gate:config` fallback prompt setting a key: the transcript holds no Edit, Write or shell write to the file, and its content is what `bin/roz-config` wrote — owner chosen under #404 (2026-11-21) — it stays prose, and nothing blocks the act in a real repository: no hook judges an Edit / Write on this path, and lint L2 holds only that the sentence is in `commands/config.md`. Not eliminated: the tool and an Edit run as one OS user, so a permission bit is friction, not removal; where the mod loads (`hooks/config-menu.tsx`, lint L8) no model turn runs and this prompt is only the fallback. Not hooked: no replay red and no shipped defect (`hooks/README.md`), and the path alone is wider than the rule — it would deny every session's edit of the person's own file, not the config command's. What a direct edit skips is three write checks: `branch_template` and `worktree_copy` are checked again by their readers (`roz-state`, `guard-acceptance`, `sync-worktree`); `patrol_issues_per_pass` is not — `roz-config --json` prints the stored value as it is. Validating on read would own that for every writer, the person's editor included |
 | P030 | A multi-value config key is passed one value per quoted argument, never split on spaces | `commands/config.md` | `prose-only` | prose | unguarded — a replay case on `/roz-gate:config` setting `inbox_label` to a label that holds a space |
 | P032 | An agent never applies a gate label (`ready-for-spec`, `ready-for-dev`) — the gate is the human's | `commands/config.md` · `commands/to-issues.md` · `commands/spec-answers.md` · `commands/patrol.md` · `references/workflow.md` | `hooked` | hook B | `hooks/tests/test_guard_gate.py::RuleB_GateLabelsAreHumanOnly` |
 | P033 | The config command never creates forge labels | `commands/config.md` | `prose-only` | prose | unguarded — a replay case on `/roz-gate:config` whose forge journal holds no label-create call |
