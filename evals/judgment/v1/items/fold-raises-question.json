@@ -31,5 +31,7 @@
   ],
   "key_point": "Does the document raise which clock or starting point the 24-hour grace window is counted from?",
   "approved_by": null,
-  "approved_on": null
+  "approved_on": null,
+  "approved_ref": null,
+  "approved_fp": null
 }

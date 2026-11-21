@@ -31,5 +31,7 @@
   ],
   "key_point": "Does the document say that the implementation change request is already merged, so the ready-for-dev label does not match the work's actual state?",
   "approved_by": null,
-  "approved_on": null
+  "approved_on": null,
+  "approved_ref": null,
+  "approved_fp": null
 }

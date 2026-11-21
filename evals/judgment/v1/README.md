@@ -58,7 +58,8 @@ agent could see at the decision point, and only that.
 | `acceptable_alternates` | reasoning that also counts |
 | `forbidden_shortcuts` | hindsight phrases — the snapshot may not contain them |
 | `key_point` | the one proposition the judge answers (surfaced golds only) |
-| `approved_by`, `approved_on` | the maintainer's signature on **this whole record** — see § Approval. `null` until then; an unapproved item cannot be run |
+| `approved_by`, `approved_on` | who approved **this whole record**, and when — see § Approval. `null` until then; an unapproved item cannot be run |
+| `approved_ref`, `approved_fp` | a permalink to the review comment, and the review fingerprint of the record and snapshot that comment approved. `null` until then |
 
 ## Approval
 
@@ -72,15 +73,47 @@ review.
     plan approved
     → the complete records and snapshots are built
     → the pull request shows every full record
-    → the maintainer reviews each record and approves it explicitly
-    → only then `approved_by` / `approved_on` are stamped, in a commit that
+    → the maintainer reviews each record and approves it explicitly, in a
+      review comment that quotes the item's id and its review fingerprint
+      (`--check` prints both)
+    → only then the four approval fields are stamped, in a commit that
       names the items and the review it follows
     → only then may a SUT or judge call be spent on the item
 
-Until then both fields are `null`. `run_v1.py --check` prints how many
-items are approved; `--redproof`'s judge half and `--sut` refuse an
-unapproved item; lint J2 rejects a half-stamped record. A record edited
-after its approval is unapproved again — reset the two fields with the edit.
+Until then all four fields are `null`. `run_v1.py --check` prints how many
+items carry an approval; `--redproof`'s judge half and `--sut` refuse an
+unapproved item; lint J2 rejects a half-stamped record — any of the four
+without the others, an `approved_ref` that is not a permalink to one GitHub
+comment or review (a bare pull request or issue is not one), an
+`approved_fp` that is not 16 hex.
+
+**The review fingerprint** binds an approval to what was read: sha256 (16
+hex) over the record as canonical JSON — every field but the four approval
+fields, the snapshot's path among them — and the snapshot's bytes. Another
+snapshot path is another record, even when the bytes there match. It does
+not cover the brief, `prompt.md`, `actions.json` or the judge: those change
+on their own schedule and belong to a result's fingerprint (§ A run), which
+is a separate thing and is not moved by `approved_ref` or `approved_fp`.
+
+**A stale approval** — a stamped item whose fingerprint no longer matches —
+is a corpus defect: `--check` and lint J2 fail and name it, and `--sut`,
+`--report` and the judge's red-proof stop before any model call. The
+scorer's red-proof calls no model and still runs. To clear it, reset the
+four fields to `null` with the edit and ask for the review again.
+
+What the four fields establish, and what they do not:
+
+- **Recorded approval** — the fields name a reviewer and a date. This is a
+  claim in a file anyone with write access can edit.
+- **Auditable approval** — a person can open `approved_ref` and check by
+  hand that the comment quotes this item's id and `approved_fp`, and that
+  the fingerprint is still the record's. The runner checks the reference's
+  shape and the fingerprint; it never fetches the comment and cannot tell
+  who wrote it.
+- **Verified human authorization** — not established by this design.
+  Agents post in this repository under the maintainer's own GitHub account,
+  so a comment's author is not proof a person wrote it. A well-shaped
+  `approved_ref` is an audit trail, never machine-verified approval.
 
 `actions.json` holds **one action vocabulary per seat** — the moves that
 seat's brief names, right and wrong alike. Every item of a seat shows the
@@ -95,7 +128,7 @@ brief as it reads in the repository at run time; **baseline** adds one
 neutral sentence.
 
 ```sh
-python3 evals/judgment/v1/run_v1.py --check       # schema, approval, leak scan — no tokens
+python3 evals/judgment/v1/run_v1.py --check       # schema, approval, leak scan, review fingerprints — no tokens
 python3 evals/judgment/v1/run_v1.py --redproof    # scorer (free), then the judge's — judge tokens
 python3 evals/judgment/v1/run_v1.py --sut haiku55 --arm baseline --k 3
 python3 evals/judgment/v1/run_v1.py --sut haiku55 --arm treatment --k 3
