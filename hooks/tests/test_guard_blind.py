@@ -1058,6 +1058,12 @@ class RuleE_PortThroughAVariable(HookTest):
              "W=%s; eval \"$(cat env)\"; cat $W/%s" % (qa, port)),
             ("variable: any command between the assignment and the reference — denied",
              "W=%s; setup && cat $W/%s" % (qa, port)),
+            # Codex review, PR #415 round 6: IFS decides how an unquoted
+            # reference splits — a command naming IFS resolves nothing.
+            ("variable: IFS=/ before the assignment splits $W — denied",
+             "IFS=/; W=%s; cat $W/%s" % (qa, port)),
+            ("variable: IFS=/ between the assignment and the reference — denied",
+             "W=%s; IFS=/; cat $W/%s" % (qa, port)),
             ("variable: assigned in a branch — denied",
              "if true; then\nW=%s\nfi; cat $W/%s" % (qa, port)),
             ("variable: read from stdin after the assignment — denied",

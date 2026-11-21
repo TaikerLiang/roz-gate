@@ -490,6 +490,9 @@ def blank_variable_bodies(raw, cmd, scanned):
 #     only literal assignments between: a command in between runs in this
 #     shell and may rewrite NAME unseen (codex review, PR #415: `W=<qa>;
 #     source ./env.sh; cat $W/…`; an `eval`, a function).
+# And nothing at all where the command names `IFS`: it decides how an
+# unquoted reference splits (codex review, PR #415: `IFS=/; W=<qa>; cat
+# $W/…` reads `5/src/…` of the cwd).
 # A reference inside a body already blanked stays blanked — a mention is not
 # refilled (codex review, PR #415: `W=src/x; gh pr comment 1 --body "$W"`).
 LITERAL = re.compile(r"""(['"]?)(/[\w./-]*)\1""")
@@ -525,6 +528,8 @@ def expand_literal_variables(raw, cmd, scanned):
     the conditions are the comment's above; `raw` is the command before the
     heredoc bodies were blanked."""
     edits = []
+    if re.search(r"(?<!\w)IFS(?!\w)", raw):
+        return scanned
     for name, spans in assignment_values(cmd).items():
         s, e = spans[0]
         value = LITERAL.fullmatch(cmd, s, e)
