@@ -2,6 +2,57 @@
 
 Generated from the GitHub releases (`gh release list`, `gh release view <tag>`), newest first, one entry per tag with its title and body verbatim. **The release note is canonical**; this file is a convenience copy — regenerate it, never edit it by hand. It exists because "why does this rule exist" is answered by the release that introduced it better than by any other document here.
 
+## v2.23.0 — bot credential through roz-forge — 2026-11-21
+
+<https://github.com/TaikerLiang/roz-gate/releases/tag/v2.23.0>
+
+**Behavior:** in bot mode every forge call and push goes through `bin/roz-forge`, which sets the bot credential in that one child and never in text (operator action: `bot_app_id` and the key file); Path B2's main agent raises a declared rule-moving contract deviation on the spec CR before QA is dispatched; hook rule E reads `$'…'` bodies as mentions and resolves a literal worktree variable; seats never post with `gh pr comment --edit-last`.
+
+### Behavior
+- **Bot-mode forge calls and pushes go through `bin/roz-forge`** (#413, PR #424). Runtime impact: bot mode only (`agent_identity: bot`); user mode is unchanged.
+  - It obtains the credential and sets it in the environment of that one `gh` / `glab` / `git push` child. The token is in no command the agent writes, no tool output, no hook stdin and no transcript.
+  - This reduces credential exposure through the documented path; it is not isolation (the key stays readable by the agent's user, and the child's subprocesses inherit the token).
+  - **A failed mint makes no forge call** and never falls back to the human's `gh` / `glab` login or git credentials. A `gh` / `glab` child runs with an empty CLI config dir (no stored login, even for another `--hostname`), and the push child under an empty `HOME` (no `~/.netrc`) with every stored credential helper and `http.extraHeader` reset; the person's global git config still applies. A refusal is a STOP, never a retry as bare `gh` / `glab`.
+  - **No cache:** a GitHub installation token is minted per call.
+  - **`git push` takes one shape:** `roz-forge git push [-u] origin <branch>`. It keeps upstream tracking and refuses another remote, a refspec, `--force`, an existing `pushurl` or an `insteadOf` rewrite.
+  - **Operator action, bot mode only:** add `bot_app_id: <App ID>` to the config block (GitHub); store the key at `~/.config/roz-gate/<bot_login>.pem` (GitHub) or the token at `~/.config/roz-gate/<bot_login>.token` (GitLab), mode 600, or point `roz-config bot_key <path>` at it.
+- **The main agent raises a declared rule-moving deviation** (#411, PR #419).
+  - `next-stage` Path B2: when the implementation CR's `## Contract deviations` declares a change to what a rule `R<k>` means, the main agent raises the question on the spec CR itself (tagged for the declaring role, `status: in-spec-review`). QA is not dispatched until it is answered.
+  - `spec-answers` §7: an issue whose implementation CR is merged and which has no QA CR yet returns to Path B2 once its threads are answered, instead of being read as post-integration.
+- **Seats never post a CR comment with `gh pr comment --edit-last`** (#408, PR #416). On a real forge the seat posts as the operator, so the flag would overwrite the operator's own last comment. One clause in `references/forge-github.md`; prose only, no hook denies it.
+
+### Hooks
+- **Rule E reads `$'…'`** (#409, PR #415): `S=$'… src/x …' && gh pr comment N --body "$S"`, and an inline `--body $'…'`, is a mention, like the quoted forms of #326/#360. D7/run-3 of the 2026-11-19 sweep was denied for it. `--body-file "$F"` and a variable used outside a body are still reads.
+- **Rule E writes a literal variable out** (#409, PR #415): `W=<the qa/<n> worktree>; cat $W/<port>` resolves to the marker's `read=` path and is allowed (D7/run-2). Only a variable assigned one plain absolute path at the head of the command counts; a reassigned, exported, substituted or conditionally assigned one stays denied. `W=<…>/src; cat $W/x`, allowed until now, is denied.
+
+### Tooling
+- **`bin/roz-forge`** (new; #413, PR #424).
+- **`scripts/gh-app-token.sh` is removed:** it printed the token (PR #424).
+- **`roz-config bot_key <path>`:** a credential-path override, not a loop key (PR #424).
+
+### Evals
+- **`hooks/tests/test_roz_forge.py`** (PR #424), dummy credentials only: the token is absent from argv, output and the parent environment; conflicting ambient credentials are scrubbed; every refusal and mint failure starts no child; the real `git credential fill` / `approve` answers with the bot over stored human helpers and stores nothing; nothing is cached.
+- **`test_guard_gate.py` WrappedForge** (PR #424): every case of rules B, C and G gets the same verdict wrapped; rules A and I give the wrapped write the bare one's verdict.
+- **Lint `L24`** (PR #424): bot mode documents only the non-printing credential path.
+- **The forge stub serves `git/trees/<ref>`** (with `recursive=1`) **and GraphQL `viewer{login}`** (#408, PR #414). A5/2's and D7/2's calls no longer invalidate the iteration.
+- **`pr comment` / `issue comment --edit-last` behaves like gh in the stub** (#408, PR #414). It edits the agent's last comment, errors with `no comments found for current user` when there is none, and honours `--create-if-none`. This fixes D22/1's silent extra comment.
+- **C26, F9, F11 and F13 pin `_acme_httpclient`** (#408, PR #414), a name no package index can hold, instead of `httpclient`, a real PyPI project.
+- **E2 accepts a faithful paraphrase of the relocated question** (#410, PR #417). The item in `spec.md`'s Open Questions and its thread must carry the raising role's tag and name `now` and both options. Folding the question into another item with a pointer still fails. E2 ships a red-proof and leaves the `LEGACY` exemptions (12 left).
+- **C12 and F4 share one licensed-claim test** (#407, PR #418): `licensed_claim_ok` in `replaylib.py`. A `not` / `never` within six words of `verified` in the same sentence is a disclaimer, and markdown emphasis or punctuation inside "green against the pre-rework spec" no longer hides the sentence.
+- **D23 counts a `[qa]` thread as a control-point gap** only when it says "control point" or "port gap" (#407, PR #418).
+- **E9 accepts either raiser of the contract question** (#411, PR #419): QA's `[qa]` thread with a draft QA CR, or the main agent's thread with no QA CR. The red-proofs carry the 2026-11-19 runs' own threads.
+- **Hook tests** for rule E: 13 new cases, red on the previous hook (PR #415).
+- **Prohibitions:** P230 (`prose-only`) for the `--edit-last` clause (PR #416). Rows settled by owner decision: P145 stays `prose-only` (unguarded; #400, PR #421), P028 stays prose (#404, PR #422), and P024's decidable subset is not a rule (#406, PR #423). P143 is re-quoted with class and owner unchanged, and P231 is new (PR #424).
+- **Re-baselines needed:** C26, F9, F11, F13 (PR #414), D2 (PR #415), E2 (PR #417), C12, F4 and D23 (PR #418), E9 (PR #419). The spec-answers cases (C5, E5, E6, E8, E11, E15) keep their fingerprints but now run under changed command text.
+- **Prose caps** (lint `L21`): `TOTAL_CAP` 52,693 → 52,724 (PR #419) → 52,830 (PR #424); `commands/spec-answers.md` 3,454 → 3,485 (PR #419); `commands/init.md` 1,358 → 1,363 (PR #424).
+
+### Docs
+- **`evals/CONTRIBUTING.md` § 7** (#357, PR #420) says where a clean shadow run is recorded (`replay/baselines.json`, the result's `note`), sets a floor of two recorded batches for the exit's N, and states that a new automation may chain only across routing decisions whose inventory row is `authoritative`.
+- **Bot identity** (PR #424): `README.md` § Agent identity, `references/identity-github-app.md`, both adapters' § Identity, the onboarding config builder, quiz Q13.
+
+### Checks
+Hook tests 1885/1885 · lint 1997/1997 · red-proofs 60/60 · ruff · judgment `--check` · ledger `--check` current
+
 ## v2.22.0 — seat dispatches carry their contract — 2026-11-19
 
 <https://github.com/TaikerLiang/roz-gate/releases/tag/v2.22.0>
