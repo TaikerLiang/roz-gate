@@ -1354,3 +1354,74 @@ class RuleK_LoopMergesOnlyBaseOrOwn(HookTest):
         ]:
             with self.case(name):
                 self.assertAllowed(self.bash(cmd, cwd))
+
+
+WRAP = "python3 /opt/roz-gate/bin/roz-forge "
+
+
+def wrapped(cmd):
+    """Every `gh` / `glab` that opens a shell segment, prefixed with roz-forge —
+    the bot-mode form (#413). The `gh` / `glab` word stays in the command."""
+    import re
+    return re.sub(r"(^|&& |\|\| |; |\| )(gh|glab) ", lambda m: m.group(1) + WRAP + m.group(2) + " ",
+                  cmd)
+
+
+class WrappedForge(HookTest):
+    """#413 / #399: a bot-mode forge write goes through `bin/roz-forge`, which
+    keeps the `gh` / `glab` word — dropping it blinded rules B, C and G (#399's
+    scratch probe). Every case of those rules is replayed wrapped, in a bot-mode
+    repo; rules A and I must judge the wrapped write exactly as the bare one."""
+
+    guard = "guard-gate"
+
+    def setUp(self):
+        super().setUp()
+        self.repo = self.new_repo({"CLAUDE.md": "## Development Workflow (Roz Gate)\n\n"
+                                   + config_block(forge="github", agent_identity="bot",
+                                                  bot_login="roz-bot", bot_app_id="1")})
+
+    def test_wrapping_keeps_the_word(self):
+        with self.case("wrapped: the helper prefixes every segment's gh / glab"):
+            self.assertEqual(wrapped('gh issue edit 5 --add-label x && glab issue note 5 -m y'),
+                             WRAP + "gh issue edit 5 --add-label x && " + WRAP
+                             + "glab issue note 5 -m y")
+
+    def test_rules_b_c_g_still_deny(self):
+        for rule in (RuleB_GateLabelsAreHumanOnly, RuleC_MarkerCommentNeverOpensWithAQuote,
+                     RuleG_StopCommentNamesItsResume):
+            tag = rule.__name__.split("_")[0]
+            for name, cmd, says in rule.DENIED:
+                with self.case("wrapped %s: %s" % (tag, name)):
+                    self.assertNotEqual(wrapped(cmd), cmd)
+                    self.assertDenied(self.bash(wrapped(cmd), self.repo), says)
+            for name, cmd in rule.ALLOWED:
+                # The neighbour passes wrapped as it does bare: in the bot repo the
+                # verdict matches (a `pr create` there meets rule H, bare or not),
+                # outside any repo it is an allow.
+                with self.case("wrapped %s: %s" % (tag, name)):
+                    self.assertAllowed(self.bash(wrapped(cmd)))
+                    bare, wrap = self.bash(cmd, self.repo), self.bash(wrapped(cmd), self.repo)
+                    self.assertEqual((wrap.rc, wrap.stderr), (bare.rc, bare.stderr))
+
+    def judged_alike(self, tag, name, cmd, **fx):
+        with self.case("wrapped %s: %s — same verdict as bare" % (tag, name)), self.fixture(**fx):
+            bare = self.bash(cmd, self.repo)
+            wrap = self.bash(wrapped(cmd), self.repo)
+            self.assertEqual((wrap.rc, wrap.stderr), (bare.rc, bare.stderr))
+
+    def test_rules_a_and_i_judge_alike(self):
+        for name, fx, _ in RuleA_IntakeSummaryTrigger.GITHUB:
+            self.judged_alike("A", name, SUMMARY_CMD, gh=fx)
+        self.judged_alike("A", "glab summary", GLAB_SUMMARY_CMD)
+        for name, issue, comments, _ in RuleI_IntakeReplyAnswersAHuman.GITHUB:
+            self.judged_alike("I", name, REPLY_CMD, gh=issue, gh_comments=comments)
+        for notes in ("glab_notes_reply_human.json", "glab_notes_reply_system.json"):
+            self.judged_alike("I", "glab reply, %s" % notes, GLAB_REPLY_CMD,
+                              glab_issue="glab_issue_reply.json", glab_notes=notes)
+        with self.case("wrapped A: an allowed and a denied verdict both occur (not vacuous)"):
+            verdicts = set()
+            for fx in ("gh_summary.json", "gh_no_trigger.json"):
+                with self.fixture(gh=fx):
+                    verdicts.add(self.bash(wrapped(SUMMARY_CMD), self.repo).rc)
+            self.assertEqual(verdicts, {0, 2})

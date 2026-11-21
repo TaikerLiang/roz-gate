@@ -3072,7 +3072,7 @@
     },
     {
       "id": "P143",
-      "rule": "The bot token is passed per invocation, never exported into the session environment",
+      "rule": "The agent never mints, prints or exports the bot token itself — bin/roz-forge sets it in one child per call, never in the session environment",
       "class": "deterministic-candidate",
       "owner": "none yet",
       "evidence": [
@@ -3081,15 +3081,11 @@
       "sources": [
         {
           "file": "references/forge-github.md",
-          "quote": "Never export it into the session environment"
+          "quote": "Never mint, print or export a token yourself"
         },
         {
           "file": "references/forge-gitlab.md",
-          "quote": "Never export it into the session environment"
-        },
-        {
-          "file": "references/identity-github-app.md",
-          "quote": "(per invocation — never exported"
+          "quote": "Never read, print or export the token yourself"
         },
         {
           "file": "references/identity-github-app.md",
@@ -4561,6 +4557,24 @@
         {
           "file": "references/forge-github.md",
           "quote": "never `--edit-last`"
+        }
+      ]
+    },
+    {
+      "id": "P231",
+      "rule": "A roz-forge refusal (exit 2, no forge call made) is a STOP, never retried as a bare gh / glab call",
+      "class": "prose-only",
+      "owner": "prose",
+      "evidence": [],
+      "reason": "unguarded — a replay case in bot mode: a forced mint failure, then no bare gh / glab write in the run",
+      "sources": [
+        {
+          "file": "references/forge-github.md",
+          "quote": "never a retry as bare `gh`"
+        },
+        {
+          "file": "references/forge-gitlab.md",
+          "quote": "never a retry as bare `glab`"
         }
       ]
     }

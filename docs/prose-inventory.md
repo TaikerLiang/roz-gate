@@ -285,6 +285,7 @@ a single rule and has its own row above.
 | L20 | `next-stage`'s own lint — the route table names one path file per row, every step id is a heading in exactly one file, the hand-off instruction is present (#279) |
 | L21 | rules about the prose itself — the repo's runtime prose total and each command file's word count stay within their caps (#278) |
 | L23 | the prohibition audit's own lint — `docs/prohibitions.json` held to the runtime prose, one quote per clause (#380) |
+| L24 | rules about the documentation itself — bot mode documents only `bin/roz-forge`, never a credential-in-text form (#413); the credential handling is `test_roz_forge.py`'s |
 | D27 | rule E's own wiring lint — the dispatch's `Implementation:` line is rendered by the reader the hook enforces from (`hooks/implementation_dirs.py`, #281); the behaviour is the hook tests' |
 | D21 | the dispatch steps' own lint — a step that enumerates a dispatch's contents names the seat's R&R row (#294) |
 | J2 | Judgment V1's own lint — the corpus is approved and leak-free, and the scorer reproduces hand-computed numbers (#258) |
@@ -392,17 +393,17 @@ at all are listed under *Unguarded executable prose*, by section — a
 different unit, kept apart.
 
 <!-- prohibitions -->
-Scope: `agents/`, `commands/`, `references/`, `templates/` — 36 files, 524 prohibition words, each inside one quote. A quote belongs to one row, or — one word, two rules — to several, each naming its clause.
+Scope: `agents/`, `commands/`, `references/`, `templates/` — 36 files, 525 prohibition words, each inside one quote. A quote belongs to one row, or — one word, two rules — to several, each naming its clause.
 
 | class | rules | sources |
 |---|---|---|
 | `hooked` | 8 | 19 |
-| `deterministic-candidate` | 12 | 34 |
+| `deterministic-candidate` | 11 | 31 |
 | `guarded-by-case` | 72 | 159 |
-| `prose-only` | 126 | 162 |
+| `prose-only` | 128 | 166 |
 | `not-a-rule` (reasons) | 12 | 155 |
 
-Of the `prose-only` rules, **76 are `unguarded`** — not semantic, and nothing enforces them yet.
+Of the `prose-only` rules, **78 are `unguarded`** — not semantic, and nothing enforces them yet.
 
 | id | rule | stated in | class | owner | evidence / reason |
 |---|---|---|---|---|---|
@@ -537,7 +538,7 @@ Of the `prose-only` rules, **76 are `unguarded`** — not semantic, and nothing 
 | P140 | The commit sub-agent never widens the file list to make a hook pass | `references/commit-brief.md` | `prose-only` | prose | unguarded — the same replay case: the staged set never grows beyond the dispatched list |
 | P141 | The commit sub-agent never `--no-verify`s a failure that names a file in its list | `references/commit-brief.md` | `prose-only` | prose | unguarded — a replay case whose hook fails on a listed file: no `--no-verify` commit follows |
 | P142 | A `gh` call never passes `--repo` — the repository is the current directory's remote | `references/forge-github.md` | `prose-only` | prose | unguarded — a lint or replay assertion that no forge call in a run carries `--repo` |
-| P143 | The bot token is passed per invocation, never exported into the session environment | `references/forge-github.md` · `references/forge-gitlab.md` · `references/identity-github-app.md` | `deterministic-candidate` | none yet | #399 |
+| P143 | The agent never mints, prints or exports the bot token itself — bin/roz-forge sets it in one child per call, never in the session environment | `references/forge-github.md` · `references/forge-gitlab.md` · `references/identity-github-app.md` | `deterministic-candidate` | none yet | #399 |
 | P144 | In bot mode an issue is never created without an assignee — a bot-authored issue is never born holder-less | `references/forge-github.md` · `references/forge-gitlab.md` | `deterministic-candidate` | none yet | #402 |
 | P145 | The bot's git identity is given per command, never written into the repository's git config | `references/forge-github.md` · `references/forge-gitlab.md` | `prose-only` | prose | unguarded — a bot-mode replay case asserting the clone's git config holds no `user.name` / `user.email` after a commit point (no replay case runs in bot mode; #400: a deny on `git config user.*` would miss a file edit of `.git/config` and `--global`, and no such write is on record) |
 | P146 | A failed blockers read is a failed read, never "no blockers" | `references/forge-github.md` · `references/forge-gitlab.md` · `references/workflow.md` · `references/roz-state.md` | `guarded-by-case` | references/patrol-scan.md | F15 |
@@ -624,6 +625,7 @@ Of the `prose-only` rules, **76 are `unguarded`** — not semantic, and nothing 
 | P228 | An agent never force-pushes a remote branch — every remote write a command makes is additive | `references/branch-names.md` · `references/workflow.md` (“force-pushes”) · `references/next-stage-path-c.md` (“force-pushes”) · `references/next-stage-path-a.md` (“force-pushes”) | `deterministic-candidate` | none yet | #394 |
 | P229 | The config command never edits `CLAUDE.md` or `CLAUDE.local.md` itself | `commands/config.md` (“`CLAUDE.md` or `CLAUDE.local.md`”) | `prose-only` | prose | unguarded — a replay case on `/roz-gate:config` setting a key: neither file changes — not a deterministic candidate today: the predicate is which command is writing, not which path is written (`init` writes `CLAUDE.md` legitimately), and no tool call or local state carries a trustworthy command identity. It becomes one if the architecture introduces a command-context / capability boundary |
 | P230 | A seat never posts a CR comment with `gh pr comment --edit-last` — it would overwrite the operator's own last comment | `references/forge-github.md` | `prose-only` | prose | unguarded — a hook deny on `--edit-last` in a `gh pr comment` call — the predicate is decidable from one call's input; the maintainer ruled prose, no hook (#408, 2026-11-20). The forge stub implements `--edit-last` as gh does, so a run that uses it is scored on what gh would have done |
+| P231 | A roz-forge refusal (exit 2, no forge call made) is a STOP, never retried as a bare gh / glab call | `references/forge-github.md` · `references/forge-gitlab.md` | `prose-only` | prose | unguarded — a replay case in bot mode: a forced mint failure, then no bare gh / glab write in the run |
 
 **Not a rule** — a prohibition word that forbids an agent nothing. One row per reason; every fragment is listed, none is matched by pattern.
 

@@ -349,18 +349,21 @@ hook-enforced.
 
 Setup is a one-time human task (the plugin never creates credentials):
 follow [`references/identity-github-app.md`](references/identity-github-app.md),
-then add three keys to the config block:
+then add these keys to the config block:
 
 ```
 - agent_identity: bot
 - bot_login: your-bot            # app slug / project-bot username
+- bot_app_id: 123456             # GitHub only — the App ID
 - operator: your-forge-login     # default assignee for bot-created issues
 ```
 
-On GitHub, the agent mints its short-lived installation token per call with
-the bundled [`scripts/gh-app-token.sh`](scripts/gh-app-token.sh); GitLab's
-project token needs no helper. Keys absent = user mode, unchanged — no App,
-no helper.
+Every bot-mode forge call and push goes through `bin/roz-forge`, which mints
+the GitHub installation token per call (or reads the GitLab token file) and
+sets it in that one `gh` / `glab` / `git push`: the token is in no command
+the agent writes, no output it reads and no transcript. That reduces the
+credential's exposure on the documented path; it is not isolation (the key
+file is readable by your user). Keys absent = user mode, unchanged.
 
 ## Per-project configuration
 
@@ -384,6 +387,7 @@ checkout and in the main worktree:
 - trace_marker: <marker syntax>   # optional — scenario-trace marker on tests; absent = qa declares one
 - agent_identity: bot            # optional — see "Agent identity"; absent = user
 - bot_login: <bot username>      # optional
+- bot_app_id: <GitHub App ID>    # optional — bot mode on GitHub
 - operator: <your forge login>   # optional
 - fix_rounds: 3                   # optional — fix-and-rerun rounds at (6) and in a (7) hand-back; absent = 3, 0 = every red stops
 ```
@@ -534,13 +538,12 @@ Retirement is two steps, **in this order**:
 | `commands/` | the entry points (`/roz-gate:*`) | Claude Code, then the agent | invocation |
 | `references/` | protocol docs, seat briefs, forge adapters | the agent, when a command names the file (`next-stage` reads only its routed path's, `references/next-stage-path-*.md`) | runtime |
 | `agents/` | the built-in personas (product, em, qa, reviewer) — referenced, never copied | the agent, at dispatch | dispatch |
-| `bin/` | the loop's stdlib Python tools — `roz-config`, `roz-branch`, `roz-state`, `roz-check`, `roz-persona` | the agent, through a shell call | runtime |
+| `bin/` | the loop's stdlib Python tools — `roz-config`, `roz-branch`, `roz-state`, `roz-check`, `roz-persona`, `roz-forge` (bot mode) | the agent, through a shell call | runtime |
 | `templates/` | target-repo scaffolding, instantiated by `init` and removed by `uninit` | the target repo | install time |
 | `hooks/` | deterministic enforcement, the `/roz-gate:config` mod and the seat pane (one entry, `hooks/mods.tsx`), and their tests ([hooks/README.md](hooks/README.md)) | the machine, before a tool runs or a command answers | tool time |
 | `evals/` | the eval ledger — lint, replay, judgment ([evals/README.md](evals/README.md)) | developers of the plugin | dev time; lint on pre-push and CI |
 | `.githooks/` | this repo's own gates (thin entry points) | git, on commit and push | commit / push |
 | `docs/` | human-facing pages (roadmap, site) | humans | never loaded by the agent |
-| `scripts/` | target-repo/operator-facing runtime utilities (e.g. the GitHub App token helper) | operators, at runtime | on demand |
 | `tools/` | dev-only tooling for this repo (naming check, dev setup, changelog) — never used at plugin runtime | developers of the plugin | dev time; pre-commit and CI |
 | `.claude-plugin/` | the manifest (name, version) | Claude Code | install |
 
