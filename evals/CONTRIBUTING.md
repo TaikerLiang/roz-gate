@@ -386,7 +386,8 @@ with zero mismatches — and **N is at least 2**.
 **What `authoritative` licenses** (#357). A new automation that chains loop
 actions with no human between them may chain only across routing decisions
 whose `docs/prose-inventory.md` row is `authoritative` — by this exit, or a
-hook rule's from the day it lands. A `shadow` row, a row below it and a
+hook rule's from the day it lands — or past it, `migrated`: deleting the
+redundant prose revokes nothing. A `shadow` row, a row below it and a
 decision with no row are a model's reading: the scanner's `verdict` column
 is one today. A human gate is no routing decision; it stays the human's.
 `/roz-gate:patrol` as shipped is unchanged by this rule.
