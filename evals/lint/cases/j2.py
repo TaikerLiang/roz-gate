@@ -124,7 +124,8 @@ with tempfile.TemporaryDirectory() as _d:
 # approval is a state the repository records honestly, never a defect of
 # the corpus: an unapproved item validates and is scored by the red-proof,
 # and no model call — SUT or judge — may be spent on it.
-_un = {k: dict(v, approved_by=None, approved_on=None) for k, v in _items.items()}
+_un = {k: dict(v, approved_by=None, approved_on=None, approved_ref=None, approved_fp=None)
+       for k, v in _items.items()}
 try:
     _ok = (not run_v1.check(_un, _actions)
            and sorted(run_v1.unapproved(_un)) == sorted(_un)
@@ -241,7 +242,7 @@ c.expect("pattern", "J2: the review fingerprint is 16 hex over the record and th
 # result identity is a separate thing and does not move: a result is still
 # filed under the hash it had before the two evidence fields existed, and
 # editing the approval trail alone neither moves it nor changes the gold
-_legacy = {k: v for k, v in _qa.items() if k not in ("_file", "approved_ref", "approved_fp")}
+_legacy = {k: v for k, v in _draft.items() if k not in ("_file", "approved_ref", "approved_fp")}
 c.expect("pattern", "J2: the evidence fields leave an item's result identity where it was",
          run_v1.item_hash(_draft) == run_v1.sha(json.dumps(_legacy, sort_keys=True))
          and "approved_ref" in _qa)
