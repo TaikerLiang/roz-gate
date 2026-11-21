@@ -23,7 +23,8 @@ Where the credential comes from:
 Fails closed: a refusal or a failed mint exits 2 and starts no child — no
 fallback to the human's `gh` / `glab` login or git credentials. Ambient
 credentials (`GITHUB_TOKEN`, `GITLAB_ACCESS_TOKEN`, `GIT_ASKPASS`,
-env-injected git config, `~/.netrc`, …) are removed from the child. `git push` keeps
+env-injected git config, `~/.netrc`, the CLI's stored login, …) are removed
+from the child. `git push` keeps
 `origin`'s semantics (upstream, tracking refs): the token-free HTTPS URL goes
 in as `remote.origin.pushurl`, and a one-shot credential helper reads the
 token from the git child's environment after every stored helper is reset.
@@ -290,9 +291,15 @@ def main(argv):
     except Refused as e:
         sys.stderr.write("roz-forge: %s — no forge call made\n" % e)
         return 2
-    extra = {"GH_TOKEN": token, "GH_HOST": GITHUB_HOST, "GH_PROMPT_DISABLED": "1"} if kind == "gh" \
-        else {"GITLAB_TOKEN": token, "GITLAB_HOST": host}
-    return subprocess.run([kind, *rest], env=child_env(extra)).returncode
+    # The child's CLI config is an empty directory: no stored login (hosts.yml,
+    # the keyring entry it names, glab's config.yml) can answer — not even for a
+    # request a flag sends to another host (`gh api --hostname`, a host-qualified
+    # `--repo`), which the injected token does not cover (codex review, PR #424).
+    with tempfile.TemporaryDirectory(prefix="roz-forge-cli-") as conf:
+        extra = {"GH_TOKEN": token, "GH_HOST": GITHUB_HOST, "GH_PROMPT_DISABLED": "1",
+                 "GH_CONFIG_DIR": conf} if kind == "gh" \
+            else {"GITLAB_TOKEN": token, "GITLAB_HOST": host, "GLAB_CONFIG_DIR": conf}
+        return subprocess.run([kind, *rest], env=child_env(extra)).returncode
 
 
 if __name__ == "__main__":

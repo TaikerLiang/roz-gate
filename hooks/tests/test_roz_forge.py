@@ -37,10 +37,14 @@ sys.exit(rc)
 FAKE = r"""#!%s
 import json, os, sys
 with open(os.environ["FAKE_LOG"], "a") as f:
+    conf = os.environ.get("GH_CONFIG_DIR") or os.environ.get("GLAB_CONFIG_DIR") or ""
     f.write(json.dumps({"argv": [os.path.basename(sys.argv[0])] + sys.argv[1:],
-                        "env": dict(os.environ)}) + "\n")
+                        "env": dict(os.environ),
+                        "conf": sorted(os.listdir(conf)) if os.path.isdir(conf) else None}) + "\n")
 print("fake %%s ran" %% os.path.basename(sys.argv[0]))
 """
+# a person's stored CLI logins, which no child may read
+STORED = {"GH_CONFIG_DIR": "/human/gh", "GLAB_CONFIG_DIR": "/human/glab"}
 # git: the tool's own reads run the real git; only `push` is faked.
 FAKE_GIT = r"""#!%s
 import json, os, sys
@@ -134,7 +138,7 @@ class ForgeTest(unittest.TestCase):
         full = dict(os.environ, HOME=str(self.home), FAKE_LOG=str(self.log),
                     PATH="%s:%s" % (self.bin, os.environ["PATH"]),
                     GIT_CONFIG_GLOBAL=str(self.tmp / "no-global"), GIT_CONFIG_NOSYSTEM="1",
-                    **DIRTY)
+                    **DIRTY, **STORED)
         full.update(env or {})
         p = subprocess.run([sys.executable, "-c", RUNNER, str(TOOL),
                             "http://127.0.0.1:%d" % self.server.server_port, str(after), *args],
@@ -171,6 +175,12 @@ class ArgvAndEnv(ForgeTest):
             self.assertEqual(env["GH_HOST"], "github.com")
             self.assertEqual(env["GH_PROMPT_DISABLED"], "1")
             self.assertNotIn(HUMAN, json.dumps(env))
+        with self.subTest("roz-forge gh: the child's gh config is a fresh directory — no stored "
+                          "login answers, even for another --hostname (codex review, PR #424)"):
+            self.assertNotEqual(env["GH_CONFIG_DIR"], STORED["GH_CONFIG_DIR"])
+            self.assertTrue(os.path.basename(env["GH_CONFIG_DIR"]).startswith("roz-forge-cli-"))
+            self.assertEqual(child["conf"], [], "an existing, empty directory while gh runs")
+            self.assertFalse(os.path.exists(env["GH_CONFIG_DIR"]), "removed after the call")
         with self.subTest("roz-forge gh: the token is in no argv, no tool output, no parent env"):
             self.assertNotIn(TOKEN, json.dumps(child["argv"]))
             self.assertNotIn(TOKEN, p.stdout.replace("fake gh ran", "") + p.stderr)
@@ -214,6 +224,10 @@ class ArgvAndEnv(ForgeTest):
             (child,) = self.children()
             self.assertEqual(child["env"]["GITLAB_TOKEN"], "glpat-dummy0123")
             self.assertEqual(child["env"]["GITLAB_HOST"], "gitlab.example.com")
+        with self.subTest("roz-forge glab: the child's glab config is a fresh directory"):
+            self.assertNotEqual(child["env"]["GLAB_CONFIG_DIR"], STORED["GLAB_CONFIG_DIR"])
+            self.assertTrue(os.path.basename(child["env"]["GLAB_CONFIG_DIR"])
+                            .startswith("roz-forge-cli-"))
         with self.subTest("roz-forge glab: ambient GitLab credentials are scrubbed, no mint call"):
             for k in ("GITLAB_ACCESS_TOKEN", "OAUTH_TOKEN", "GL_HOST"):
                 self.assertNotIn(k, child["env"])
