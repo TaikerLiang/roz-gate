@@ -365,13 +365,32 @@ prose Lookup is deleted — when all three hold (#239 § coverage + stability):
    autopsy (collector defect, fixture defect, prose defect, or a genuinely
    ambiguous rule, each fixed or filed);
 3. no mismatch across N consecutive recorded runs — N is set in the plan
-   that performs the switch; it is a stability guard, not the definition of
-   correctness.
+   that performs the switch, never below the floor under *Counting the
+   runs*; it is a stability guard, not the definition of correctness.
 
 Until then a mismatch is information, and the prose stays authoritative.
 Each replacement's lifecycle (`identified → ready → shadow → authoritative
 → migrated`) is a row in `docs/prose-inventory.md` (#260); move the row in
 the same PR that moves the rule.
+
+**Counting the runs** (#357). A run is one valid iteration of a case that
+carries the signal. It is **recorded** when its batch is in
+`replay/baselines.json` (§ 5) and that batch's result for the case states
+the signal's count in its `note` — `shadow_check_mismatch 0/3` — with the
+issue or PR of each mismatch's autopsy beside it: a count that stays in the
+operator's report dir is evidence nobody else can read. A result or a batch
+marked `superseded` counts for nothing. N is counted in batches — the
+latest N that ran every case carrying the signal, at k=3 or more, each
+with zero mismatches — and **N is at least 2**.
+
+**What `authoritative` licenses** (#357). A new automation that chains loop
+actions with no human between them may chain only across routing decisions
+whose `docs/prose-inventory.md` row is `authoritative` — by this exit, or a
+hook rule's from the day it lands — or past it, `migrated`: deleting the
+redundant prose revokes nothing. A `shadow` row, a row below it and a
+decision with no row are a model's reading: the scanner's `verdict` column
+is one today. A human gate is no routing decision; it stays the human's.
+`/roz-gate:patrol` as shipped is unchanged by this rule.
 
 ## 8. Kernel rules
 
