@@ -331,9 +331,10 @@ the run, L22, D25 and D26, the `init` cap 1351 → 1358).
 
 ## Project memory — a learning-system proposal (2026-11-27)
 
-**Design in progress, not a release commitment.** Seven rounds of
-requirements discussion settled the behavior below; storage and runtime
-choices remain open. The motivating failure is not another missing rule:
+**Requirements and architecture direction settled on 2026-11-28; not a
+release commitment.** Eight rounds of discussion and final technology
+choices established the design below; detailed implementation contracts
+remain open. The motivating failure is not another missing rule:
 the agent can finish a ticket, yet the next ticket starts without the
 experience that the previous one paid to acquire. The first success
 criteria are fewer repeated human questions and fewer repeated errors.
@@ -362,8 +363,10 @@ criteria are fewer repeated human questions and fewer repeated errors.
   store; a zero-candidate outcome is valid but collection completion is
   recorded. Unfinished tickets do not publish formal memories.
 - A ticket can close once valuable findings are durably collected; it
-  need not wait for the scheduled acquisition. The exact closure check
-  (including how to detect missing valuable findings) is still open.
+  need not wait for the scheduled acquisition. The closure check must
+  account for every accepted reviewer finding: a stored candidate or an
+  explicit reason for exclusion. Collection completeness beyond those
+  findings remains an eval concern.
 - On a fixed schedule, a dedicated memory agent works on a copy of the
   existing snapshot plus pending candidates from completed tickets.
   Integrate, deduplicate, resolve conflicts and reassess affected entries;
@@ -376,16 +379,18 @@ criteria are fewer repeated human questions and fewer repeated errors.
   within a bound; reject the whole draft on exhaustion. Proposed
   publication contract: readers see either the old or the new validated
   snapshot, never a partially updated one; failed publication preserves
-  the old snapshot and pending input. Coordinate writers to prevent lost
-  updates (mechanism TBD).
-- Bootstrap from all historical tickets once; batching, eligibility
-  handling and publication strategy remain to be designed.
+  the old snapshot and pending input. Enforce one snapshot writer per project, across acquisition,
+  consolidation and administrative mutations; the locking mechanism is TBD.
+- Bootstrap once across all historical tickets in a single logical run;
+  publish only after validation and regression gates. Internal batching,
+  resource limits and restart/checkpoint mechanics remain implementation details.
 
 ### Recall and lifecycle
 
 - Pin one snapshot at ticket start. At each stage, the role searches
   independently using ticket title/body, role, stage, affected
-  components/files, semantic relevance and evidence trust. Return an
+  components/files, keyword relevance and evidence trust. Agent judgment
+  supplies semantic interpretation; no embedding model is required. Return an
   index or summaries first, then read selected entries as needed, with
   a cumulative cap of N full entries per stage. Prefer facts over
   inferences. Do not inject original evidence by default; retain its
@@ -405,8 +410,10 @@ criteria are fewer repeated human questions and fewer repeated errors.
   latest snapshot only (not a permanent erasure across history).
   Keep strictly the latest N snapshots. An emergency rollback pauses
   affected in-flight tickets; switching their pinned snapshot is allowed
-  only if it is invalid or withdrawn. Project-level opt-out disables
-  the memory subsystem.
+  only if it is invalid, withdrawn or unavailable after retention cleanup.
+  In that case switch to a valid snapshot and rerun affected stages;
+  never silently mix versions. Project-level opt-out disables the memory
+  subsystem.
 
 ### Evaluation and acceptance
 
@@ -417,10 +424,10 @@ retrieval quality (human gold cases and historical ticket cases). Cover
 irrelevant, stale, incorrect, contradictory and rule-conflicting
 memories, prompt injection, and unavailable retrieval/snapshots. Reuse
 the existing repeated-run/statistical approach. Ordinary replay uses
-the latest published snapshot; the proposed pre-publication regression
-gate must exercise the draft being considered. Production memory is
-read-only during eval; how collection/acquisition tests produce isolated
-artifacts remains open.
+the latest published snapshot; the pre-publication regression gate evaluates both the active and draft
+snapshots. Production memory is read-only during eval; collection and
+acquisition tests may create temporary artifacts in a fully isolated
+sandbox, never publish to production or enqueue production candidates.
 
 Track repeated questions, repeated errors (deterministic classification
 plus semantic root-cause judgment), and review iterations over real
@@ -431,32 +438,68 @@ improvement alone does not establish causation. Claimed memory usage is
 a trace, not proof that memory caused an outcome. Keep held-out evaluation
 answers out of acquisition and bootstrap inputs.
 
+### Architecture decisions (settled 2026-11-28)
+
+- Local-first, single-machine v1. Store project data outside the repository
+  in the roz-gate runtime data directory. Implement memory as an independent
+  internal module with a boundary suitable for later extraction; cross-machine
+  and multi-user synchronization are deferred.
+- SQLite is the sole authoritative storage engine. Use one database with
+  snapshot IDs rather than one database per version. Persist candidates,
+  atomic memories, evidence/derivation links, snapshots, index and traces.
+  Use transactional publication of the active snapshot; a logical working
+  copy need not physically duplicate all rows. Exact schema, migrations,
+  locking and export format remain implementation decisions.
+- Keyword search plus metadata filtering, with no embedding model or
+  vector database. The memory agent generates a hierarchical categorized
+  navigation index per snapshot; keyword search remains independent of
+  that hierarchy. Validate index references deterministically.
+- CLI is the operation interface for agents and humans. Provide separate
+  acquisition and consolidation commands sharing core implementation.
+  A dedicated background memory service executes learning work; scheduling
+  is external to the core and invokes the standalone CLI commands on fixed
+  schedules. The scheduler product and service lifecycle are not prescribed.
+- Single snapshot writer per project. Readers use their pinned snapshot;
+  publishing must not expose partial changes. Candidate collection and
+  usage tracing must remain safe while a draft is being prepared.
+
 ### Open design questions and known trade-offs
 
-- Storage format, location, cross-machine sharing, search/index and
-  embedding dependencies, CLI/API, scheduler and agent runtime;
-  acquisition/consolidation coordination, bootstrap sequencing, snapshot
-  and retrieval limits, and module boundary. No vector database or
-  external service has been committed to.
+- Specify schema and migrations, runtime directory/project identity,
+  CLI contract, background service lifecycle, external scheduler setup,
+  lock/recovery mechanics, snapshot and retrieval limits, and bootstrap
+  resource management. No external database service is needed.
 - Strict N-version retention can remove a pinned snapshot before a ticket
-  finishes; recovery behavior is TBD. Removal from the latest version
-  can be undone by rollback; cross-history secret purging is unresolved.
-- Prompt-only collection/retrieval can be skipped by the agent. How to
-  enforce closure completeness and distinguish a legitimate empty
-  collection from an omitted one remains open.
+  finishes; the chosen recovery is to switch and rerun affected stages.
+  Define how affected stages are identified and interrupted safely. Removal
+  from the latest version can be undone by rollback; cross-history secret
+  purging is unresolved.
+- Prompt-only collection/retrieval can be skipped by the agent. The closure
+  check now requires accepted reviewer findings to be accounted for; exact
+  enforcement and completeness for other evidence sources remain open.
 - Conflict resolution by an LLM can be inconsistent; older evidence
   acquired later must not be confused with a newer project decision.
   The precise conflict policy is not yet settled. Authority conflicts
   deliberately stop the workflow but stale memory may increase human
   intervention.
-- Define isolated test-write semantics, draft regression execution and
-  failure/retry budgets before implementation.
+- Define sandbox mechanics, active-versus-draft regression thresholds,
+  failure/retry budgets and metric baselines before implementation.
 
-Proposed sequence (not yet approved): design contracts and eval
-criteria; candidate/store/snapshot foundation; collection and acquisition;
-retrieval and role integration; governance and regression publication
-gate; historical bootstrap; longitudinal measurement. Add tests with
-each increment. Memory remains a reference-client capability proposal,
+Implementation direction: storage and data model first. Proposed
+milestones (individual scope and acceptance contracts to be specified):
+
+1. Architecture contracts, SQLite schema and storage/snapshot foundation.
+2. Candidate collection and closure accounting.
+3. Acquisition, validation and transactional publication.
+4. Retrieval, hierarchical index and independent keyword search.
+5. Role integration, snapshot pinning/recovery and project opt-out.
+6. Consolidation, retention, inspection, diff, removal and rollback.
+7. Memory eval suite and active/draft regression publication gate.
+8. Background service, external scheduling and historical bootstrap.
+9. Longitudinal effectiveness measurement.
+
+Add tests with each increment; run historical bootstrap only after the
+publication gate is ready. Memory remains a reference-client capability proposal,
 not a change to the forge wire protocol unless separately agreed.
 
 
